@@ -10,7 +10,7 @@ function showFloatingAlert(message, type = 'success', delayMs = 2500) {
         const box = document.querySelector('.box-alert-messages .box-message');
         if (box && box.parentElement) {
             box.parentElement.style.display = 'block';
-            box.classList.remove('success','warning','error','light');
+            box.classList.remove('success', 'warning', 'error', 'light');
             box.classList.add('light');
             box.innerHTML = message;
             setTimeout(() => {
@@ -20,7 +20,7 @@ function showFloatingAlert(message, type = 'success', delayMs = 2500) {
             return;
         }
     } catch (e) { /* no-op */ }
-    try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
+    try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch (e) { }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return u;
         }
         if (u.startsWith(appUrl)) return u;
-        return `${appUrl}/${u.replace(/^\//,'')}`;
+        return `${appUrl}/${u.replace(/^\//, '')}`;
     }
 
     // Current filter selections
@@ -162,6 +162,8 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             success: function (data) {
                 renderEmployees(data.data);
+                console.log(data.data);
+
             },
             error: function () {
                 tableBody.innerHTML =
@@ -200,6 +202,29 @@ document.addEventListener("DOMContentLoaded", function () {
             else if (status === 'RESIGN') statusClass = 'status-RESIGN';
             else if (status === 'CANDIDATE') statusClass = 'status-CANDIDATE';
 
+            let contractDisplay = '-';
+            const hireDateDisplay = employee.hire_date;
+
+            if (employee.contract_end_date) {
+                const cDate = new Date(employee.contract_end_date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                cDate.setHours(0, 0, 0, 0);
+                const msPerDay = 1000 * 60 * 60 * 24;
+                const dayDiff = Math.floor((cDate - today) / msPerDay);
+                const formatted = employee.contract_end_date;
+
+                if (isNaN(dayDiff)) {
+                    contractDisplay = formatted;
+                } else {
+                    if (dayDiff <= 30) {
+                        contractDisplay = `<span class="bg-danger text-white rounded px-2 py-1">${formatted}</span>`;
+                    } else {
+                        contractDisplay = formatted;
+                    }
+                }
+            }
+
             rows += `
                 <tr data-id="${employee.id}">
                     <td>
@@ -211,6 +236,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             </div>
                         </div>
                     </td>
+                    <td>${employee.hire_date}</td>
+                    <td>${contractDisplay}</td>
                     <td>${departmentName}</td>
                     <td>${divisionName}</td>
                     <td>${office}</td>
@@ -255,12 +282,12 @@ document.addEventListener("DOMContentLoaded", function () {
             dataType: "json",
             success: function (employee) {
                 // Populate modal fields
-              let photoUrl = employee.profile_picture_url || employee.profile_picture || null;
-              const fallbackAvatarDel = `${appUrl}/asset/img/avatar.png`;
-              if (!photoUrl || String(photoUrl).toLowerCase() === 'null' || String(photoUrl).toLowerCase() === 'undefined') photoUrl = fallbackAvatarDel;
-              else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
-                  photoUrl = `${appUrl}/${photoUrl.replace(/^\//,'')}`;
-              }
+                let photoUrl = employee.profile_picture_url || employee.profile_picture || null;
+                const fallbackAvatarDel = `${appUrl}/asset/img/avatar.png`;
+                if (!photoUrl || String(photoUrl).toLowerCase() === 'null' || String(photoUrl).toLowerCase() === 'undefined') photoUrl = fallbackAvatarDel;
+                else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
+                    photoUrl = `${appUrl}/${photoUrl.replace(/^\//, '')}`;
+                }
 
                 $(".delete-employee-photo").css({
                     "background-image": `url(${photoUrl})`,
@@ -322,7 +349,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Hide modal
                 deleteEmployeeModal.hide();
                 // Reload page to reflect changes
-                setTimeout(function(){ location.reload(); }, 1200);
+                setTimeout(function () { location.reload(); }, 1200);
             },
             error: function () {
                 loaderOverlay.classList.add("d-none");
@@ -337,7 +364,7 @@ document.addEventListener("DOMContentLoaded", function () {
     );
     const employeeDetailModal = new bootstrap.Modal(employeeDetailModalEl);
 
-$(document).on("click", ".btn-detail", function () {
+    $(document).on("click", ".btn-detail", function () {
         const id = $(this).data("id");
 
         // Check localStorage for updated photo for this employee (only for modal detail)
@@ -410,10 +437,10 @@ $(document).on("click", ".btn-detail", function () {
 
 
                 // Use updated photo if available, else use employee.photo
-            // Detail modal harus menggunakan foto internal (employee.photo) saja agar perubahan dari halaman profile (profile_picture) tidak mempengaruhi.
-            let photoUrl = normalizeImageUrl(updatedPhoto || employee.photo || null);
+                // Detail modal harus menggunakan foto internal (employee.photo) saja agar perubahan dari halaman profile (profile_picture) tidak mempengaruhi.
+                let photoUrl = normalizeImageUrl(updatedPhoto || employee.photo || null);
 
-            $("#detailPhoto").attr("src", photoUrl);
+                $("#detailPhoto").attr("src", photoUrl);
 
                 employeeDetailModal.show();
             },
@@ -473,7 +500,7 @@ $(document).on("click", ".btn-detail", function () {
     loadDepartments();
     fetchEmployees();
 
-    window.addEventListener('profilePictureUpdated', function(){
+    window.addEventListener('profilePictureUpdated', function () {
         // Refresh table so current user's universal avatar updates immediately.
         fetchEmployees(currentFilters);
     });

@@ -124,6 +124,8 @@ class EmployeeController extends Controller
 
             $employees->transform(function ($employee) {
                 $employee->user_photo = $employee->user && $employee->user->photo ? asset($employee->user->photo) : null;
+                $employee->hire_date = $employee->hire_date ? Carbon::parse($employee->hire_date)->toDateString() : null;
+                $employee->contract_end_date = $employee->contract_end_date ? Carbon::parse($employee->contract_end_date)->toDateString() : null;
                 $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
                 $employee->first_name = $employee->first_name;
                 $employee->last_name = $employee->last_name;
