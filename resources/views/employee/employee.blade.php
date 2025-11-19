@@ -84,14 +84,14 @@
                 <table class="table table-borderless align-middle table-transparent">
                     <thead>
                         <tr>
-                            <th scope="col">Employee</th>
-                            <th scope="col">Hire Date</th>
-                            <th scope="col">Contratc Date</th>
-                            <th scope="col">Department Name</th>
-                            <th scope="col">Division Name</th>
-                            <th scope="col">Office</th>
-                            <th scope="col">Status</th>
-                            <th scope="col"></th>
+                            <th scope="col" style="text-align: left;">Employee</th>
+                            <th scope="col" style="text-align: left;">Hire Date</th>
+                            <th scope="col" style="text-align: left;">Contract Date</th>
+                            <th scope="col" style="text-align: left;">Department Name</th>
+                            <th scope="col" style="text-align: left;">Division Name</th>
+                            <th scope="col" style="text-align: left;">Office</th>
+                            <th scope="col" style="text-align: center;">Status</th>
+                            <th scope="col" style="text-align: right;"></th>
                         </tr>
                     </thead>
                     <tbody id="employeeTableBody">

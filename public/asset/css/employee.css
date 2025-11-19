@@ -147,18 +147,47 @@
     object-fit: cover;
     object-position: center center;
     background: #f7f7f7;
+    flex-shrink: 0;
+}
+
+/* Employee info column - prevent text overflow */
+table.table td:first-child > div {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+}
+
+table.table td:first-child > div > div {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+table.table td:first-child .fw-semibold {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+table.table td:first-child div[style*="color: #6c757d"] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 table.table thead tr th:first-child {
-    width: 80px;
+    width: 220px;
+    min-width: 220px;
     padding-left: 12px;
-    padding-right: 32px;
+    padding-right: 12px;
 }
 
 table.table tbody tr td:first-child {
     padding-left: 12px;
-    padding-right: 32px;
-    width: 80px;
+    padding-right: 12px;
+    width: 220px;
+    min-width: 220px;
 }
 
 .image-clear-btn {
@@ -305,12 +334,40 @@ table.table tbody tr td:first-child {
 .status-badge {
     color: white;
     font-weight: 600;
-    padding: 3px 8px;
+    padding: 4px 10px;
     border-radius: 12px;
     font-size: 10px;
     display: inline-block;
     text-align: center;
     line-height: 1.2;
+    white-space: nowrap;
+}
+
+/* Ensure proper text wrapping and alignment in cells */
+table.table td {
+    padding: 12px 8px;
+    line-height: 1.5;
+}
+
+table.table th {
+    padding: 12px 8px;
+    font-weight: 600;
+}
+
+/* Employee name and email column styling */
+table.table td:first-child .d-flex {
+    gap: 12px !important;
+}
+
+table.table td:first-child .fw-semibold {
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 2px;
+}
+
+table.table td:first-child div[style*="font-size: 10px"] {
+    font-size: 11px !important;
+    line-height: 1.3;
 }
 
 .status-ACTIVE { background-color: #28a745; }
@@ -325,16 +382,16 @@ table.table tbody tr td:first-child {
     border: none;
     background-color: transparent;
     color: inherit;
-    padding: 0.375rem 0.75rem;
-    display: flex;
+    padding: 0.25rem 0.5rem;
+    display: inline-flex;
     justify-content: center;
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
     transition: background-color 0.3s ease;
     box-sizing: border-box;
-    height: 38px;
-    min-width: 38px;
+    height: 36px;
+    min-width: 36px;
     font-size: 14px;
     border-radius: 4px;
 }
@@ -368,9 +425,16 @@ td > .btn-detail,
 td > .btn-edit,
 td > .btn-delete {
     display: inline-flex;
-    margin-left: 5px;
-    margin-right: 5px;
+    margin-left: 2px;
+    margin-right: 2px;
     vertical-align: middle;
+}
+
+/* Action buttons container */
+table.table td:last-child {
+    white-space: nowrap;
+    text-align: right;
+    padding-right: 12px;
 }
 
 table.table > thead > tr {
@@ -379,10 +443,101 @@ table.table > thead > tr {
 
 table.table > tbody > tr {
     border-bottom: 1px solid #ddd;
+    transition: background-color 0.2s ease;
+}
+
+table.table > tbody > tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
 }
 
 table.table > tbody > tr > td {
     font-size: 14px;
+    vertical-align: middle;
+    padding: 14px 8px;
+}
+
+table.table > thead > tr > th {
+    font-size: 13px;
+    font-weight: 600;
+    vertical-align: middle;
+    padding: 12px 8px;
+    color: #495057;
+}
+
+/* Set specific column widths for better layout */
+table.table thead tr th:nth-child(1),
+table.table tbody tr td:nth-child(1) {
+    min-width: 220px;
+    width: 220px;
+}
+
+table.table thead tr th:nth-child(2),
+table.table tbody tr td:nth-child(2) {
+    min-width: 100px;
+    width: 100px;
+}
+
+table.table thead tr th:nth-child(3),
+table.table tbody tr td:nth-child(3) {
+    min-width: 110px;
+    width: 110px;
+}
+
+/* Contract date warning styling */
+table.table tbody tr td:nth-child(3) .text-danger {
+    display: inline-block;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+table.table thead tr th:nth-child(4),
+table.table tbody tr td:nth-child(4) {
+    min-width: 130px;
+    width: 130px;
+}
+
+table.table thead tr th:nth-child(5),
+table.table tbody tr td:nth-child(5) {
+    min-width: 120px;
+    width: 120px;
+}
+
+table.table thead tr th:nth-child(6),
+table.table tbody tr td:nth-child(6) {
+    min-width: 200px;
+    max-width: 250px;
+    width: 200px;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
+    padding: 12px 8px;
+    line-height: 1.4;
+    font-size: 13px;
+}
+
+table.table thead tr th:nth-child(7),
+table.table tbody tr td:nth-child(7) {
+    min-width: 80px;
+    width: 80px;
+    text-align: center;
+    padding: 12px 8px;
+}
+
+/* Center the status badge */
+table.table tbody tr td:nth-child(7) {
+    vertical-align: middle;
+}
+
+table.table thead tr th:nth-child(8),
+table.table tbody tr td:nth-child(8) {
+    min-width: 120px;
+    width: 120px;
+    text-align: right;
+}
+
+.table-responsive {
+    width: 100%;
 }
 
 .table-responsive.scrollbar-enabled {
@@ -390,6 +545,26 @@ table.table > tbody > tr > td {
     height: 400px;
     overflow-y: auto;
     display: block;
+}
+
+/* Better scrollbar styling */
+.table-scroll-wrapper::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 .modal-loading-overlay {
@@ -469,6 +644,25 @@ table.table > tbody > tr > td {
 .table-scroll-wrapper {
     max-height: calc(100vh - 290px);
     overflow-y: auto;
+    overflow-x: auto;
+}
+
+/* Ensure table has proper layout */
+.table-scroll-wrapper table {
+    table-layout: fixed;
+    width: 100%;
+    min-width: 1100px;
+}
+
+/* Prevent content overflow in all cells */
+table.table td,
+table.table th {
+    overflow: hidden;
+}
+
+/* Allow specific columns to wrap text */
+table.table td:nth-child(6) {
+    overflow: visible;
 }
 
 .custom-image-upload.is-invalid {
@@ -644,6 +838,20 @@ table.table > tbody > tr > td {
 
     .text-btn {
         display: none;
+    }
+    
+    /* Adjust table columns for mobile */
+    table.table thead tr th:nth-child(1),
+    table.table tbody tr td:nth-child(1) {
+        min-width: 180px;
+        width: 180px;
+    }
+    
+    table.table thead tr th:nth-child(6),
+    table.table tbody tr td:nth-child(6) {
+        min-width: 150px;
+        width: 150px;
+        font-size: 12px;
     }
 }
 
