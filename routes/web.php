@@ -33,7 +33,7 @@ use App\Http\Controllers\WeekdayOffController;
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HRInfoController;
-
+use App\Http\Controllers\HubDivisionController;
 use Carbon\Carbon;
 
 
@@ -270,6 +270,10 @@ Route::middleware('auth')->group(function () {
     // Contributions heatmap for employee (completed tasks per day)
     Route::get('/employees/{id}/contributions', [TaskController::class, 'getEmployeeContributions'])
         ->name('employees.contributions');
+
+    ROute::get('/hub_division', [HubDivisionController::class, 'showHubDivisionPage'])->name('hub_division');
+    Route::get('/hub_division/all-tasks-employee-calendar-by-month', [TaskController::class, 'allTasksEmployeeCalendarByMonth'])->name('hub_division.allTasksEmployeeCalendarByMonth');
+
 
 });
 
