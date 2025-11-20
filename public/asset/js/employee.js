@@ -221,7 +221,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 cDate.setHours(0, 0, 0, 0);
                 const msPerDay = 1000 * 60 * 60 * 24;
                 const dayDiff = Math.floor((cDate - today) / msPerDay);
-                const formatted = employee.contract_end_date;
+                const formatted = formatDateENMedium(employee.contract_end_date);
 
                 if (isNaN(dayDiff)) {
                     contractDisplay = formatted;
@@ -245,7 +245,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             </div>
                         </div>
                     </td>
-                    <td>${employee.hire_date}</td>
+                    <td>${formatDateENMedium(employee.hire_date)}</td>
                     <td>${contractDisplay}</td>
                     <td>${departmentName}</td>
                     <td>${divisionName}</td>
