@@ -4610,4 +4610,8 @@ class TaskController extends Controller
             ], 500);
         }
     }
+
+    public function allTasksEmployeeCalendarByMonth() {
+        
+    }
 }

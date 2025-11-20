@@ -1,0 +1,216 @@
+.box-loader{
+    background-color: rgba(255, 255, 255,0.3);
+    position: absolute;
+    top:0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.employee-card-content {
+    background-color: #F0F1F8;
+    border-radius: 20px;
+    padding: 20px;
+    width: 35%;
+    margin-right: 20px;
+    height: 35vh;
+}
+
+.header-employe-card{
+    border-bottom: solid 3px #DEDFE7;
+}
+
+.calendar-card-content{
+    background-color: #F0F1F8;
+    border-radius: 20px;
+    padding: 0px;
+    width: 60%;
+}
+
+.loader{ 
+    display: none;
+    position: absolute;
+    top:0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+.modal .box-loader{
+    display: none;
+}
+
+.dropdown-month .btn-dropdown-month{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #e9eef400;
+    color: #3C404B;
+    cursor: pointer;
+}
+
+.dropdown-month .dropdown-toggle::after {
+    margin-left: 10px;
+    opacity: 0.9;
+}
+
+.dropdown-month .dropdown-item:active,
+.dropdown-month .dropdown-item:hover{
+    background-color: #E9EEF4;
+    color: #313642;
+    cursor: pointer;
+}
+
+
+.calendar-month,
+.calendar-year{
+    font-size: 16px;
+    color: #2A3542;
+    font-weight: 400;
+    margin-left: 10px;
+}
+
+.calendar-event-list,
+.calendar-next-month,
+.calendar-prev-month{
+    font-size: 20px;
+    color: #474c59;
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 10px 10px;
+}
+
+.calendar-next-month:hover,
+.calendar-prev-month:hover,
+.calendar-next-month:active,
+.calendar-prev-month:active,
+.calendar-event-list:hover,
+.calendar-event-list:active,
+.dropdown-month .btn-dropdown-month:hover,
+.dropdown-month .btn-dropdown-month:active{
+    color: #313642 !important;
+    background-color: #E9EEF4 !important;
+}
+
+.table-calendar{
+    border-collapse: collapse;
+    width: 100%;
+    height: calc(100vh - 276px);
+    min-height: 400px;
+}
+
+
+.table-calendar thead th{
+    font-size: 12px;
+    font-weight: 400;
+    color: #747d87;
+    text-align: center;
+    max-height: 30px;
+    border:solid 1px #E4E7EE;
+    border-bottom: 0px;
+}
+
+@media (max-width: 567px) {
+    .table-calendar{
+        height: calc(100vw - 30px);
+    }
+}
+
+.table-calendar tbody td{
+    position: relative;
+    
+    vertical-align: top;
+    border:solid 1px #E4E7EE;
+    transition: all 0.3s;
+    padding: 5px 5px;
+    width: calc(100% / 7);
+    transition: all 0.3s;
+}
+
+.table-calendar tbody td:not(.empty-cell):hover{
+    cursor: pointer;
+    background-color: #F5F6FC;
+}
+
+.table-calendar tbody tr:first-child td{
+    border-top: 0px;
+}
+
+.table-calendar tbody td .day{
+    text-align: center;
+    font-size: 12px;
+    color: #46515f;
+    font-weight: 600;
+}
+
+.table-calendar tbody td .box-event{
+    position: absolute;
+    padding: 2px 5px;
+    top: 25px;
+    left: 0px;
+    width: 100%;
+    height: calc(100% - 30px);
+    overflow-x: auto;
+    
+}
+
+.table-calendar tbody ::-webkit-scrollbar {
+  width: 4px;
+  background-color: transparent;
+}
+
+.table-calendar tbody ::-webkit-scrollbar-thumb {
+  background-color: #46505b2c;
+  border-radius: 4px;
+}
+
+.table-calendar tbody ::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.table-calendar tbody ::-webkit-scrollbar-thumb,
+.table-calendar tbody ::-webkit-scrollbar-track {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.table-calendar tbody td .box-event:hover ::-webkit-scrollbar-thumb,
+.table-calendar tbody td .box-event:hover ::-webkit-scrollbar-track {
+  opacity: 1;
+}
+
+
+.table-calendar tbody td .text-event{
+    font-size: 10px;
+    color: #46505B;
+    font-weight: 500;
+    background-color: #f2e2e4;
+    padding: 2px 8px;
+    margin-bottom: 5px;
+    border-radius: 15px;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+@media (max-width: 567px) {
+    .table-calendar tbody td .text-event {
+        font-size: 8px;
+        padding: 1px 2px;
+    }
+
+    .table-calendar tbody td .text-event img{
+            right: 3px;
+            top: 2px;
+    }
+}    
+.table-calendar tbody td.today .day{
+    color: #0c6cea;
+}
