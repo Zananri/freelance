@@ -1235,18 +1235,12 @@ p {
     }
 
     .dropdown-filter-menu {
-        position: absolute;
-        top: 25%;
-        left: 25%;
-        z-index: 10;
-        width: 300px;
-        background: #f0f1f8;
-        border: none;
-        border-radius: 8px;
+        left: -20% !important;
     }
 
     .btn-add-custom .btn-text-add,
-    .toggle-filter .btn-text-filter {
+    .toggle-filter .btn-text-filter,
+    .status-filter-dropdown {
         display: none;
     }
 
@@ -2013,7 +2007,7 @@ p {
 .dropdown-filter-menu {
     position: absolute;
     top: 25%;
-    left: -20%;
+    left: 25%;
     z-index: 10;
     width: 300px;
     background: #f0f1f8;

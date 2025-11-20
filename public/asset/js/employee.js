@@ -10,7 +10,7 @@ function showFloatingAlert(message, type = 'success', delayMs = 2500) {
         const box = document.querySelector('.box-alert-messages .box-message');
         if (box && box.parentElement) {
             box.parentElement.style.display = 'block';
-            box.classList.remove('success','warning','error','light');
+            box.classList.remove('success', 'warning', 'error', 'light');
             box.classList.add('light');
             box.innerHTML = message;
             setTimeout(() => {
@@ -20,7 +20,7 @@ function showFloatingAlert(message, type = 'success', delayMs = 2500) {
             return;
         }
     } catch (e) { /* no-op */ }
-    try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
+    try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch (e) { }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return u;
         }
         if (u.startsWith(appUrl)) return u;
-        return `${appUrl}/${u.replace(/^\//,'')}`;
+        return `${appUrl}/${u.replace(/^\//, '')}`;
     }
 
     // Current filter selections
@@ -46,11 +46,13 @@ document.addEventListener("DOMContentLoaded", function () {
         department: "",
         division: "",
         job: "",
+        sort: "",
     };
 
     const filterDepartmentSelect = document.getElementById("filterDepartment");
     const filterDivisionSelect = document.getElementById("filterDivision");
     const filterJobSelect = document.getElementById("filterJob");
+    const sortBySelect = document.getElementById("sortBy");
     const searchInput = document.getElementById("searchInput");
 
     // Load departments for filter select
@@ -161,11 +163,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 Accept: "application/json",
             },
             success: function (data) {
-                renderEmployees(data.data);
+                let employees = data.data;
+                
+                // Apply client-side sorting if sort parameter exists
+                if (filters.sort) {
+                    employees = applySorting(employees, filters.sort);
+                }
+                
+                renderEmployees(employees);
+                console.log(employees);
+
             },
             error: function () {
                 tableBody.innerHTML =
-                    '<tr><td colspan="6">Failed to load employee data.</td></tr>';
+                    '<tr><td colspan="8">Failed to load employee data.</td></tr>';
                 showFloatingAlert('Failed to load employees.', 'warning', 3500);
             },
         });
@@ -175,7 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderEmployees(employees) {
         if (!employees.length) {
             tableBody.innerHTML =
-                '<tr class="no-data-row"><td colspan="6" class="text-center">No employees found.</td></tr>';
+                '<tr class="no-data-row"><td colspan="8" class="text-center">No employees found.</td></tr>';
             return;
         }
 
@@ -200,6 +211,29 @@ document.addEventListener("DOMContentLoaded", function () {
             else if (status === 'RESIGN') statusClass = 'status-RESIGN';
             else if (status === 'CANDIDATE') statusClass = 'status-CANDIDATE';
 
+            let contractDisplay = '-';
+            const hireDateDisplay = employee.hire_date;
+
+            if (employee.contract_end_date) {
+                const cDate = new Date(employee.contract_end_date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                cDate.setHours(0, 0, 0, 0);
+                const msPerDay = 1000 * 60 * 60 * 24;
+                const dayDiff = Math.floor((cDate - today) / msPerDay);
+                const formatted = employee.contract_end_date;
+
+                if (isNaN(dayDiff)) {
+                    contractDisplay = formatted;
+                } else {
+                    if (dayDiff <= 30) {
+                        contractDisplay = `<span class="text-danger rounded px-2 py-1">${formatted}</span>`;
+                    } else {
+                        contractDisplay = formatted;
+                    }
+                }
+            }
+
             rows += `
                 <tr data-id="${employee.id}">
                     <td>
@@ -211,6 +245,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             </div>
                         </div>
                     </td>
+                    <td>${employee.hire_date}</td>
+                    <td>${contractDisplay}</td>
                     <td>${departmentName}</td>
                     <td>${divisionName}</td>
                     <td>${office}</td>
@@ -230,6 +266,88 @@ document.addEventListener("DOMContentLoaded", function () {
             `;
         });
         tableBody.innerHTML = rows;
+    }
+
+    // Apply sorting to employees array
+    function applySorting(employees, sortType) {
+        if (!sortType) return employees;
+        
+        let sortedEmployees = [...employees];
+        
+        switch (sortType) {
+            case 'name_asc':
+                sortedEmployees.sort((a, b) => {
+                    const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+                    const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+                break;
+            case 'name_desc':
+                sortedEmployees.sort((a, b) => {
+                    const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+                    const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+                    return nameB.localeCompare(nameA);
+                });
+                break;
+            case 'hire_date_newest':
+                sortedEmployees.sort((a, b) => {
+                    const dateA = a.hire_date ? new Date(a.hire_date) : new Date(0);
+                    const dateB = b.hire_date ? new Date(b.hire_date) : new Date(0);
+                    return dateB - dateA;
+                });
+                break;
+            case 'hire_date_oldest':
+                sortedEmployees.sort((a, b) => {
+                    const dateA = a.hire_date ? new Date(a.hire_date) : new Date(0);
+                    const dateB = b.hire_date ? new Date(b.hire_date) : new Date(0);
+                    return dateA - dateB;
+                });
+                break;
+            case 'contract_date_newest':
+                sortedEmployees.sort((a, b) => {
+                    const dateA = a.contract_end_date ? new Date(a.contract_end_date) : new Date(0);
+                    const dateB = b.contract_end_date ? new Date(b.contract_end_date) : new Date(0);
+                    return dateB - dateA;
+                });
+                break;
+            case 'contract_date_oldest':
+                sortedEmployees.sort((a, b) => {
+                    const dateA = a.contract_end_date ? new Date(a.contract_end_date) : new Date(0);
+                    const dateB = b.contract_end_date ? new Date(b.contract_end_date) : new Date(0);
+                    return dateA - dateB;
+                });
+                break;
+            case 'department_asc':
+                sortedEmployees.sort((a, b) => {
+                    const deptA = (a.department?.name_department || '').toLowerCase();
+                    const deptB = (b.department?.name_department || '').toLowerCase();
+                    return deptA.localeCompare(deptB);
+                });
+                break;
+            case 'department_desc':
+                sortedEmployees.sort((a, b) => {
+                    const deptA = (a.department?.name_department || '').toLowerCase();
+                    const deptB = (b.department?.name_department || '').toLowerCase();
+                    return deptB.localeCompare(deptA);
+                });
+                break;
+            case 'division_asc':
+                sortedEmployees.sort((a, b) => {
+                    const divA = (a.division?.name_division || '').toLowerCase();
+                    const divB = (b.division?.name_division || '').toLowerCase();
+                    return divA.localeCompare(divB);
+                });
+                break;
+            case 'division_desc':
+                sortedEmployees.sort((a, b) => {
+                    const divA = (a.division?.name_division || '').toLowerCase();
+                    const divB = (b.division?.name_division || '').toLowerCase();
+                    return divB.localeCompare(divA);
+                });
+                break;
+        }
+        
+        return sortedEmployees;
     }
 
     // Delete modal and logic
@@ -255,12 +373,12 @@ document.addEventListener("DOMContentLoaded", function () {
             dataType: "json",
             success: function (employee) {
                 // Populate modal fields
-              let photoUrl = employee.profile_picture_url || employee.profile_picture || null;
-              const fallbackAvatarDel = `${appUrl}/asset/img/avatar.png`;
-              if (!photoUrl || String(photoUrl).toLowerCase() === 'null' || String(photoUrl).toLowerCase() === 'undefined') photoUrl = fallbackAvatarDel;
-              else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
-                  photoUrl = `${appUrl}/${photoUrl.replace(/^\//,'')}`;
-              }
+                let photoUrl = employee.profile_picture_url || employee.profile_picture || null;
+                const fallbackAvatarDel = `${appUrl}/asset/img/avatar.png`;
+                if (!photoUrl || String(photoUrl).toLowerCase() === 'null' || String(photoUrl).toLowerCase() === 'undefined') photoUrl = fallbackAvatarDel;
+                else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
+                    photoUrl = `${appUrl}/${photoUrl.replace(/^\//, '')}`;
+                }
 
                 $(".delete-employee-photo").css({
                     "background-image": `url(${photoUrl})`,
@@ -322,7 +440,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Hide modal
                 deleteEmployeeModal.hide();
                 // Reload page to reflect changes
-                setTimeout(function(){ location.reload(); }, 1200);
+                setTimeout(function () { location.reload(); }, 1200);
             },
             error: function () {
                 loaderOverlay.classList.add("d-none");
@@ -337,7 +455,7 @@ document.addEventListener("DOMContentLoaded", function () {
     );
     const employeeDetailModal = new bootstrap.Modal(employeeDetailModalEl);
 
-$(document).on("click", ".btn-detail", function () {
+    $(document).on("click", ".btn-detail", function () {
         const id = $(this).data("id");
 
         // Check localStorage for updated photo for this employee (only for modal detail)
@@ -410,10 +528,10 @@ $(document).on("click", ".btn-detail", function () {
 
 
                 // Use updated photo if available, else use employee.photo
-            // Detail modal harus menggunakan foto internal (employee.photo) saja agar perubahan dari halaman profile (profile_picture) tidak mempengaruhi.
-            let photoUrl = normalizeImageUrl(updatedPhoto || employee.photo || null);
+                // Detail modal harus menggunakan foto internal (employee.photo) saja agar perubahan dari halaman profile (profile_picture) tidak mempengaruhi.
+                let photoUrl = normalizeImageUrl(updatedPhoto || employee.photo || null);
 
-            $("#detailPhoto").attr("src", photoUrl);
+                $("#detailPhoto").attr("src", photoUrl);
 
                 employeeDetailModal.show();
             },
@@ -437,6 +555,7 @@ $(document).on("click", ".btn-detail", function () {
     // Apply filter button
     const applyFilterBtn = document.getElementById("applyFilterBtn");
     applyFilterBtn.addEventListener("click", () => {
+        currentFilters.sort = sortBySelect.value;
         currentFilters.department = filterDepartmentSelect.value ? [filterDepartmentSelect.value] : [];
         currentFilters.division = filterDivisionSelect.value ? [filterDivisionSelect.value] : [];
         currentFilters.job = filterJobSelect.value ? [filterJobSelect.value] : [];
@@ -449,11 +568,13 @@ $(document).on("click", ".btn-detail", function () {
     // Clear filter button
     const clearFilterBtn = document.getElementById("clearFilterBtn");
     clearFilterBtn.addEventListener("click", () => {
+        sortBySelect.value = "";
         filterDepartmentSelect.value = "";
         filterDivisionSelect.value = "";
         filterJobSelect.value = "";
         filterDivisionSelect.disabled = true;
         filterJobSelect.disabled = true;
+        currentFilters.sort = "";
         currentFilters.department = [];
         currentFilters.division = [];
         currentFilters.job = [];
@@ -473,7 +594,7 @@ $(document).on("click", ".btn-detail", function () {
     loadDepartments();
     fetchEmployees();
 
-    window.addEventListener('profilePictureUpdated', function(){
+    window.addEventListener('profilePictureUpdated', function () {
         // Refresh table so current user's universal avatar updates immediately.
         fetchEmployees(currentFilters);
     });
