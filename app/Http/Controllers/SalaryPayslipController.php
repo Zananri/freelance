@@ -84,7 +84,19 @@ class SalaryPayslipController extends Controller
 
         $dateSalary = Carbon::create($year, $month, 1)->format('F Y');
         
+        $workPeriod = '';
+
+        if($employee->hire_date != null){
+            $hireDate = Carbon::parse($employee->hire_date);
+            $toSalaryDate = Carbon::create($year, $month, 1);
+
+            $monthBetween = $hireDate->diffInMonths($toSalaryDate);
+
+            $workPeriod = intval($monthBetween/12).' Tahun '.intval($monthBetween % 12).' Bulan';
+        }
+
         $data = [
+            'workPeriod'       => $workPeriod,
             'downloadPayslip'  => 1,
             'yearSalary'       => $year,
             'dateSalary'       => $dateSalary,
@@ -145,7 +157,19 @@ class SalaryPayslipController extends Controller
 
         $dateSalary = Carbon::create($year, $month, 1)->format('F Y');
         
+        $workPeriod = '';
+        
+        if($employee->hire_date != null){
+            $hireDate = Carbon::parse($employee->hire_date);
+            $toSalaryDate = Carbon::create($year, $month, 1);
+
+            $monthBetween = $hireDate->diffInMonths($toSalaryDate);
+
+            $workPeriod = intval($monthBetween/12).' Tahun '.intval($monthBetween % 12).' Bulan';
+        }
+
         $data = [
+            'workPeriod'       => $workPeriod, 
             'downloadPayslip'  => 1,
             'yearSalary'       => $year,
             'dateSalary'       => $dateSalary,

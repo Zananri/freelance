@@ -123,7 +123,7 @@
 
                     <tr>
                         <td>Periode Kerja</td>
-                        <td>: </td>
+                        <td>: {{ $workPeriod }}</td>
                         <td></td>
                         <td></td>
                     </tr>
@@ -236,6 +236,8 @@
                     @php
                         $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->meal_allowance + $employeePayslip->transportation_allowance + $employeePayslip->internet_phone_allowance + $employeePayslip->positional_allowance;
                         $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->bonus + $employeePayslip->thr + $employeePayslip->overtime;
+                        $totalPendapatan2excBonusOvertime = $totalPendapatan1 - ($employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance);
+                        
                     @endphp
 
                     <tr style="font-weight: bold;">
@@ -268,20 +270,22 @@
                         <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
                     </tr>
                     <tr>
-                        <td>Izin</td>
-                        <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                    </tr>
-                    <tr>
                         <td>Alfa</td>
-                        <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
+                        <td style="text-align: right">{{ $employeePayslip->total_day_active - $employeePayslip->total_working_day }}</td>
+                        <td style="text-align: right">{{number_format($totalPendapatan2excBonusOvertime, 0, '', '.')}}</td>
                     </tr>
                     <tr>
                         <td>Cuti</td>
                         <td style="text-align: right">0</td>
                         <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
                     </tr>
+
+                    <tr>
+                        <td>Absensi Tidak Lengkap</td>
+                        <td style="text-align: right">0</td>
+                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
+                    </tr>
+                    
                     <tr style="font-weight: bold;">
                         <td colspan="2">Total Pengurangan</td>
                         <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
@@ -345,16 +349,16 @@
                     </tr>
 
                     <tr style="border:0px; background-color: #fff !important;">
-                        <td style="background-color: #edeff1;">Gaji yang seharusnya diidapatkan (A-B)
+                        <td style="background-color: #edeff1;">Gaji yang seharusnya diidapatkan
                             <span style="float: right; font-weight: bold;">
-                                {{number_format($totalPendapatan2, 0, '', '.')}}
+                                {{number_format($totalPendapatan1, 0, '', '.')}}
                             </span>
                         </td>
                         <td style="border:0px"></td>
                         <td style="border:0px"></td>
                     </tr>
                     <tr>
-                        <td>Gaji yang dibayarkan (A-C)
+                        <td>Gaji yang dibayarkan 
                             <span style="float: right; font-weight: bold; color:#ec2525">
                                 {{number_format($totalPendapatan2, 0, '', '.')}}
                             </span>
@@ -377,7 +381,7 @@
                             <div style="height: 50px; border-bottom: 1px solid #333;">
 
                             </div>
-                            <div style="margin-top: 10px;">
+                            <div style="margin-top: 7px;">
                                 {{ $employee->name }}
                             </div>
                         </td>
@@ -476,7 +480,7 @@
 
                         <tr>
                             <td>Periode Kerja</td>
-                            <td>: 0 Tahun 9</td>
+                            <td>: {{ $workPeriod }}</td>
                             <td>Grade</td>
                             <td>: {{$employee->grade->title}}</td>
                         </tr>
@@ -591,6 +595,8 @@
                         @php
                             $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->meal_allowance + $employeePayslip->transportation_allowance + $employeePayslip->internet_phone_allowance + $employeePayslip->positional_allowance;
                             $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->bonus + $employeePayslip->thr + $employeePayslip->overtime;
+                            $totalPendapatan2excBonusOvertime = $totalPendapatan1 - $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance;
+                        
                         @endphp
 
                         <tr style="font-weight: bold;">
@@ -623,17 +629,17 @@
                             <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
                         </tr>
                         <tr>
-                            <td>Izin</td>
-                            <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                        </tr>
-                        <tr>
                             <td>Alfa</td>
-                            <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
+                            <td style="text-align: right">{{ $employeePayslip->total_day_active - $employeePayslip->total_working_day }}</td>
+                            <td style="text-align: right">{{number_format($totalPendapatan2excBonusOvertime, 0, '', '.')}}</td>
                         </tr>
                         <tr>
                             <td>Cuti</td>
+                            <td style="text-align: right">0</td>
+                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
+                        </tr>
+                        <tr>
+                            <td>Absensi Tidak Lengkap</td>
                             <td style="text-align: right">0</td>
                             <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
                         </tr>
@@ -700,16 +706,16 @@
                         </tr>
 
                         <tr style="border:0px; background-color: #fff !important;">
-                            <td style="background-color: #edeff1;">Gaji yang seharusnya diidapatkan (A-B)
+                            <td style="background-color: #edeff1;">Gaji yang seharusnya diidapatkan
                                 <span style="float: right; font-weight: bold;">
-                                    {{number_format($totalPendapatan2, 0, '', '.')}}
+                                    {{number_format($totalPendapatan1, 0, '', '.')}}
                                 </span>
                             </td>
                             <td style="border:0px"></td>
                             <td style="border:0px"></td>
                         </tr>
                         <tr>
-                            <td>Gaji yang dibayarkan (A-C)
+                            <td>Gaji yang dibayarkan
                                 <span style="float: right; font-weight: bold; color:#ec2525">
                                     {{number_format($totalPendapatan2, 0, '', '.')}}
                                 </span>
@@ -732,7 +738,7 @@
                                 <div style="height: 70px; border-bottom: 1px solid #333;">
 
                                 </div>
-                                <div style="margin-top: 10px;">
+                                <div style="margin-top: 7px;">
                                     {{ $employee->name }}
                                 </div>
                             </td>

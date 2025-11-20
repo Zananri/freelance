@@ -277,16 +277,26 @@
                                                         </div>
                                                         <div>
                                                             <div class="d-flex">
+                                                                
                                                                 <div>
-                                                                    <div class="btn-icon payslip" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Payslip">
+                                                                    <div class="btn-icon send d-none" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Send to employee">
+                                                                        <span class="material-symbols-outlined icon-action">upload_2</span>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <div>
+                                                                    <div class="btn-icon payslip d-none" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Payslip">
                                                                         <span class="material-symbols-outlined icon-action">docs</span>
                                                                     </div>
                                                                 </div>
+                                                                
                                                                 <div>   
                                                                     <div class="btn-icon edit-data" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Edit">
                                                                         <span class="material-symbols-outlined icon-action">edit</span>
                                                                     </div>
                                                                 </div>
+                                                                
+                                                                
                                                             </div>
                                                             
                                                             

@@ -28,7 +28,8 @@ function filterEmployee(){
         $(`.employee-row[data-department="${departmentId}"]${divisionFilter}`).each(function(){
             let employeeName = $(this).find('.employee-name').text();
             if(employeeName.toLowerCase().includes(searchQuery.toLowerCase())){
-                $(this).removeClass('d-none');
+                let employeeId = $(this).attr('data-employee-id');
+                $('.employee-row[data-employee-id="'+employeeId+'"]').removeClass('d-none');
             }
         });
 
@@ -170,9 +171,12 @@ function getEmployeeSalaryPayslipData(month,year)
             // parseInt(largeNum).toLocaleString('id-ID');
 
             $('.employee-row .hari-bln, .employee-row .hari-kerja, .employee-row .hari-um').text(DATA_TOTAL_ACTIVE_DAY);
+            
+
 
             for (let i = 0; i < DATA_EMPLOYEE_SALARY.length; i++) {
                 const salary = DATA_EMPLOYEE_SALARY[i];
+                
                 $('[data-employee-id="'+salary.employee_id+'"] .gaji').text('Rp '+parseInt(salary.take_home_pay).toLocaleString('id-ID'));
                 $('[data-employee-id="'+salary.employee_id+'"] .gaji-pokok').text(parseInt(salary.basic_salary).toLocaleString('id-ID'));
                 $('[data-employee-id="'+salary.employee_id+'"] .uang-makan').text(parseInt(salary.meal_allowance).toLocaleString('id-ID'));
@@ -232,6 +236,7 @@ function getEmployeeSalaryPayslipData(month,year)
             }
 
 
+
             $('.set-row .gaji-pokok').text('0');
             $('.set-row .uang-makan').text('0');
             $('.set-row .transportasi').text('0');
@@ -245,10 +250,14 @@ function getEmployeeSalaryPayslipData(month,year)
             $('.set-row .lembur').text('0');
             $('.set-row .thr').text('0');
             
+            $('.set-row .btn-icon.payslip, .set-row .btn-icon.send').addClass('d-none');
+            
             
             for (let i = 0; i < DATA_EMPLOYEE_PAYSLIP.length; i++) {
                 const salary = DATA_EMPLOYEE_PAYSLIP[i];
                 
+                $('.set-row[data-employee-id="'+salary.employee_id+'"] .btn-icon.send').removeClass('d-none');
+                $('.set-row[data-employee-id="'+salary.employee_id+'"] .btn-icon.payslip').removeClass('d-none');
                 
                 $('[data-employee-id="'+salary.employee_id+'"] .gaji').text('Rp '+parseInt(salary.take_home_pay).toLocaleString('id-ID'));
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .gaji-pokok').text(parseInt(salary.prorate_basic_salary).toLocaleString('id-ID'));
@@ -260,6 +269,10 @@ function getEmployeeSalaryPayslipData(month,year)
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .lembur').text(parseInt(salary.overtime).toLocaleString('id-ID'));
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .thr').text(parseInt(salary.thr).toLocaleString('id-ID'));
                 
+                $('[data-employee-id="'+salary.employee_id+'"] .hari-bln').text(salary.total_day_active);
+                $('[data-employee-id="'+salary.employee_id+'"] .hari-kerja').text(salary.total_working_day);
+                $('[data-employee-id="'+salary.employee_id+'"] .hari-um').text(salary.total_working_day_meal);
+
                 $('[data-employee-id="'+salary.employee_id+'"] .bonus').text(parseInt(salary.bonus).toLocaleString('id-ID'));
                 $('[data-employee-id="'+salary.employee_id+'"] .lembur').text(parseInt(salary.overtime).toLocaleString('id-ID'));
                 $('[data-employee-id="'+salary.employee_id+'"] .thr').text(parseInt(salary.thr).toLocaleString('id-ID'));
