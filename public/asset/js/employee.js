@@ -510,7 +510,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 $("#detailHireDate").text(
                     hireDate.toLocaleDateString("en-GB", options)
                 );
-                $("#detailGrade").text(employee.grade || "-");
+                // Handle grade - check if it's an object or string
+                const gradeText = (employee.grade && typeof employee.grade === 'object') 
+                    ? (employee.grade.title || "-") 
+                    : (employee.grade || "-");
+                $("#detailGrade").text(gradeText);
                 $("#detailOffice").text(employee.office || "-");
                 // Status badge in detail modal
                 let dStatus = employee.status ? String(employee.status).toUpperCase() : '-';
