@@ -4,7 +4,7 @@ let selectedEmployeeId = null;
 // Filter employee by division
 $(document).on('click', '.division-item', function() {
     const divisionId = $(this).data('division-id');
-    const divisionText = $(this).find('.dropdown-item').text().trim();
+    const divisionText = $(this).text().trim();
     
     // Update dropdown text
     $('.selected-division-text').text(divisionText);

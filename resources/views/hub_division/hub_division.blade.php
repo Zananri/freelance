@@ -23,26 +23,17 @@
             <div class="employee-card-content overflow-hidden">
                 <div class="header-employe-card">
                     <div class="dropdown dropdown-division">
-                        <div class="dropdown-toggle btn btn-dropdown-division ps-0" type="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-
-                            <div class="d-inline-flex align-items-center">
-                                <span class="selected-division-text">All Division</span>
-                            </div>
-
-                        </div>
+                        <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="selected-division-text">All Division</span>
+                        </button>
 
                         <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                            <li class="dropdown-item division-item fs-14" data-division-id="all">
-                                <div class="dropdown-item fs-14">
-                                    All Division
-                                </div>
+                            <li class="dropdown-item division-item" data-division-id="all">
+                                All Division
                             </li>
                             @foreach($divisions as $division)
-                            <li class="dropdown-item division-item fs-14" data-division-id="{{ $division->id }}">
-                                <div class="dropdown-item fs-14">
-                                    {{ $division->name_division }}
-                                </div>
+                            <li class="dropdown-item division-item" data-division-id="{{ $division->id }}">
+                                {{ $division->name_division }}
                             </li>
                             @endforeach
                         </ul>
@@ -52,15 +43,17 @@
                     @foreach($employee as $emp)
                     <div class="employee-item" data-employee-division="{{ $emp->division_id }}" data-employee-id="{{ $emp->id }}">
                         <div class="employee-photo">
-                            @if($emp->profile_picture)
-                                <img src="{{ asset('storage/' . $emp->profile_picture) }}" alt="{{ $emp->name }}">
-                            @elseif($emp->photo)
-                                <img src="{{ asset('storage/' . $emp->photo) }}" alt="{{ $emp->name }}">
-                            @elseif($emp->user_photo)
-                                <img src="{{ asset('storage/' . $emp->user_photo) }}" alt="{{ $emp->name }}">
-                            @else
-                                <img src="{{ asset('asset/images/default-avatar.png') }}" alt="{{ $emp->name }}">
-                            @endif
+                            @php
+                                $photoUrl = asset('asset/img/avatar.png');
+                                if($emp->profile_picture){
+                                    $photoUrl = asset($emp->profile_picture);
+                                } elseif($emp->photo){
+                                    $photoUrl = asset($emp->photo);
+                                } elseif($emp->user_photo){
+                                    $photoUrl = asset($emp->user_photo);
+                                }
+                            @endphp
+                            <img src="{{ $photoUrl }}" alt="{{ $emp->name }}">
                         </div>
                         <div class="employee-info">
                             <div class="employee-name">{{ $emp->name }}</div>
