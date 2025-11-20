@@ -129,8 +129,19 @@ class EmployeeController extends Controller
                 $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
                 $employee->first_name = $employee->first_name;
                 $employee->last_name = $employee->last_name;
-                $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
-                $employee->grade = $employee->grade ? $employee->grade->title : null;
+                
+                // Extract values before unsetting relations
+                $officeName = $employee->officeModel ? $employee->officeModel->name : null;
+                $gradeTitle = $employee->grade ? $employee->grade->title : null;
+                
+                // Unset the relations to prevent nested objects in JSON
+                unset($employee->officeModel);
+                unset($employee->grade);
+                
+                // Set as flat properties
+                $employee->office = $officeName;
+                $employee->grade = $gradeTitle;
+                
                 $status = strtoupper((string)($employee->status ?? ''));
                 if ($status === 'INACTIVE') {
                     $status = 'RESIGN';
@@ -166,9 +177,18 @@ class EmployeeController extends Controller
         if (!$employee) {
             return response()->json(['message' => 'Employee not found'], 404);
         }
+        
+        // Extract grade title before unsetting the relation
+        $gradeTitle = $employee->grade ? $employee->grade->title : null;
+        $officeName = $employee->officeModel ? $employee->officeModel->name : null;
+        
+        // Unset the relations to prevent them from being serialized as nested objects
+        unset($employee->grade);
+        unset($employee->officeModel);
+        
         // Map office and grade to display values for UI compatibility
-        $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
-        $employee->grade = $employee->grade ? $employee->grade->title : null;
+        $employee->office = $officeName;
+        $employee->grade = $gradeTitle;
         $employee->user_photo = $employee->user && $employee->user->photo ? asset($employee->user->photo) : null;
         $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
         // Normalize status for response (uppercase, map legacy INACTIVE to RESIGN)
