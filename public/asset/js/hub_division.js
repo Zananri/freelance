@@ -1,34 +1,30 @@
 let currentDate = new Date();
 let selectedEmployeeId = null;
 
-// Get status color based on task status
 function getTaskStatusColor(status) {
     const statusLower = (status || '').toLowerCase();
     
     if (statusLower.includes('request') || statusLower === 'new') {
-        return '#f2e2e4'; // Requested - pink
+        return '#f2e2e4';
     } else if (statusLower.includes('progress')) {
-        return '#f5efce'; // In Progress - yellow
+        return '#f5efce';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
-        return '#eba5a5'; // Revision/Rejected - red
+        return '#eba5a5';
     } else if (statusLower.includes('complete')) {
-        return '#b2eecd'; // Complete - green
+        return '#b2eecd';
     } else if (statusLower.includes('finish')) {
-        return '#A5C6F1'; // Finished - blue
+        return '#A5C6F1';
     } else {
-        return '#dde4e8'; // Not started - gray
+        return '#dde4e8';
     }
 }
 
-// Filter employee by division
 $(document).on('click', '.division-item', function() {
     const divisionId = $(this).data('division-id');
     const divisionText = $(this).text().trim();
     
-    // Update dropdown text
     $('.selected-division-text').text(divisionText);
     
-    // Filter employees
     if (divisionId === 'all') {
         $('.employee-item').show();
     } else {
@@ -43,33 +39,36 @@ $(document).on('click', '.division-item', function() {
     }
 });
 
-// Select employee when clicked
 $(document).on('click', '.employee-item', function() {
     $('.employee-item').removeClass('selected');
     $(this).addClass('selected');
-    
+
     selectedEmployeeId = $(this).data('employee-id');
+
     const employeeName = $(this).find('.employee-name').text();
-    
-    // Show selected employee name in calendar header
+    const employeePhoto = $(this).data('photo');
+    const employeeTask = $(this).data('task');
+
+    $('.selected-employee-photo').attr('src', employeePhoto);
     $('.selected-employee-name').text(employeeName);
+    $('.selected-employee-task').text(employeeTask + " total tasks");
+
     $('.selected-employee-info').show();
-    
-    // Hide placeholder and show calendar
+
     $('.calendar-placeholder').hide();
     $('.table-calendar').show();
-    
-    // Update month and year display
-    const monthNames = ["January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"];
+
+    const monthNames = [
+        "January","February","March","April","May","June",
+        "July","August","September","October","November","December"
+    ];
+
     $('.calendar-month').text(monthNames[currentDate.getMonth()]);
     $('.calendar-year').text(currentDate.getFullYear());
-    
-    // Render calendar for selected employee
+
     renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
 });
 
-// Load tasks for selected employee
 async function loadEmployeeTasks(employeeId, year, month) {
     try {
         const response = await $.ajax({
@@ -83,18 +82,16 @@ async function loadEmployeeTasks(employeeId, year, month) {
         });
 
         if (response.success) {
-            return response.data;
+            return {
+                tasks: response.data,
+                total: response.total_tasks
+            };
         }
-        return [];
+        return { tasks: [], total: 0 };
+
     } catch (error) {
         console.error("Error loading employee tasks:", error);
-        if (error.responseJSON) {
-            console.error("Error details:", error.responseJSON);
-        }
-        if (error.responseText) {
-            console.error("Error response:", error.responseText);
-        }
-        return [];
+        return { tasks: [], total: 0 };
     }
 }
 
@@ -211,22 +208,21 @@ $(document).on('click', '.month-item', function() {
 
 async function renderEventCalendar(year, month){
     try {
-        // Render calendar grid
         await renderCalendar(year, month);
-        
-        // Load and render tasks if employee is selected
+
         if (selectedEmployeeId) {
-            const tasks = await loadEmployeeTasks(selectedEmployeeId, year, month + 1);
+            const result = await loadEmployeeTasks(selectedEmployeeId, year, month + 1);
             
-            // Clear existing task bars
+            const tasks = result.tasks;
+            const total = result.total;
+
+            // Update panel
+            $('.selected-employee-task').text(total + " total tasks");
+
             $('.box-event').empty();
-            
-            // Render each task
-            tasks.forEach(task => {
-                renderTaskBar(task);
-            });
+            tasks.forEach(task => renderTaskBar(task));
         }
-        
+
         return 'done-rendering';
     } catch (error) {
         console.error("Error fetching or processing data:", error);
