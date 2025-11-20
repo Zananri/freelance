@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Helpers\ActivityHelper;
 use App\Models\Employee;
+use App\Models\Task;
+use App\Models\TaskAssignment;
 
 class HubDivisionController extends Controller
 {
@@ -53,5 +55,83 @@ class HubDivisionController extends Controller
                 'divisions' => $divisions
             ]
         );
+    }
+
+    public function getEmployeeTasksByMonth(Request $request)
+    {
+        try {
+            $employeeId = $request->input('employee_id');
+            $year = $request->input('year');
+            $month = $request->input('month');
+
+            \Log::info('Hub Division - Get Tasks Request', [
+                'employee_id' => $employeeId,
+                'year' => $year,
+                'month' => $month
+            ]);
+
+            if (!$employeeId || !$year || !$month) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing required parameters'
+                ], 400);
+            }
+
+            // Get first and last day of the month
+            $firstDay = sprintf('%04d-%02d-01', $year, $month);
+            $lastDay = date('Y-m-t', strtotime($firstDay));
+
+            \Log::info('Date range', ['firstDay' => $firstDay, 'lastDay' => $lastDay]);
+
+            // Get all tasks assigned to this employee
+            $taskAssignments = TaskAssignment::where('employee_id', $employeeId)
+                ->pluck('task_id');
+
+            \Log::info('Task assignments found', ['count' => $taskAssignments->count()]);
+
+            // Get tasks for the specified month
+            $tasks = Task::select(
+                'tasks.id',
+                'tasks.title',
+                'tasks.status',
+                'tasks.start_date',
+                'tasks.due_date',
+                'tasks.priority'
+            )
+            ->whereIn('tasks.id', $taskAssignments)
+            ->where(function($query) use ($firstDay, $lastDay) {
+                $query->where(function($q) use ($firstDay, $lastDay) {
+                    $q->whereBetween('tasks.start_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
+                      ->whereNotNull('tasks.start_date');
+                })
+                ->orWhere(function($q) use ($firstDay, $lastDay) {
+                    $q->whereBetween('tasks.due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
+                      ->whereNotNull('tasks.due_date');
+                });
+            })
+            ->orderBy('tasks.start_date', 'asc')
+            ->get();
+
+            \Log::info('Tasks found', ['count' => $tasks->count()]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $tasks
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Hub Division - Get Tasks Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching tasks: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
