@@ -116,6 +116,7 @@ class HubDivisionController extends Controller
 
             return response()->json([
                 'success' => true,
+                'total_tasks' => $tasks->count(),
                 'data' => $tasks
             ]);
 
