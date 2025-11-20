@@ -34,11 +34,23 @@ class HubDivisionController extends Controller
         ->where('users.user_type','<>',"ADMINISTRATOR")
         ->where('employees.department_id',$currentEmployee->department_id)
         ->get();
+
+        // Get all divisions in the same department as the current employee
+        $divisions = \App\Models\Division::select(
+            'divisions.id',
+            'divisions.name_division',
+            'divisions.department_id'
+        )
+        ->where('divisions.department_id', $currentEmployee->department_id)
+        ->where('divisions.status', 'ACTIVE')
+        ->orderBy('divisions.name_division', 'asc')
+        ->get();
         
         return view('hub_division.hub_division',
             [
                 'employee' => $employee,
-                'current_employee' => $currentEmployee
+                'current_employee' => $currentEmployee,
+                'divisions' => $divisions
             ]
         );
     }

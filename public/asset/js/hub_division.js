@@ -1,4 +1,39 @@
 let currentDate = new Date();
+let selectedEmployeeId = null;
+
+// Filter employee by division
+$(document).on('click', '.division-item', function() {
+    const divisionId = $(this).data('division-id');
+    const divisionText = $(this).find('.dropdown-item').text().trim();
+    
+    // Update dropdown text
+    $('.selected-division-text').text(divisionText);
+    
+    // Filter employees
+    if (divisionId === 'all') {
+        $('.employee-item').show();
+    } else {
+        $('.employee-item').each(function() {
+            const employeeDivisionId = $(this).data('employee-division');
+            if (employeeDivisionId == divisionId) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }
+});
+
+// Select employee when clicked
+$(document).on('click', '.employee-item', function() {
+    $('.employee-item').removeClass('selected');
+    $(this).addClass('selected');
+    
+    selectedEmployeeId = $(this).data('employee-id');
+    
+    // Render calendar for selected employee
+    renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
+});
 
 async function renderCalendar(year, month) {
     

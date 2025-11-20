@@ -16,11 +16,131 @@
     padding: 20px;
     width: 35%;
     margin-right: 20px;
-    height: 35vh;
+    height: calc(100vh - 200px);
+    max-height: 700px;
+    display: flex;
+    flex-direction: column;
 }
 
 .header-employe-card{
     border-bottom: solid 3px #DEDFE7;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.dropdown-division .btn-dropdown-division{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #e9eef400;
+    color: #3C404B;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.dropdown-division .dropdown-toggle::after {
+    margin-left: 10px;
+    opacity: 0.9;
+}
+
+.dropdown-division .dropdown-item:active,
+.dropdown-division .dropdown-item:hover{
+    background-color: #E9EEF4;
+    color: #313642;
+    cursor: pointer;
+}
+
+.dropdown-division .btn-dropdown-division:hover,
+.dropdown-division .btn-dropdown-division:active{
+    color: #313642 !important;
+    background-color: #E9EEF4 !important;
+}
+
+.employee-list {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 5px;
+}
+
+.employee-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.employee-list::-webkit-scrollbar-track {
+    background: #E9EEF4;
+    border-radius: 10px;
+}
+
+.employee-list::-webkit-scrollbar-thumb {
+    background: #B8C1D0;
+    border-radius: 10px;
+}
+
+.employee-list::-webkit-scrollbar-thumb:hover {
+    background: #9BA7BA;
+}
+
+.employee-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 10px;
+    margin-bottom: 8px;
+    background-color: #FFFFFF;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.employee-item:hover {
+    background-color: #E9EEF4;
+    transform: translateX(5px);
+}
+
+.employee-item.selected {
+    background-color: #D4E4FF;
+    border-left: 4px solid #0c6cea;
+}
+
+.employee-photo {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-right: 12px;
+    border: 2px solid #E9EEF4;
+}
+
+.employee-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.employee-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.employee-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2A3542;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.employee-job {
+    font-size: 12px;
+    font-weight: 400;
+    color: #747d87;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .calendar-card-content{

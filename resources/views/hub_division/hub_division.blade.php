@@ -27,23 +27,47 @@
                             data-bs-toggle="dropdown" aria-expanded="false">
 
                             <div class="d-inline-flex align-items-center">
-                                <span>All Division</span>
+                                <span class="selected-division-text">All Division</span>
                             </div>
 
                         </div>
 
-                        <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3  ">
-                            <li class="dropdown-item division-item fs-14">
+                        <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                            <li class="dropdown-item division-item fs-14" data-division-id="all">
                                 <div class="dropdown-item fs-14">
-
+                                    All Division
                                 </div>
                             </li>
-
+                            @foreach($divisions as $division)
+                            <li class="dropdown-item division-item fs-14" data-division-id="{{ $division->id }}">
+                                <div class="dropdown-item fs-14">
+                                    {{ $division->name_division }}
+                                </div>
+                            </li>
+                            @endforeach
                         </ul>
                     </div>
                 </div>
                 <div class="employee-list">
-                    
+                    @foreach($employee as $emp)
+                    <div class="employee-item" data-employee-division="{{ $emp->division_id }}" data-employee-id="{{ $emp->id }}">
+                        <div class="employee-photo">
+                            @if($emp->profile_picture)
+                                <img src="{{ asset('storage/' . $emp->profile_picture) }}" alt="{{ $emp->name }}">
+                            @elseif($emp->photo)
+                                <img src="{{ asset('storage/' . $emp->photo) }}" alt="{{ $emp->name }}">
+                            @elseif($emp->user_photo)
+                                <img src="{{ asset('storage/' . $emp->user_photo) }}" alt="{{ $emp->name }}">
+                            @else
+                                <img src="{{ asset('asset/images/default-avatar.png') }}" alt="{{ $emp->name }}">
+                            @endif
+                        </div>
+                        <div class="employee-info">
+                            <div class="employee-name">{{ $emp->name }}</div>
+                            <div class="employee-job">{{ $emp->job_name }}</div>
+                        </div>
+                    </div>
+                    @endforeach
                 </div>
             </div>
 
