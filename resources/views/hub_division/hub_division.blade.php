@@ -23,32 +23,54 @@
             <div class="employee-card-content overflow-hidden">
                 <div class="header-employe-card">
                     <div class="dropdown dropdown-division">
-                        <div class="dropdown-toggle btn btn-dropdown-division ps-0" type="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="selected-division-text">All Division</span>
+                        </button>
 
-                            <div class="d-inline-flex align-items-center">
-                                <span>All Division</span>
-                            </div>
-
-                        </div>
-
-                        <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3  ">
-                            <li class="dropdown-item division-item fs-14">
-                                <div class="dropdown-item fs-14">
-
-                                </div>
+                        <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                            <li class="dropdown-item division-item" data-division-id="all">
+                                All Division
                             </li>
-
+                            @foreach($divisions as $division)
+                            <li class="dropdown-item division-item" data-division-id="{{ $division->id }}">
+                                {{ $division->name_division }}
+                            </li>
+                            @endforeach
                         </ul>
                     </div>
                 </div>
                 <div class="employee-list">
-                    
+                    @foreach($employee as $emp)
+                    <div class="employee-item" data-employee-division="{{ $emp->division_id }}" data-employee-id="{{ $emp->id }}">
+                        <div class="employee-photo">
+                            @php
+                                $photoUrl = asset('asset/img/avatar.png');
+                                if($emp->profile_picture){
+                                    $photoUrl = asset($emp->profile_picture);
+                                } elseif($emp->photo){
+                                    $photoUrl = asset($emp->photo);
+                                } elseif($emp->user_photo){
+                                    $photoUrl = asset($emp->user_photo);
+                                }
+                            @endphp
+                            <img src="{{ $photoUrl }}" alt="{{ $emp->name }}">
+                        </div>
+                        <div class="employee-info">
+                            <div class="employee-name">{{ $emp->name }}</div>
+                            <div class="employee-job">{{ $emp->job_name }}</div>
+                        </div>
+                    </div>
+                    @endforeach
                 </div>
             </div>
 
             <div class="calendar-card-content overflow-hidden">
                 <div class="header-calendar">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="selected-employee-info" style="display: none;">
+                            <span class="selected-employee-name" style="font-size: 14px; font-weight: 600; color: #2A3542;"></span>
+                        </div>
+                    </div>
                     <div class="d-flex align-items-center">
                         <div class="month-year w-100">
 
@@ -87,7 +109,12 @@
 
                 <div class="box-table-calendar">
 
-                    <table class="table-calendar">
+                    <div class="calendar-placeholder text-center py-5" style="color: #797E91;">
+                        <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.3;">person_search</span>
+                        <p class="mt-2" style="font-size: 14px;">Select an employee to view their tasks</p>
+                    </div>
+
+                    <table class="table-calendar" style="display: none;">
                         <thead>
                             <tr>
                                 <th>Sun</th>
@@ -125,8 +152,21 @@
 
 
     <x-slot name="script_slot">
+        <script>
+            const appUrl = "{{ url('') }}";
+        </script>
         <script src="{{ asset('asset/js/hub_division.js?=' . time()) }}"></script>
         <script src="{{ asset('asset/js/date_helper.js?=' . time()) }}"></script>
+        <script>
+            // Initialize - calendar will render when employee is selected
+            $(document).ready(function() {
+                // Set initial month/year display
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"];
+                $('.calendar-month').text(monthNames[currentDate.getMonth()]);
+                $('.calendar-year').text(currentDate.getFullYear());
+            });
+        </script>
     </x-slot>
 
 </x-office-layout>
