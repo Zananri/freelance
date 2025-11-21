@@ -313,10 +313,65 @@ function handleTaskDetail(taskId) {
         const img = t.image ? `${appUrl}/file/task/${t.image}` : null;
         const initials = img ? "" : getTaskInitials(t.title);
         const color = img ? "" : getRandomColorFromText(t.title);
+        const statusColor = getTaskStatusColor(t.status);
+        const statusText = t.status ? (String(t.status).charAt(0).toUpperCase() + String(t.status).slice(1)) : '';
 
         const avatar = img
             ? `<img src="${img}" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.src='${appUrl}/asset/img/avatar.png'">`
             : `<div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${color};">${initials}</div>`;
+
+        let refFilesHtml = '';
+        const rawRefFiles = t.reference_files || t.reference_file || [];
+        let referenceFiles = [];
+        if (typeof rawRefFiles === 'string' && rawRefFiles.trim()) {
+            try {
+                const parsed = JSON.parse(rawRefFiles);
+                if (Array.isArray(parsed)) referenceFiles = parsed;
+                else referenceFiles = [rawRefFiles];
+            } catch (_) {
+                referenceFiles = [rawRefFiles];
+            }
+        } else if (Array.isArray(rawRefFiles)) {
+            referenceFiles = rawRefFiles;
+        }
+
+        referenceFiles = (referenceFiles || []).map(f => {
+            if (!f) return null;
+            try {
+                const val = String(f);
+                const isAbs = val.startsWith('http://') || val.startsWith('https://');
+                const isRefPath = val.startsWith('/file/task_reference_files/') || val.startsWith('file/task_reference_files/') ||
+                    val.startsWith('/file/task/') || val.startsWith('file/task/') || val.startsWith('/storage/') || val.startsWith('storage/');
+                if (isAbs) return val;
+                if (isRefPath) return val.startsWith('/') ? (appUrl + val) : (appUrl + '/' + val);
+                return appUrl + '/file/task_reference_files/' + val;
+            } catch (_) {
+                return null;
+            }
+        }).filter(Boolean);
+
+        if (Array.isArray(referenceFiles) && referenceFiles.length) {
+            refFilesHtml = `<div class="mb-2"><div class="row g-2">` + referenceFiles.map((u, idx) => {
+                const rawName = (u || '').split('/').pop() || `file_${idx + 1}`;
+                const fileName = decodeURIComponent(rawName).toLocaleLowerCase();
+                return `
+                    <div class="col-6">
+                        <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="position:relative;">
+
+                            <a href="${u}" target="_blank"
+                                class="text-decoration-none flex-grow-1 text-truncate"
+                                style="color: #444; font-size: 10px;" title="${fileName}">
+                                ${fileName}
+                            </a>
+
+                            <a href="${u}" download="${fileName}" class="ms-2 text-decoration-none" title="Download ${fileName}">
+                                <span class="material-symbols-outlined action-icon">download</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('') + `</div></div>`;
+        }
 
         let refUrlsHtml = '';
         const referenceUrls = t.reference_urls || (t.reference_url ? [t.reference_url] : []);
@@ -328,11 +383,11 @@ function handleTaskDetail(taskId) {
                 const displayUrl = u || '';
 
                 refUrlsHtml += `
-                            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px; position:relative;">
+                            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="position:relative;">
                                 
                                 <a href="${u}" target="_blank"
                                     class="text-decoration-none flex-grow-1 text-truncate"
-                                    style="color: #444;" title="${displayUrl}">
+                                    style="color: #444; font-size: 10px;" title="${displayUrl}">
                                     ${displayUrl}
                                 </a>
 
@@ -373,24 +428,50 @@ function handleTaskDetail(taskId) {
             const list = [];
             if (t.pic) list.push({ role: "PIC", emp: t.pic });
             (t.executors || []).forEach(e => list.push({ role: "Executor", emp: e }));
-            return list.map(i => `
-                <div class="collab-item d-flex align-items-center mb-2">
-                    <img src="${(i.emp.image || i.emp.profile_picture || i.emp.user_photo || i.emp.photo || appUrl + '/asset/img/avatar.png')}" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" 
-                        onerror="this.src='${appUrl}/asset/img/avatar.png'">
-                    <div class="ms-2">
-                        <div>${i.emp.name || "Unknown"}</div>
-                        <div class="text-muted" style="font-size:12px;">${i.role}</div>
+            if (!list.length) return "";
+
+            return `<div class="row g-2 mt-3 mb-3">` + list.map(i => `
+                <div class="col-6">
+                    <div class="collab-item d-flex align-items-center">
+                        <img src="${(i.emp.image || i.emp.profile_picture || i.emp.user_photo || i.emp.photo || appUrl + '/asset/img/avatar.png')}" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" 
+                            onerror="this.src='${appUrl}/asset/img/avatar.png'">
+                        <div class="ms-2">
+                            <div style="font-size:10px;">${i.emp.name || "Unknown"}</div>
+                            <div class="text-muted" style="font-size:8px;">${i.role}</div>
+                        </div>
                     </div>
                 </div>
-            `).join("");
+            `).join('') + `</div>`;
         })();
 
-        const statusLogs = (t.status_changes || []).map(s => `
-            <div style="font-size:12px;margin-top:6px;color:#454545">
-                <span style="color:#797E91;">${s.label}</span>
-                <span style="margin-left:6px;">${s.employee_name}</span>
-            </div>
-        `).join("");
+        const statusChanges = Array.isArray(t.status_changes) ? t.status_changes : [];
+        let statusLogs = '';
+        if (statusChanges.length) {
+            statusLogs = `
+                <div class="status-timeline position-relative mt-3 mb-3" style="padding-left:90px;">
+                    <div style="position:absolute; left:44px; top:0; bottom:0; width:2px; background:#FFFFFF; border-radius:2px;"></div>
+                    ${statusChanges.map(s => {
+                        const dateLabel = formatDateENMedium(t.updated_at || t.created_at || '');
+                        const label = escapeHtml(s.label || '');
+                        const emp = escapeHtml(s.employee_name || '');
+                        return `
+                            <div class="status-row d-flex align-items-start mb-3" style="position:relative;">
+                                <div style="position:absolute; left:0; width:80px; text-align:right; font-size:12px; color:#7f7f8a;">${dateLabel}</div>
+
+                                <div style="position:relative; width:100%;">
+                                    <div style="position:absolute; left:-51px; top:22px; width:12px; height:12px; background:#fff; border:2px solid #FFFFFF; border-radius:50%; box-sizing:border-box;"></div>
+
+                                    <div class="status-content d-flex align-items-center p-2" style="background: #F8F8FC; font-size:12px; max-width:100%; border-radius: 10px;">
+                                        <div style="font-size:12px;color:#797E91;">${label}</div>
+                                        <div style="font-weight:400;">&nbsp; ${emp}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
 
         const html = `
             <div class="custom-card rounded-4 p-3 border-0" data-task-id="${t.id}">
@@ -402,39 +483,52 @@ function handleTaskDetail(taskId) {
                             <h5 class="mb-0" style="font-size: 14px;">${t.title || "-"}</h5>
                         </div>
                     </div>
-                    <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
+                    <div class="mt-2 mx-2 d-flex align-items-center" tabindex="0" style="gap:8px;">
+                        <span class="status-text" style="font-size:12px;color:${statusColor};font-weight:600;">${escapeHtml(statusText)}</span>
+                    </div>
                 </div>
-                <div style="font-size: 13px;">${t.description || ""}</div>
-                <hr>
+                <div class="mt-3" style="font-size: 12px;">${t.description || ""}</div>
                 <div class="d-flex justify-content-between" style="font-size:12px;">
-                    <span>Priority: <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${t.priority}</span></span>
-                    <span>Deadline: ${formatDateENMedium(t.due_date)}</span>
+                    <div class="d-flex justify-content-start gap-3">
+                        <span style="font-size: 8px;">Priority: <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${t.priority}</span></span>
+                        <span style="font-size: 8px;">Deadline: ${formatDateENMedium(t.due_date)}</span>
+                    </div>
+                    <div class="d-flex justify-content-end align-items-start gap-3">
+                        ${ (String(t.status || '').toLowerCase().includes('finish')) ? `
+                            <div class="d-flex align-items-center">
+                                <span class="material-symbols-outlined task-icon" style="font-size: 18px;">playlist_add_check</span>
+                            </div>
+                        ` : '' }
+
+                        <div class="d-flex align-items-center position-relative">
+                            <span class="material-symbols-outlined task-icon" style="font-size: 18px;" data-task-id="${t.id}">mode_comment</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="d-flex justify-content-between" style="font-size:12px;">
-                    <span class="text-muted">Department:</span><span>${t.project?.department || "-"}</span>
-                </div>
-                <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                    <span class="text-muted">Division:</span><span>${t.project?.division || "-"}</span>
+               
+                <div style="border-bottom: solid 3px #DEDFE7;"></div>
+
+                ${collab}
+
+                <div>
+                    <h5 class="ref-title" style="font-size: 12px; font-weight: 400; color: #2A3542;">Link & File Reference</h5>
+                    ${refFilesHtml}
+                    ${refUrlsHtml}
                 </div>
 
-                ${refUrlsHtml}
+                <div style="border-bottom: solid 3px #DEDFE7;"></div>
 
                 <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
-                    <div class="flex-grow-1">
-                        ${collab}
-                        ${statusLogs}
+                    <div class="d-flex justify-content-start" style="font-size:10px;">
+                        <span class="text-muted">Department: &nbsp;</span>
+                        <span>${t.project?.department || "-"}</span>
                     </div>
-                    <div class="d-flex align-items-start">
-                        <div class="d-flex align-items-center me-3 position-relative">
-                            <span class="material-symbols-outlined task-icon" data-task-id="${t.id}">mode_comment</span>
-                            ${t.feedback_comments_count ? `<span style="font-size:12px;">${t.feedback_comments_count}</span>` : ""}
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="material-symbols-outlined task-icon">attach_file</span>
-                            ${t.reference_files_count ? `<span style="font-size:12px;">${t.reference_files_count}</span>` : ""}
-                        </div>
+                    <div class="d-flex justify-content-end mb-2" style="font-size:10px;">
+                        <span class="text-muted">Division: &nbsp;</span>
+                        <span>${t.project?.division || "-"}</span>
                     </div>
                 </div>
+                ${statusLogs}
             </div>
         `;
 
