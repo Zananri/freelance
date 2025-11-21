@@ -400,6 +400,39 @@ const MAX_TOTAL_BYTES = 100 * 1024 * 1024; // 100MB
 let selectedFiles = [];
 let __quillInlineFeedback = null;
 
+// Time ago helper function
+function timeAgo(createdAt) {
+    try {
+        const time = new Date(createdAt);
+        const now = new Date();
+        const diff = (now.getTime() - time.getTime()) / 1000;
+
+        if (diff < 60) {
+            return 'just now';
+        } else if (diff < 3600) {
+            const minutes = Math.round(diff / 60);
+            return minutes + (minutes === 1 ? ' minute ago' : ' minutes ago');
+        } else if (diff < 86400) {
+            const hours = Math.round(diff / 3600);
+            return hours + (hours === 1 ? ' hour ago' : ' hours ago');
+        } else if (diff < 604800) {
+            const days = Math.round(diff / 86400);
+            return days + (days === 1 ? ' day ago' : ' days ago');
+        } else if (diff < 2592000) {
+            const weeks = Math.round(diff / 604800);
+            return weeks + (weeks === 1 ? ' week ago' : ' weeks ago');
+        } else if (diff < 31536000) {
+            const months = Math.round(diff / 2592000);
+            return months + (months === 1 ? ' month ago' : ' months ago');
+        } else {
+            const years = Math.round(diff / 31536000);
+            return years + (years === 1 ? ' year ago' : ' years ago');
+        }
+    } catch (e) {
+        return String(createdAt || '');
+    }
+}
+
 // Initialize Quill editor for inline feedback
 function initInlineFeedbackQuill() {
     try {
