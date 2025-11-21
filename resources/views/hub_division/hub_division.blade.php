@@ -274,6 +274,9 @@
 
     <x-slot name="script_slot">
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
+        <script>
+            const appUrl = "{{ url('') }}";
+        </script>
         <script src="{{ asset('asset/js/date_helper.js?=' . time()) }}"></script>
         <script src="{{ asset('asset/js/hub_division.js?=' . time()) }}"></script>
     </x-slot>
