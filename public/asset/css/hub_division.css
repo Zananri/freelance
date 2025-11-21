@@ -105,6 +105,7 @@
 .employee-photo img {
     width: 32px;
     height: 32px;
+    border-radius: 50%;
     object-fit: cover;
 }
 
@@ -117,7 +118,6 @@
     font-size: 12px;
     font-weight: 400;
     color: #2a3542;
-    margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -436,6 +436,24 @@
     color: #ebecf2;
 }
 
+#taskDetailModal .collab-name {
+    font-size: 14px;
+    color: #222;
+    line-height: 1.2;
+}
+
+#taskDetailModal .task-icon {
+    color: #555;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#taskDetailModal .collab-division {
+    font-size: 12px;
+    color: #777;
+}
+
 /* Feedback Modal Styles */
 .feedback-modal-dialog {
     max-width: 480px;
@@ -543,4 +561,25 @@
     vertical-align: middle;
     align-items: center;
     color: #444444;
+}
+
+.ref-url-item .action-icon {
+    opacity: 0;
+    transition: opacity .15s ease-in-out;
+    cursor: pointer;
+    font-size: 18px;
+    color: #444;
+}
+
+.ref-url-item:hover .action-icon {
+    opacity: 1;
+}
+
+.ref-url-item:hover {
+    background: #f0f0f0;
+}
+
+.ref-url-item .action-icon:hover {
+    color: #000;
+    transform: scale(1.15);
 }

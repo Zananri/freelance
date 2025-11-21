@@ -303,13 +303,56 @@ function handleTaskDetail(taskId) {
             ? `<img src="${img}" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.src='${appUrl}/asset/img/avatar.png'">`
             : `<div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${color};">${initials}</div>`;
 
-        const refUrls = (t.reference_urls || []).map(u => `
-            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px;">
-                <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1 text-truncate" style="color:#444;">${u}</a>
-                <span class="material-symbols-outlined ms-2 open-url-btn" data-url="${u}">open_in_new</span>
-                <span class="material-symbols-outlined ms-2 copy-url-btn" data-url="${u}">content_copy</span>
-            </div>
-        `).join("");
+        let refUrlsHtml = '';
+        const referenceUrls = t.reference_urls || (t.reference_url ? [t.reference_url] : []);
+
+        if (Array.isArray(referenceUrls) && referenceUrls.length) {
+            refUrlsHtml = '<div class="mb-2">';
+
+            referenceUrls.forEach((u, idx) => {
+                const displayUrl = u || '';
+
+                refUrlsHtml += `
+                            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px; position:relative;">
+                                
+                                <a href="${u}" target="_blank"
+                                    class="text-decoration-none flex-grow-1 text-truncate"
+                                    style="color: #444;" title="${displayUrl}">
+                                    ${displayUrl}
+                                </a>
+
+                                <span class="material-symbols-outlined ms-2 open-url-btn action-icon"
+                                    data-url="${u}">
+                                    open_in_new
+                                </span>
+
+                                <span class="material-symbols-outlined ms-2 copy-url-btn action-icon"
+                                    data-url="${u}">
+                                    content_copy
+                                </span>
+
+                            </div>
+                        `;
+            });
+
+            refUrlsHtml += '</div>';
+        }
+
+        document.addEventListener("click", function (e) {
+            if (e.target.classList.contains("open-url-btn")) {
+                const url = e.target.getAttribute("data-url");
+                if (url) window.open(url, "_blank");
+            }
+
+            if (e.target.classList.contains("copy-url-btn")) {
+                const url = e.target.getAttribute("data-url");
+                if (url) {
+                    navigator.clipboard.writeText(url)
+                        .then(() => showFloatingAlert("URL copied!", "success", 2000))
+                        .catch(() => showFloatingAlert("Failed to copy.", "danger", 2000));
+                }
+            }
+        });
 
         const collab = (() => {
             const list = [];
@@ -359,7 +402,7 @@ function handleTaskDetail(taskId) {
                     <span class="text-muted">Division:</span><span>${t.project?.division || "-"}</span>
                 </div>
 
-                ${refUrls}
+                ${refUrlsHtml}
 
                 <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
                     <div class="flex-grow-1">
@@ -392,11 +435,35 @@ $(document).on('click', '.text-event', function () {
     handleTaskDetail(taskId);
 });
 
-// ========== TASK FEEDBACK FUNCTIONALITY ==========
+$(document).ready(function () {
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+    $('.calendar-month').text(monthNames[currentDate.getMonth()]);
+    $('.calendar-year').text(currentDate.getFullYear());
+
+    $(document).on('click', '.employee-item', function () {
+        const $this = $(this);
+        const name = $this.find('.employee-info > div').first().text().trim();
+        const photo = $this.data('employee-photo') || '';
+        const totalTask = $this.data('total-task') ?? 0;
+
+        $('.selected-employee-name').text(name);
+        $('.selected-employee-task').text('Total task: ' + totalTask);
+
+        if (photo) {
+            $('.selected-employee-photo').attr('src', photo).removeClass('d-none');
+        } else {
+            $('.selected-employee-photo').addClass('d-none');
+        }
+
+        $('.selected-employee-info').removeClass('d-none');
+    });
+});
 
 // Constants
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB
-const MAX_TOTAL_BYTES = 100 * 1024 * 1024; // 100MB
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 100 * 1024 * 1024;
 let selectedFiles = [];
 let __quillInlineFeedback = null;
 
@@ -479,8 +546,8 @@ function getFileTypeIcon(fileName) {
 
 // Utility to escape HTML
 function escapeHtml(str) {
-    return String(str || '').replace(/[&<>"]+/g, function(m){ 
-        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]) || m; 
+    return String(str || '').replace(/[&<>"]+/g, function (m) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]) || m;
     });
 }
 
@@ -494,9 +561,9 @@ function showDeleteConfirmModal(opts) {
         const content = opts.content || '';
         const modalId = 'deleteConfirmModal_' + (type || 'f') + '_' + id + '_' + Date.now();
 
-        const avatarHtml = avatarUrl ? 
+        const avatarHtml = avatarUrl ?
             `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
-            `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
+            `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s => s[0] || '').slice(0, 2).join('').toUpperCase() || 'NA'}</div>`;
 
         let title = '';
         let confirmText = '';
@@ -533,14 +600,14 @@ function showDeleteConfirmModal(opts) {
         const parentModalEl = document.getElementById('taskFeedbackModal');
         let _parentWasOpen = false;
         let _parentModalInstance = null;
-        
+
         try {
             if (parentModalEl && parentModalEl.classList.contains('show')) {
                 _parentWasOpen = true;
                 _parentModalInstance = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
                 _parentModalInstance.hide();
             }
-        } catch(_) {}
+        } catch (_) { }
 
         // Insert modal
         document.body.insertAdjacentHTML('beforeend', modalHtml);
@@ -550,15 +617,15 @@ function showDeleteConfirmModal(opts) {
 
         // Close & cleanup helper
         function cleanup() {
-            try { modalInstance.hide(); } catch(_) {}
-            try { modalEl.remove(); } catch(_) {}
+            try { modalInstance.hide(); } catch (_) { }
+            try { modalEl.remove(); } catch (_) { }
             try {
                 if (_parentWasOpen && _parentModalInstance) {
-                    setTimeout(function(){ 
-                        try { _parentModalInstance.show(); } catch(_) {} 
+                    setTimeout(function () {
+                        try { _parentModalInstance.show(); } catch (_) { }
                     }, 180);
                 }
-            } catch(_) {}
+            } catch (_) { }
         }
 
         // Wire cancel to cleanup
@@ -569,23 +636,23 @@ function showDeleteConfirmModal(opts) {
         const confirmBtn = document.getElementById(`${modalId}_confirmBtn`);
         if (confirmBtn) {
             confirmBtn.addEventListener('click', function () {
-                try { 
-                    confirmBtn.disabled = true; 
-                    confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...'; 
-                } catch(_) {}
-                
+                try {
+                    confirmBtn.disabled = true;
+                    confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...';
+                } catch (_) { }
+
                 if (typeof opts.onConfirm === 'function') {
                     try {
-                        opts.onConfirm(function doneFn(shouldClose){
+                        opts.onConfirm(function doneFn(shouldClose) {
                             if (shouldClose === false) {
-                                confirmBtn.disabled = false; 
+                                confirmBtn.disabled = false;
                                 confirmBtn.innerHTML = 'Delete';
                                 return;
                             }
                             cleanup();
                         });
                     } catch (e) {
-                        confirmBtn.disabled = false; 
+                        confirmBtn.disabled = false;
                         confirmBtn.innerHTML = 'Delete';
                     }
                 } else {
@@ -593,8 +660,8 @@ function showDeleteConfirmModal(opts) {
                 }
             });
         }
-    } catch (e) { 
-        console.warn('showDeleteConfirmModal error', e); 
+    } catch (e) {
+        console.warn('showDeleteConfirmModal error', e);
     }
 }
 
@@ -602,7 +669,7 @@ function showDeleteConfirmModal(opts) {
 function initInlineFeedbackQuill() {
     try {
         if (__quillInlineFeedback) return __quillInlineFeedback;
-        
+
         const editorEl = document.getElementById('inline_task_feedback_editor');
         if (!editorEl) return null;
 
@@ -619,22 +686,22 @@ function initInlineFeedbackQuill() {
         try {
             const Delta = Quill.import && Quill.import('delta');
             if (__quillInlineFeedback && __quillInlineFeedback.clipboard) {
-                __quillInlineFeedback.clipboard.addMatcher('IMG', function(node, delta) {
+                __quillInlineFeedback.clipboard.addMatcher('IMG', function (node, delta) {
                     return new Delta();
                 });
             }
-        } catch(_) {}
+        } catch (_) { }
 
         // Remove images on text change
-        __quillInlineFeedback.on('text-change', function() {
+        __quillInlineFeedback.on('text-change', function () {
             try {
                 const imgs = __quillInlineFeedback.root.querySelectorAll('img');
                 imgs.forEach(i => i.remove());
-            } catch(_) {}
+            } catch (_) { }
         });
 
         return __quillInlineFeedback;
-    } catch(e) {
+    } catch (e) {
         console.error('Failed to initialize Quill:', e);
         return null;
     }
@@ -692,7 +759,7 @@ function showTaskInlineImagePreviewSmall(fileObj, dataUrl) {
                 if (previewContainer && previewContainer.parentNode) {
                     previewContainer.parentNode.removeChild(previewContainer);
                 }
-            } catch (_) {}
+            } catch (_) { }
         });
 
         imageLabel.appendChild(clearBtn);
@@ -752,14 +819,14 @@ function renderInlineTaskFeedbackFilesPreview() {
                     try {
                         selectedFiles.splice(idx, 1);
                         renderInlineTaskFeedbackFilesPreview();
-                    } catch (_) {}
+                    } catch (_) { }
                 });
 
                 item.appendChild(iconWrap);
                 item.appendChild(name);
                 item.appendChild(rm);
                 listWrap.appendChild(item);
-            } catch (_) {}
+            } catch (_) { }
         });
 
         preview.appendChild(listWrap);
@@ -788,7 +855,7 @@ function handleTaskFeedback(taskId) {
 
     const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
     const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
-    
+
     if (modalTitle) modalTitle.textContent = "Task Feedback";
     if (modalBody) modalBody.innerHTML = "";
 
@@ -824,21 +891,21 @@ function setupFileInputHandlers() {
 
     // Photo button handler
     if (photoBtn && imageInput) {
-        photoBtn.addEventListener('click', function() {
+        photoBtn.addEventListener('click', function () {
             imageInput.click();
         });
     }
 
     // File button handler
     if (fileBtn && filesInput) {
-        fileBtn.addEventListener('click', function() {
+        fileBtn.addEventListener('click', function () {
             filesInput.click();
         });
     }
 
     // Image input handler
     if (imageInput) {
-        imageInput.addEventListener('change', function() {
+        imageInput.addEventListener('change', function () {
             const file = this.files && this.files[0];
             if (!file) return;
 
@@ -855,7 +922,7 @@ function setupFileInputHandlers() {
 
             // Create preview
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 showTaskInlineImagePreviewSmall(file, e.target.result);
             };
             reader.readAsDataURL(file);
@@ -864,7 +931,7 @@ function setupFileInputHandlers() {
 
     // Files input handler
     if (filesInput) {
-        filesInput.addEventListener('change', function() {
+        filesInput.addEventListener('change', function () {
             const files = Array.from(this.files || []);
             if (!files.length) return;
 
@@ -891,14 +958,14 @@ function loadTaskFeedbackData(taskId) {
         type: "GET",
         dataType: "json",
         cache: false,
-        success: function(response) {
+        success: function (response) {
             if (response.data && response.data.length > 0) {
                 renderFeedbackList(response.data, taskId, modalBody);
             } else {
                 modalBody.innerHTML = '<div class="text-center text-muted py-4">No feedback yet</div>';
             }
         },
-        error: function(xhr) {
+        error: function (xhr) {
             modalBody.innerHTML = '<div class="text-center text-danger py-4">Failed to load feedback</div>';
         }
     });
@@ -914,9 +981,9 @@ function renderFeedbackList(feedbacks, taskId, modalBody) {
 
     let feedbackHtml = "";
 
-    feedbacks.forEach(function(feedback) {
+    feedbacks.forEach(function (feedback) {
         const formattedDate = feedback.created_at ? timeAgo(feedback.created_at) : '';
-        
+
         // Normalize image URL
         let topImageUrl = feedback.image || '';
         if (topImageUrl) {
@@ -934,10 +1001,10 @@ function renderFeedbackList(feedbacks, taskId, modalBody) {
         let topRefFiles = [];
         let topRfVal = feedback.reference_files;
         if (!Array.isArray(topRfVal) && typeof topRfVal === 'string') {
-            try { 
-                const parsed = JSON.parse(topRfVal); 
-                if (Array.isArray(parsed)) topRfVal = parsed; 
-            } catch(_) {}
+            try {
+                const parsed = JSON.parse(topRfVal);
+                if (Array.isArray(parsed)) topRfVal = parsed;
+            } catch (_) { }
         }
         if (Array.isArray(topRfVal) && topRfVal.length > 0) {
             topRefFiles = topRfVal.map((f) => {
@@ -954,10 +1021,10 @@ function renderFeedbackList(feedbacks, taskId, modalBody) {
         let topRefUrls = [];
         let topRuVal = feedback.reference_urls;
         if (!Array.isArray(topRuVal) && typeof topRuVal === 'string') {
-            try { 
-                const parsed = JSON.parse(topRuVal); 
-                if (Array.isArray(parsed)) topRuVal = parsed; 
-            } catch(_) {}
+            try {
+                const parsed = JSON.parse(topRuVal);
+                if (Array.isArray(parsed)) topRuVal = parsed;
+            } catch (_) { }
         }
         if (Array.isArray(topRuVal) && topRuVal.length > 0) {
             topRefUrls = topRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
@@ -972,12 +1039,12 @@ function renderFeedbackList(feedbacks, taskId, modalBody) {
         let repliesHtml = '';
         let viewRepliesBtnHtml = '';
         let repliesContainerHtml = '';
-        
+
         if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
             const repliesCount = feedback.replies.length;
-            const repliesContent = feedback.replies.map(function(rep) {
+            const repliesContent = feedback.replies.map(function (rep) {
                 const rDate = rep.created_at ? timeAgo(rep.created_at) : '';
-                
+
                 // Normalize reply image URL
                 let repImageUrl = rep.image || '';
                 if (repImageUrl) {
@@ -995,10 +1062,10 @@ function renderFeedbackList(feedbacks, taskId, modalBody) {
                 let repRefFiles = [];
                 let repRfVal = rep.reference_files;
                 if (!Array.isArray(repRfVal) && typeof repRfVal === 'string') {
-                    try { 
-                        const parsed = JSON.parse(repRfVal); 
-                        if (Array.isArray(parsed)) repRfVal = parsed; 
-                    } catch(_) {}
+                    try {
+                        const parsed = JSON.parse(repRfVal);
+                        if (Array.isArray(parsed)) repRfVal = parsed;
+                    } catch (_) { }
                 }
                 if (Array.isArray(repRfVal) && repRfVal.length > 0) {
                     repRefFiles = repRfVal.map((f) => {
@@ -1015,10 +1082,10 @@ function renderFeedbackList(feedbacks, taskId, modalBody) {
                 let repRefUrls = [];
                 let repRuVal = rep.reference_urls;
                 if (!Array.isArray(repRuVal) && typeof repRuVal === 'string') {
-                    try { 
-                        const parsed = JSON.parse(repRuVal); 
-                        if (Array.isArray(parsed)) repRuVal = parsed; 
-                    } catch(_) {}
+                    try {
+                        const parsed = JSON.parse(repRuVal);
+                        if (Array.isArray(parsed)) repRuVal = parsed;
+                    } catch (_) { }
                 }
                 if (Array.isArray(repRuVal) && repRuVal.length > 0) {
                     repRefUrls = repRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
@@ -1043,17 +1110,17 @@ function renderFeedbackList(feedbacks, taskId, modalBody) {
                                     ${(repRefUrls.length > 0 || repRefFiles.length > 0) ? `
                                         <div class="feedback-reference-container mb-1">
                                             ${repRefUrls.map((u) => {
-                                                const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
-                                                return `<a href="${u}" target="_blank" class="feedback-reference-url me-2">
+                    const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                    return `<a href="${u}" target="_blank" class="feedback-reference-url me-2">
                                                     <span class="material-symbols-outlined">link</span> ${shortUrl}
                                                 </a>`;
-                                            }).join('')}
+                }).join('')}
                                             ${repRefFiles.map((u) => {
-                                                const fileName = u.split('/').pop();
-                                                return `<a href="${u}" download class="feedback-reference-file ms-2">
+                    const fileName = u.split('/').pop();
+                    return `<a href="${u}" download class="feedback-reference-file ms-2">
                                                     <span class="material-symbols-outlined">draft</span> ${fileName}
                                                 </a>`;
-                                            }).join('')}
+                }).join('')}
                                         </div>
                                     ` : ''}
                                     ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
@@ -1090,17 +1157,17 @@ function renderFeedbackList(feedbacks, taskId, modalBody) {
                             ${(topRefUrls.length > 0 || topRefFiles.length > 0) ? `
                                 <div class="feedback-reference-container mb-2">
                                     ${topRefUrls.map((u) => {
-                                        const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
-                                        return `<a href="${u}" target="_blank" class="feedback-reference-url bg-light rounded-2">
+            const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+            return `<a href="${u}" target="_blank" class="feedback-reference-url bg-light rounded-2">
                                             <span class="material-symbols-outlined" style="color: #444444;">link</span> ${shortUrl}
                                         </a>`;
-                                    }).join('')}
+        }).join('')}
                                     ${topRefFiles.map((u) => {
-                                        const fileName = u.split('/').pop();
-                                        return `<a href="${u}" class="feedback-reference-file bg-light rounded-2">
+            const fileName = u.split('/').pop();
+            return `<a href="${u}" class="feedback-reference-file bg-light rounded-2">
                                             <span class="material-symbols-outlined" style="color: #444444;">draft</span> ${fileName}
                                         </a>`;
-                                    }).join('')}
+        }).join('')}
                                 </div>
                             ` : ""}
                             ${topImageUrl ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ""}
@@ -1130,30 +1197,30 @@ function renderFeedbackList(feedbacks, taskId, modalBody) {
 // Bind feedback event handlers
 function bindFeedbackEventHandlers(modalBody, taskId) {
     // Reply trigger
-    modalBody.querySelectorAll('.feedback-reply-trigger').forEach(function(btn) {
-        btn.addEventListener('click', function() {
+    modalBody.querySelectorAll('.feedback-reply-trigger').forEach(function (btn) {
+        btn.addEventListener('click', function () {
             const parentId = this.getAttribute('data-feedback-id');
             showReplyFeedbackForm(taskId, parentId);
         });
     });
 
     // Delete feedback
-    modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function(btn) {
-        btn.addEventListener('click', function() {
+    modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function (btn) {
+        btn.addEventListener('click', function () {
             const fid = this.getAttribute('data-feedback-id');
             if (!fid) return;
-            
+
             const authorName = (this.closest('.feedback-item')?.querySelector('strong')?.textContent) || '';
             const content = (this.closest('.feedback-item')?.querySelector('.feedback-comment p')?.textContent) || '';
             const avatarUrl = (this.closest('.feedback-item')?.querySelector('img')?.getAttribute('src')) || '';
-            
-            showDeleteConfirmModal({ 
-                type: 'feedback', 
-                id: fid, 
-                authorName: authorName, 
-                content: content, 
-                avatarUrl: avatarUrl, 
-                onConfirm: function(done){
+
+            showDeleteConfirmModal({
+                type: 'feedback',
+                id: fid,
+                authorName: authorName,
+                content: content,
+                avatarUrl: avatarUrl,
+                onConfirm: function (done) {
                     deleteFeedback(fid, taskId, done);
                 }
             });
@@ -1161,24 +1228,24 @@ function bindFeedbackEventHandlers(modalBody, taskId) {
     });
 
     // Delete reply
-    modalBody.querySelectorAll('.reply-delete-trigger').forEach(function(btn) {
-        btn.addEventListener('click', function() {
+    modalBody.querySelectorAll('.reply-delete-trigger').forEach(function (btn) {
+        btn.addEventListener('click', function () {
             const rid = this.getAttribute('data-reply-id');
             const pid = this.getAttribute('data-parent-id');
             if (!rid) return;
-            
+
             const authorName = (this.closest('.feedback-reply')?.querySelector('strong')?.textContent) || '';
             const content = (this.closest('.feedback-reply')?.querySelector('.feedback-comment p')?.textContent) || '';
             const avatarUrl = (this.closest('.feedback-reply')?.querySelector('img')?.getAttribute('src')) || '';
-            
-            showDeleteConfirmModal({ 
-                type: 'reply', 
-                id: rid, 
+
+            showDeleteConfirmModal({
+                type: 'reply',
+                id: rid,
                 parentId: pid,
-                authorName: authorName, 
-                content: content, 
-                avatarUrl: avatarUrl, 
-                onConfirm: function(done){
+                authorName: authorName,
+                content: content,
+                avatarUrl: avatarUrl,
+                onConfirm: function (done) {
                     deleteReply(rid, taskId, done);
                 }
             });
@@ -1186,8 +1253,8 @@ function bindFeedbackEventHandlers(modalBody, taskId) {
     });
 
     // View replies toggle
-    modalBody.querySelectorAll('.view-replies-toggle').forEach(function(btn) {
-        btn.addEventListener('click', function() {
+    modalBody.querySelectorAll('.view-replies-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
             const fid = this.getAttribute('data-feedback-id');
             const count = this.getAttribute('data-replies-count');
             const container = modalBody.querySelector('#replies-' + fid);
@@ -1206,8 +1273,8 @@ function bindFeedbackEventHandlers(modalBody, taskId) {
     });
 
     // Feedback image preview
-    modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function(img) {
-        img.addEventListener('click', function() {
+    modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+        img.addEventListener('click', function () {
             showImagePreview(this.src);
         });
     });
@@ -1219,7 +1286,7 @@ function showReplyFeedbackForm(taskId, parentId) {
         const appUrl = window.location.origin + '/nsa-office-2/public';
         const feedbackModalEl = document.getElementById("taskFeedbackModal");
         const inlineForm = feedbackModalEl.querySelector('.feedback-form');
-        
+
         if (inlineForm) {
             let inlinePid = inlineForm.querySelector('#inline_parent_id_input');
             if (!inlinePid) {
@@ -1269,20 +1336,20 @@ function showReplyFeedbackForm(taskId, parentId) {
                                 const rr = findById(node.replies, id);
                                 if (rr) return rr;
                             }
-                        } catch (_) {}
+                        } catch (_) { }
                         return null;
                     }
 
                     fb = findById(payload, parentId);
 
                     const title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) ||
-                                 (fb && (fb.employee_name || fb.employee_fullname)) || 'Unknown';
+                        (fb && (fb.employee_name || fb.employee_fullname)) || 'Unknown';
                     const commentRaw = (fb && (fb.feedback_comment || fb.comment || fb.description)) || '';
 
                     try {
                         const empRaw = (fb && fb.employee) || {};
                         let avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || empRaw.image || '';
-                        
+
                         // Normalize avatar URL
                         let avatarUrl = '';
                         if (avatarRaw) {
@@ -1315,7 +1382,7 @@ function showReplyFeedbackForm(taskId, parentId) {
                         html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
                         html += '</div></div>';
                         previewContainer.innerHTML = html;
-                    } catch (_) {}
+                    } catch (_) { }
 
                     try {
                         const btn = previewContainer.querySelector('.remove-task');
@@ -1323,23 +1390,23 @@ function showReplyFeedbackForm(taskId, parentId) {
                             try {
                                 previewContainer.remove();
                                 inlinePid.value = '';
-                            } catch (_) {}
+                            } catch (_) { }
                         });
-                    } catch (_) {}
+                    } catch (_) { }
                 })
                 .catch(function () {
                     // On error, show minimal preview with remove button
                     previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined">person</span></div><div class="flex-grow-1" style="font-size: 10px;"><div style="font-weight:500;font-size:11px">Reply to feedback</div><div style="font-size:10px;color:#6b6b6b;">&nbsp;</div></div><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
-                    
+
                     try {
                         const btn = previewContainer.querySelector('.remove-task');
                         if (btn) btn.addEventListener('click', function () {
                             try {
                                 previewContainer.remove();
                                 inlinePid.value = '';
-                            } catch (_) {}
+                            } catch (_) { }
                         });
-                    } catch (_) {}
+                    } catch (_) { }
                 });
 
             // Focus editor
@@ -1350,9 +1417,9 @@ function showReplyFeedbackForm(taskId, parentId) {
                         document.querySelector('#inline_task_feedback_editor .ql-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }, 200);
                 }
-            } catch(_) {}
+            } catch (_) { }
         }
-    } catch(e) {
+    } catch (e) {
         console.warn("showReplyFeedbackForm error", e);
     }
 }
@@ -1361,14 +1428,14 @@ function showReplyFeedbackForm(taskId, parentId) {
 function submitInlineFeedback() {
     const feedbackModalEl = document.getElementById("taskFeedbackModal");
     const taskId = feedbackModalEl?.dataset?.taskId;
-    
+
     if (!taskId) {
         showFloatingAlert('Task ID not found', 'danger', 3000);
         return;
     }
 
     const employeeId = feedbackModalEl?.dataset?.employeeId || '';
-    
+
     // Get content from Quill
     let feedbackComment = '';
     if (__quillInlineFeedback) {
@@ -1405,7 +1472,7 @@ function submitInlineFeedback() {
     formData.append('feedback_comment', feedbackComment);
     if (parentId) formData.append('parent_id', parentId);
     if (imageFile) formData.append('feedback_image', imageFile);
-    
+
     // Append multiple files from selectedFiles array
     if (refFiles.length > 0) {
         for (let i = 0; i < refFiles.length; i++) {
@@ -1415,7 +1482,7 @@ function submitInlineFeedback() {
 
     const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
     const originalHtml = sendBtn?.innerHTML || '';
-    
+
     if (sendBtn) {
         sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
         sendBtn.disabled = true;
@@ -1430,14 +1497,14 @@ function submitInlineFeedback() {
         headers: {
             "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
         },
-        success: function(response) {
+        success: function (response) {
             showFloatingAlert(response.message || 'Feedback submitted successfully', 'success', 2000);
-            
+
             // Clear form
             if (__quillInlineFeedback) {
                 __quillInlineFeedback.setText('');
             }
-            
+
             // Clear image input and preview
             const imageInput = document.getElementById('inline_task_feedback_image_input');
             if (imageInput) imageInput.value = '';
@@ -1446,25 +1513,25 @@ function submitInlineFeedback() {
             if (imagePreview && imagePreview.parentNode) {
                 imagePreview.parentNode.removeChild(imagePreview);
             }
-            
+
             // Clear files input and preview
             const filesInput = document.getElementById('inline_task_feedback_files_input');
             if (filesInput) filesInput.value = '';
             selectedFiles = [];
             const filesPreview = document.getElementById('inline_task_feedback_files_preview');
             if (filesPreview) filesPreview.innerHTML = '';
-            
+
             // Clear parent ID and reply preview
             if (parentIdInput) parentIdInput.value = '';
             const replyPreview = document.getElementById('reply_parent_preview_inline');
             if (replyPreview && replyPreview.parentNode) {
                 replyPreview.parentNode.removeChild(replyPreview);
             }
-            
+
             // Reload feedback list
             loadTaskFeedbackData(taskId);
         },
-        error: function(xhr) {
+        error: function (xhr) {
             let errorMessage = "Failed to submit feedback. Please try again.";
             if (xhr.responseJSON?.errors) {
                 errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
@@ -1473,7 +1540,7 @@ function submitInlineFeedback() {
             }
             showFloatingAlert(errorMessage, "danger", 3000);
         },
-        complete: function() {
+        complete: function () {
             if (sendBtn) {
                 sendBtn.innerHTML = originalHtml;
                 sendBtn.disabled = false;
@@ -1490,12 +1557,12 @@ function deleteFeedback(feedbackId, taskId, done) {
         headers: {
             "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
         },
-        success: function(response) {
+        success: function (response) {
             showFloatingAlert(response.message || 'Feedback deleted successfully', 'success', 2000);
             loadTaskFeedbackData(taskId);
             if (typeof done === 'function') done(true);
         },
-        error: function(xhr) {
+        error: function (xhr) {
             let msg = 'Failed to delete feedback';
             if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
             showFloatingAlert(msg, 'danger', 3000);
@@ -1512,12 +1579,12 @@ function deleteReply(replyId, taskId, done) {
         headers: {
             "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
         },
-        success: function(response) {
+        success: function (response) {
             showFloatingAlert(response.message || 'Reply deleted successfully', 'success', 2000);
             loadTaskFeedbackData(taskId);
             if (typeof done === 'function') done(true);
         },
-        error: function(xhr) {
+        error: function (xhr) {
             let msg = 'Failed to delete reply';
             if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
             showFloatingAlert(msg, 'danger', 3000);
@@ -1529,7 +1596,7 @@ function deleteReply(replyId, taskId, done) {
 // Show image preview modal
 function showImagePreview(imageSrc) {
     let modal = document.getElementById('taskImagePreviewModal');
-    
+
     if (!modal) {
         const html = `
             <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
@@ -1551,35 +1618,32 @@ function showImagePreview(imageSrc) {
 
     const img = document.getElementById('taskImagePreviewModalImg');
     if (img) img.src = imageSrc;
-    
+
     new bootstrap.Modal(modal).show();
 }
 
 // Show floating alert
 function showFloatingAlert(message, type = 'info', duration = 3000) {
-    // Try to use existing alert function first
     if (typeof window.showAlertMsg === 'function') {
         window.showAlertMsg(message, type === 'success' ? 'light' : type, duration);
         return;
     }
 
-    // Fallback to custom alert
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type === 'success' ? 'success' : type === 'danger' ? 'danger' : 'warning'} position-fixed top-0 start-50 translate-middle-x mt-3`;
     alertDiv.style.zIndex = '9999';
     alertDiv.textContent = message;
-    
+
     document.body.appendChild(alertDiv);
-    
+
     setTimeout(() => {
         alertDiv.remove();
     }, duration);
 }
 
 // Event listeners
-$(document).ready(function() {
-    // Click on mode_comment icon in task detail modal
-    $(document).on('click', '.task-icon', function(e) {
+$(document).ready(function () {
+    $(document).on('click', '.task-icon', function (e) {
         const icon = $(this);
         if (icon.text().trim() === 'mode_comment') {
             const taskId = icon.data('task-id');
@@ -1590,40 +1654,40 @@ $(document).ready(function() {
     });
 
     // Send feedback button
-    $(document).on('click', '#inlineTaskFeedbackSendBtn', function() {
+    $(document).on('click', '#inlineTaskFeedbackSendBtn', function () {
         submitInlineFeedback();
     });
 
     // Clean up when modal closes
-    $(document).on('hidden.bs.modal', '#taskFeedbackModal', function() {
+    $(document).on('hidden.bs.modal', '#taskFeedbackModal', function () {
         // Clear Quill editor
         if (__quillInlineFeedback) {
             __quillInlineFeedback.setText('');
         }
-        
+
         // Clear file inputs
         $('#inline_task_feedback_image_input').val('');
         $('#inline_task_feedback_files_input').val('');
         $('#inline_parent_id_input').val('');
-        
+
         // Clear stored variables
         window.__taskInlineFeedbackImageFile = null;
         selectedFiles = [];
-        
+
         // Remove preview elements
         const imagePreview = document.getElementById('inline_task_feedback_image_preview');
         if (imagePreview && imagePreview.parentNode) {
             imagePreview.parentNode.removeChild(imagePreview);
         }
-        
+
         const filesPreview = document.getElementById('inline_task_feedback_files_preview');
         if (filesPreview) filesPreview.innerHTML = '';
-        
+
         const replyPreview = document.getElementById('reply_parent_preview_inline');
         if (replyPreview && replyPreview.parentNode) {
             replyPreview.parentNode.removeChild(replyPreview);
         }
-        
+
         // Clean up modal backdrop
         $(".modal-backdrop").remove();
         $("body").removeClass("modal-open").css("overflow", "");
