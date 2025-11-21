@@ -245,6 +245,14 @@ class SalaryPayslipController extends Controller
         $employeeAttendance = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
             ->where('date_attendance', '<=', $lastDayOfMonth)
             ->where('date_attendance', '>=', $firstDayOfMonth)
+            ->where('status','<>', 'ABSENT')
+            ->groupBy('employee_id')
+        ->get();
+
+        $employeeAttendanceAbsent = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
+            ->where('date_attendance', '<=', $lastDayOfMonth)
+            ->where('date_attendance', '>=', $firstDayOfMonth)
+            ->where('status','ABSENT')
             ->groupBy('employee_id')
         ->get();
 
@@ -318,6 +326,20 @@ class SalaryPayslipController extends Controller
             ->groupBy('employee_id')
         ->get();
 
+        $employeeAttendanceNotComplete = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
+            ->where('date_attendance', '<=', $lastDayOfMonth)
+            ->where('date_attendance', '>=', $firstDayOfMonth)
+            ->where('employee_id', $employeeId)
+            ->where(function ($query) {
+                $query->whereNull('time_in')
+                      ->orWhere('time_in', '00:00:00')
+                      ->orWhereNull('time_out')
+                      ->orWhere('time_out', '00:00:00');
+            })
+            ->where('status','<>','ABSENT')
+            ->groupBy('employee_id')
+        ->get();
+
         $totalActiveDay = $this->getActiveDay($firstDayOfMonth,$lastDayOfMonth);
 
         return response()->json([
@@ -329,7 +351,8 @@ class SalaryPayslipController extends Controller
                     'employeeSalary'    => $employeeSalary,
                     'employeePayslip'   => $employeePayslip,
                     'employeeAttendanceAll'     => $employeeAttendanceAll,
-                    'employeeAttendanceAbsent'  => $employeeAttendanceAbsent
+                    'employeeAttendanceAbsent'  => $employeeAttendanceAbsent,
+                    'employeeAttendanceNotComplete'  => $employeeAttendanceNotComplete
                 ],
                 'message' => 'Get employee salary detail successfully'
         ]);

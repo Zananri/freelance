@@ -426,6 +426,9 @@
                                             <label for="working_day" class="fs-14 text-secondary fw-normal">
                                                 Hari Kerja
                                             </label>
+                                            <span class="fs-12 ms-2 info_working_day" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top" data-bs-title="0">
+                                                <i class="bi bi-info-circle"></i>
+                                            </span>
                                             <input type="number" class="form-control  border-0 fs-14" name="working_day" id="working_day">
                                         </div>
                                         <div class="col-4">
@@ -453,10 +456,25 @@
                                             <input type="number" class="form-control border-0 fs-14" name="basic_salary" id="basic_salary">
                                         </div>
                                         
+                                        <div class="col-6">
+                                            <label for="basic_salary" class="fs-14 text-secondary fw-normal">
+                                                Absensi Tidak Lengkap 
+                                                <span class="jumlah_absensi_tidak_lengkap"></span>
+                                            </label>
+                                            
+                                            <div class="">
+                                                <span class="hitungan_absensi_tidak_lengkap fs-14"></span>
+                                                <span class="fs-12 ms-2 info_absensi_tidak_lengkap" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="hari * 50.000">
+                                                <i class="bi bi-info-circle"></i>
+                                            </span>
+                                            </div>
+                                        </div>
+                                        
                                         
                                     </div>
                                     
                                 </div>
+                                
 
                                 <div class="mb-3">
 

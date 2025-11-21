@@ -344,6 +344,7 @@ let employeePayslip = [];
 let employeeSalary = [];
 let employeeAttendanceAll = [];
 let employeeAttendanceAbsent = [];
+let employeeAttendanceNotComplete = [];
 let employeeTotalActiveDay = 0;
 
 function getEmployeeSalaryPayslipDetail(employeeId,month,year)
@@ -372,6 +373,8 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             let overtime = 0;
             let thp = 0;
             let thr = 0;
+            let absent = 0;
+            let attendanceNotComplete = 0;
 
 
             employeeDetail = response.data.employee;
@@ -380,6 +383,7 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             employeeSalary = response.data.employeeSalary;
             employeeAttendanceAll = response.data.employeeAttendanceAll;
             employeeAttendanceAbsent = response.data.employeeAttendanceAbsent;
+            employeeAttendanceNotComplete = response.data.employeeAttendanceNotComplete;
             
             // parseInt(largeNum).toLocaleString('id-ID');
 
@@ -403,7 +407,25 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             $('#modalSalaryEdit [name="bonus"]').val(bonus);
             $('#modalSalaryEdit [name="overtime"]').val(overtime);
             $('#modalSalaryEdit [name="thr"]').val(thr);
+            
+            debugger;
+            if(employeeAttendanceAbsent.length > 0){
+                absent = employeeAttendanceAbsent[0].total_attendance;
+            }
+            
+            if(employeeAttendanceNotComplete.length > 0){
+                attendanceNotComplete = employeeAttendanceNotComplete[0].total_attendance;
+            }
 
+            
+            
+            
+            $('#modalSalaryEdit .jumlah_absensi_tidak_lengkap').text(attendanceNotComplete+' hari');
+            
+            $('#modalSalaryEdit .hitungan_absensi_tidak_lengkap').text( (0 - (attendanceNotComplete * 50000)).toLocaleString('id-ID'));
+            
+            $('#modalSalaryEdit .info_working_day').attr('data-bs-title','Tidak Masuk Kerja : '+parseInt(absent) + ' <br> Absensi tidak lengkap : '+parseInt(attendanceNotComplete));
+            
             $('#modalSalaryEdit .info_basic_salary').attr('data-bs-title','Rp '+parseInt(employeeSalary.basic_salary).toLocaleString('id-ID'));
             $('#modalSalaryEdit .info_positional_allowance').attr('data-bs-title','Rp '+parseInt(employeeSalary.positional_allowance).toLocaleString('id-ID'));
             
@@ -434,6 +456,8 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
 
                 thp = employeePayslip.take_home_pay;
             }
+
+            thp = thp - attendanceNotComplete * 50000;
 
 
 
@@ -501,6 +525,9 @@ function countSalary(){
 
     thp = parseInt(basicSalary) + parseInt(positionalAllowance) + parseInt(mealAllowance) + parseInt(transportationAllowance) + parseInt(internetPhoneAllowance) + parseInt(bonus) + parseInt(overtime) + parseInt(thr);
 
+    if(employeeAttendanceNotComplete.length > 0){
+        thp = thp - (employeeAttendanceNotComplete[0].total_attendance * 50000);
+    }
     
 
     $('#modalSalaryEdit [name="basic_salary"').val(parseInt(basicSalary));
