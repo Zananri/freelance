@@ -435,3 +435,112 @@
     background-color: #444444;
     color: #ebecf2;
 }
+
+/* Feedback Modal Styles */
+.feedback-modal-dialog {
+    max-width: 480px;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+.feedback-modal-body {
+    padding: 8px;
+    max-height: 100%;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.feedback-modal-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.feedback-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.feedback-modal-body::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.feedback-form {
+    background: #ffffff;
+    padding: 0 10px 10px 10px;
+    border-radius: 20px;
+}
+
+#inlineTaskFeedbackPhotoBtn,
+#inlineTaskFeedbackFileBtn,
+.submit-feedback button {
+    border-radius: 50%;
+    height: 40px;
+    width: 40px;
+}
+
+.feedback-photo-icon,
+.feedback-file-icon,
+.submit-feedback button span {
+    font-size: 20px;
+}
+
+.feedback-item {
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.feedback-comment,
+.feedback-comment * {
+    font-size: 13px;
+    color: #444;
+}
+
+.feedback-item img.feedback-image {
+    width: 70px;
+    height: auto;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+.feedback-reference-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.feedback-reference-url,
+.feedback-reference-file {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #444444;
+    text-decoration: none;
+    white-space: nowrap;
+    max-width: 60%;
+    height: 28px;
+    overflow-x: auto;
+    font-size: 10px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.feedback-reference-url::-webkit-scrollbar,
+.feedback-reference-file::-webkit-scrollbar {
+    display: none;
+}
+
+.feedback-reference-url:hover,
+.feedback-reference-file:hover {
+    text-decoration: underline;
+}
+
+.feedback-reference-url .material-symbols-outlined,
+.feedback-reference-file .material-symbols-outlined {
+    font-size: 18px;
+    vertical-align: middle;
+    align-items: center;
+    color: #444444;
+}
