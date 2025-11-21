@@ -525,12 +525,6 @@
 
     <script src="{{ asset('asset/js/app.js?v=' . time()) }}"></script>
     <script src="{{ asset('asset/js/office.js?v=' . time()) }}"></script>
-    <script>
-        window.AppUser = {
-            name: "{{ Auth::check() ? addslashes(Auth::user()->name) : '' }}",
-            employee_id: "{{ Auth::check() && auth()->user()->employee ? auth()->user()->employee->id : '' }}"
-        };
-    </script>
 
     @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))
     <script src="{{ asset('asset/js/hr_info.js')}}?v={{time() }}"></script>
