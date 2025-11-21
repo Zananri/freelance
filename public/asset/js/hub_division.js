@@ -268,6 +268,28 @@ async function renderEventCalendar(year, month) {
     }
 }
 
+$(document).on("click", ".box-event", function () {
+
+    const date = $(this).data("date") || "-";
+    const total = $(this).data("total") || "-";
+    const photo = $(this).data("photo") || "";
+    const name = $(this).data("name") || "-";
+    const task = $(this).data("task") || "-";
+
+    $(".selected-task-date").text(date);
+    $(".selected-total-task").text(total);
+    $(".selected-employee-name").text(name);
+    $(".selected-employee-task").text(task);
+
+    if (photo) {
+        $(".selected-employee-photo").attr("src", photo).removeClass("d-none");
+    } else {
+        $(".selected-employee-photo").addClass("d-none");
+    }
+
+    $("#taskModalDate").modal("show");
+});
+
 async function getAllTasksEmployeeCalendarByMonth(year, month) {
 
     return getAllEven = await $.ajax({
