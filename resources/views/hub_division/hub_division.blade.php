@@ -241,35 +241,34 @@
         <div class="modal fade" id="taskModalDate" tabindex="-1" aria-labelledby="taskModalDateLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); background: #ffffff;">
-                    <div class="modal-header border-0 pb-2 pt-4 px-4">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header border-0">
                         <div class="w-100">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h5 class="selected-task-date mb-0" style="font-size: 16px; font-weight: 600; color: #1F2937;"></h5>
+                                    <h5 class="selected-task-date mb-0"></h5>
                                 </div>
                                 <div>
-                                    <span class="selected-total-task" style="font-size: 14px; color: #6B7280;"></span>
-                                </div>
-                            </div>
-                            <div class="selected-employee-info d-flex align-items-center gap-3 p-3 rounded-3" style="background: #F9FAFB;">
-                                <img src="" class="selected-employee-photo rounded-circle d-none" 
-                                     style="width: 48px; height: 48px; object-fit: cover; border: 2px solid #E5E7EB;">
-                                <div>
-                                    <div class="selected-employee-name fw-semibold mb-0" style="font-size: 14px; color: #1F2937;"></div>
-                                    <small class="selected-employee-task text-muted" style="font-size: 12px;"></small>
+                                    <span class="selected-total-task"></span>
                                 </div>
                             </div>
                         </div>
-                        <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" 
-                                aria-label="Close" style="top: 20px; right: 20px;"></button>
                     </div>
-                    <div class="modal-body px-4 py-3" style="max-height: 60vh; overflow-y: auto;">
+                    <div class="barrier-custom"></div>
+                    <div class="modal-body modal-body-custom">
+                        <div class="selected-employee-info d-flex align-items-center gap-3 p-3 rounded-3">
+                            <img src="" class="selected-employee-photo rounded-circle d-none">
+                            <div>
+                                <div class="selected-employee-name fw-semibold mb-0"
+                                    style="font-size: 14px; color: #1F2937;"></div>
+                                <small class="selected-employee-task text-muted" style="font-size: 12px;"></small>
+                            </div>
+                        </div>
                         <div id="taskListByDate"></div>
                     </div>
-                    <div class="modal-footer border-0 px-4 pb-4 pt-2">
-                        <button type="button" class="btn w-100" data-bs-dismiss="modal" 
-                                style="background: #F3F4F6; color: #6B7280; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 500;">Close</button>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close
+                        </button>
                     </div>
                 </div>
             </div>
