@@ -266,7 +266,7 @@ async function renderEventCalendar(year, month) {
     }
 }
 
-$(document).on("click", ".box-event", function () {
+$(document).on("click", ".calendar-day", function () {
 
     const date = $(this).data("date") || "-";
     const total = $(this).data("total") || "-";
@@ -701,8 +701,14 @@ function handleTaskDetail(taskId) {
     });
 }
 
-$(document).on('click', '.text-event', function () {
+$(document).on('click', '.text-event', function (e) {
+    e.stopPropagation();
+    e.preventDefault();
+
     const taskId = $(this).data('task-id');
+    if (!taskId) return;
+
+    try { $('#taskModalDate').modal('hide'); } catch (_) {}
     handleTaskDetail(taskId);
 });
 
