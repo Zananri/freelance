@@ -405,10 +405,10 @@ function initInlineFeedbackQuill() {
     try {
         if (__quillInlineFeedback) return __quillInlineFeedback;
         
-        const editorEl = document.getElementById('inline_feedback_editor');
+        const editorEl = document.getElementById('inline_task_feedback_editor');
         if (!editorEl) return null;
 
-        __quillInlineFeedback = new Quill('#inline_feedback_editor', {
+        __quillInlineFeedback = new Quill('#inline_task_feedback_editor', {
             modules: {
                 toolbar: false,
                 clipboard: { matchVisual: false }
@@ -809,7 +809,7 @@ function showReplyFeedbackForm(taskId, parentId) {
             try {
                 if (__quillInlineFeedback) {
                     __quillInlineFeedback.focus();
-                    document.querySelector('#inline_feedback_editor .ql-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    document.querySelector('#inline_task_feedback_editor .ql-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             } catch(_) {}
         }
@@ -848,11 +848,11 @@ function submitInlineFeedback() {
     const parentId = parentIdInput?.value || '';
 
     // Get image file
-    const imageInput = document.getElementById('inline_feedback_image_input');
+    const imageInput = document.getElementById('inline_task_feedback_image_input');
     const imageFile = imageInput?.files[0] || null;
 
     // Get reference files
-    const filesInput = document.getElementById('inline_feedback_files_input');
+    const filesInput = document.getElementById('inline_task_feedback_files_input');
     const refFiles = filesInput?.files || [];
 
     // Validate image size
@@ -876,7 +876,7 @@ function submitInlineFeedback() {
         }
     }
 
-    const sendBtn = document.getElementById('inlineFeedbackSendBtn');
+    const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
     const originalHtml = sendBtn?.innerHTML || '';
     
     if (sendBtn) {
@@ -1025,18 +1025,18 @@ $(document).ready(function() {
     });
 
     // Send feedback button
-    $(document).on('click', '#inlineFeedbackSendBtn', function() {
+    $(document).on('click', '#inlineTaskFeedbackSendBtn', function() {
         submitInlineFeedback();
     });
 
     // Photo button
-    $(document).on('click', '#inlineFeedbackPhotoBtn', function() {
-        $('#inline_feedback_image_input').click();
+    $(document).on('click', '#inlineTaskFeedbackPhotoBtn', function() {
+        $('#inline_task_feedback_image_input').click();
     });
 
     // File button
-    $(document).on('click', '#inlineFeedbackFileBtn', function() {
-        $('#inline_feedback_files_input').click();
+    $(document).on('click', '#inlineTaskFeedbackFileBtn', function() {
+        $('#inline_task_feedback_files_input').click();
     });
 
     // Clean up when modal closes
@@ -1044,8 +1044,8 @@ $(document).ready(function() {
         if (__quillInlineFeedback) {
             __quillInlineFeedback.setText('');
         }
-        $('#inline_feedback_image_input').val('');
-        $('#inline_feedback_files_input').val('');
+        $('#inline_task_feedback_image_input').val('');
+        $('#inline_task_feedback_files_input').val('');
         $('#inline_parent_id_input').val('');
         $(".modal-backdrop").remove();
         $("body").removeClass("modal-open").css("overflow", "");
