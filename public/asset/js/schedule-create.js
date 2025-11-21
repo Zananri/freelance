@@ -492,7 +492,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     } catch(_){}
                 });
             // Load tasks for this project into the schedule parent selector (prefix 'schedule')
-            try { loadRelatedTasks(p.id, 'schedule', null); } catch(_) {}
+            try { 
+                if (typeof window.loadRelatedTasks === 'function') {
+                    window.loadRelatedTasks(p.id, 'schedule', null);
+                } else {
+                    console.error('loadRelatedTasks function not available. Make sure task.js is loaded before schedule-create.js');
+                }
+            } catch(e) {
+                console.error('Error loading related tasks:', e);
+            }
         }
 
     fetch(appUrl + "/project/index")

@@ -158,6 +158,30 @@
     cursor: default;
 }
 
+/* General dropdown list styling */
+.dropdown-list {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-top: 4px;
+}
+
+.dropdown-list::-webkit-scrollbar {
+    width: 6px;
+}
+.dropdown-list::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
+
+/* Dropup project & division positioning */
 #schedule_division_dropdown,
 #edit_schedule_project_dropdown,
 #edit_schedule_division_dropdown,
