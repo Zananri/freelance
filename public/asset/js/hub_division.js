@@ -1,39 +1,5 @@
-// Get appUrl from script tag src
-const appUrl = (() => {
-    try {
-        // Try to get from script tag
-        const scripts = document.getElementsByTagName('script');
-        for (let script of scripts) {
-            const src = script.src;
-            if (src && src.includes('hub_division.js')) {
-                // Extract base URL from script src
-                // e.g., http://localhost/nsa-office-2/public/asset/js/hub_division.js
-                // -> http://localhost/nsa-office-2/public
-                const url = new URL(src);
-                const path = url.pathname;
-                const basePath = path.substring(0, path.lastIndexOf('/asset/'));
-                return url.origin + basePath;
-            }
-        }
-    } catch (e) {
-        console.warn('Failed to determine appUrl from script tag:', e);
-    }
-    
-    // Fallback: try to determine from current location
-    const path = window.location.pathname;
-    const origin = window.location.origin;
-    
-    // Remove trailing parts after /public
-    if (path.includes('/public')) {
-        const publicIndex = path.indexOf('/public');
-        return origin + path.substring(0, publicIndex + 7); // +7 for '/public'
-    }
-    
-    // Last resort
-    return origin;
-})();
-
-console.log('appUrl detected:', appUrl);
+// Get appUrl from meta tag
+const appUrl = $('meta[name=app-url]').attr("content");
 
 let currentDate = new Date();
 let selectedEmployeeId = null;
