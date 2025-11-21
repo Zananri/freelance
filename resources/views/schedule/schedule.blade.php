@@ -7,6 +7,8 @@
         <link rel="stylesheet" href="{{ asset('asset/css/schedule-create.css?v=' . time()) }}">
         <!-- Quill editor styles (only for Schedule page) -->
         <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+        <!-- Load date helper first for date formatting functions -->
+        <script src="{{ asset('asset/js/date_helper.js?v=' . time()) }}"></script>
     </x-slot>
 
     <div class="d-flex justify-content-between align-items-center mb-4 schedule-header">
@@ -651,9 +653,10 @@
 
     <x-slot name="script_slot">
 
+        <!-- Load task.js first because schedule.js and schedule-create.js depend on loadRelatedTasks function -->
+        <script src="{{ asset('asset/js/task.js?v=' . time()) }}"></script>
         <script src="{{ asset('asset/js/schedule.js?v=' . time()) }}"></script>
-    <script src="{{ asset('asset/js/task.js?v=' . time()) }}"></script>
-    <script src="{{ asset('asset/js/schedule-create.js?v=' . time()) }}"></script>
+        <script src="{{ asset('asset/js/schedule-create.js?v=' . time()) }}"></script>
 
         <!-- Quill JS and initializer for Schedule page -->
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>

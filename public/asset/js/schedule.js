@@ -1360,7 +1360,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
             // Load tasks for this project into the edit schedule parent selector
-            try { loadRelatedTasks(p.id, 'edit_schedule', selectedParentId, selectedParentTitle); } catch(_) {}
+            try { 
+                if (typeof window.loadRelatedTasks === 'function') {
+                    window.loadRelatedTasks(p.id, 'edit_schedule', selectedParentId, selectedParentTitle);
+                } else {
+                    console.error('loadRelatedTasks function not available. Make sure task.js is loaded before schedule.js');
+                }
+            } catch(e) {
+                console.error('Error loading related tasks for edit modal:', e);
+            }
         }
 
     fetch(appUrl + "/project/index")
