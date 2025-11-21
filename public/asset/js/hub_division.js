@@ -433,6 +433,50 @@ function timeAgo(createdAt) {
     }
 }
 
+// Get file type icon based on extension
+function getFileTypeIcon(fileName) {
+    try {
+        var ext = (fileName || '').toLowerCase().split('.').pop();
+        switch (ext) {
+            case 'pdf':
+                return 'picture_as_pdf';
+            case 'doc':
+            case 'docx':
+                return 'article';
+            case 'xls':
+            case 'xlsx':
+                return 'grid_on';
+            case 'zip':
+            case 'rar':
+            case '7z':
+                return 'folder_zip';
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+            case 'webp':
+                return 'image';
+            case 'mp4':
+            case 'avi':
+            case 'mov':
+                return 'movie';
+            case 'mp3':
+            case 'wav':
+            case 'ogg':
+                return 'audio_file';
+            case 'txt':
+                return 'text_snippet';
+            case 'ppt':
+            case 'pptx':
+                return 'slideshow';
+            default:
+                return 'description';
+        }
+    } catch (_) {
+        return 'description';
+    }
+}
+
 // Initialize Quill editor for inline feedback
 function initInlineFeedbackQuill() {
     try {
@@ -475,6 +519,134 @@ function initInlineFeedbackQuill() {
     }
 }
 
+// Show inline task feedback image preview (small 32x32)
+function showTaskInlineImagePreviewSmall(fileObj, dataUrl) {
+    try {
+        // Create or get the preview container
+        let previewContainer = document.getElementById("inline_task_feedback_image_preview");
+        if (!previewContainer) {
+            previewContainer = document.createElement("div");
+            previewContainer.id = "inline_task_feedback_image_preview";
+            previewContainer.style.cssText = "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
+
+            // Insert after the file button
+            const fileBtn = document.getElementById("inlineTaskFeedbackFileBtn");
+            if (fileBtn && fileBtn.parentNode) {
+                fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+            }
+        }
+
+        // Create the image preview
+        previewContainer.innerHTML = "";
+
+        const imageLabel = document.createElement("div");
+        imageLabel.className = "custom-image-upload position-relative";
+        imageLabel.style.cssText =
+            "width: 32px; height: 32px; " +
+            "background-image: url('" + dataUrl + "'); " +
+            "background-size: cover; background-position: center center; background-repeat: no-repeat; " +
+            "border-radius: 6px; cursor: pointer; border: 1px solid #ddd; margin-right: 4px; " +
+            "opacity: 1; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: visible;";
+
+        const clearBtn = document.createElement("span");
+        clearBtn.className = "image-clear-btn";
+        clearBtn.innerHTML = "&times;";
+        clearBtn.title = "Remove image";
+        clearBtn.style.cssText =
+            "position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; " +
+            "border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; " +
+            "text-align: center; cursor: pointer; font-weight: 700; border: none; " +
+            "box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 30; opacity: 1;";
+
+        // Store the file object for later use
+        window.__taskInlineFeedbackImageFile = fileObj;
+
+        clearBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+                const inp = document.getElementById("inline_task_feedback_image_input");
+                if (inp) inp.value = "";
+                window.__taskInlineFeedbackImageFile = null;
+                if (previewContainer && previewContainer.parentNode) {
+                    previewContainer.parentNode.removeChild(previewContainer);
+                }
+            } catch (_) {}
+        });
+
+        imageLabel.appendChild(clearBtn);
+        previewContainer.appendChild(imageLabel);
+    } catch (e) {
+        console.warn("Failed to show inline task image preview:", e);
+    }
+}
+
+// Render inline task feedback files preview
+function renderInlineTaskFeedbackFilesPreview() {
+    try {
+        let preview = document.getElementById("inline_task_feedback_files_preview");
+        if (!preview) {
+            // Create preview container if it doesn't exist
+            const form = document.querySelector(".feedback-form");
+            if (form) {
+                preview = document.createElement("div");
+                preview.id = "inline_task_feedback_files_preview";
+                preview.className = "mt-2";
+                form.insertBefore(preview, form.firstChild);
+            }
+        }
+        if (!preview) return;
+
+        preview.innerHTML = "";
+
+        if (!selectedFiles || !selectedFiles.length) return;
+
+        const listWrap = document.createElement("div");
+        listWrap.className = "selected-files-list mt-2";
+
+        selectedFiles.forEach(function (f, idx) {
+            try {
+                const item = document.createElement("div");
+                item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                const iconWrap = document.createElement("div");
+                const iconName = getFileTypeIcon(f.name || '');
+                iconWrap.innerHTML = '<span class="material-symbols-outlined">' + iconName + '</span>';
+                iconWrap.style.fontSize = "10px";
+                iconWrap.style.textAlign = "center";
+
+                const name = document.createElement("span");
+                name.className = "flex-grow-1";
+                name.style.fontSize = "10px";
+                const sizeMb = (f.size || 0) / 1024 / 1024;
+                name.textContent = (f.name || "") + (isFinite(sizeMb) ? " (" + sizeMb.toFixed(2) + " MB)" : "");
+
+                const rm = document.createElement("button");
+                rm.type = "button";
+                rm.className = "btn btn-sm btn-remove-task remove-task";
+                rm.style.lineHeight = "1";
+                rm.style.fontSize = "10px";
+                rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                rm.addEventListener("click", function () {
+                    try {
+                        selectedFiles.splice(idx, 1);
+                        renderInlineTaskFeedbackFilesPreview();
+                    } catch (_) {}
+                });
+
+                item.appendChild(iconWrap);
+                item.appendChild(name);
+                item.appendChild(rm);
+                listWrap.appendChild(item);
+            } catch (_) {}
+        });
+
+        preview.appendChild(listWrap);
+    } catch (e) {
+        console.warn("Failed to render file preview:", e);
+    }
+}
+
 // Handle task feedback modal open
 function handleTaskFeedback(taskId) {
     const feedbackModalEl = document.getElementById("taskFeedbackModal");
@@ -504,6 +676,12 @@ function handleTaskFeedback(taskId) {
         initInlineFeedbackQuill();
     }, 100);
 
+    // Setup file input handlers ONCE (only if not already setup)
+    if (!feedbackModalEl.dataset.handlersInitialized) {
+        setupFileInputHandlers();
+        feedbackModalEl.dataset.handlersInitialized = 'true';
+    }
+
     loadTaskFeedbackData(taskId);
     feedbackModal.show();
 
@@ -513,6 +691,71 @@ function handleTaskFeedback(taskId) {
             if (idx < arr.length - 1) el.remove();
         });
     }, 200);
+}
+
+// Setup file input handlers (called once per modal)
+function setupFileInputHandlers() {
+    const photoBtn = document.getElementById('inlineTaskFeedbackPhotoBtn');
+    const fileBtn = document.getElementById('inlineTaskFeedbackFileBtn');
+    const imageInput = document.getElementById('inline_task_feedback_image_input');
+    const filesInput = document.getElementById('inline_task_feedback_files_input');
+    const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+    // Photo button handler
+    if (photoBtn && imageInput) {
+        photoBtn.addEventListener('click', function() {
+            imageInput.click();
+        });
+    }
+
+    // File button handler
+    if (fileBtn && filesInput) {
+        fileBtn.addEventListener('click', function() {
+            filesInput.click();
+        });
+    }
+
+    // Image input handler
+    if (imageInput) {
+        imageInput.addEventListener('change', function() {
+            const file = this.files && this.files[0];
+            if (!file) return;
+
+            // Size validation
+            if (file.size > MAX_IMAGE_BYTES) {
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert('Image must be smaller than 10 MB.', 'warning');
+                } else {
+                    alert('Image must be smaller than 10 MB.');
+                }
+                this.value = '';
+                return;
+            }
+
+            // Create preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showTaskInlineImagePreviewSmall(file, e.target.result);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Files input handler
+    if (filesInput) {
+        filesInput.addEventListener('change', function() {
+            const files = Array.from(this.files || []);
+            if (!files.length) return;
+
+            // Add to selection
+            if (!selectedFiles) selectedFiles = [];
+            selectedFiles = [...selectedFiles, ...files];
+
+            // Render preview
+            renderInlineTaskFeedbackFilesPreview();
+            this.value = '';
+        });
+    }
 }
 
 // Load feedback data
@@ -824,6 +1067,7 @@ function bindFeedbackEventHandlers(modalBody, taskId) {
 // Show reply form
 function showReplyFeedbackForm(taskId, parentId) {
     try {
+        const appUrl = window.location.origin + '/nsa-office-2/public';
         const feedbackModalEl = document.getElementById("taskFeedbackModal");
         const inlineForm = feedbackModalEl.querySelector('.feedback-form');
         
@@ -838,11 +1082,124 @@ function showReplyFeedbackForm(taskId, parentId) {
             }
             inlinePid.value = parentId || '';
 
+            // Prepare preview container inside inline form
+            let previewContainer = inlineForm.querySelector('#reply_parent_preview_inline');
+            if (!previewContainer) {
+                previewContainer = document.createElement('div');
+                previewContainer.id = 'reply_parent_preview_inline';
+                previewContainer.className = 'mt-2';
+                inlineForm.insertBefore(previewContainer, inlineForm.firstChild);
+            }
+
+            // Default preview while fetching
+            previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined">person</span></div><div class="flex-grow-1" style="font-size: 10px;"><div style="font-weight:500;font-size:11px">Loading...</div><div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">&nbsp;</div></div><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
+
+            // Fetch feedback data to show preview
+            fetch(appUrl + '/task-feedbacks/' + taskId)
+                .then(function (res) {
+                    if (!res.ok) return res.json().then(Promise.reject);
+                    return res.json();
+                })
+                .then(function (json) {
+                    const payload = json && json.data ? json.data : json;
+                    let fb = null;
+
+                    // Find feedback by parentId
+                    function findById(node, id) {
+                        if (!node) return null;
+                        if (Array.isArray(node)) {
+                            for (let k = 0; k < node.length; k++) {
+                                const r = findById(node[k], id);
+                                if (r) return r;
+                            }
+                            return null;
+                        }
+                        try {
+                            if (node && String(node.id) === String(id)) return node;
+                            if (node && node.replies && Array.isArray(node.replies)) {
+                                const rr = findById(node.replies, id);
+                                if (rr) return rr;
+                            }
+                        } catch (_) {}
+                        return null;
+                    }
+
+                    fb = findById(payload, parentId);
+
+                    const title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) ||
+                                 (fb && (fb.employee_name || fb.employee_fullname)) || 'Unknown';
+                    const commentRaw = (fb && (fb.feedback_comment || fb.comment || fb.description)) || '';
+
+                    try {
+                        const empRaw = (fb && fb.employee) || {};
+                        let avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || empRaw.image || '';
+                        
+                        // Normalize avatar URL
+                        let avatarUrl = '';
+                        if (avatarRaw) {
+                            avatarUrl = avatarRaw.replace('/nsa-office-2/public/', '');
+                            if (!avatarUrl.startsWith('http')) {
+                                avatarUrl = appUrl + '/file/profile_picture/' + avatarUrl;
+                            }
+                        } else {
+                            avatarUrl = appUrl + '/asset/img/avatar.png';
+                        }
+
+                        let plain = '';
+                        try {
+                            plain = (commentRaw || '').replace(/<[^>]+>/g, '');
+                        } catch (_) {
+                            plain = (commentRaw || '') + '';
+                        }
+                        if (plain && plain.length > 120) plain = plain.substring(0, 120).trim() + '...';
+
+                        let html = '';
+                        html += '<div class="selected-files-list mt-2">';
+                        html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
+                        html += '<div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">';
+                        html += '<img src="' + avatarUrl + '" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;" onerror="this.onerror=null;this.src=\'' + appUrl + '/asset/img/avatar.png\';">';
+                        html += '</div>';
+                        html += '<div class="flex-grow-1" style="font-size: 10px;">';
+                        html += '<div style="font-weight:500;font-size:11px">' + (title || 'Unknown') + '</div>';
+                        html += '<div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">' + (plain || '') + '</div>';
+                        html += '</div>';
+                        html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
+                        html += '</div></div>';
+                        previewContainer.innerHTML = html;
+                    } catch (_) {}
+
+                    try {
+                        const btn = previewContainer.querySelector('.remove-task');
+                        if (btn) btn.addEventListener('click', function () {
+                            try {
+                                previewContainer.remove();
+                                inlinePid.value = '';
+                            } catch (_) {}
+                        });
+                    } catch (_) {}
+                })
+                .catch(function () {
+                    // On error, show minimal preview with remove button
+                    previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined">person</span></div><div class="flex-grow-1" style="font-size: 10px;"><div style="font-weight:500;font-size:11px">Reply to feedback</div><div style="font-size:10px;color:#6b6b6b;">&nbsp;</div></div><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
+                    
+                    try {
+                        const btn = previewContainer.querySelector('.remove-task');
+                        if (btn) btn.addEventListener('click', function () {
+                            try {
+                                previewContainer.remove();
+                                inlinePid.value = '';
+                            } catch (_) {}
+                        });
+                    } catch (_) {}
+                });
+
             // Focus editor
             try {
                 if (__quillInlineFeedback) {
-                    __quillInlineFeedback.focus();
-                    document.querySelector('#inline_task_feedback_editor .ql-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => {
+                        __quillInlineFeedback.focus();
+                        document.querySelector('#inline_task_feedback_editor .ql-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 200);
                 }
             } catch(_) {}
         }
@@ -880,13 +1237,11 @@ function submitInlineFeedback() {
     const parentIdInput = document.getElementById('inline_parent_id_input');
     const parentId = parentIdInput?.value || '';
 
-    // Get image file
-    const imageInput = document.getElementById('inline_task_feedback_image_input');
-    const imageFile = imageInput?.files[0] || null;
+    // Get image file from stored variable or input
+    const imageFile = window.__taskInlineFeedbackImageFile || null;
 
-    // Get reference files
-    const filesInput = document.getElementById('inline_task_feedback_files_input');
-    const refFiles = filesInput?.files || [];
+    // Get reference files from selectedFiles array
+    const refFiles = selectedFiles || [];
 
     // Validate image size
     if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
@@ -902,7 +1257,7 @@ function submitInlineFeedback() {
     if (parentId) formData.append('parent_id', parentId);
     if (imageFile) formData.append('feedback_image', imageFile);
     
-    // Append multiple files
+    // Append multiple files from selectedFiles array
     if (refFiles.length > 0) {
         for (let i = 0; i < refFiles.length; i++) {
             formData.append('reference_files[]', refFiles[i]);
@@ -933,9 +1288,29 @@ function submitInlineFeedback() {
             if (__quillInlineFeedback) {
                 __quillInlineFeedback.setText('');
             }
+            
+            // Clear image input and preview
+            const imageInput = document.getElementById('inline_task_feedback_image_input');
             if (imageInput) imageInput.value = '';
+            window.__taskInlineFeedbackImageFile = null;
+            const imagePreview = document.getElementById('inline_task_feedback_image_preview');
+            if (imagePreview && imagePreview.parentNode) {
+                imagePreview.parentNode.removeChild(imagePreview);
+            }
+            
+            // Clear files input and preview
+            const filesInput = document.getElementById('inline_task_feedback_files_input');
             if (filesInput) filesInput.value = '';
+            selectedFiles = [];
+            const filesPreview = document.getElementById('inline_task_feedback_files_preview');
+            if (filesPreview) filesPreview.innerHTML = '';
+            
+            // Clear parent ID and reply preview
             if (parentIdInput) parentIdInput.value = '';
+            const replyPreview = document.getElementById('reply_parent_preview_inline');
+            if (replyPreview && replyPreview.parentNode) {
+                replyPreview.parentNode.removeChild(replyPreview);
+            }
             
             // Reload feedback list
             loadTaskFeedbackData(taskId);
@@ -1062,24 +1437,37 @@ $(document).ready(function() {
         submitInlineFeedback();
     });
 
-    // Photo button
-    $(document).on('click', '#inlineTaskFeedbackPhotoBtn', function() {
-        $('#inline_task_feedback_image_input').click();
-    });
-
-    // File button
-    $(document).on('click', '#inlineTaskFeedbackFileBtn', function() {
-        $('#inline_task_feedback_files_input').click();
-    });
-
     // Clean up when modal closes
     $(document).on('hidden.bs.modal', '#taskFeedbackModal', function() {
+        // Clear Quill editor
         if (__quillInlineFeedback) {
             __quillInlineFeedback.setText('');
         }
+        
+        // Clear file inputs
         $('#inline_task_feedback_image_input').val('');
         $('#inline_task_feedback_files_input').val('');
         $('#inline_parent_id_input').val('');
+        
+        // Clear stored variables
+        window.__taskInlineFeedbackImageFile = null;
+        selectedFiles = [];
+        
+        // Remove preview elements
+        const imagePreview = document.getElementById('inline_task_feedback_image_preview');
+        if (imagePreview && imagePreview.parentNode) {
+            imagePreview.parentNode.removeChild(imagePreview);
+        }
+        
+        const filesPreview = document.getElementById('inline_task_feedback_files_preview');
+        if (filesPreview) filesPreview.innerHTML = '';
+        
+        const replyPreview = document.getElementById('reply_parent_preview_inline');
+        if (replyPreview && replyPreview.parentNode) {
+            replyPreview.parentNode.removeChild(replyPreview);
+        }
+        
+        // Clean up modal backdrop
         $(".modal-backdrop").remove();
         $("body").removeClass("modal-open").css("overflow", "");
     });
