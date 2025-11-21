@@ -63,7 +63,7 @@
                                 <img src="{{ $photoUrl }}" alt="{{ $emp->name }}">
                             </div>
                             <div class="employee-info">
-                                <div class="    ">{{ $emp->name }}</div>
+                                <div class="employee-name">{{ $emp->name }}</div>
                                 <div class="employee-job">{{ $emp->job_name }}</div>
                             </div>
                         </div>
@@ -241,39 +241,8 @@
         <script>
             const appUrl = "{{ url('') }}";
         </script>
-        <script src="{{ asset('asset/js/hub_division.js?=' . time()) }}"></script>
         <script src="{{ asset('asset/js/date_helper.js?=' . time()) }}"></script>
-
-        <script>
-            // Initialize - calendar will render when employee is selected
-            $(document).ready(function() {
-                // Set initial month/year display
-                const monthNames = ["January", "February", "March", "April", "May", "June",
-                    "July", "August", "September", "October", "November", "December"
-                ];
-                $('.calendar-month').text(monthNames[currentDate.getMonth()]);
-                $('.calendar-year').text(currentDate.getFullYear());
-
-                // Handler: show selected-employee-info when an employee-item is clicked
-                $(document).on('click', '.employee-item', function() {
-                    const $this = $(this);
-                    const name = $this.find('.employee-info > div').first().text().trim();
-                    const photo = $this.data('employee-photo') || '';
-                    const totalTask = $this.data('total-task') ?? 0;
-
-                    $('.selected-employee-name').text(name);
-                    $('.selected-employee-task').text('Total task: ' + totalTask);
-
-                    if (photo) {
-                        $('.selected-employee-photo').attr('src', photo).removeClass('d-none');
-                    } else {
-                        $('.selected-employee-photo').addClass('d-none');
-                    }
-
-                    $('.selected-employee-info').removeClass('d-none');
-                });
-            });
-        </script>
+        <script src="{{ asset('asset/js/hub_division.js?=' . time()) }}"></script>
     </x-slot>
 
 </x-office-layout>
