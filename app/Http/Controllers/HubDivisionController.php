@@ -215,4 +215,93 @@ class HubDivisionController extends Controller
             ], 500);
         }
     }
+
+    public function getEmployeeTasksByDate(Request $request)
+    {
+        try {
+            $employeeId = $request->input('employee_id');
+            $date = $request->input('date');
+
+            \Log::info('Hub Division - Get Tasks By Date Request', [
+                'employee_id' => $employeeId,
+                'date' => $date
+            ]);
+
+            if (!$employeeId || !$date) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing required parameters'
+                ], 400);
+            }
+
+            // Parse date
+            $dateStart = $date . ' 00:00:00';
+            $dateEnd = $date . ' 23:59:59';
+
+            // Get all tasks assigned to this employee
+            $taskAssignments = TaskAssignment::where('employee_id', $employeeId)
+                ->pluck('task_id');
+
+            // Get tasks for the specified date
+            $tasks = Task::select(
+                'tasks.id',
+                'tasks.title',
+                'tasks.description',
+                'tasks.status',
+                'tasks.start_date',
+                'tasks.due_date',
+                'tasks.priority',
+                'tasks.project_id'
+            )
+                ->with(['project' => function($query) {
+                    $query->select('id', 'title', 'department_id', 'division_id')
+                        ->with(['department:id,name_department', 'division:id,name_division']);
+                }])
+                ->whereIn('tasks.id', $taskAssignments)
+                ->where(function ($query) use ($dateStart, $dateEnd) {
+                    $query->where(function ($q) use ($dateStart, $dateEnd) {
+                        $q->whereBetween('tasks.start_date', [$dateStart, $dateEnd])
+                            ->whereNotNull('tasks.start_date');
+                    })
+                        ->orWhere(function ($q) use ($dateStart, $dateEnd) {
+                            $q->whereBetween('tasks.due_date', [$dateStart, $dateEnd])
+                                ->whereNotNull('tasks.due_date');
+                        });
+                })
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                ->orderBy('tasks.priority', 'desc')
+                ->orderBy('tasks.start_date', 'asc')
+                ->get();
+
+            // Transform data to include department and division names
+            $tasks->transform(function($task) {
+                if ($task->project) {
+                    $task->project->department = $task->project->department ? $task->project->department->name_department : null;
+                    $task->project->division = $task->project->division ? $task->project->division->name_division : null;
+                }
+                return $task;
+            });
+
+            \Log::info('Tasks found for date', ['count' => $tasks->count()]);
+
+            return response()->json([
+                'success' => true,
+                'total_tasks' => $tasks->count(),
+                'data' => $tasks
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Hub Division - Get Tasks By Date Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching tasks: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

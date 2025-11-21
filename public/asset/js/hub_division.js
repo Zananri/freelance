@@ -1,3 +1,40 @@
+// Get appUrl from script tag src
+const appUrl = (() => {
+    try {
+        // Try to get from script tag
+        const scripts = document.getElementsByTagName('script');
+        for (let script of scripts) {
+            const src = script.src;
+            if (src && src.includes('hub_division.js')) {
+                // Extract base URL from script src
+                // e.g., http://localhost/nsa-office-2/public/asset/js/hub_division.js
+                // -> http://localhost/nsa-office-2/public
+                const url = new URL(src);
+                const path = url.pathname;
+                const basePath = path.substring(0, path.lastIndexOf('/asset/'));
+                return url.origin + basePath;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to determine appUrl from script tag:', e);
+    }
+    
+    // Fallback: try to determine from current location
+    const path = window.location.pathname;
+    const origin = window.location.origin;
+    
+    // Remove trailing parts after /public
+    if (path.includes('/public')) {
+        const publicIndex = path.indexOf('/public');
+        return origin + path.substring(0, publicIndex + 7); // +7 for '/public'
+    }
+    
+    // Last resort
+    return origin;
+})();
+
+console.log('appUrl detected:', appUrl);
+
 let currentDate = new Date();
 let selectedEmployeeId = null;
 
@@ -267,26 +304,134 @@ async function renderEventCalendar(year, month) {
 }
 
 $(document).on("click", ".calendar-day", function () {
-
-    const date = $(this).data("date") || "-";
-    const total = $(this).data("total") || "-";
-    const photo = $(this).data("photo") || "";
-    const name = $(this).data("name") || "-";
-    const task = $(this).data("task") || "-";
-
-    $(".selected-task-date").text(date);
-    $(".selected-total-task").text(total);
-    $(".selected-employee-name").text(name);
-    $(".selected-employee-task").text(task);
-
-    if (photo) {
-        $(".selected-employee-photo").attr("src", photo).removeClass("d-none");
-    } else {
-        $(".selected-employee-photo").addClass("d-none");
+    const clickedDate = $(this).data("calendar-date");
+    
+    if (!clickedDate || !selectedEmployeeId) {
+        return;
     }
 
-    $("#taskModalDate").modal("show");
+    // Get employee info
+    const selectedEmployeeItem = $(`.employee-item[data-employee-id="${selectedEmployeeId}"]`);
+    const employeeName = selectedEmployeeItem.find('.employee-name').text();
+    const employeeJob = selectedEmployeeItem.find('.employee-job').text();
+    const employeePhoto = selectedEmployeeItem.data('employee-photo');
+
+    // Load tasks for this date
+    loadTasksForDate(clickedDate, selectedEmployeeId, employeeName, employeeJob, employeePhoto);
 });
+
+async function loadTasksForDate(date, employeeId, employeeName, employeeJob, employeePhoto) {
+    try {
+        const response = await $.ajax({
+            url: appUrl + "/hub_division/employee-tasks-by-date",
+            type: "GET",
+            data: {
+                'employee_id': employeeId,
+                'date': date
+            }
+        });
+
+        if (response.success) {
+            const tasks = response.data || [];
+            const totalTasks = tasks.length;
+
+            // Format date
+            const dateObj = new Date(date);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = dateObj.toLocaleDateString('en-US', options);
+
+            // Update modal header
+            $(".selected-task-date").text(formattedDate);
+            $(".selected-total-task").text("Total task " + totalTasks);
+
+            // Update employee info in modal
+            $("#taskModalDate .selected-employee-name").text(employeeName);
+            $("#taskModalDate .selected-employee-task").text(employeeJob || "Division");
+            
+            if (employeePhoto) {
+                $("#taskModalDate .selected-employee-photo").attr("src", employeePhoto).removeClass("d-none");
+            } else {
+                $("#taskModalDate .selected-employee-photo").addClass("d-none");
+            }
+
+            // Render task list
+            renderTaskListByDate(tasks);
+
+            // Show modal
+            $("#taskModalDate").modal("show");
+        }
+
+    } catch (error) {
+        console.error("Error loading tasks for date:", error);
+        showFloatingAlert("Failed to load tasks", "danger", 3000);
+    }
+}
+
+function renderTaskListByDate(tasks) {
+    const container = $("#taskListByDate");
+    container.empty();
+
+    if (!tasks || tasks.length === 0) {
+        container.html(`
+            <div class="text-center py-4 text-muted">
+                <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.3;">event_busy</span>
+                <p class="mt-2">No tasks for this date</p>
+            </div>
+        `);
+        return;
+    }
+
+    tasks.forEach(task => {
+        const backgroundColor = getTaskStatusColor(task.status);
+        const statusLower = (task.status || '').toLowerCase();
+        
+        // Parse priority color
+        let priorityColor = '#4B4F5E';
+        let priorityBg = '#F3F4F6';
+        if (task.priority === 'HIGH') {
+            priorityColor = '#DC2626';
+            priorityBg = '#FEE2E2';
+        } else if (task.priority === 'NORMAL') {
+            priorityColor = '#F59E0B';
+            priorityBg = '#FEF3C7';
+        }
+
+        const taskHtml = `
+            <div class="task-item-date mb-3 p-3 rounded-3" style="background: #F9FAFB; cursor: pointer;" data-task-id="${task.id}">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 fw-semibold" style="font-size: 14px; color: #1F2937;">${task.title || '-'}</h6>
+                        <p class="mb-2 text-muted" style="font-size: 12px; line-height: 1.5;">${task.description ? (task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description) : ''}</p>
+                    </div>
+                    <div class="ms-3">
+                        <span class="badge rounded-pill" style="background-color: ${backgroundColor}; color: #1F2937; font-size: 10px; font-weight: 600; padding: 4px 12px;">${task.status || 'New'}</span>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex gap-3 align-items-center">
+                        <span class="d-inline-flex align-items-center" style="font-size: 10px; color: #6B7280;">
+                            <span class="material-symbols-outlined me-1" style="font-size: 14px;">schedule</span>
+                            ${task.due_date ? formatDateENMedium(task.due_date) : '-'}
+                        </span>
+                        <span class="badge" style="background-color: ${priorityBg}; color: ${priorityColor}; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 4px;">
+                            ${task.priority || 'NORMAL'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.append(taskHtml);
+    });
+
+    // Bind click to open detail
+    container.find('.task-item-date').on('click', function() {
+        const taskId = $(this).data('task-id');
+        $('#taskModalDate').modal('hide');
+        handleTaskDetail(taskId);
+    });
+}
 
 async function getAllTasksEmployeeCalendarByMonth(year, month) {
 
