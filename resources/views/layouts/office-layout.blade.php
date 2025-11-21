@@ -25,14 +25,6 @@
     <meta name="app-url" content="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <script>
-        // Expose minimal user info to client-side logging
-        window.AppUser = {
-            name: "{{ Auth::check() ? addslashes(Auth::user()->name) : '' }}",
-            employee_id: "{{ Auth::check() && auth()->user()->employee ? auth()->user()->employee->id : '' }}"
-        };
-    </script>
-
     <script src="{{ asset('asset/js/office_nav.js?v=' . time()) }}"></script>
 
     <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
@@ -533,9 +525,11 @@
 
     <script src="{{ asset('asset/js/app.js?v=' . time()) }}"></script>
     <script src="{{ asset('asset/js/office.js?v=' . time()) }}"></script>
-
     <script>
-        // Logout location capture removed (activity tracking deprecated). Logout directly submits the form.
+        window.AppUser = {
+            name: "{{ Auth::check() ? addslashes(Auth::user()->name) : '' }}",
+            employee_id: "{{ Auth::check() && auth()->user()->employee ? auth()->user()->employee->id : '' }}"
+        };
     </script>
 
     @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))

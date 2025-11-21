@@ -1,6 +1,8 @@
 let currentDate = new Date();
 let selectedEmployeeId = null;
 
+const appUrl = window.APP_URL || '';
+
 function getTaskStatusColor(status) {
     const statusLower = (status || '').toLowerCase();
 
@@ -314,7 +316,9 @@ function handleTaskDetail(taskId) {
         const initials = img ? "" : getTaskInitials(t.title);
         const color = img ? "" : getRandomColorFromText(t.title);
         const statusColor = getTaskStatusColor(t.status);
+        const statusLower = (String(t.status || '').toLowerCase());
         const statusText = t.status ? (String(t.status).charAt(0).toUpperCase() + String(t.status).slice(1)) : '';
+        console.log(t)
 
         const avatar = img
             ? `<img src="${img}" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.src='${appUrl}/asset/img/avatar.png'">`
@@ -408,6 +412,108 @@ function handleTaskDetail(taskId) {
             refUrlsHtml += '</div>';
         }
 
+        // Complete Ref Files
+        let completeRefFilesHtml = '';
+        const rawCompelteRefFiles = t.complete_files || t.complete_files || [];
+        let completeReferenceFiles = [];
+        if (typeof rawCompelteRefFiles === 'string' && rawCompelteRefFiles.trim()) {
+            try {
+                const parsed = JSON.parse(rawCompelteRefFiles);
+                if (Array.isArray(parsed)) completeReferenceFiles = parsed;
+                else completeReferenceFiles = [rawCompelteRefFiles];
+            } catch (_) {
+                completeReferenceFiles = [rawCompelteRefFiles];
+            }
+        } else if (Array.isArray(rawCompelteRefFiles)) {
+            completeReferenceFiles = rawCompelteRefFiles;
+        }
+
+        completeReferenceFiles = (completeReferenceFiles || []).map(f => {
+            if (!f) return null;
+            try {
+                const val = String(f);
+                const isAbs = val.startsWith('http://') || val.startsWith('https://');
+                const isRefPath = val.startsWith('/file/task_complete_files/') || val.startsWith('file/task_complete_files/') ||
+                    val.startsWith('/file/task/') || val.startsWith('file/task/') || val.startsWith('/storage/') || val.startsWith('storage/');
+                if (isAbs) return val;
+                if (isRefPath) return val.startsWith('/') ? (appUrl + val) : (appUrl + '/' + val);
+                return appUrl + '/file/task_complete_files/' + val;
+            } catch (_) {
+                return null;
+            }
+        }).filter(Boolean);
+
+        if (Array.isArray(completeReferenceFiles) && completeReferenceFiles.length) {
+            completeRefFilesHtml = `<div class="mb-2"><div class="row g-2">` + completeReferenceFiles.map((u, idx) => {
+                const rawCompleteFileName = (u || '').split('/').pop() || `file_${idx + 1}`;
+                const completeFileName = decodeURIComponent(rawCompleteFileName).toLocaleLowerCase();
+                return `
+                    <div class="col-6">
+                        <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="position:relative;">
+
+                            <a href="${u}" target="_blank"
+                                class="text-decoration-none flex-grow-1 text-truncate"
+                                style="color: #444; font-size: 10px;" title="${completeFileName}">
+                                ${completeFileName}
+                            </a>
+
+                            <a href="${u}" download="${completeFileName}" class="ms-2 text-decoration-none" title="Download ${completeFileName}">
+                                <span class="material-symbols-outlined action-icon">download</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('') + `</div></div>`;
+        }
+
+        // Complete Ref Urls
+        let refCompleteUrlsHtml = '';
+        const completeReferenceUrls = t.complete_urls || (t.complete_urls ? [t.complete_urls] : []);
+
+        if (Array.isArray(completeReferenceUrls) && completeReferenceUrls.length) {
+            refCompleteUrlsHtml = '<div class="mb-2">';
+
+            completeReferenceUrls.forEach((u, idx) => {
+                const displayCompleteUrl = u || '';
+
+                refCompleteUrlsHtml += `
+                            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="position:relative;">
+                                
+                                <a href="${u}" target="_blank"
+                                    class="text-decoration-none flex-grow-1 text-truncate"
+                                    style="color: #444; font-size: 10px;" title="${displayCompleteUrl}">
+                                    ${displayCompleteUrl}
+                                </a>
+
+                                <span class="material-symbols-outlined ms-2 open-url-btn action-icon"
+                                    data-url="${u}">
+                                    open_in_new
+                                </span>
+
+                                <span class="material-symbols-outlined ms-2 copy-url-btn action-icon"
+                                    data-url="${u}">
+                                    content_copy
+                                </span>
+
+                            </div>
+                        `;
+            });
+
+            refCompleteUrlsHtml += '</div>';
+        }
+
+        function stripHtml(raw) {
+            try {
+                const d = document.createElement('div');
+                d.innerHTML = raw || '';
+                return (d.textContent || d.innerText || '').trim();
+            } catch (_) {
+                return String(raw || '').replace(/<[^>]+>/g, '').trim();
+            }
+        }
+
+        const completeNotePlain = stripHtml(t.complete_note || t.complete_note_html || '');
+
         document.addEventListener("click", function (e) {
             if (e.target.classList.contains("open-url-btn")) {
                 const url = e.target.getAttribute("data-url");
@@ -430,7 +536,7 @@ function handleTaskDetail(taskId) {
             (t.executors || []).forEach(e => list.push({ role: "Executor", emp: e }));
             if (!list.length) return "";
 
-            return `<div class="row g-2 mt-3 mb-3">` + list.map(i => `
+            return `<div class="row g-2 mt-3 mb-4">` + list.map(i => `
                 <div class="col-6">
                     <div class="collab-item d-flex align-items-center">
                         <img src="${(i.emp.image || i.emp.profile_picture || i.emp.user_photo || i.emp.photo || appUrl + '/asset/img/avatar.png')}" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" 
@@ -449,7 +555,7 @@ function handleTaskDetail(taskId) {
         if (statusChanges.length) {
             statusLogs = `
                 <div class="status-timeline position-relative mt-3 mb-3" style="padding-left:110px;">
-                    <div style="position:absolute; left:93px; top:0; bottom:0; width:2px; background:#E5E7EB;"></div>
+                    <div style="position:absolute; left:93px; top:0; bottom:0; width:3px; background:#FFFFFF;"></div>
                     ${statusChanges.map((s, index) => {
                         const dateLabel = formatDateENMedium(s.updated_at || s.changed_at || '');
                         const label = escapeHtml(s.label || '');
@@ -459,7 +565,7 @@ function handleTaskDetail(taskId) {
                                 <div class="date-label" style="position:absolute; left:-110px; width:80px; text-align:right; font-size:10px; color:#6B7280; font-weight:400; line-height:1.5; padding-right:15px; top:2px;">${dateLabel}</div>
 
                                 <div style="position:relative; width:100%;">
-                                    <div style="position:absolute; left:-24px; top:4px; width:10px; height:10px; background:#fff; border:2px solid #E5E7EB; border-radius:50%; z-index:2;"></div>
+                                    <div style="position:absolute; left:-40px; top:13px; width:9px; height:9px; background:#fff; border-radius:50%; z-index:2;"></div>
 
                                     <div class="status-content p-2 px-3" style="background: #F9FAFB; font-size:12px; border-radius: 8px; min-height:28px; display:inline-flex; align-items:center;">
                                         <span style="font-size:12px; color:#6B7280;">${label}</span>
@@ -473,10 +579,40 @@ function handleTaskDetail(taskId) {
             `;
         }
 
+        let completeAuthor = '';
+        let completeDate = '';
+        const compEntry = statusChanges.find(s => {
+            const l = String(s.label || s.status || '').toLowerCase();
+            return l.includes('complete') || l.includes('completed') || l.includes('finish') || l.includes('finished');
+        });
+        if (compEntry) {
+            completeAuthor = escapeHtml(compEntry.employee_name || compEntry.employee_fullname || compEntry.employee || '');
+            completeDate = formatDateENMedium(compEntry.updated_at || compEntry.changed_at || compEntry.created_at || '');
+        } else {
+            completeAuthor = escapeHtml(t.completed_by_name || t.completed_by || t.completed_by_employee || '');
+            completeDate = t.completed_date ? formatDateENMedium(t.complete_date) : '';
+        }
+
+        const completeContentHtml = `
+            <div class="collapse" id="completeContent">
+                <div class="p-3 rounded-3 mt-3" style="background: #F0F8F5;">
+                    <h5 style="font-size:12px;margin-bottom:16px;color:#4C5060;">Complete result task</h5>
+                    <div style="font-size:12px;color:#54595F;margin-bottom: 16px;">${escapeHtml(completeNotePlain || '')}</div>
+                    ${completeAuthor || completeDate ? `<div style="font-size:8px;color:#4B4F5E;margin-bottom:16px;">Complete by ${completeAuthor || '-'} ${completeDate ? ' at ' + completeDate : ''}</div>` : ''}
+
+                    <div>
+                        <h6 style="font-size:12px;color:#4C5060;margin-bottom:8px;">Link & File reference</h6>
+                        ${completeRefFilesHtml || ''}
+                        ${refCompleteUrlsHtml || ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
         const html = `
             <div class="custom-card rounded-4 p-3 border-0" data-task-id="${t.id}">
                 <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center task-card-header">
                         ${avatar}
                         <div>
                             ${t.project?.id ? `<small class="text-muted" style="font-size:11px;">${t.project.title}</small>` : ""}
@@ -488,15 +624,17 @@ function handleTaskDetail(taskId) {
                     </div>
                 </div>
                 <div class="mt-3" style="font-size: 12px;">${t.description || ""}</div>
-                <div class="d-flex justify-content-between" style="font-size:12px;">
+                <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
                     <div class="d-flex justify-content-start gap-3">
                         <span style="font-size: 8px;">Priority: <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${t.priority}</span></span>
                         <span style="font-size: 8px;">Deadline: ${formatDateENMedium(t.due_date)}</span>
                     </div>
                     <div class="d-flex justify-content-end align-items-start gap-3">
-                        ${ (String(t.status || '').toLowerCase().includes('finish')) ? `
+                        ${ (statusLower.includes('finish') || statusLower.includes('complete')) ? `
                             <div class="d-flex align-items-center">
-                                <span class="material-symbols-outlined task-icon" style="font-size: 18px;">playlist_add_check</span>
+                                <button class="btn btn-sm p-0 m-0 border-0" data-bs-target="#completeContent" data-bs-toggle="collapse">
+                                    <span class="material-symbols-outlined task-icon" style="font-size: 18px;">playlist_add_check</span>
+                                </button>
                             </div>
                         ` : '' }
 
@@ -508,9 +646,13 @@ function handleTaskDetail(taskId) {
                
                 <div style="border-bottom: solid 3px #DEDFE7;"></div>
 
+                <div class="collapse" id="completeContent">
+                    ${completeContentHtml}
+                </div>
+
                 ${collab}
 
-                <div>
+                <div class="mb-5">
                     <h5 class="ref-title" style="font-size: 12px; font-weight: 400; color: #2A3542;">Link & File Reference</h5>
                     ${refFilesHtml}
                     ${refUrlsHtml}
@@ -518,7 +660,7 @@ function handleTaskDetail(taskId) {
 
                 <div style="border-bottom: solid 3px #DEDFE7;"></div>
 
-                <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                <div class="d-flex justify-content-between align-items-start mt-3 gap-3">
                     <div class="d-flex justify-content-start" style="font-size:10px;">
                         <span class="text-muted">Department: &nbsp;</span>
                         <span>${t.project?.department || "-"}</span>
