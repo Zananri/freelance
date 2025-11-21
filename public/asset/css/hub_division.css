@@ -94,17 +94,12 @@
 }
 
 .employee-item.selected {
-    background-color: #fff;
+    background-color: #F8F8FC;
 }
 
 .employee-photo {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    overflow: hidden;
     flex-shrink: 0;
     margin-right: 12px;
-    border: 2px solid #e9eef4;
 }
 
 .employee-photo img {
@@ -383,4 +378,60 @@
 
 .table-calendar tbody td.today .day {
     color: #0c6cea;
+}
+
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 12px 12px;
+    background: #f0f1f8 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+.modal-body-custom {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+}
+
+.modal-body-custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-body-custom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body-custom::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.modal-footer-custom {
+    position: sticky;
+    z-index: 1050;
+    border: none;
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+}
+
+.modal-footer-custom button {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    height: 45px;
+}
+
+.modal-footer-custom .btn-custom-close {
+    background-color: #e3e4ee !important;
+    color: #444444;
+}
+
+.modal-footer-custom .btn-submit-custom {
+    background-color: #444444;
+    color: #ebecf2;
 }
