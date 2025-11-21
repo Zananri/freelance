@@ -477,6 +477,127 @@ function getFileTypeIcon(fileName) {
     }
 }
 
+// Utility to escape HTML
+function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"]+/g, function(m){ 
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]) || m; 
+    });
+}
+
+// Show delete confirmation modal
+function showDeleteConfirmModal(opts) {
+    try {
+        const id = opts.id;
+        const type = opts.type || 'feedback';
+        const avatarUrl = opts.avatarUrl || '';
+        const authorName = opts.authorName || '';
+        const content = opts.content || '';
+        const modalId = 'deleteConfirmModal_' + (type || 'f') + '_' + id + '_' + Date.now();
+
+        const avatarHtml = avatarUrl ? 
+            `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
+            `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
+
+        let title = '';
+        let confirmText = '';
+        if (type === 'reply') {
+            title = 'Delete reply';
+            confirmText = 'Are you sure you want to delete this reply?';
+        } else {
+            title = 'Delete feedback';
+            confirmText = 'Are you sure you want to delete this feedback?';
+        }
+
+        const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content modal-content-custom">
+                        <div class="modal-body modal-body-custom">
+                            <div class="text-center mb-2">
+                                <div class="task-description-container">
+                                    <p class="task-description mb-0" id="${modalId}_desc">${escapeHtml(content)}</p>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <p class="fw-normal fs-6 text-center mb-4" id="${modalId}_confirm">${confirmText}</p>
+
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal" id="${modalId}_cancel">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="${modalId}_confirmBtn">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        const parentModalEl = document.getElementById('taskFeedbackModal');
+        let _parentWasOpen = false;
+        let _parentModalInstance = null;
+        
+        try {
+            if (parentModalEl && parentModalEl.classList.contains('show')) {
+                _parentWasOpen = true;
+                _parentModalInstance = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                _parentModalInstance.hide();
+            }
+        } catch(_) {}
+
+        // Insert modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalEl = document.getElementById(modalId);
+        const modalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+        modalInstance.show();
+
+        // Close & cleanup helper
+        function cleanup() {
+            try { modalInstance.hide(); } catch(_) {}
+            try { modalEl.remove(); } catch(_) {}
+            try {
+                if (_parentWasOpen && _parentModalInstance) {
+                    setTimeout(function(){ 
+                        try { _parentModalInstance.show(); } catch(_) {} 
+                    }, 180);
+                }
+            } catch(_) {}
+        }
+
+        // Wire cancel to cleanup
+        const cancelBtn = document.getElementById(`${modalId}_cancel`);
+        if (cancelBtn) cancelBtn.addEventListener('click', cleanup);
+
+        // Confirm button
+        const confirmBtn = document.getElementById(`${modalId}_confirmBtn`);
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                try { 
+                    confirmBtn.disabled = true; 
+                    confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...'; 
+                } catch(_) {}
+                
+                if (typeof opts.onConfirm === 'function') {
+                    try {
+                        opts.onConfirm(function doneFn(shouldClose){
+                            if (shouldClose === false) {
+                                confirmBtn.disabled = false; 
+                                confirmBtn.innerHTML = 'Delete';
+                                return;
+                            }
+                            cleanup();
+                        });
+                    } catch (e) {
+                        confirmBtn.disabled = false; 
+                        confirmBtn.innerHTML = 'Delete';
+                    }
+                } else {
+                    cleanup();
+                }
+            });
+        }
+    } catch (e) { 
+        console.warn('showDeleteConfirmModal error', e); 
+    }
+}
+
 // Initialize Quill editor for inline feedback
 function initInlineFeedbackQuill() {
     try {
@@ -1020,9 +1141,22 @@ function bindFeedbackEventHandlers(modalBody, taskId) {
     modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function(btn) {
         btn.addEventListener('click', function() {
             const fid = this.getAttribute('data-feedback-id');
-            if (confirm('Are you sure you want to delete this feedback?')) {
-                deleteFeedback(fid, taskId);
-            }
+            if (!fid) return;
+            
+            const authorName = (this.closest('.feedback-item')?.querySelector('strong')?.textContent) || '';
+            const content = (this.closest('.feedback-item')?.querySelector('.feedback-comment p')?.textContent) || '';
+            const avatarUrl = (this.closest('.feedback-item')?.querySelector('img')?.getAttribute('src')) || '';
+            
+            showDeleteConfirmModal({ 
+                type: 'feedback', 
+                id: fid, 
+                authorName: authorName, 
+                content: content, 
+                avatarUrl: avatarUrl, 
+                onConfirm: function(done){
+                    deleteFeedback(fid, taskId, done);
+                }
+            });
         });
     });
 
@@ -1030,9 +1164,24 @@ function bindFeedbackEventHandlers(modalBody, taskId) {
     modalBody.querySelectorAll('.reply-delete-trigger').forEach(function(btn) {
         btn.addEventListener('click', function() {
             const rid = this.getAttribute('data-reply-id');
-            if (confirm('Are you sure you want to delete this reply?')) {
-                deleteReply(rid, taskId);
-            }
+            const pid = this.getAttribute('data-parent-id');
+            if (!rid) return;
+            
+            const authorName = (this.closest('.feedback-reply')?.querySelector('strong')?.textContent) || '';
+            const content = (this.closest('.feedback-reply')?.querySelector('.feedback-comment p')?.textContent) || '';
+            const avatarUrl = (this.closest('.feedback-reply')?.querySelector('img')?.getAttribute('src')) || '';
+            
+            showDeleteConfirmModal({ 
+                type: 'reply', 
+                id: rid, 
+                parentId: pid,
+                authorName: authorName, 
+                content: content, 
+                avatarUrl: avatarUrl, 
+                onConfirm: function(done){
+                    deleteReply(rid, taskId, done);
+                }
+            });
         });
     });
 
@@ -1334,7 +1483,7 @@ function submitInlineFeedback() {
 }
 
 // Delete feedback
-function deleteFeedback(feedbackId, taskId) {
+function deleteFeedback(feedbackId, taskId, done) {
     $.ajax({
         url: appUrl + "/task-feedbacks/" + feedbackId,
         type: "DELETE",
@@ -1344,15 +1493,19 @@ function deleteFeedback(feedbackId, taskId) {
         success: function(response) {
             showFloatingAlert(response.message || 'Feedback deleted successfully', 'success', 2000);
             loadTaskFeedbackData(taskId);
+            if (typeof done === 'function') done(true);
         },
         error: function(xhr) {
-            showFloatingAlert('Failed to delete feedback', 'danger', 3000);
+            let msg = 'Failed to delete feedback';
+            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+            showFloatingAlert(msg, 'danger', 3000);
+            if (typeof done === 'function') done(false);
         }
     });
 }
 
 // Delete reply
-function deleteReply(replyId, taskId) {
+function deleteReply(replyId, taskId, done) {
     $.ajax({
         url: appUrl + "/task-feedbacks/" + replyId,
         type: "DELETE",
@@ -1362,9 +1515,13 @@ function deleteReply(replyId, taskId) {
         success: function(response) {
             showFloatingAlert(response.message || 'Reply deleted successfully', 'success', 2000);
             loadTaskFeedbackData(taskId);
+            if (typeof done === 'function') done(true);
         },
         error: function(xhr) {
-            showFloatingAlert('Failed to delete reply', 'danger', 3000);
+            let msg = 'Failed to delete reply';
+            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+            showFloatingAlert(msg, 'danger', 3000);
+            if (typeof done === 'function') done(false);
         }
     });
 }
