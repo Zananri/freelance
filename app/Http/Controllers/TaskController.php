@@ -1915,6 +1915,7 @@ class TaskController extends Controller
                                 'employee_id' => $log->employee_id,
                                 'employee_name' => $name,
                                 'changed_at' => $log->created_at,
+                                'updated_at' => $log->updated_at,
                                 'new_status' => $log->new_status,
                                 'old_status' => $log->old_status,
                             ];
