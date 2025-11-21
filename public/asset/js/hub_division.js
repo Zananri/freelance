@@ -317,7 +317,7 @@ function handleTaskDetail(taskId) {
             (t.executors || []).forEach(e => list.push({ role: "Executor", emp: e }));
             return list.map(i => `
                 <div class="collab-item d-flex align-items-center mb-2">
-                    <img src="${(i.emp.profile_picture_url || i.emp.photo || appUrl + '/asset/img/avatar.png')}" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" 
+                    <img src="${(i.emp.image || i.emp.profile_picture || i.emp.user_photo || i.emp.photo || appUrl + '/asset/img/avatar.png')}" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" 
                         onerror="this.src='${appUrl}/asset/img/avatar.png'">
                     <div class="ms-2">
                         <div>${i.emp.name || "Unknown"}</div>
@@ -390,5 +390,665 @@ function handleTaskDetail(taskId) {
 $(document).on('click', '.text-event', function () {
     const taskId = $(this).data('task-id');
     handleTaskDetail(taskId);
+});
+
+// ========== TASK FEEDBACK FUNCTIONALITY ==========
+
+// Constants
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_TOTAL_BYTES = 100 * 1024 * 1024; // 100MB
+let selectedFiles = [];
+let __quillInlineFeedback = null;
+
+// Initialize Quill editor for inline feedback
+function initInlineFeedbackQuill() {
+    try {
+        if (__quillInlineFeedback) return __quillInlineFeedback;
+        
+        const editorEl = document.getElementById('inline_feedback_editor');
+        if (!editorEl) return null;
+
+        __quillInlineFeedback = new Quill('#inline_feedback_editor', {
+            modules: {
+                toolbar: false,
+                clipboard: { matchVisual: false }
+            },
+            theme: 'snow',
+            placeholder: 'Write feedback...'
+        });
+
+        // Prevent image paste/drop
+        try {
+            const Delta = Quill.import && Quill.import('delta');
+            if (__quillInlineFeedback && __quillInlineFeedback.clipboard) {
+                __quillInlineFeedback.clipboard.addMatcher('IMG', function(node, delta) {
+                    return new Delta();
+                });
+            }
+        } catch(_) {}
+
+        // Remove images on text change
+        __quillInlineFeedback.on('text-change', function() {
+            try {
+                const imgs = __quillInlineFeedback.root.querySelectorAll('img');
+                imgs.forEach(i => i.remove());
+            } catch(_) {}
+        });
+
+        return __quillInlineFeedback;
+    } catch(e) {
+        console.error('Failed to initialize Quill:', e);
+        return null;
+    }
+}
+
+// Handle task feedback modal open
+function handleTaskFeedback(taskId) {
+    const feedbackModalEl = document.getElementById("taskFeedbackModal");
+    if (!feedbackModalEl) {
+        console.warn('taskFeedbackModal element not found');
+        return;
+    }
+
+    // Hide detail modal if open
+    const detailEl = document.getElementById("taskDetailModal");
+    if (detailEl) {
+        const detailModal = bootstrap.Modal.getInstance(detailEl);
+        if (detailModal) detailModal.hide();
+    }
+
+    const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+    feedbackModalEl.dataset.taskId = taskId;
+
+    const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+    const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+    
+    if (modalTitle) modalTitle.textContent = "Task Feedback";
+    if (modalBody) modalBody.innerHTML = "";
+
+    // Initialize Quill editor
+    setTimeout(() => {
+        initInlineFeedbackQuill();
+    }, 100);
+
+    loadTaskFeedbackData(taskId);
+    feedbackModal.show();
+
+    // Clean up duplicate backdrops
+    setTimeout(() => {
+        document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
+            if (idx < arr.length - 1) el.remove();
+        });
+    }, 200);
+}
+
+// Load feedback data
+function loadTaskFeedbackData(taskId) {
+    const modalBody = document.getElementById("taskFeedbackList");
+    if (!modalBody) return;
+
+    modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+    $.ajax({
+        url: appUrl + "/task-feedbacks/" + taskId,
+        type: "GET",
+        dataType: "json",
+        cache: false,
+        success: function(response) {
+            if (response.data && response.data.length > 0) {
+                renderFeedbackList(response.data, taskId, modalBody);
+            } else {
+                modalBody.innerHTML = '<div class="text-center text-muted py-4">No feedback yet</div>';
+            }
+        },
+        error: function(xhr) {
+            modalBody.innerHTML = '<div class="text-center text-danger py-4">Failed to load feedback</div>';
+        }
+    });
+}
+
+// Render feedback list
+function renderFeedbackList(feedbacks, taskId, modalBody) {
+    const feedbackModalEl = document.getElementById("taskFeedbackModal");
+    const currentEmployeeId = parseInt(
+        (feedbackModalEl?.dataset?.employeeId || feedbackModalEl?.getAttribute('data-employee-id') || '0'),
+        10
+    ) || 0;
+
+    let feedbackHtml = "";
+
+    feedbacks.forEach(function(feedback) {
+        const formattedDate = feedback.created_at ? timeAgo(feedback.created_at) : '';
+        
+        // Normalize image URL
+        let topImageUrl = feedback.image || '';
+        if (topImageUrl) {
+            const isAbs = topImageUrl.startsWith('http://') || topImageUrl.startsWith('https://');
+            const isFileTask = topImageUrl.startsWith('/file/task/') || topImageUrl.startsWith('file/task/');
+            const isStorage = topImageUrl.startsWith('/storage/') || topImageUrl.startsWith('storage/');
+            if (!isAbs && !isFileTask && !isStorage) {
+                topImageUrl = appUrl + '/file/task/' + topImageUrl;
+            } else if (!isAbs && (isFileTask || isStorage)) {
+                topImageUrl = topImageUrl.startsWith('/') ? (appUrl + topImageUrl) : (appUrl + '/' + topImageUrl);
+            }
+        }
+
+        // Build reference files list
+        let topRefFiles = [];
+        let topRfVal = feedback.reference_files;
+        if (!Array.isArray(topRfVal) && typeof topRfVal === 'string') {
+            try { 
+                const parsed = JSON.parse(topRfVal); 
+                if (Array.isArray(parsed)) topRfVal = parsed; 
+            } catch(_) {}
+        }
+        if (Array.isArray(topRfVal) && topRfVal.length > 0) {
+            topRefFiles = topRfVal.map((f) => {
+                if (!f) return null;
+                const isAbs = f.startsWith('http://') || f.startsWith('https://');
+                const isRefPath = f.startsWith('/file/task_reference_files/') || f.startsWith('file/task_reference_files/');
+                if (!isAbs && !isRefPath) return appUrl + '/file/task_reference_files/' + f;
+                if (!isAbs && isRefPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                return f;
+            }).filter(Boolean);
+        }
+
+        // Build reference URLs list
+        let topRefUrls = [];
+        let topRuVal = feedback.reference_urls;
+        if (!Array.isArray(topRuVal) && typeof topRuVal === 'string') {
+            try { 
+                const parsed = JSON.parse(topRuVal); 
+                if (Array.isArray(parsed)) topRuVal = parsed; 
+            } catch(_) {}
+        }
+        if (Array.isArray(topRuVal) && topRuVal.length > 0) {
+            topRefUrls = topRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
+        } else if (feedback.reference_url) {
+            topRefUrls = [feedback.reference_url];
+        }
+
+        const topAuthorId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || 0;
+        const canEditTop = String(topAuthorId) === String(currentEmployeeId);
+
+        // Build replies HTML
+        let repliesHtml = '';
+        let viewRepliesBtnHtml = '';
+        let repliesContainerHtml = '';
+        
+        if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+            const repliesCount = feedback.replies.length;
+            const repliesContent = feedback.replies.map(function(rep) {
+                const rDate = rep.created_at ? timeAgo(rep.created_at) : '';
+                
+                // Normalize reply image URL
+                let repImageUrl = rep.image || '';
+                if (repImageUrl) {
+                    const isAbs = repImageUrl.startsWith('http://') || repImageUrl.startsWith('https://');
+                    const isFileTask = repImageUrl.startsWith('/file/task/') || repImageUrl.startsWith('file/task/');
+                    const isStorage = repImageUrl.startsWith('/storage/') || repImageUrl.startsWith('storage/');
+                    if (!isAbs && !isFileTask && !isStorage) {
+                        repImageUrl = appUrl + '/file/task/' + repImageUrl;
+                    } else if (!isAbs && (isFileTask || isStorage)) {
+                        repImageUrl = repImageUrl.startsWith('/') ? (appUrl + repImageUrl) : (appUrl + '/' + repImageUrl);
+                    }
+                }
+
+                // Build reply reference files
+                let repRefFiles = [];
+                let repRfVal = rep.reference_files;
+                if (!Array.isArray(repRfVal) && typeof repRfVal === 'string') {
+                    try { 
+                        const parsed = JSON.parse(repRfVal); 
+                        if (Array.isArray(parsed)) repRfVal = parsed; 
+                    } catch(_) {}
+                }
+                if (Array.isArray(repRfVal) && repRfVal.length > 0) {
+                    repRefFiles = repRfVal.map((f) => {
+                        if (!f) return null;
+                        const isAbs = f.startsWith('http://') || f.startsWith('https://');
+                        const isRefPath = f.startsWith('/file/task_reference_files/') || f.startsWith('file/task_reference_files/');
+                        if (!isAbs && !isRefPath) return appUrl + '/file/task_reference_files/' + f;
+                        if (!isAbs && isRefPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                        return f;
+                    }).filter(Boolean);
+                }
+
+                // Build reply reference URLs
+                let repRefUrls = [];
+                let repRuVal = rep.reference_urls;
+                if (!Array.isArray(repRuVal) && typeof repRuVal === 'string') {
+                    try { 
+                        const parsed = JSON.parse(repRuVal); 
+                        if (Array.isArray(parsed)) repRuVal = parsed; 
+                    } catch(_) {}
+                }
+                if (Array.isArray(repRuVal) && repRuVal.length > 0) {
+                    repRefUrls = repRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
+                } else if (rep.reference_url) {
+                    repRefUrls = [rep.reference_url];
+                }
+
+                const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
+                const canEditReply = String(repAuthorId) === String(currentEmployeeId);
+
+                return `
+                    <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background: rgb(240, 241, 248);">
+                        <div class="d-flex align-items-start mb-1">
+                            <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-3" style="width: 24px; height: 24px; object-fit: cover;">
+                            <div class="flex-grow-1">
+                                <div>
+                                    <strong style="font-size:12px; font-weight:600;">${rep.employee.name}</strong>
+                                    <div><small class="text-muted d-block" style="font-size:9px;">${rDate}</small></div>
+                                </div>
+                                <div class="feedback-comment mt-2">
+                                    <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
+                                    ${(repRefUrls.length > 0 || repRefFiles.length > 0) ? `
+                                        <div class="feedback-reference-container mb-1">
+                                            ${repRefUrls.map((u) => {
+                                                const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                                                return `<a href="${u}" target="_blank" class="feedback-reference-url me-2">
+                                                    <span class="material-symbols-outlined">link</span> ${shortUrl}
+                                                </a>`;
+                                            }).join('')}
+                                            ${repRefFiles.map((u) => {
+                                                const fileName = u.split('/').pop();
+                                                return `<a href="${u}" download class="feedback-reference-file ms-2">
+                                                    <span class="material-symbols-outlined">draft</span> ${fileName}
+                                                </a>`;
+                                            }).join('')}
+                                        </div>
+                                    ` : ''}
+                                    ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
+                                    <div class="reply-actions mt-2 d-flex gap-4">
+                                        <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;">
+                                            <span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span>
+                                        </span>
+                                        ${canEditReply ? `<span class="d-flex align-items-center reply-delete-trigger" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;">
+                                            <span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span>
+                                        </span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            viewRepliesBtnHtml = `<button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all (${repliesCount})</button>`;
+            repliesContainerHtml = `<div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>`;
+        }
+
+        feedbackHtml += `
+            <div class="feedback-item mb-3 p-3" data-feedback-id="${feedback.id}">
+                <div class="d-flex align-items-start mb-2">
+                    <img src="${feedback.employee.photo}" alt="${feedback.employee.name}" class="rounded-circle me-3" style="width: 32px; height: 32px; object-fit: cover;">
+                    <div class="flex-grow-1">
+                        <div>
+                            <strong style="font-size:14px; font-weight:600;">${feedback.employee.name}</strong>
+                            <div><small class="text-muted d-block" style="font-size: 10px;">${formattedDate}</small></div>
+                        </div>
+                        <div class="feedback-comment mt-2">
+                            <p class="mb-2" style="font-size:13px;">${feedback.feedback_comment}</p>
+                            ${(topRefUrls.length > 0 || topRefFiles.length > 0) ? `
+                                <div class="feedback-reference-container mb-2">
+                                    ${topRefUrls.map((u) => {
+                                        const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                                        return `<a href="${u}" target="_blank" class="feedback-reference-url bg-light rounded-2">
+                                            <span class="material-symbols-outlined" style="color: #444444;">link</span> ${shortUrl}
+                                        </a>`;
+                                    }).join('')}
+                                    ${topRefFiles.map((u) => {
+                                        const fileName = u.split('/').pop();
+                                        return `<a href="${u}" class="feedback-reference-file bg-light rounded-2">
+                                            <span class="material-symbols-outlined" style="color: #444444;">draft</span> ${fileName}
+                                        </a>`;
+                                    }).join('')}
+                                </div>
+                            ` : ""}
+                            ${topImageUrl ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ""}
+                            <div class="feedback-actions mt-2 d-flex gap-4 align-items-center">
+                                <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;">
+                                    <span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span>
+                                </span>
+                                ${canEditTop ? `<span class="d-flex align-items-center feedback-delete-trigger" data-feedback-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;">
+                                    <span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span>
+                                </span>` : ''}
+                                ${viewRepliesBtnHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ${repliesContainerHtml}
+            </div>
+        `;
+    });
+
+    modalBody.innerHTML = feedbackHtml;
+
+    // Bind event handlers
+    bindFeedbackEventHandlers(modalBody, taskId);
+}
+
+// Bind feedback event handlers
+function bindFeedbackEventHandlers(modalBody, taskId) {
+    // Reply trigger
+    modalBody.querySelectorAll('.feedback-reply-trigger').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const parentId = this.getAttribute('data-feedback-id');
+            showReplyFeedbackForm(taskId, parentId);
+        });
+    });
+
+    // Delete feedback
+    modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const fid = this.getAttribute('data-feedback-id');
+            if (confirm('Are you sure you want to delete this feedback?')) {
+                deleteFeedback(fid, taskId);
+            }
+        });
+    });
+
+    // Delete reply
+    modalBody.querySelectorAll('.reply-delete-trigger').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const rid = this.getAttribute('data-reply-id');
+            if (confirm('Are you sure you want to delete this reply?')) {
+                deleteReply(rid, taskId);
+            }
+        });
+    });
+
+    // View replies toggle
+    modalBody.querySelectorAll('.view-replies-toggle').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const fid = this.getAttribute('data-feedback-id');
+            const count = this.getAttribute('data-replies-count');
+            const container = modalBody.querySelector('#replies-' + fid);
+            if (!container) return;
+            const hidden = container.classList.contains('d-none');
+            if (hidden) {
+                container.classList.remove('d-none');
+                this.textContent = 'Hide';
+            } else {
+                container.classList.add('d-none');
+                this.textContent = `View all (${count})`;
+            }
+            this.style.textDecoration = 'none';
+            this.style.color = '#555';
+        });
+    });
+
+    // Feedback image preview
+    modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function(img) {
+        img.addEventListener('click', function() {
+            showImagePreview(this.src);
+        });
+    });
+}
+
+// Show reply form
+function showReplyFeedbackForm(taskId, parentId) {
+    try {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const inlineForm = feedbackModalEl.querySelector('.feedback-form');
+        
+        if (inlineForm) {
+            let inlinePid = inlineForm.querySelector('#inline_parent_id_input');
+            if (!inlinePid) {
+                inlinePid = document.createElement('input');
+                inlinePid.type = 'hidden';
+                inlinePid.id = 'inline_parent_id_input';
+                inlinePid.name = 'parent_id';
+                inlineForm.appendChild(inlinePid);
+            }
+            inlinePid.value = parentId || '';
+
+            // Focus editor
+            try {
+                if (__quillInlineFeedback) {
+                    __quillInlineFeedback.focus();
+                    document.querySelector('#inline_feedback_editor .ql-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            } catch(_) {}
+        }
+    } catch(e) {
+        console.warn("showReplyFeedbackForm error", e);
+    }
+}
+
+// Submit inline feedback
+function submitInlineFeedback() {
+    const feedbackModalEl = document.getElementById("taskFeedbackModal");
+    const taskId = feedbackModalEl?.dataset?.taskId;
+    
+    if (!taskId) {
+        showFloatingAlert('Task ID not found', 'danger', 3000);
+        return;
+    }
+
+    const employeeId = feedbackModalEl?.dataset?.employeeId || '';
+    
+    // Get content from Quill
+    let feedbackComment = '';
+    if (__quillInlineFeedback) {
+        feedbackComment = __quillInlineFeedback.root.innerHTML || '';
+    }
+
+    // Validate
+    const plainText = feedbackComment.replace(/<[^>]+>/g, '').trim();
+    if (!plainText) {
+        showFloatingAlert('Please enter feedback comment', 'warning', 3000);
+        return;
+    }
+
+    // Get parent ID for reply
+    const parentIdInput = document.getElementById('inline_parent_id_input');
+    const parentId = parentIdInput?.value || '';
+
+    // Get image file
+    const imageInput = document.getElementById('inline_feedback_image_input');
+    const imageFile = imageInput?.files[0] || null;
+
+    // Get reference files
+    const filesInput = document.getElementById('inline_feedback_files_input');
+    const refFiles = filesInput?.files || [];
+
+    // Validate image size
+    if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+        showFloatingAlert('Image must be smaller than 10 MB', 'warning', 3000);
+        return;
+    }
+
+    // Build FormData
+    const formData = new FormData();
+    formData.append('task_id', taskId);
+    formData.append('employee_id', employeeId);
+    formData.append('feedback_comment', feedbackComment);
+    if (parentId) formData.append('parent_id', parentId);
+    if (imageFile) formData.append('feedback_image', imageFile);
+    
+    // Append multiple files
+    if (refFiles.length > 0) {
+        for (let i = 0; i < refFiles.length; i++) {
+            formData.append('reference_files[]', refFiles[i]);
+        }
+    }
+
+    const sendBtn = document.getElementById('inlineFeedbackSendBtn');
+    const originalHtml = sendBtn?.innerHTML || '';
+    
+    if (sendBtn) {
+        sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        sendBtn.disabled = true;
+    }
+
+    $.ajax({
+        url: appUrl + "/task-feedbacks",
+        type: "POST",
+        data: formData,
+        contentType: false,
+        processData: false,
+        headers: {
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
+        },
+        success: function(response) {
+            showFloatingAlert(response.message || 'Feedback submitted successfully', 'success', 2000);
+            
+            // Clear form
+            if (__quillInlineFeedback) {
+                __quillInlineFeedback.setText('');
+            }
+            if (imageInput) imageInput.value = '';
+            if (filesInput) filesInput.value = '';
+            if (parentIdInput) parentIdInput.value = '';
+            
+            // Reload feedback list
+            loadTaskFeedbackData(taskId);
+        },
+        error: function(xhr) {
+            let errorMessage = "Failed to submit feedback. Please try again.";
+            if (xhr.responseJSON?.errors) {
+                errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+            } else if (xhr.responseJSON?.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            showFloatingAlert(errorMessage, "danger", 3000);
+        },
+        complete: function() {
+            if (sendBtn) {
+                sendBtn.innerHTML = originalHtml;
+                sendBtn.disabled = false;
+            }
+        }
+    });
+}
+
+// Delete feedback
+function deleteFeedback(feedbackId, taskId) {
+    $.ajax({
+        url: appUrl + "/task-feedbacks/" + feedbackId,
+        type: "DELETE",
+        headers: {
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
+        },
+        success: function(response) {
+            showFloatingAlert(response.message || 'Feedback deleted successfully', 'success', 2000);
+            loadTaskFeedbackData(taskId);
+        },
+        error: function(xhr) {
+            showFloatingAlert('Failed to delete feedback', 'danger', 3000);
+        }
+    });
+}
+
+// Delete reply
+function deleteReply(replyId, taskId) {
+    $.ajax({
+        url: appUrl + "/task-feedbacks/" + replyId,
+        type: "DELETE",
+        headers: {
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
+        },
+        success: function(response) {
+            showFloatingAlert(response.message || 'Reply deleted successfully', 'success', 2000);
+            loadTaskFeedbackData(taskId);
+        },
+        error: function(xhr) {
+            showFloatingAlert('Failed to delete reply', 'danger', 3000);
+        }
+    });
+}
+
+// Show image preview modal
+function showImagePreview(imageSrc) {
+    let modal = document.getElementById('taskImagePreviewModal');
+    
+    if (!modal) {
+        const html = `
+            <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
+                    <div class="modal-content modal-content-custom bg-light border-0">
+                        <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
+                            <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
+                        </div>
+                        <div class="modal-footer modal-footer-custom border-0 justify-content-center">
+                            <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', html);
+        modal = document.getElementById('taskImagePreviewModal');
+    }
+
+    const img = document.getElementById('taskImagePreviewModalImg');
+    if (img) img.src = imageSrc;
+    
+    new bootstrap.Modal(modal).show();
+}
+
+// Show floating alert
+function showFloatingAlert(message, type = 'info', duration = 3000) {
+    // Try to use existing alert function first
+    if (typeof window.showAlertMsg === 'function') {
+        window.showAlertMsg(message, type === 'success' ? 'light' : type, duration);
+        return;
+    }
+
+    // Fallback to custom alert
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'success' ? 'success' : type === 'danger' ? 'danger' : 'warning'} position-fixed top-0 start-50 translate-middle-x mt-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.textContent = message;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, duration);
+}
+
+// Event listeners
+$(document).ready(function() {
+    // Click on mode_comment icon in task detail modal
+    $(document).on('click', '.task-icon', function(e) {
+        const icon = $(this);
+        if (icon.text().trim() === 'mode_comment') {
+            const taskId = icon.data('task-id');
+            if (taskId) {
+                handleTaskFeedback(taskId);
+            }
+        }
+    });
+
+    // Send feedback button
+    $(document).on('click', '#inlineFeedbackSendBtn', function() {
+        submitInlineFeedback();
+    });
+
+    // Photo button
+    $(document).on('click', '#inlineFeedbackPhotoBtn', function() {
+        $('#inline_feedback_image_input').click();
+    });
+
+    // File button
+    $(document).on('click', '#inlineFeedbackFileBtn', function() {
+        $('#inline_feedback_files_input').click();
+    });
+
+    // Clean up when modal closes
+    $(document).on('hidden.bs.modal', '#taskFeedbackModal', function() {
+        if (__quillInlineFeedback) {
+            __quillInlineFeedback.setText('');
+        }
+        $('#inline_feedback_image_input').val('');
+        $('#inline_feedback_files_input').val('');
+        $('#inline_parent_id_input').val('');
+        $(".modal-backdrop").remove();
+        $("body").removeClass("modal-open").css("overflow", "");
+    });
 });
 
