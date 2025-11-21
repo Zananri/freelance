@@ -448,22 +448,22 @@ function handleTaskDetail(taskId) {
         let statusLogs = '';
         if (statusChanges.length) {
             statusLogs = `
-                <div class="status-timeline position-relative mt-3 mb-3" style="padding-left:90px;">
-                    <div style="position:absolute; left:44px; top:0; bottom:0; width:2px; background:#FFFFFF; border-radius:2px;"></div>
-                    ${statusChanges.map(s => {
-                        const dateLabel = formatDateENMedium(t.updated_at || t.created_at || '');
+                <div class="status-timeline position-relative mt-3 mb-3" style="padding-left:110px;">
+                    <div style="position:absolute; left:93px; top:0; bottom:0; width:2px; background:#E5E7EB;"></div>
+                    ${statusChanges.map((s, index) => {
+                        const dateLabel = formatDateENMedium(s.updated_at || s.changed_at || '');
                         const label = escapeHtml(s.label || '');
                         const emp = escapeHtml(s.employee_name || '');
                         return `
-                            <div class="status-row d-flex align-items-start mb-3" style="position:relative;">
-                                <div style="position:absolute; left:0; width:80px; text-align:right; font-size:12px; color:#7f7f8a;">${dateLabel}</div>
+                            <div class="status-row d-flex align-items-start mb-3" style="position:relative; padding-left:20px;">
+                                <div class="date-label" style="position:absolute; left:-110px; width:80px; text-align:right; font-size:10px; color:#6B7280; font-weight:400; line-height:1.5; padding-right:15px; top:2px;">${dateLabel}</div>
 
                                 <div style="position:relative; width:100%;">
-                                    <div style="position:absolute; left:-51px; top:22px; width:12px; height:12px; background:#fff; border:2px solid #FFFFFF; border-radius:50%; box-sizing:border-box;"></div>
+                                    <div style="position:absolute; left:-24px; top:4px; width:10px; height:10px; background:#fff; border:2px solid #E5E7EB; border-radius:50%; z-index:2;"></div>
 
-                                    <div class="status-content d-flex align-items-center p-2" style="background: #F8F8FC; font-size:12px; max-width:100%; border-radius: 10px;">
-                                        <div style="font-size:12px;color:#797E91;">${label}</div>
-                                        <div style="font-weight:400;">&nbsp; ${emp}</div>
+                                    <div class="status-content p-2 px-3" style="background: #F9FAFB; font-size:12px; border-radius: 8px; min-height:28px; display:inline-flex; align-items:center;">
+                                        <span style="font-size:12px; color:#6B7280;">${label}</span>
+                                        <span style="font-weight:500; color:#374151;">&nbsp;${emp}</span>
                                     </div>
                                 </div>
                             </div>
