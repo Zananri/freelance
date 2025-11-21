@@ -5476,6 +5476,8 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
                                 try { ensureRejectedCardsPlaced(); } catch(_) {}
                                 try { initBootstrapTooltips(destContainer); addAttachFileIconListeners(); scheduleRefreshLatestFeedbackSnippets(); } catch(_) {}
+                                // Update task count labels after successful insert
+                                try { updateTaskCountLabels(); } catch(_) {}
                             }).fail(function() {
                                 try { fetchAndRenderTasks(); } catch(_) {}
                             });
@@ -5514,6 +5516,8 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                             bulkFinalAlertShown = true;
                             fetchAndRenderTasks();
                             showFloatingAlert(bulkFinalStatusMessage, 'success');
+                            // Update task count labels after bulk operations complete
+                            try { updateTaskCountLabels(); } catch(_) {}
                             bulkStatusPendingCount = 0;
                             bulkStatusCompletedCount = 0;
                             bulkStatusExpectedCount = 0;
@@ -5617,6 +5621,8 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
             try { ensureRejectedCardsPlaced(); } catch(_) {}
             try { initBootstrapTooltips(destContainer); addAttachFileIconListeners(); scheduleRefreshLatestFeedbackSnippets(); } catch(_) {}
+            // Update task count labels after successful insert
+            try { updateTaskCountLabels(); } catch(_) {}
         }).fail(function(){
             try { fetchAndRenderTasks(); } catch(_) {}
         });
@@ -5803,6 +5809,10 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 } else {
                     try { updateTaskStatus(taskId, m.newStatus, kanbanDrag.$card[0]); } catch (_) {}
                 }
+                // Update task count labels after drag & drop
+                setTimeout(function() {
+                    try { updateTaskCountLabels(); } catch(_) {}
+                }, 100);
             }
 
             kanbanDrag.$card.removeClass('dragging').css({ opacity: 1, transform: 'scale(1) rotate(0deg)' });
@@ -9309,6 +9319,8 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                             try { if (typeof loadArchivedTasksIntoModal === 'function') loadArchivedTasksIntoModal(); } catch(_) {}
                         }
                     } catch (_) {}
+                    // Update task count labels after task canceled
+                    try { updateTaskCountLabels(); } catch(_) {}
                 },
                 error: function () {
                     try {
@@ -9445,6 +9457,8 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                         if (typeof loadArchivedTasksIntoModal === 'function') loadArchivedTasksIntoModal();
 
                     } catch(_) {}
+                    // Update task count labels after task deleted
+                    try { updateTaskCountLabels(); } catch(_) {}
                 },
                 error: function (xhr) {
                     let msg = 'Failed to delete task';

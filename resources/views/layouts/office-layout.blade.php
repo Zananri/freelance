@@ -45,6 +45,7 @@
 
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=groups" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=family_group" />
     <style>
         .material-symbols-outlined {
             font-variation-settings:
@@ -326,6 +327,15 @@
                         <a href="{{ route('calendar') }}" class="{{ $menu_active == 'calendar' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">calendar_month</span>
                             <span class="text-menu">Calendar</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ route('hub_division') }}" class="{{ $menu_active == 'hub_division' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">
+                                family_group
+                            </span>
+                            <span class="text-menu">Hub Division</span>
                         </a>
                     </li>
 

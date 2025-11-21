@@ -221,7 +221,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 cDate.setHours(0, 0, 0, 0);
                 const msPerDay = 1000 * 60 * 60 * 24;
                 const dayDiff = Math.floor((cDate - today) / msPerDay);
-                const formatted = employee.contract_end_date;
+                const formatted = formatDateENMedium(employee.contract_end_date);
 
                 if (isNaN(dayDiff)) {
                     contractDisplay = formatted;
@@ -245,7 +245,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             </div>
                         </div>
                     </td>
-                    <td>${employee.hire_date}</td>
+                    <td>${formatDateENMedium(employee.hire_date)}</td>
                     <td>${contractDisplay}</td>
                     <td>${departmentName}</td>
                     <td>${divisionName}</td>
@@ -510,7 +510,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 $("#detailHireDate").text(
                     hireDate.toLocaleDateString("en-GB", options)
                 );
-                $("#detailGrade").text(employee.grade || "-");
+                // Handle grade - check if it's an object or string
+                const gradeText = (employee.grade && typeof employee.grade === 'object') 
+                    ? (employee.grade.title || "-") 
+                    : (employee.grade || "-");
+                $("#detailGrade").text(gradeText);
                 $("#detailOffice").text(employee.office || "-");
                 // Status badge in detail modal
                 let dStatus = employee.status ? String(employee.status).toUpperCase() : '-';
