@@ -1,8 +1,6 @@
 let currentDate = new Date();
 let selectedEmployeeId = null;
 
-const appUrl = window.APP_URL || '';
-
 function getTaskStatusColor(status) {
     const statusLower = (status || '').toLowerCase();
 
