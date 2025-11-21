@@ -181,7 +181,8 @@
             data-employee-department-id="{{ auth()->user()->employee->department_id ?? '' }}">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
                 <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
+                    <div
+                        class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
                         <h5 class="modal-title feedback-modal-title flex-grow-1 fs-5 fw-normal"
                             id="taskFeedbackModalLabel">Task Feedback</h5>
                         <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
@@ -194,21 +195,22 @@
                         <div class="feedback-form w-100">
                             <div id="inline_task_feedback_files_preview"></div>
                             <div id="inline_existing_files_preview"></div>
-                            <div id="inline_task_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
-                                <div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback...">
+                            <div id="inline_task_feedback_editor" class="border-0 ql-container ql-snow"
+                                style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
+                                <div class="ql-editor ql-blank" contenteditable="true"
+                                    data-placeholder="Write feedback...">
                                     <p><br></p>
                                 </div>
                             </div>
 
-                            <textarea id="inline_task_feedback_comment" name="feedback_comment" class="d-none"
-                                style="display:none;"></textarea>
+                            <textarea id="inline_task_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
                             <input type="hidden" id="inline_edit_task_feedback_input" value="">
                             <input type="hidden" id="inline_parent_id_input" name="parent_id" value="">
 
                             <div class="d-flex justify-content-between btn-actions-feedback mt-2">
                                 <div class="d-flex-justify-content-start">
-                                    <button type="button" class="btn btn-sm border-0" id="inlineTaskFeedbackPhotoBtn"
-                                        title="Upload photo">
+                                    <button type="button" class="btn btn-sm border-0"
+                                        id="inlineTaskFeedbackPhotoBtn" title="Upload photo">
                                         <span class="material-symbols-outlined feedback-photo-icon">photo</span>
                                     </button>
                                     <button type="button" class="btn btn-sm border-0" id="inlineTaskFeedbackFileBtn"
@@ -217,12 +219,14 @@
                                     </button>
                                     <input type="file" id="inline_task_feedback_image_input" name="feedback_image"
                                         accept="image/*" class="d-none">
-                                    <input type="file" id="inline_task_feedback_files_input" name="reference_files[]" multiple
+                                    <input type="file" id="inline_task_feedback_files_input"
+                                        name="reference_files[]" multiple
                                         accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                         class="d-none">
                                 </div>
                                 <div class="d-flex justify-content-end submit-feedback">
-                                    <button type="button" class="btn btn-submit-black" id="inlineTaskFeedbackSendBtn">
+                                    <button type="button" class="btn btn-submit-black"
+                                        id="inlineTaskFeedbackSendBtn">
                                         <span class="material-symbols-outlined">send</span>
                                     </button>
                                 </div>
@@ -233,14 +237,43 @@
                 <div class="alert-container mt-2"></div>
             </div>
         </div>
+
+        <div class="modal fade" id="taskModalDate" tabindex="-1" aria-labelledby="taskDetailModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header">
+                        <div class="d-flex justify-content-between">
+                            <div class="d-flex justify-content-start">
+                                <div class="selected-task-date"></div>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <div class="selected-total-task"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-body modal-body-custom">
+                        <div class="selected-employee-info d-flex align-items-center gap-2">
+                            <img src="" class="selected-employee-photo d-none me-2">
+
+                            <div class="d-flex flex-column">
+                                <span class="selected-employee-name"></span>
+                                <small class="selected-employee-task"></small>
+                            </div>
+                        </div>
+                        <div id="taskListByDate"></div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom mt-3">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </x-slot>
 
 
     <x-slot name="script_slot">
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
-        <script>
-            const appUrl = "{{ url('') }}";
-        </script>
         <script src="{{ asset('asset/js/date_helper.js?=' . time()) }}"></script>
         <script src="{{ asset('asset/js/hub_division.js?=' . time()) }}"></script>
     </x-slot>
