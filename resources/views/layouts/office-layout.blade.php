@@ -43,9 +43,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     {{-- <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" /> --}}
 
-
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=groups" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=family_group" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
     <style>
         .material-symbols-outlined {
             font-variation-settings:
@@ -55,7 +53,7 @@
                 'opsz' 24
         }
     </style>
-    <link href="{{ asset('asset/css/MaterialSymbolsOutlined.css') }}" rel="stylesheet">
+    
     <link href="{{ asset('asset/css/app.css?v=' . time()) }}" rel="stylesheet">
     <link href="{{ asset('asset/css/office.css?v=' . time()) }}" rel="stylesheet">
     <link href="{{ asset('asset/css/sidebar.css?v=' . time()) }}" rel="stylesheet">
