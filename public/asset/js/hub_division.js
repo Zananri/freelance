@@ -271,7 +271,7 @@ async function renderEventCalendar(year, month) {
 
 $(document).on("click", ".calendar-day", function () {
     const clickedDate = $(this).data("calendar-date");
-    
+
     if (!clickedDate || !selectedEmployeeId) {
         return;
     }
@@ -313,7 +313,7 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
             // Update employee info in modal
             $("#taskModalDate .selected-employee-name").text(employeeName);
             $("#taskModalDate .selected-employee-task").text(employeeJob || "Division");
-            
+
             if (employeePhoto) {
                 $("#taskModalDate .selected-employee-photo").attr("src", employeePhoto).removeClass("d-none");
             } else {
@@ -348,9 +348,9 @@ function renderTaskListByDate(tasks) {
     }
 
     tasks.forEach(task => {
-        const backgroundColor = getTaskStatusColor(task.status);
+        const statusColor = getTaskStatusColor(task.status);
         const statusLower = (task.status || '').toLowerCase();
-        
+
         // Parse priority color
         let priorityColor = '#4B4F5E';
         let priorityBg = '#F3F4F6';
@@ -363,25 +363,36 @@ function renderTaskListByDate(tasks) {
         }
 
         const taskHtml = `
-            <div class="task-item-date mb-3 p-3 rounded-3" style="background: #F9FAFB; cursor: pointer;" data-task-id="${task.id}">
+            <div class="task-item-date mb-3 p-3 rounded-3" data-task-id="${task.id}">
                 <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="flex-grow-1">
-                        <h6 class="mb-1 fw-semibold" style="font-size: 14px; color: #1F2937;">${task.title || '-'}</h6>
-                        <p class="mb-2 text-muted" style="font-size: 12px; line-height: 1.5;">${task.description ? (task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description) : ''}</p>
-                    </div>
-                    <div class="ms-3">
-                        <span class="badge rounded-pill" style="background-color: ${backgroundColor}; color: #1F2937; font-size: 10px; font-weight: 600; padding: 4px 12px;">${task.status || 'New'}</span>
+                    <div class="flex-grow-1 mb-2">
+                        <h6 class="mb-0" style="font-size: 12px; font-weight: 500; color: #3B3D42;">
+                            ${task.title || '-'}
+                        </h6>
+
+                        <span style="display: block; margin-top: 2px; color: ${statusColor}; font-size: 10px; font-weight: 400;">
+                            ${task.status || 'New'}
+                        </span>
+
+                        <p class="text-muted" style="font-size: 12px; font-weight: 400; color: #4C5060; line-height: 1.5; margin-bottom: 0;">
+                            ${task.description ? (task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description) : ''}
+                        </p>
                     </div>
                 </div>
                 
                 <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex gap-3 align-items-center">
-                        <span class="d-inline-flex align-items-center" style="font-size: 10px; color: #6B7280;">
-                            <span class="material-symbols-outlined me-1" style="font-size: 14px;">schedule</span>
-                            ${task.due_date ? formatDateENMedium(task.due_date) : '-'}
+                    <div class="d-flex align-items-center">
+                        <span style="color: #797E91; text-align: start; font-size: 8px; font-weight: 600;">
+                            Priority:&nbsp;
                         </span>
-                        <span class="badge" style="background-color: ${priorityBg}; color: ${priorityColor}; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 4px;">
+                        <span style="color: ${priorityColor}; font-size: 8px; font-weight: 400;">
                             ${task.priority || 'NORMAL'}
+                        </span>
+                    </div>
+
+                    <div class="d-flex align-items-center">
+                        <span style="font-size: 8px; color: #4B4F5E;">
+                            ${task.start_date ? formatDateENMedium(task.start_date) : '-'} - ${task.due_date ? formatDateENMedium(task.due_date) : '-'}
                         </span>
                     </div>
                 </div>
@@ -389,13 +400,6 @@ function renderTaskListByDate(tasks) {
         `;
 
         container.append(taskHtml);
-    });
-
-    // Bind click to open detail
-    container.find('.task-item-date').on('click', function() {
-        const taskId = $(this).data('task-id');
-        $('#taskModalDate').modal('hide');
-        handleTaskDetail(taskId);
     });
 }
 
@@ -688,10 +692,10 @@ function handleTaskDetail(taskId) {
                 <div class="status-timeline position-relative mt-3 mb-3" style="padding-left:110px;">
                     <div style="position:absolute; left:93px; top:0; bottom:0; width:3px; background:#FFFFFF;"></div>
                     ${statusChanges.map((s, index) => {
-                        const dateLabel = formatDateENMedium(s.updated_at || s.changed_at || '');
-                        const label = escapeHtml(s.label || '');
-                        const emp = escapeHtml(s.employee_name || '');
-                        return `
+                const dateLabel = formatDateENMedium(s.updated_at || s.changed_at || '');
+                const label = escapeHtml(s.label || '');
+                const emp = escapeHtml(s.employee_name || '');
+                return `
                             <div class="status-row d-flex align-items-start mb-3" style="position:relative; padding-left:20px;">
                                 <div class="date-label" style="position:absolute; left:-110px; width:80px; text-align:right; font-size:10px; color:#6B7280; font-weight:400; line-height:1.5; padding-right:15px; top:2px;">${dateLabel}</div>
 
@@ -705,7 +709,7 @@ function handleTaskDetail(taskId) {
                                 </div>
                             </div>
                         `;
-                    }).join('')}
+            }).join('')}
                 </div>
             `;
         }
@@ -761,13 +765,13 @@ function handleTaskDetail(taskId) {
                         <span style="font-size: 8px;">Deadline: ${formatDateENMedium(t.due_date)}</span>
                     </div>
                     <div class="d-flex justify-content-end align-items-start gap-3">
-                        ${ (statusLower.includes('finish') || statusLower.includes('complete')) ? `
+                        ${(statusLower.includes('finish') || statusLower.includes('complete')) ? `
                             <div class="d-flex align-items-center">
                                 <button class="btn btn-sm p-0 m-0 border-0" data-bs-target="#completeContent" data-bs-toggle="collapse">
                                     <span class="material-symbols-outlined task-icon" style="font-size: 18px;">playlist_add_check</span>
                                 </button>
                             </div>
-                        ` : '' }
+                        ` : ''}
 
                         <div class="d-flex align-items-center position-relative">
                             <span class="material-symbols-outlined task-icon" style="font-size: 18px;" data-task-id="${t.id}">mode_comment</span>
@@ -819,7 +823,7 @@ $(document).on('click', '.text-event', function (e) {
     const taskId = $(this).data('task-id');
     if (!taskId) return;
 
-    try { $('#taskModalDate').modal('hide'); } catch (_) {}
+    try { $('#taskModalDate').modal('hide'); } catch (_) { }
     handleTaskDetail(taskId);
 });
 

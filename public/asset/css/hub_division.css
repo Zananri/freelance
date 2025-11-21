@@ -95,7 +95,7 @@
 }
 
 .employee-item.selected {
-    background-color: #F8F8FC;
+    background-color: #f8f8fc;
 }
 
 .employee-photo {
@@ -127,7 +127,7 @@
 .employee-job {
     font-size: 8px;
     font-weight: 400;
-    color: #797E91;
+    color: #797e91;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -149,7 +149,7 @@
 }
 
 .selected-division-on-text {
-    color: #5A5D6E;
+    color: #5a5d6e;
 }
 
 .selected-employee-photo {
@@ -566,7 +566,7 @@
 
 .ref-url-item .action-icon {
     opacity: 0;
-    transition: opacity .15s ease-in-out;
+    transition: opacity 0.15s ease-in-out;
     cursor: pointer;
     font-size: 18px;
     color: #444;
@@ -593,35 +593,31 @@
     padding: 8px 0;
 }
 
-/* Task Modal Date Styles */
 #taskModalDate .modal-dialog {
     max-width: 600px;
 }
 
-#taskModalDate .modal-content {
-    background: #ffffff !important;
+#taslModalDate .modal-content {
+    padding: 20px;
+    min-height: calc(100vh - 200px);
 }
 
-#taskModalDate .modal-header {
-    border-bottom: none;
+.barrier-custom {
+    border: solid 2px #dedfe7;
+    margin: 10px auto 0;
+    width: 95%;
 }
 
 #taskModalDate .selected-task-date {
     font-size: 16px;
-    font-weight: 600;
-    color: #1F2937;
+    font-weight: 300;
+    color: #2a3542;
 }
 
 #taskModalDate .selected-total-task {
-    font-size: 14px;
-    color: #6B7280;
+    font-size: 12px;
+    color: #2a3542;
     font-weight: 400;
-}
-
-#taskModalDate .selected-employee-info {
-    background: #F9FAFB;
-    border-radius: 12px;
-    padding: 16px;
 }
 
 #taskModalDate .selected-employee-photo {
@@ -629,55 +625,41 @@
     height: 48px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #E5E7EB;
+    border: 2px solid #e5e7eb;
 }
 
 #taskModalDate .selected-employee-name {
     font-size: 14px;
     font-weight: 600;
-    color: #1F2937;
+    color: #1f2937;
 }
 
 #taskModalDate .selected-employee-task {
     font-size: 12px;
-    color: #6B7280;
+    color: #6b7280;
+}
+
+#taskModalDate .modal-footer-custom {
+    padding: 10px 20px;
 }
 
 .task-item-date {
-    background: #F9FAFB;
-    border-radius: 12px;
-    padding: 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-}
-
-.task-item-date:hover {
-    background: #F3F4F6;
-    border-color: #E5E7EB;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    background: #f8f8fc;
+    border-radius: 20px;
 }
 
 .task-item-date h6 {
     font-size: 14px;
     font-weight: 600;
-    color: #1F2937;
+    color: #1f2937;
     margin-bottom: 8px;
 }
 
 .task-item-date p {
     font-size: 12px;
-    color: #6B7280;
+    color: #6b7280;
     line-height: 1.5;
     margin-bottom: 12px;
-}
-
-.task-item-date .badge {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 4px 12px;
-    border-radius: 12px;
 }
 
 .task-item-date .material-symbols-outlined {
@@ -691,8 +673,8 @@
 }
 
 #taskModalDate .btn-custom-close {
-    background: #F3F4F6;
-    color: #6B7280;
+    background: #f3f4f6;
+    color: #6b7280;
     border: none;
     padding: 10px 24px;
     border-radius: 8px;
@@ -701,8 +683,8 @@
 }
 
 #taskModalDate .btn-custom-close:hover {
-    background: #E5E7EB;
-    color: #4B5563;
+    background: #e5e7eb;
+    color: #4b5563;
 }
 
 #taskListByDate:empty::after {
@@ -710,7 +692,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #9CA3AF;
+    color: #9ca3af;
     font-size: 14px;
     padding: 40px 0;
 }
@@ -720,15 +702,15 @@
         max-width: 90%;
         margin: 1rem auto;
     }
-    
+
     .task-item-date {
         padding: 12px;
     }
-    
+
     .task-item-date h6 {
         font-size: 13px;
     }
-    
+
     .task-item-date p {
         font-size: 11px;
     }
