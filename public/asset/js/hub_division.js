@@ -28,6 +28,21 @@ function getTaskInitials(title) {
     return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
+function buildPhotoUrl(userPhoto, profilePicture, profilePictureUrl) {
+    try {
+        let candidate = profilePictureUrl || profilePicture || userPhoto;
+        if (!candidate) return appUrl + '/asset/img/avatar.png';
+        if (typeof candidate !== 'string') candidate = String(candidate || '');
+        const up = candidate.trim();
+        if (up.startsWith('http://') || up.startsWith('https://')) return up;
+        if (up.startsWith('/')) return appUrl + up;
+        if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
+        return appUrl + '/file/profile_picture/' + up;
+    } catch (_) {
+        return appUrl + '/asset/img/avatar.png';
+    }
+}
+
 function getRandomColorFromText(text) {
     const colors = [
         "#6A5AE0", "#FF8A3C", "#00A881", "#D4526E", "#3E8EDE",
@@ -1283,7 +1298,6 @@ function bindFeedbackEventHandlers(modalBody, taskId) {
 // Show reply form
 function showReplyFeedbackForm(taskId, parentId) {
     try {
-        const appUrl = window.location.origin + '/nsa-office-2/public';
         const feedbackModalEl = document.getElementById("taskFeedbackModal");
         const inlineForm = feedbackModalEl.querySelector('.feedback-form');
 
@@ -1348,18 +1362,10 @@ function showReplyFeedbackForm(taskId, parentId) {
 
                     try {
                         const empRaw = (fb && fb.employee) || {};
-                        let avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || empRaw.image || '';
-
-                        // Normalize avatar URL
-                        let avatarUrl = '';
-                        if (avatarRaw) {
-                            avatarUrl = avatarRaw.replace('/nsa-office-2/public/', '');
-                            if (!avatarUrl.startsWith('http')) {
-                                avatarUrl = appUrl + '/file/profile_picture/' + avatarUrl;
-                            }
-                        } else {
-                            avatarUrl = appUrl + '/asset/img/avatar.png';
-                        }
+                        let avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || '';
+                        const avatarUrl = (typeof buildPhotoUrl === 'function') ?
+                            buildPhotoUrl(avatarRaw, empRaw.profile_picture, empRaw.profile_picture_url) :
+                            (avatarRaw ? appUrl + '/file/profile_picture/' + avatarRaw : appUrl + '/asset/img/avatar.png');
 
                         let plain = '';
                         try {
