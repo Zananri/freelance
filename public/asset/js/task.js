@@ -1231,6 +1231,22 @@ function updateTaskCountLabels() {
             }
         } catch (_) { selectedParentId = null; }
 
+        // Fallback function if formatDateENMediumDayMonth is not available from date_helper.js
+        if (typeof formatDateENMediumDayMonth === 'undefined') {
+            window.formatDateENMediumDayMonth = function(date) {
+                if (!date) return '-';
+                try {
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const newDate = new Date(date);
+                    const d = newDate.getDate();
+                    const m = monthNames[newDate.getMonth()];
+                    return `${d} ${m}`;
+                } catch(e) {
+                    return String(date).substring(0, 10);
+                }
+            };
+        }
+
         const input = document.getElementById(`${prefix}_parent_input`);
         const dropdown = document.getElementById(`${prefix}_parent_dropdown`);
         const selectedContainer = document.getElementById(`${prefix}_selected_parent`);
@@ -1358,14 +1374,41 @@ function updateTaskCountLabels() {
             })
             .catch(err => console.error("Failed to load related tasks", err));
 
-        input.addEventListener("input", () => renderDropdown(input.value));
-        input.addEventListener("focus", () => renderDropdown(input.value));
+        // Remove existing event listeners to avoid duplicates
+        // Store new handlers for this input element
+        if (!input._loadRelatedTasksHandlers) {
+            input._loadRelatedTasksHandlers = {};
+        }
+        
+        // Remove old listeners if they exist
+        if (input._loadRelatedTasksHandlers.inputHandler) {
+            input.removeEventListener("input", input._loadRelatedTasksHandlers.inputHandler);
+        }
+        if (input._loadRelatedTasksHandlers.focusHandler) {
+            input.removeEventListener("focus", input._loadRelatedTasksHandlers.focusHandler);
+        }
+        
+        // Create new handlers
+        input._loadRelatedTasksHandlers.inputHandler = () => renderDropdown(input.value);
+        input._loadRelatedTasksHandlers.focusHandler = () => renderDropdown(input.value);
+        
+        // Register new event listeners
+        input.addEventListener("input", input._loadRelatedTasksHandlers.inputHandler);
+        input.addEventListener("focus", input._loadRelatedTasksHandlers.focusHandler);
 
-        document.addEventListener("click", (e) => {
-            if (!dropdown.contains(e.target) && e.target !== input) {
-                dropdown.style.display = "none";
-            }
-        });
+        // For document click handler, use a single global handler per prefix
+        if (!window._loadRelatedTasksClickHandlers) {
+            window._loadRelatedTasksClickHandlers = {};
+        }
+        
+        if (!window._loadRelatedTasksClickHandlers[prefix]) {
+            window._loadRelatedTasksClickHandlers[prefix] = (e) => {
+                if (!dropdown.contains(e.target) && e.target !== input) {
+                    dropdown.style.display = "none";
+                }
+            };
+            document.addEventListener("click", window._loadRelatedTasksClickHandlers[prefix]);
+        }
     }
 
     // Ensure a parent option exists in select by fetching single task and appending if missing
