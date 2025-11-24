@@ -26,7 +26,6 @@
     flex-direction: column;
     align-self: flex-start;
     max-height: calc(100vh - 200px);
-    overflow-y: auto;
 }
 
 .header-employe-card {
@@ -82,13 +81,27 @@
 
 .employee-list {
     margin: 0;
-    padding: 0 14px;
+    overflow-y: auto;
+    max-height: 200px;
+}
+
+.employee-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.employee-list::-webkit-scrollbar-thumb {
+    background-color: #46505b2c;
+    border-radius: 4px;
+}
+
+.employee-list::-webkit-scrollbar-track {
+    background-color: transparent;
 }
 
 .employee-item {
     display: flex;
     align-items: center;
-    padding: 10px 8px;
+    padding: 10px 14px;
     margin-bottom: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -165,14 +178,13 @@
     font-size: 16px;
 }
 
-.selected-employee-task {
+.selected-employee-task,
+.selected-employee-progress,
+.selected-employee-late,
+.selected-employee-finish {
     font-weight: 400;
-    font-size: 8px;
+    font-size: 10px;
     color: #2a3542;
-}
-
-.box-table-calendar {
-    padding: 0 20px 20px 20px;
 }
 
 .loader {
@@ -212,7 +224,7 @@
 
 .calendar-month,
 .calendar-year {
-    font-size: 16px;
+    font-size: 14px;
     color: #2a3542;
     font-weight: 400;
     margin-left: 10px;
@@ -248,7 +260,7 @@
 }
 
 .table-calendar thead th {
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 400;
     color: #747d87;
     text-align: center;
@@ -285,7 +297,7 @@
 
 .table-calendar tbody td .day {
     text-align: center;
-    font-size: 12px;
+    font-size: 16px;
     color: #46515f;
     font-weight: 600;
 }
@@ -326,8 +338,8 @@
 }
 
 .table-calendar tbody td .text-event {
-    font-size: 10px;
-    color: #46505b;
+    font-size: 12px;
+    color: #46505B;
     font-weight: 500;
     background-color: #f2e2e4;
     padding: 2px 8px;
@@ -389,22 +401,22 @@
     border: none;
 }
 
-.modal-body-custom {
-    max-height: calc(80vh - 120px);
+.scrollable-content {
+    max-height: calc(80vh - 200px);
     overflow-y: auto;
     overflow-x: hidden;
     padding: 8px;
 }
 
-.modal-body-custom::-webkit-scrollbar {
+.scrollable-content::-webkit-scrollbar {
     width: 4px;
 }
 
-.modal-body-custom::-webkit-scrollbar-track {
+.scrollable-content::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.modal-body-custom::-webkit-scrollbar-thumb {
+.scrollable-content::-webkit-scrollbar-thumb {
     background-color: #a0a0a0;
     border-radius: 4px;
 }
@@ -714,12 +726,4 @@
     .task-item-date p {
         font-size: 11px;
     }
-}
-
-.modal-scrollable-content {
-    position: sticky;
-    top: -10px;
-    background: rgb(240, 241, 248);
-    z-index: 10;
-    padding: 8px 0;
 }
