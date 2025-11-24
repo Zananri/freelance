@@ -190,6 +190,7 @@ class HubDivisionController extends Controller
                                 ->whereNotNull('tasks.due_date');
                         });
                 })
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
                 ->orderBy('tasks.start_date', 'asc')
                 ->get();
 
