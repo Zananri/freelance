@@ -41,7 +41,7 @@
                     </div>
                 </div>
                 <div class="header-barier"></div>
-                <div class="employee-list">
+                <div class="employee-list scrollbar-transparent">
                     @foreach ($employee as $emp)
                         @php
                             // hitung photo url dan task count sederhana (fallback 0)
@@ -132,7 +132,7 @@
                         <p class="mt-2" style="font-size: 14px;">Select an employee to view their tasks</p>
                     </div>
 
-                    <table class="table-calendar" style="display: none;">
+                    <table class="table-calendar scrollbar-transparent" style="display: none;">
                         <thead>
                             <tr>
                                 <th>Sun</th>
@@ -189,7 +189,7 @@
                             aria-label="Close"></button>
                     </div>
 
-                    <div class="modal-body feedback-modal-body" id="taskFeedbackList">
+                    <div class="modal-body feedback-modal-body scrollbar-transparent" id="taskFeedbackList">
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <div class="feedback-form w-100">
@@ -264,7 +264,7 @@
                                 <small class="selected-employee-task text-muted" style="font-size: 12px;"></small>
                             </div>
                         </div>
-                        <div id="taskListByDate"></div>
+                        <div id="taskListByDate" class="scrollbar-transparent"></div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close

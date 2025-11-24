@@ -36,7 +36,7 @@
     width: 90%;
     margin: 0 auto 15px;
     display: block;
-    border: 3px solid #dedfe7;
+    border: 2px solid #dedfe7;
     height: 0;
 }
 
@@ -45,8 +45,8 @@
     background: transparent;
     padding: 0;
     color: #2a3542;
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 400;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -82,20 +82,7 @@
 .employee-list {
     margin: 0;
     overflow-y: auto;
-    max-height: 200px;
-}
-
-.employee-list::-webkit-scrollbar {
-    width: 4px;
-}
-
-.employee-list::-webkit-scrollbar-thumb {
-    background-color: #46505b2c;
-    border-radius: 4px;
-}
-
-.employee-list::-webkit-scrollbar-track {
-    background-color: transparent;
+    max-height: 175px;
 }
 
 .employee-item {
@@ -107,7 +94,8 @@
     transition: all 0.3s ease;
 }
 
-.employee-item.selected {
+.employee-item.selected,
+.employee-item:hover {
     background-color: #f8f8fc;
 }
 
@@ -260,7 +248,7 @@
 }
 
 .table-calendar thead th {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 400;
     color: #747d87;
     text-align: center;
@@ -277,13 +265,16 @@
 
 .table-calendar tbody td {
     position: relative;
-
     vertical-align: top;
     border: solid 1px #e4e7ee;
     transition: all 0.3s;
     padding: 5px 5px;
     width: calc(100% / 7);
     transition: all 0.3s;
+}
+
+.table-calendar tbody td.selected-date {
+    background-color: #F8F8FC;
 }
 
 .table-calendar tbody td:not(.empty-cell):hover {
@@ -297,7 +288,7 @@
 
 .table-calendar tbody td .day {
     text-align: center;
-    font-size: 16px;
+    font-size: 14px;
     color: #46515f;
     font-weight: 600;
 }
@@ -340,7 +331,7 @@
 .table-calendar tbody td .text-event {
     font-size: 12px;
     color: #46505B;
-    font-weight: 500;
+    font-weight: 400;
     background-color: #f2e2e4;
     padding: 2px 8px;
     margin-bottom: 5px;
@@ -408,19 +399,6 @@
     padding: 8px;
 }
 
-.scrollable-content::-webkit-scrollbar {
-    width: 4px;
-}
-
-.scrollable-content::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.scrollable-content::-webkit-scrollbar-thumb {
-    background-color: #a0a0a0;
-    border-radius: 4px;
-}
-
 .modal-footer-custom {
     position: sticky;
     z-index: 1050;
@@ -480,19 +458,6 @@
     max-height: 100%;
     overflow-y: auto;
     flex-grow: 1;
-}
-
-.feedback-modal-body::-webkit-scrollbar {
-    width: 4px;
-}
-
-.feedback-modal-body::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.feedback-modal-body::-webkit-scrollbar-thumb {
-    background-color: #a0a0a0;
-    border-radius: 4px;
 }
 
 .feedback-form {
@@ -702,19 +667,6 @@
 #taskListByDate {
     max-height: calc(80vh - 200px);
     overflow-y: auto;
-}
-
-#taskListByDate::-webkit-scrollbar {
-    width: 4px;
-}
-
-#taskListByDate::-webkit-scrollbar-thumb {
-    background-color: #a0a0a0;
-    border-radius: 4px;
-}
-
-#taskListByDate::-webkit-scrollbar-track {
-    background-color: transparent;
 }
 
 #taskListByDate:empty::after {

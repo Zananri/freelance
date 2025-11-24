@@ -12,11 +12,11 @@ function getTaskStatusColor(status) {
     } else if (statusLower.includes('progress')) {
         return '#f5efce';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
-        return '#eba5a5';
+        return '#F2E2E4';
     } else if (statusLower.includes('complete')) {
-        return '#b2eecd';
+        return '#DCF2E2';
     } else if (statusLower.includes('finish')) {
-        return '#A5C6F1';
+        return '#DCE5F2';
     } else {
         return '#dde4e8';
     }
@@ -287,6 +287,8 @@ async function renderEventCalendar(year, month) {
 
 $(document).on("click", ".calendar-day", function () {
     const clickedDate = $(this).data("calendar-date");
+    
+    $(this).addClass("selected-date");
 
     if (!clickedDate || !selectedEmployeeId) {
         return;
@@ -809,7 +811,7 @@ function handleTaskDetail(taskId) {
                     
                     <div style="border-bottom: solid 3px #DEDFE7;"></div>
                 
-                <div class="scrollable-content">
+                <div class="scrollable-content scrollbar-transparent">
                     <div class="collapse" id="completeContent">
                         ${completeContentHtml}
                     </div>
