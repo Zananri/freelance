@@ -253,10 +253,13 @@ class HubDivisionController extends Controller
                 'tasks.priority',
                 'tasks.project_id'
             )
-                ->with(['project' => function($query) {
-                    $query->select('id', 'title', 'department_id', 'division_id')
-                        ->with(['department:id,name_department', 'division:id,name_division']);
-                }])
+                ->with([
+                    'project' => function($query) {
+                        $query->select('projects.id', 'projects.title', 'projects.department_id', 'projects.division_id');
+                    },
+                    'project.department:id,name_department',
+                    'project.division:id,name_division'
+                ])
                 ->whereIn('tasks.id', $taskAssignments)
                 ->where(function ($query) use ($dateStart, $dateEnd) {
                     $query->where(function ($q) use ($dateStart, $dateEnd) {
@@ -272,15 +275,6 @@ class HubDivisionController extends Controller
                 ->orderBy('tasks.priority', 'desc')
                 ->orderBy('tasks.start_date', 'asc')
                 ->get();
-
-            // Transform data to include department and division names
-            $tasks->transform(function($task) {
-                if ($task->project) {
-                    $task->project->department = $task->project->department ? $task->project->department->name_department : null;
-                    $task->project->division = $task->project->division ? $task->project->division->name_division : null;
-                }
-                return $task;
-            });
 
             \Log::info('Tasks found for date', ['count' => $tasks->count()]);
 
