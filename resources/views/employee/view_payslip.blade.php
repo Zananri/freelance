@@ -237,7 +237,7 @@
                         $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->meal_allowance + $employeePayslip->transportation_allowance + $employeePayslip->internet_phone_allowance + $employeePayslip->positional_allowance;
                         $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->bonus + $employeePayslip->thr + $employeePayslip->overtime;
                         $totalPendapatan2excBonusOvertime = $totalPendapatan1 - ($employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance);
-                        $totalPengurangan = ($employeeAttendanceNotComplete[0] ?? 0)*50000;
+                        $totalPengurangan = (($employeeAttendanceNotComplete[0] ?? 0)*50000) + $totalPendapatan2excBonusOvertime;
                     @endphp
 
                     <tr style="font-weight: bold;">
