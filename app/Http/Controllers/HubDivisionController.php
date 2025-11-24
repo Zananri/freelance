@@ -170,6 +170,9 @@ class HubDivisionController extends Controller
 
             \Log::info('Task assignments found', ['count' => $taskAssignments->count()]);
 
+            $baseQuery = Task::whereIn('tasks.id', $taskAssignments)
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
+
             // Get tasks for the specified month
             $tasks = Task::select(
                 'tasks.id',
@@ -194,11 +197,26 @@ class HubDivisionController extends Controller
                 ->orderBy('tasks.start_date', 'asc')
                 ->get();
 
-            \Log::info('Tasks found', ['count' => $tasks->count()]);
+            $inProgress = (clone $baseQuery)
+                ->whereRaw('LOWER(status) = ?', ['in_progress'])
+                ->count();
+
+            $finished = (clone $baseQuery)
+                ->whereRaw('LOWER(status) = ?', ['finished'])
+                ->count();
+
+            $late = (clone $baseQuery)
+                ->whereNotIn(DB::raw('LOWER(status)'), ['completed', 'finished'])
+                ->whereNotNull('due_date')
+                ->where('due_date', '<', now())
+                ->count();
 
             return response()->json([
                 'success' => true,
                 'total_tasks' => $tasks->count(),
+                'total_in_progress' => $inProgress,
+                'total_finished' => $finished,
+                'total_late' => $late,
                 'data' => $tasks
             ]);
         } catch (\Exception $e) {
@@ -223,11 +241,6 @@ class HubDivisionController extends Controller
             $employeeId = $request->input('employee_id');
             $date = $request->input('date');
 
-            \Log::info('Hub Division - Get Tasks By Date Request', [
-                'employee_id' => $employeeId,
-                'date' => $date
-            ]);
-
             if (!$employeeId || !$date) {
                 return response()->json([
                     'success' => false,
@@ -235,16 +248,16 @@ class HubDivisionController extends Controller
                 ], 400);
             }
 
-            // Parse date
             $dateStart = $date . ' 00:00:00';
-            $dateEnd = $date . ' 23:59:59';
+            $dateEnd   = $date . ' 23:59:59';
 
-            // Get all tasks assigned to this employee
             $taskAssignments = TaskAssignment::where('employee_id', $employeeId)
                 ->pluck('task_id');
 
-            // Get tasks for the specified date
-            $tasks = Task::select(
+            $baseQuery = Task::whereIn('tasks.id', $taskAssignments)
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
+
+            $tasks = $baseQuery->select(
                 'tasks.id',
                 'tasks.title',
                 'tasks.description',
@@ -255,13 +268,10 @@ class HubDivisionController extends Controller
                 'tasks.project_id'
             )
                 ->with([
-                    'project' => function($query) {
-                        $query->select('projects.id', 'projects.title', 'projects.department_id', 'projects.division_id');
-                    },
+                    'project:id,title,department_id,division_id',
                     'project.department:id,name_department',
                     'project.division:id,name_division'
                 ])
-                ->whereIn('tasks.id', $taskAssignments)
                 ->where(function ($query) use ($dateStart, $dateEnd) {
                     $query->where(function ($q) use ($dateStart, $dateEnd) {
                         $q->whereBetween('tasks.start_date', [$dateStart, $dateEnd])
@@ -272,25 +282,33 @@ class HubDivisionController extends Controller
                                 ->whereNotNull('tasks.due_date');
                         });
                 })
-                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
                 ->orderBy('tasks.priority', 'desc')
                 ->orderBy('tasks.start_date', 'asc')
                 ->get();
 
-            \Log::info('Tasks found for date', ['count' => $tasks->count()]);
+            $inProgress = (clone $baseQuery)
+                ->whereRaw('LOWER(status) = ?', ['in_progress'])
+                ->count();
+
+            $finished = (clone $baseQuery)
+                ->whereRaw('LOWER(status) = ?', ['finished'])
+                ->count();
+
+            $late = (clone $baseQuery)
+                ->whereNotIn(DB::raw('LOWER(status)'), ['completed', 'finished'])
+                ->whereNotNull('due_date')
+                ->where('due_date', '<', now())
+                ->count();
 
             return response()->json([
                 'success' => true,
                 'total_tasks' => $tasks->count(),
+                'total_in_progress' => $inProgress,
+                'total_finished' => $finished,
+                'total_late' => $late,
                 'data' => $tasks
             ]);
         } catch (\Exception $e) {
-            \Log::error('Hub Division - Get Tasks By Date Error', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
 
             return response()->json([
                 'success' => false,

@@ -54,11 +54,14 @@
                                 $photoUrl = asset($emp->user_photo);
                             }
                             $taskCount = $emp->tasks_count ?? 0;
+                            $taskProgress = $emp->tasks_in_progress_count ?? 0;
+                            $taskLate = $emp->tasks_late_count ?? 0;
+                            $taskFinish = $emp->tasks_finished_count ?? 0;
                         @endphp
 
                         <div class="employee-item" data-employee-division="{{ $emp->division_id }}"
                             data-employee-id="{{ $emp->id }}" data-employee-photo="{{ $photoUrl }}"
-                            data-total-task="{{ $taskCount }}">
+                            data-total-task="{{ $taskCount }}" data-total-progress="{{ $taskProgress }}" data-total-late="{{ $taskLate }}" data-total-finish="{{ $taskFinish }}">
                             <div class="employee-photo">
                                 <img src="{{ $photoUrl }}" alt="{{ $emp->name }}">
                             </div>
@@ -73,57 +76,59 @@
 
             <div class="calendar-card-content overflow-hidden">
                 <div class="header-calendar">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="selected-employee-info d-flex align-items-center gap-2">
-                            <img src="" class="selected-employee-photo d-none me-2">
+                    <div class="d-flex align-items-start justify-content-between mb-2">
 
-                            <div class="d-flex flex-column">
+                        <div class="selected-employee-info">
+                            <div class="d-flex align-items-center gap-2">
+                                <img src="" class="selected-employee-photo d-none me-2">
                                 <span class="selected-employee-name"></span>
+                            </div>
+
+                            <div class="mt-2">
                                 <small class="selected-employee-task"></small>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-end align-items-center">
-                            <div class="month-year w-100">
 
-                                <div class="dropdown dropdown-month">
-                                    <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button"
-                                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="d-flex flex-column align-items-start">
 
+                            <div class="d-flex align-items-center justify-content-end w-100">
+                                <div class="dropdown dropdown-month me-3">
+                                    <div class="dropdown-toggle btn btn-dropdown-month ps-0" data-bs-toggle="dropdown">
                                         <div class="d-inline-flex align-items-center">
                                             <span class="calendar-month">{{ date('F') }}</span>
                                             <span class="calendar-year">{{ date('Y') }}</span>
                                         </div>
-
                                     </div>
 
                                     <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
                                         @for ($monthNum = 1; $monthNum <= 12; $monthNum++)
-                                            <li data-month="{{ $monthNum }}"
-                                                class="dropdown-item month-item fs-14">
+                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14">
                                                 <div class="dropdown-item fs-14">
-                                                    {{ date('F', mktime(0, 0, 0, $monthNum, 1)) }}</div>
+                                                    {{ date('F', mktime(0, 0, 0, $monthNum, 1)) }}
+                                                </div>
                                             </li>
                                         @endfor
-
                                     </ul>
                                 </div>
 
-
+                                <div class="box-view-control white-space-nowrap">
+                                    <span class="material-symbols-outlined calendar-prev-month">chevron_left</span>
+                                    <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
+                                </div>
                             </div>
-                            <div class="box-view-control white-space-nowrap">
 
-                                <span class="material-symbols-outlined calendar-prev-month">chevron_left</span>
-                                <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
+                            <div class="d-flex gap-5 total-status-task mt-2">
+                                <small class="selected-employee-progress">Progress :</small>
+                                <small class="selected-employee-late">Late :</small>
+                                <small class="selected-employee-finish">Finish :</small>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="box-table-calendar">
-
                     <div class="calendar-placeholder text-center py-5" style="color: #797E91;">
-                        <span class="material-symbols-outlined"
-                            style="font-size: 48px; opacity: 0.3;">person_search</span>
+                        <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.3;">person_search</span>
                         <p class="mt-2" style="font-size: 14px;">Select an employee to view their tasks</p>
                     </div>
 
@@ -141,20 +146,15 @@
                         </thead>
                         <tbody>
                             @for ($i = 0; $i < 7; $i++)
-
                                 <tr>
                                     @for ($j = 0; $j < 7; $j++)
-                                        <td class="text-center">
-                                        </td>
+                                        <td class="text-center"></td>
                                     @endfor
                                 </tr>
-
                             @endfor
                         </tbody>
                     </table>
-
                 </div>
-
             </div>
         </div>
     </div>

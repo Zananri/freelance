@@ -87,12 +87,19 @@ $(document).on('click', '.employee-item', function () {
     const employeeName = $(this).find('.employee-name').text();
     const employeePhoto = $(this).data('photo');
     const employeeTask = $(this).data('task');
+    const progressTask = $(this).data('progress');
+    const lateTask = $(this).data('late');
+    const finishTask = $(this).data('finish');
 
     $('.selected-employee-photo').attr('src', employeePhoto);
     $('.selected-employee-name').text(employeeName);
     $('.selected-employee-task').text(employeeTask + " total tasks");
+    $('.selected-employee-progress').text(progressTask + " total tasks");
+    $('.selected-employee-late').text(lateTask + " total tasks");
+    $('.selected-employee-finish').text(finishTask + " total tasks");
 
     $('.selected-employee-info').show();
+    $('.total-status-task').show();
 
     $('.calendar-placeholder').hide();
     $('.table-calendar').show();
@@ -123,14 +130,17 @@ async function loadEmployeeTasks(employeeId, year, month) {
         if (response.success) {
             return {
                 tasks: response.data,
-                total: response.total_tasks
+                total: response.total_tasks,
+                total_in_progress: response.total_in_progress,
+                total_late: response.total_late,
+                total_finished: response.total_finished
             };
         }
         return { tasks: [], total: 0 };
 
     } catch (error) {
         console.error("Error loading employee tasks:", error);
-        return { tasks: [], total: 0 };
+        return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0};
     }
 }
 
@@ -254,9 +264,15 @@ async function renderEventCalendar(year, month) {
 
             const tasks = result.tasks;
             const total = result.total;
+            const totalInProgress = result.total_in_progress;
+            const totalLate = result.total_late;
+            const totalFinished = result.total_finished;
 
             // Update panel
             $('.selected-employee-task').text(total + " total tasks");
+            $('.total-employee-progress').text(totalInProgress);
+            $('.total-employee-late').text(totalLate);
+            $('.total-employee-finished').text(totalFinished);
 
             $('.box-event').empty();
             tasks.forEach(task => renderTaskBar(task));
@@ -853,9 +869,15 @@ $(document).ready(function () {
         const name = $this.find('.employee-info > div').first().text().trim();
         const photo = $this.data('employee-photo') || '';
         const totalTask = $this.data('total-task') ?? 0;
+        const totalProgress = $this.data('total-progress') ?? 0;
+        const totalLate = $this.data('total-late') ?? 0;
+        const totalFinish = $this.data('total-finish') ?? 0;
 
         $('.selected-employee-name').text(name);
         $('.selected-employee-task').text('Total task: ' + totalTask);
+        $('.selected-employee-progress').text('Total task: ' + totalProgress);
+        $('.selected-employee-late').text('Total task: ' + totalLate);
+        $('.selected-employee-finish').text('Total task: ' + totalFinish);
 
         if (photo) {
             $('.selected-employee-photo').attr('src', photo).removeClass('d-none');
@@ -864,6 +886,7 @@ $(document).ready(function () {
         }
 
         $('.selected-employee-info').removeClass('d-none');
+        $('.total-status-task').removeClass('d-none');
     });
 });
 
