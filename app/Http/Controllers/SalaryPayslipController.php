@@ -469,6 +469,8 @@ class SalaryPayslipController extends Controller
             $salaryData['prorate_meal_allowance'] = $request->meal_allowance;
             $salaryData['prorate_transportation_allowance'] = $request->transportation_allowance;
            
+            $salaryData['note'] = $request->note;
+
             $salaryData['status'] = 'ACTIVE';
 
             $salaryData['bank_name'] = $employeeSalary->bank_name;

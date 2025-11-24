@@ -404,10 +404,6 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             $('#modalSalaryEdit [name="internet_phone_allowance"]').val(employeeSalary.internet_phone_allowance);
 
             
-            $('#modalSalaryEdit [name="bonus"]').val(bonus);
-            $('#modalSalaryEdit [name="overtime"]').val(overtime);
-            $('#modalSalaryEdit [name="thr"]').val(thr);
-            
             
             absent = employeeAttendanceAbsent;
             
@@ -444,17 +440,22 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
 
                 // $('#modalSalaryEdit [name="transportation_allowance"]').val(employeePayslip.prorate_transportation_allowance);
                 // $('#modalSalaryEdit [name="internet_phone_allowance"]').val(employeePayslip.prorate_internet_phone_allowance);
+                
+                $('#modalSalaryEdit [name="note"]').val(employeePayslip.note);
 
                 
-                // $('#modalSalaryEdit [name="bonus"]').val(employeePayslip.bonus);
-                // $('#modalSalaryEdit [name="overtime"]').val(employeePayslip.overtime);
-                // $('#modalSalaryEdit [name="thr"]').val(employeePayslip.thr);
+                bonus = employeePayslip.bonus;
+                overtime = employeePayslip.overtime;
+                thr = employeePayslip.thr;
 
                 // thp = employeePayslip.take_home_pay;
             }
 
-            thp = thp - attendanceNotComplete * 50000;
+            $('#modalSalaryEdit [name="bonus"]').val(bonus);
+            $('#modalSalaryEdit [name="overtime"]').val(overtime);
+            $('#modalSalaryEdit [name="thr"]').val(thr);
 
+            thp = thp - attendanceNotComplete * 50000;
 
 
 

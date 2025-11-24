@@ -554,12 +554,22 @@
                                         </div>
                                     </div>
 
-                                    <div class="row">
+                                    <div class="row mb-3">
                                         <div class="col-6">
                                             <label for="thr" class="fs-14 text-secondary fw-normal">
                                                 THR
                                             </label>
                                             <input type="number" class="form-control border-0 fs-14" name="thr" id="thr" value="0">
+                                        </div>
+                                        
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <label for="note" class="fs-14 text-secondary fw-normal">
+                                                Note
+                                            </label>
+                                            <textarea name="note" id="note" cols="3" rows="3" class="form-control border-0 fs-14"></textarea>
                                         </div>
                                         
                                     </div>

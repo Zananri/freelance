@@ -237,7 +237,7 @@
                         $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->meal_allowance + $employeePayslip->transportation_allowance + $employeePayslip->internet_phone_allowance + $employeePayslip->positional_allowance;
                         $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->bonus + $employeePayslip->thr + $employeePayslip->overtime;
                         $totalPendapatan2excBonusOvertime = $totalPendapatan1 - ($employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance);
-                        
+                        $totalPengurangan = ($employeeAttendanceNotComplete[0] ?? 0)*50000;
                     @endphp
 
                     <tr style="font-weight: bold;">
@@ -288,7 +288,7 @@
                     
                     <tr style="font-weight: bold;">
                         <td colspan="2">Total Pengurangan</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
+                        <td style="text-align: right">{{number_format($totalPengurangan, 0, '', '.')}}</td>
                     </tr>
 
                     <tr style="background-color: #ffffff; border: 0px #fff;">
@@ -335,8 +335,13 @@
                         </td>
                     </tr>
                     
-                    <tr style="font-weight: bold; border: 0px; border-left: 0px; background-color: #ffffff">
-                        <td colspan="3" style="border: 0px; border-left: 0px">Note : </td>
+                    <tr style=" border: 0px; border-left: 0px; background-color: #ffffff">
+                        <td colspan="3" style="border: 0px; border-left: 0px">
+                            <span style="font-weight: bold;">
+                                Note :
+                            </span>
+                            {{ $employeePayslip->note }}
+                        </td>
                     </tr>
                     <tr style="font-weight: bold; border-right: 0px; border-left: 0px; background-color: #ffffff">
                         <td colspan="3" style="border-right: 0px; border-left: 0px">&nbsp; </td>
