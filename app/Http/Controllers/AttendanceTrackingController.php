@@ -574,15 +574,14 @@ class AttendanceTrackingController extends Controller
 
             $statusAttendance = $request->attendance_status;
             $timeIn = '00:00:00';
-            $timeOut = '00:00:00';
+            $timeOut = null;
             $timeLate = '00:00:00';
 
             if($employee){
                 $shift = $employee->shift;
 
                 if($shift){
-                    $timeIn = $shift->time_start;
-                    $timeOut = $shift->time_end;
+                                      
 
                     if($request->attendance_time_in){
                         $shiftStartTime = Carbon::parse($shift->time_start);
@@ -610,7 +609,7 @@ class AttendanceTrackingController extends Controller
 
             if($statusAttendance =='ABSENT'){
                 $timeIn = '00:00:00';
-                $timeOut = '00:00:00';
+                $timeOut = '';
             }
 
             $note = $request->attendance_note;

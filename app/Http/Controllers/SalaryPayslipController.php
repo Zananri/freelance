@@ -145,6 +145,7 @@ class SalaryPayslipController extends Controller
             ->groupBy('employee_id')
         ->get();
 
+
         $employeeAttendanceAbsent = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
             ->where('date_attendance', '<=', $lastDayOfMonth)
             ->where('date_attendance', '>=', $firstDayOfMonth)
@@ -152,6 +153,20 @@ class SalaryPayslipController extends Controller
             ->where('employee_id', $employeeId)
             ->groupBy('employee_id')
         ->get();
+
+        $employeeAttendanceNotComplete = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
+            ->where('date_attendance', '<=', $lastDayOfMonth)
+            ->where('date_attendance', '>=', $firstDayOfMonth)
+            ->where('employee_id', $employeeId)
+            ->where(function ($query) {
+                $query->whereNull('time_in')
+                      ->orWhere('time_in', '00:00:00')
+                      ->orWhereNull('time_out')
+                      ->orWhere('time_out', '00:00:00');
+            })
+            ->where('status','<>','ABSENT')
+            ->groupBy('employee_id')
+        ->get()->pluck('total_attendance');
 
         $totalActiveDay = $this->getActiveDay($firstDayOfMonth,$lastDayOfMonth);
 
@@ -178,7 +193,8 @@ class SalaryPayslipController extends Controller
             'employeeSalary'    => $employeeSalary,
             'employeePayslip'   => $employeePayslip,
             'employeeAttendanceAll'     => $employeeAttendanceAll,
-            'employeeAttendanceAbsent'  => $employeeAttendanceAbsent
+            'employeeAttendanceAbsent'  => $employeeAttendanceAbsent,
+            'employeeAttendanceNotComplete'  => $employeeAttendanceNotComplete
         ];
 
         $pdf = PDF::loadView('employee.view_payslip', $data)->setPaper('A4', 'portrait');
@@ -256,6 +272,8 @@ class SalaryPayslipController extends Controller
             ->groupBy('employee_id')
         ->get();
 
+
+
         $totalActiveDay = $this->getActiveDay($firstDayOfMonth,$lastDayOfMonth);
 
         return response()->json([
@@ -316,7 +334,9 @@ class SalaryPayslipController extends Controller
             ->where('status','<>', 'ABSENT')
             ->where('employee_id', $employeeId)
             ->groupBy('employee_id')
-        ->get();
+        ->get()->pluck('total_attendance');
+        
+        $employeeAttendanceAll = $employeeAttendanceAll[0] ?? 0;
 
         $employeeAttendanceAbsent = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
             ->where('date_attendance', '<=', $lastDayOfMonth)
@@ -324,7 +344,9 @@ class SalaryPayslipController extends Controller
             ->where('status','ABSENT')
             ->where('employee_id', $employeeId)
             ->groupBy('employee_id')
-        ->get();
+        ->get()->pluck('total_attendance');
+
+        $employeeAttendanceAbsent = $employeeAttendanceAbsent[0] ?? 0;
 
         $employeeAttendanceNotComplete = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
             ->where('date_attendance', '<=', $lastDayOfMonth)
@@ -338,7 +360,9 @@ class SalaryPayslipController extends Controller
             })
             ->where('status','<>','ABSENT')
             ->groupBy('employee_id')
-        ->get();
+        ->get()->pluck('total_attendance');
+
+        $employeeAttendanceNotComplete = $employeeAttendanceNotComplete[0] ?? 0;
 
         $totalActiveDay = $this->getActiveDay($firstDayOfMonth,$lastDayOfMonth);
 
@@ -395,10 +419,31 @@ class SalaryPayslipController extends Controller
                 throw new \Exception('Employee salary not setup');
             }
 
+            
+        
+            
             $month = $request->month;
             $year = $request->year;
             
             $dateSalary = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+
+            $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
+            $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+            
+            $employeeAttendanceNotComplete = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
+                ->where('date_attendance', '<=', $lastDayOfMonth)
+                ->where('date_attendance', '>=', $firstDayOfMonth)
+                ->where('employee_id', $employee->id)
+                ->where(function ($query) {
+                    $query->whereNull('time_in')
+                        ->orWhere('time_in', '00:00:00')
+                        ->orWhereNull('time_out')
+                        ->orWhere('time_out', '00:00:00');
+                })
+                ->where('status','<>','ABSENT')
+                ->groupBy('employee_id')
+            ->get()->pluck('total_attendance');
+            $employeeAttendanceNotComplete = $employeeAttendanceNotComplete[0] ?? 0;
 
             
             $salaryData['employee_id'] = $employee->id;
@@ -417,7 +462,7 @@ class SalaryPayslipController extends Controller
             $salaryData['bonus'] = $request->bonus;
             $salaryData['overtime'] = $request->overtime;
 
-            $salaryData['take_home_pay'] = $request->basic_salary + $request->positional_allowance + $request->meal_allowance + $request->transportation_allowance + $request->internet_phone_allowance + $request->bonus + $request->overtime + $request->thr;
+            $salaryData['take_home_pay'] = $request->basic_salary - (intVal($employeeAttendanceNotComplete) * 50000)  + $request->positional_allowance + $request->meal_allowance + $request->transportation_allowance + $request->internet_phone_allowance + $request->bonus + $request->overtime + $request->thr;
             $salaryData['prorate_basic_salary'] = $request->basic_salary;
             $salaryData['prorate_positional_allowance'] = $request->positional_allowance;
             $salaryData['prorate_internet_phone_allowance'] = $request->internet_phone_allowance;

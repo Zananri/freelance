@@ -362,6 +362,7 @@
                             <input type="hidden" name="employee_id" value="">
                             <input type="hidden" name="year" value="">
                             <input type="hidden" name="month" value="">
+                            <input type="hidden" name="attendance_not_complete" value="">
                             
 
                             <div class="p-4 pb-0">

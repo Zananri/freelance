@@ -408,17 +408,13 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             $('#modalSalaryEdit [name="overtime"]').val(overtime);
             $('#modalSalaryEdit [name="thr"]').val(thr);
             
-            debugger;
-            if(employeeAttendanceAbsent.length > 0){
-                absent = employeeAttendanceAbsent[0].total_attendance;
-            }
             
-            if(employeeAttendanceNotComplete.length > 0){
-                attendanceNotComplete = employeeAttendanceNotComplete[0].total_attendance;
-            }
-
+            absent = employeeAttendanceAbsent;
+            
+            attendanceNotComplete = employeeAttendanceNotComplete;
             
             
+            $('#modalSalaryEdit [name="attendance_not_complete"]').val(attendanceNotComplete);
             
             $('#modalSalaryEdit .jumlah_absensi_tidak_lengkap').text(attendanceNotComplete+' hari');
             
@@ -437,24 +433,24 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
 
             if(employeePayslip != null){
                 
-                $('#modalSalaryEdit [name="active_day"]').val(employeePayslip.total_day_active);
-                $('#modalSalaryEdit [name="working_day"]').val(employeePayslip.total_working_day);
-                $('#modalSalaryEdit [name="meal_day"]').val(employeePayslip.total_working_day_meal);
+                // $('#modalSalaryEdit [name="active_day"]').val(employeePayslip.total_day_active);
+                // $('#modalSalaryEdit [name="working_day"]').val(employeePayslip.total_working_day);
+                // $('#modalSalaryEdit [name="meal_day"]').val(employeePayslip.total_working_day_meal);
                 
-                $('#modalSalaryEdit [name="basic_salary"').val(employeePayslip.prorate_basic_salary);
+                // $('#modalSalaryEdit [name="basic_salary"').val(employeePayslip.prorate_basic_salary);
             
-                $('#modalSalaryEdit [name="positional_allowance"').val(employeePayslip.prorate_positional_allowance);
-                $('#modalSalaryEdit [name="meal_allowance"]').val(employeePayslip.prorate_meal_allowance);
+                // $('#modalSalaryEdit [name="positional_allowance"').val(employeePayslip.prorate_positional_allowance);
+                // $('#modalSalaryEdit [name="meal_allowance"]').val(employeePayslip.prorate_meal_allowance);
 
-                $('#modalSalaryEdit [name="transportation_allowance"]').val(employeePayslip.prorate_transportation_allowance);
-                $('#modalSalaryEdit [name="internet_phone_allowance"]').val(employeePayslip.prorate_internet_phone_allowance);
+                // $('#modalSalaryEdit [name="transportation_allowance"]').val(employeePayslip.prorate_transportation_allowance);
+                // $('#modalSalaryEdit [name="internet_phone_allowance"]').val(employeePayslip.prorate_internet_phone_allowance);
 
                 
-                $('#modalSalaryEdit [name="bonus"]').val(employeePayslip.bonus);
-                $('#modalSalaryEdit [name="overtime"]').val(employeePayslip.overtime);
-                $('#modalSalaryEdit [name="thr"]').val(employeePayslip.thr);
+                // $('#modalSalaryEdit [name="bonus"]').val(employeePayslip.bonus);
+                // $('#modalSalaryEdit [name="overtime"]').val(employeePayslip.overtime);
+                // $('#modalSalaryEdit [name="thr"]').val(employeePayslip.thr);
 
-                thp = employeePayslip.take_home_pay;
+                // thp = employeePayslip.take_home_pay;
             }
 
             thp = thp - attendanceNotComplete * 50000;
@@ -466,6 +462,7 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             $('#modalSalaryEdit .employee-division').text(employeeDetail.division.name_division);
             $('#modalSalaryEdit .employee-salary-thp').text('Rp '+parseInt(thp).toLocaleString('id-ID'));
             
+            countSalary();
             
             modalSalaryEdit.show();
             
@@ -503,6 +500,7 @@ function countSalary(){
     let mealAllowance = 0;
     let transportationAllowance = 0;
     let internetPhoneAllowance = 0;
+    let attendanceNotComplete = parseInt($('#modalSalaryEdit [name="attendance_not_complete"]').val());;
 
     if(employeeSalary != null){
 
@@ -523,7 +521,7 @@ function countSalary(){
 
     }
 
-    thp = parseInt(basicSalary) + parseInt(positionalAllowance) + parseInt(mealAllowance) + parseInt(transportationAllowance) + parseInt(internetPhoneAllowance) + parseInt(bonus) + parseInt(overtime) + parseInt(thr);
+    thp = parseInt(basicSalary) - parseInt(attendanceNotComplete*50000) + parseInt(positionalAllowance) + parseInt(mealAllowance) + parseInt(transportationAllowance) + parseInt(internetPhoneAllowance) + parseInt(bonus) + parseInt(overtime) + parseInt(thr);
 
     if(employeeAttendanceNotComplete.length > 0){
         thp = thp - (employeeAttendanceNotComplete[0].total_attendance * 50000);

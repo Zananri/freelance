@@ -282,8 +282,8 @@
 
                     <tr>
                         <td>Absensi Tidak Lengkap</td>
-                        <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
+                        <td style="text-align: right">{{ $employeeAttendanceNotComplete[0] ?? 0 }}</td>
+                        <td style="text-align: right">{{number_format((($employeeAttendanceNotComplete[0] ?? 0)*50000), 0, '', '.')}}</td>
                     </tr>
                     
                     <tr style="font-weight: bold;">
@@ -360,7 +360,7 @@
                     <tr>
                         <td>Gaji yang dibayarkan 
                             <span style="float: right; font-weight: bold; color:#ec2525">
-                                {{number_format($totalPendapatan2, 0, '', '.')}}
+                                {{number_format($employeePayslip->take_home_pay, 0, '', '.')}}
                             </span>
                         </td>
                         <td style="border:0px"></td>
