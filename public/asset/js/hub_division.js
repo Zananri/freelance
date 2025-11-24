@@ -364,8 +364,8 @@ function renderTaskListByDate(tasks) {
 
         const taskHtml = `
             <div class="task-item-date mb-3 p-3 rounded-3" data-task-id="${task.id}">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="flex-grow-1 mb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
                         <h6 class="mb-0" style="font-size: 12px; font-weight: 500; color: #3B3D42;">
                             ${task.title || '-'}
                         </h6>
@@ -374,7 +374,7 @@ function renderTaskListByDate(tasks) {
                             ${task.status || 'New'}
                         </span>
 
-                        <p class="text-muted" style="font-size: 12px; font-weight: 400; color: #4C5060; line-height: 1.5; margin-bottom: 0;">
+                        <p class="text-muted" style="font-size: 12px; font-weight: 400; color: #4C5060; line-height: 1.5;">
                             ${task.description ? (task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description) : ''}
                         </p>
                     </div>
