@@ -248,7 +248,7 @@
 }
 
 .table-calendar thead th {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
     color: #747d87;
     text-align: center;
@@ -288,7 +288,7 @@
 
 .table-calendar tbody td .day {
     text-align: center;
-    font-size: 14px;
+    font-size: 12px;
     color: #46515f;
     font-weight: 600;
 }
