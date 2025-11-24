@@ -294,7 +294,8 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
             data: {
                 'employee_id': employeeId,
                 'date': date
-            }
+            },
+            dataType: 'json'
         });
 
         if (response.success) {
@@ -325,11 +326,22 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
 
             // Show modal
             $("#taskModalDate").modal("show");
+        } else {
+            console.error("Response not successful:", response);
+            showFloatingAlert(response.message || "Failed to load tasks", "danger", 3000);
         }
 
     } catch (error) {
         console.error("Error loading tasks for date:", error);
-        showFloatingAlert("Failed to load tasks", "danger", 3000);
+        
+        let errorMsg = "Failed to load tasks";
+        if (error.responseJSON && error.responseJSON.message) {
+            errorMsg = error.responseJSON.message;
+        } else if (error.statusText) {
+            errorMsg = "Failed to load tasks: " + error.statusText;
+        }
+        
+        showFloatingAlert(errorMsg, "danger", 3000);
     }
 }
 
@@ -800,11 +812,11 @@ function handleTaskDetail(taskId) {
                 <div class="d-flex justify-content-between align-items-start mt-3 gap-3">
                     <div class="d-flex justify-content-start" style="font-size:10px;">
                         <span class="text-muted">Department: &nbsp;</span>
-                        <span>${t.project?.department || "-"}</span>
+                        <span>${t.project?.department?.name_department || t.project?.department_name || t.project?.department || "-"}</span>
                     </div>
                     <div class="d-flex justify-content-end mb-2" style="font-size:10px;">
                         <span class="text-muted">Division: &nbsp;</span>
-                        <span>${t.project?.division || "-"}</span>
+                        <span>${t.project?.division?.name_division || t.project?.division_name || t.project?.division || "-"}</span>
                     </div>
                 </div>
                 ${statusLogs}
