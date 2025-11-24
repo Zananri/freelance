@@ -699,6 +699,24 @@
     color: #4b5563;
 }
 
+#taskListByDate {
+    max-height: calc(80vh - 200px);
+    overflow-y: auto;
+}
+
+#taskListByDate::-webkit-scrollbar {
+    width: 4px;
+}
+
+#taskListByDate::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+#taskListByDate::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
 #taskListByDate:empty::after {
     content: "No tasks for this date";
     display: flex;
