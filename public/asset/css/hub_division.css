@@ -401,22 +401,22 @@
     border: none;
 }
 
-.modal-body-custom {
-    max-height: calc(80vh - 120px);
+.scrollable-content {
+    max-height: calc(80vh - 200px);
     overflow-y: auto;
     overflow-x: hidden;
     padding: 8px;
 }
 
-.modal-body-custom::-webkit-scrollbar {
+.scrollable-content::-webkit-scrollbar {
     width: 4px;
 }
 
-.modal-body-custom::-webkit-scrollbar-track {
+.scrollable-content::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.modal-body-custom::-webkit-scrollbar-thumb {
+.scrollable-content::-webkit-scrollbar-thumb {
     background-color: #a0a0a0;
     border-radius: 4px;
 }
@@ -726,12 +726,4 @@
     .task-item-date p {
         font-size: 11px;
     }
-}
-
-.modal-scrollable-content {
-    position: sticky;
-    top: -10px;
-    background: rgb(240, 241, 248);
-    z-index: 10;
-    padding: 8px 0;
 }

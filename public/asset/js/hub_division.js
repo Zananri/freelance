@@ -140,7 +140,7 @@ async function loadEmployeeTasks(employeeId, year, month) {
 
     } catch (error) {
         console.error("Error loading employee tasks:", error);
-        return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0};
+        return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0 };
     }
 }
 
@@ -315,7 +315,7 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
         });
 
         if (response.success) {
-            
+
             const tasks = response.data || [];
             const totalTasks = tasks.length;
 
@@ -350,14 +350,14 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
 
     } catch (error) {
         console.error("Error loading tasks for date:", error);
-        
+
         let errorMsg = "Failed to load tasks";
         if (error.responseJSON && error.responseJSON.message) {
             errorMsg = error.responseJSON.message;
         } else if (error.statusText) {
             errorMsg = "Failed to load tasks: " + error.statusText;
         }
-        
+
         showFloatingAlert(errorMsg, "danger", 3000);
     }
 }
@@ -774,7 +774,6 @@ function handleTaskDetail(taskId) {
 
         const html = `
             <div class="custom-card rounded-4 p-3 border-0" data-task-id="${t.id}">
-                <div class="modal-scrollable-content">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div class="d-flex align-items-center task-card-header">
                             ${avatar}
@@ -809,33 +808,34 @@ function handleTaskDetail(taskId) {
                     </div>
                     
                     <div style="border-bottom: solid 3px #DEDFE7;"></div>
-                </div>
-
-                <div class="collapse" id="completeContent">
-                    ${completeContentHtml}
-                </div>
-
-                ${collab}
-
-                <div class="mb-5">
-                    <h5 class="ref-title" style="font-size: 12px; font-weight: 400; color: #2A3542;">Link & File Reference</h5>
-                    ${refFilesHtml}
-                    ${refUrlsHtml}
-                </div>
-
-                <div style="border-bottom: solid 3px #DEDFE7;"></div>
-
-                <div class="d-flex justify-content-between align-items-start mt-3 gap-3">
-                    <div class="d-flex justify-content-start" style="font-size:10px;">
-                        <span class="text-muted">Department: &nbsp;</span>
-                        <span>${t.project?.department?.name_department || t.project?.department_name || t.project?.department || "-"}</span>
+                
+                <div class="scrollable-content">
+                    <div class="collapse" id="completeContent">
+                        ${completeContentHtml}
                     </div>
-                    <div class="d-flex justify-content-end mb-2" style="font-size:10px;">
-                        <span class="text-muted">Division: &nbsp;</span>
-                        <span>${t.project?.division?.name_division || t.project?.division_name || t.project?.division || "-"}</span>
+
+                    ${collab}
+
+                    <div class="mb-5">
+                        <h5 class="ref-title" style="font-size: 12px; font-weight: 400; color: #2A3542;">Link & File Reference</h5>
+                        ${refFilesHtml}
+                        ${refUrlsHtml}
                     </div>
+
+                    <div style="border-bottom: solid 3px #DEDFE7;"></div>
+
+                    <div class="d-flex justify-content-between align-items-start mt-3 gap-3">
+                        <div class="d-flex justify-content-start" style="font-size:10px;">
+                            <span class="text-muted">Department: &nbsp;</span>
+                            <span>${t.project?.department?.name_department || t.project?.department_name || t.project?.department || "-"}</span>
+                        </div>
+                        <div class="d-flex justify-content-end mb-2" style="font-size:10px;">
+                            <span class="text-muted">Division: &nbsp;</span>
+                            <span>${t.project?.division?.name_division || t.project?.division_name || t.project?.division || "-"}</span>
+                        </div>
+                    </div>
+                    ${statusLogs}
                 </div>
-                ${statusLogs}
             </div>
         `;
 
