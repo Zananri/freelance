@@ -270,9 +270,9 @@ async function renderEventCalendar(year, month) {
 
             // Update panel
             $('.selected-employee-task').text(total + " total tasks");
-            $('.total-employee-progress').text(totalInProgress);
-            $('.total-employee-late').text(totalLate);
-            $('.total-employee-finished').text(totalFinished);
+            $('.selected-employee-progress').text("In Progress: " + totalInProgress);
+            $('.selected-employee-late').text("Late: " + totalLate);
+            $('.selected-employee-finish').text("Finish: " + totalFinished);
 
             $('.box-event').empty();
             tasks.forEach(task => renderTaskBar(task));
@@ -315,6 +315,7 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
         });
 
         if (response.success) {
+            
             const tasks = response.data || [];
             const totalTasks = tasks.length;
 
@@ -481,7 +482,6 @@ function handleTaskDetail(taskId) {
         const statusColor = getTaskStatusColor(t.status);
         const statusLower = (String(t.status || '').toLowerCase());
         const statusText = t.status ? (String(t.status).charAt(0).toUpperCase() + String(t.status).slice(1)) : '';
-        console.log(t)
 
         const avatar = img
             ? `<img src="${img}" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.src='${appUrl}/asset/img/avatar.png'">`
@@ -873,11 +873,15 @@ $(document).ready(function () {
         const totalLate = $this.data('total-late') ?? 0;
         const totalFinish = $this.data('total-finish') ?? 0;
 
+        console.log(totalProgress);
+        console.log(totalLate);
+        console.log(totalFinish);
+
         $('.selected-employee-name').text(name);
         $('.selected-employee-task').text('Total task: ' + totalTask);
-        $('.selected-employee-progress').text('Total task: ' + totalProgress);
-        $('.selected-employee-late').text('Total task: ' + totalLate);
-        $('.selected-employee-finish').text('Total task: ' + totalFinish);
+        $('.selected-employee-progress').text('In Progress: ' + totalProgress);
+        $('.selected-employee-late').text('Late: ' + totalLate);
+        $('.selected-employee-finish').text('Finish: ' + totalFinish);
 
         if (photo) {
             $('.selected-employee-photo').attr('src', photo).removeClass('d-none');

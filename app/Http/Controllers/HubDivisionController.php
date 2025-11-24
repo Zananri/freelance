@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Task;
 use App\Models\TaskAssignment;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class HubDivisionController extends Controller
 {
@@ -158,13 +159,11 @@ class HubDivisionController extends Controller
                 ], 400);
             }
 
-            // Get first and last day of the month
             $firstDay = sprintf('%04d-%02d-01', $year, $month);
             $lastDay = date('Y-m-t', strtotime($firstDay));
 
             \Log::info('Date range', ['firstDay' => $firstDay, 'lastDay' => $lastDay]);
 
-            // Get all tasks assigned to this employee
             $taskAssignments = TaskAssignment::where('employee_id', $employeeId)
                 ->pluck('task_id');
 
@@ -173,7 +172,6 @@ class HubDivisionController extends Controller
             $baseQuery = Task::whereIn('tasks.id', $taskAssignments)
                 ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
 
-            // Get tasks for the specified month
             $tasks = Task::select(
                 'tasks.id',
                 'tasks.title',
@@ -188,24 +186,36 @@ class HubDivisionController extends Controller
                         $q->whereBetween('tasks.start_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
                             ->whereNotNull('tasks.start_date');
                     })
-                        ->orWhere(function ($q) use ($firstDay, $lastDay) {
-                            $q->whereBetween('tasks.due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
-                                ->whereNotNull('tasks.due_date');
-                        });
+                    ->orWhere(function ($q) use ($firstDay, $lastDay) {
+                        $q->whereBetween('tasks.due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
+                            ->whereNotNull('tasks.due_date');
+                    });
                 })
                 ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
                 ->orderBy('tasks.start_date', 'asc')
                 ->get();
 
             $inProgress = (clone $baseQuery)
+                ->where(function ($q) use ($firstDay, $lastDay) {
+                    $q->whereBetween('start_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
+                    ->orWhereBetween('due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59']);
+                })
                 ->whereRaw('LOWER(status) = ?', ['in_progress'])
                 ->count();
 
             $finished = (clone $baseQuery)
+                ->where(function ($q) use ($firstDay, $lastDay) {
+                    $q->whereBetween('start_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
+                    ->orWhereBetween('due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59']);
+                })
                 ->whereRaw('LOWER(status) = ?', ['finished'])
                 ->count();
 
             $late = (clone $baseQuery)
+                ->where(function ($q) use ($firstDay, $lastDay) {
+                    $q->whereBetween('start_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
+                    ->orWhereBetween('due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59']);
+                })
                 ->whereNotIn(DB::raw('LOWER(status)'), ['completed', 'finished'])
                 ->whereNotNull('due_date')
                 ->where('due_date', '<', now())
@@ -277,24 +287,36 @@ class HubDivisionController extends Controller
                         $q->whereBetween('tasks.start_date', [$dateStart, $dateEnd])
                             ->whereNotNull('tasks.start_date');
                     })
-                        ->orWhere(function ($q) use ($dateStart, $dateEnd) {
-                            $q->whereBetween('tasks.due_date', [$dateStart, $dateEnd])
-                                ->whereNotNull('tasks.due_date');
-                        });
+                    ->orWhere(function ($q) use ($dateStart, $dateEnd) {
+                        $q->whereBetween('tasks.due_date', [$dateStart, $dateEnd])
+                            ->whereNotNull('tasks.due_date');
+                    });
                 })
                 ->orderBy('tasks.priority', 'desc')
                 ->orderBy('tasks.start_date', 'asc')
                 ->get();
 
             $inProgress = (clone $baseQuery)
+                ->where(function ($q) use ($dateStart, $dateEnd) {
+                    $q->whereBetween('start_date', [$dateStart, $dateEnd])
+                    ->orWhereBetween('due_date', [$dateStart, $dateEnd]);
+                })
                 ->whereRaw('LOWER(status) = ?', ['in_progress'])
                 ->count();
 
             $finished = (clone $baseQuery)
+                ->where(function ($q) use ($dateStart, $dateEnd) {
+                    $q->whereBetween('start_date', [$dateStart, $dateEnd])
+                    ->orWhereBetween('due_date', [$dateStart, $dateEnd]);
+                })
                 ->whereRaw('LOWER(status) = ?', ['finished'])
                 ->count();
 
             $late = (clone $baseQuery)
+                ->where(function ($q) use ($dateStart, $dateEnd) {
+                    $q->whereBetween('start_date', [$dateStart, $dateEnd])
+                    ->orWhereBetween('due_date', [$dateStart, $dateEnd]);
+                })
                 ->whereNotIn(DB::raw('LOWER(status)'), ['completed', 'finished'])
                 ->whereNotNull('due_date')
                 ->where('due_date', '<', now())
@@ -309,6 +331,12 @@ class HubDivisionController extends Controller
                 'data' => $tasks
             ]);
         } catch (\Exception $e) {
+            \Log::error('Hub Division - Get Tasks Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json([
                 'success' => false,

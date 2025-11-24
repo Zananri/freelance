@@ -54,9 +54,9 @@
                                 $photoUrl = asset($emp->user_photo);
                             }
                             $taskCount = $emp->tasks_count ?? 0;
-                            $taskProgress = $emp->tasks_in_progress_count ?? 0;
-                            $taskLate = $emp->tasks_late_count ?? 0;
-                            $taskFinish = $emp->tasks_finished_count ?? 0;
+                            $taskProgress = $emp->total_in_progress ?? 0;
+                            $taskLate = $emp->total_late ?? 0;
+                            $taskFinish = $emp->total_finished ?? 0;
                         @endphp
 
                         <div class="employee-item" data-employee-division="{{ $emp->division_id }}"
