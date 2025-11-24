@@ -585,13 +585,13 @@
     transform: scale(1.15);
 }
 
-.task-card-header {
+/* .task-card-header {
     position: sticky;
     top: -10px;
     background: rgb(240, 241, 248);
     z-index: 10;
     padding: 8px 0;
-}
+} */
 
 #taskModalDate .modal-dialog {
     max-width: 600px;
@@ -714,4 +714,12 @@
     .task-item-date p {
         font-size: 11px;
     }
+}
+
+.modal-scrollable-content {
+    position: sticky;
+    top: -10px;
+    background: rgb(240, 241, 248);
+    z-index: 10;
+    padding: 8px 0;
 }

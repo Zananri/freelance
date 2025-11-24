@@ -746,40 +746,42 @@ function handleTaskDetail(taskId) {
 
         const html = `
             <div class="custom-card rounded-4 p-3 border-0" data-task-id="${t.id}">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="d-flex align-items-center task-card-header">
-                        ${avatar}
-                        <div>
-                            ${t.project?.id ? `<small class="text-muted" style="font-size:11px;">${t.project.title}</small>` : ""}
-                            <h5 class="mb-0" style="font-size: 14px;">${t.title || "-"}</h5>
-                        </div>
-                    </div>
-                    <div class="mt-2 mx-2 d-flex align-items-center" tabindex="0" style="gap:8px;">
-                        <span class="status-text" style="font-size:12px;color:${statusColor};font-weight:600;">${escapeHtml(statusText)}</span>
-                    </div>
-                </div>
-                <div class="mt-3" style="font-size: 12px;">${t.description || ""}</div>
-                <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                    <div class="d-flex justify-content-start gap-3">
-                        <span style="font-size: 8px;">Priority: <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${t.priority}</span></span>
-                        <span style="font-size: 8px;">Deadline: ${formatDateENMedium(t.due_date)}</span>
-                    </div>
-                    <div class="d-flex justify-content-end align-items-start gap-3">
-                        ${(statusLower.includes('finish') || statusLower.includes('complete')) ? `
-                            <div class="d-flex align-items-center">
-                                <button class="btn btn-sm p-0 m-0 border-0" data-bs-target="#completeContent" data-bs-toggle="collapse">
-                                    <span class="material-symbols-outlined task-icon" style="font-size: 18px;">playlist_add_check</span>
-                                </button>
+                <div class="modal-scrollable-content">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex align-items-center task-card-header">
+                            ${avatar}
+                            <div>
+                                ${t.project?.id ? `<small class="text-muted" style="font-size:11px;">${t.project.title}</small>` : ""}
+                                <h5 class="mb-0" style="font-size: 14px;">${t.title || "-"}</h5>
                             </div>
-                        ` : ''}
-
-                        <div class="d-flex align-items-center position-relative">
-                            <span class="material-symbols-outlined task-icon" style="font-size: 18px;" data-task-id="${t.id}">mode_comment</span>
+                        </div>
+                        <div class="mt-2 mx-2 d-flex align-items-center" tabindex="0" style="gap:8px;">
+                            <span class="status-text" style="font-size:12px;color:${statusColor};font-weight:600;">${escapeHtml(statusText)}</span>
                         </div>
                     </div>
+                    <div class="mt-3" style="font-size: 12px;">${t.description || ""}</div>
+                    <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                        <div class="d-flex justify-content-start gap-3">
+                            <span style="font-size: 8px;">Priority: <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${t.priority}</span></span>
+                            <span style="font-size: 8px;">Deadline: ${formatDateENMedium(t.due_date)}</span>
+                        </div>
+                        <div class="d-flex justify-content-end align-items-start gap-3">
+                            ${(statusLower.includes('finish') || statusLower.includes('complete')) ? `
+                                <div class="d-flex align-items-center">
+                                    <button class="btn btn-sm p-0 m-0 border-0" data-bs-target="#completeContent" data-bs-toggle="collapse">
+                                        <span class="material-symbols-outlined task-icon" style="font-size: 18px;">playlist_add_check</span>
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            <div class="d-flex align-items-center position-relative">
+                                <span class="material-symbols-outlined task-icon" style="font-size: 18px;" data-task-id="${t.id}">mode_comment</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="border-bottom: solid 3px #DEDFE7;"></div>
                 </div>
-               
-                <div style="border-bottom: solid 3px #DEDFE7;"></div>
 
                 <div class="collapse" id="completeContent">
                     ${completeContentHtml}
