@@ -17,7 +17,7 @@
         
         {{-- <iframe class="iframe-box" src="https://lookerstudio.google.com/embed/reporting/77d57bb2-6113-49f4-acc1-610dbb65d7e3/page/p_tqpt5wgiwd" frameborder="0" style="border:0" allowfullscreen sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe> --}}
         
-        <iframe class="iframe-box" width="600" height="443" src="https://lookerstudio.google.com/embed/reporting/77d57bb2-6113-49f4-acc1-610dbb65d7e3/page/p_tqpt5wgiwd" frameborder="0" style="border:0" allowfullscreen sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+        <iframe class="iframe-box" width="1200" height="1000" src="https://lookerstudio.google.com/embed/reporting/77d57bb2-6113-49f4-acc1-610dbb65d7e3/page/p_tqpt5wgiwd" frameborder="0" style="border:0" allowfullscreen sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
         
     </div>
 
