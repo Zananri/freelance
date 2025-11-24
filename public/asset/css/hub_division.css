@@ -625,7 +625,7 @@
     height: 48px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #e5e7eb;
+    border: none;
 }
 
 #taskModalDate .selected-employee-name {
