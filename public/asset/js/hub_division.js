@@ -775,27 +775,29 @@ function handleTaskDetail(taskId) {
         let statusLogs = '';
         if (statusChanges.length) {
             statusLogs = `
-                <div class="status-timeline position-relative mt-3 mb-3" style="padding-left:110px;">
-                    <div style="position:absolute; left:93px; top:0; bottom:0; width:3px; background:#FFFFFF;"></div>
-                    ${statusChanges.map((s, index) => {
-                const dateLabel = formatDateENMedium(s.updated_at || s.changed_at || '');
-                const label = escapeHtml(s.label || '');
-                const emp = escapeHtml(s.employee_name || '');
-                return `
-                            <div class="status-row d-flex align-items-start mb-3" style="position:relative; padding-left:20px;">
-                                <div class="date-label" style="position:absolute; left:-110px; width:80px; text-align:right; font-size:10px; color:#6B7280; font-weight:400; line-height:1.5; padding-right:15px; top:2px;">${dateLabel}</div>
+                <div class="status-timeline mt-3 mb-3">
+                    ${statusChanges.map((s) => {
+                        const dateLabel = formatDateENMedium(s.updated_at || s.changed_at || '');
+                        const label = escapeHtml(s.label || '');
+                        const emp = escapeHtml(s.employee_name || '');
 
-                                <div style="position:relative; width:100%;">
-                                    <div style="position:absolute; left:-40px; top:13px; width:9px; height:9px; background:#fff; border-radius:50%; z-index:2;"></div>
+                        return `
+                            <div class="timeline-row">
+                                <div class="timeline-date">${dateLabel}</div>
 
-                                    <div class="status-content p-2 px-3" style="background: #F9FAFB; font-size:12px; border-radius: 8px; min-height:28px; display:inline-flex; align-items:center;">
-                                        <span style="font-size:12px; color:#6B7280;">${label}</span>
-                                        <span style="font-weight:500; color:#374151;">&nbsp;${emp}</span>
+                                <div class="timeline-line">
+                                    <div class="timeline-dot"></div>
+                                </div>
+
+                                <div class="timeline-content">
+                                    <div class="status-content">
+                                        <span class="status-label">${label}</span>
+                                        <span class="status-emp">${emp}</span>
                                     </div>
                                 </div>
                             </div>
                         `;
-            }).join('')}
+                    }).join('')}
                 </div>
             `;
         }
