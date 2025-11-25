@@ -259,7 +259,7 @@
                         <div class="selected-employee-info d-flex align-items-center gap-3 py-3 px-4 rounded-3">
                             <img src="" class="selected-employee-photo rounded-circle d-none">
                             <div>
-                                <div class="selected-employee-name fw-semibold mb-0"
+                                <div class="selected-employee-name mb-0"
                                     style="font-size: 14px; color: #1F2937;"></div>
                                 <small class="selected-employee-task text-muted" style="font-size: 12px;"></small>
                             </div>
