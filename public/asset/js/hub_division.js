@@ -194,29 +194,55 @@ async function loadEmployeeTasks(employeeId, year, month) {
 // Render task bar on calendar
 function renderTaskBar(task) {
     const startDate = task.start_date;
+    const dueDate = task.due_date;
+    
     if (!startDate) return;
-
-    const dateStr = startDate.split(' ')[0]; // Get date part only
-    const $dayCell = $(`.calendar-day[data-calendar-date="${dateStr}"]`);
-
-    if ($dayCell.length > 0) {
-        const $boxEvent = $dayCell.find('.box-event');
-        const taskIsLate = isTaskLate(task);
+    
+    const startDateStr = startDate.split(' ')[0];
+    const start = new Date(startDateStr);
+    
+    let end = start;
+    if (dueDate) {
+        const dueDateStr = dueDate.split(' ')[0];
+        end = new Date(dueDateStr);
+    }
+    
+    if (start > end) {
+        end = start;
+    }
+    
+    const taskIsLate = isTaskLate(task);
+    
+    const backgroundColor = taskIsLate ? '#FECACA' : getTaskStatusColor(task.status);
+    const textColor = taskIsLate ? '#DC2626' : '#333333';
+    
+    // Loop through all dates from start to end
+    let currentDate = new Date(start);
+    while (currentDate <= end) {
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         
-        // Jika late, gunakan warna late, jika tidak gunakan warna status
-        const backgroundColor = taskIsLate ? '#FECACA' : getTaskStatusColor(task.status);
-        const textColor = taskIsLate ? '#DC2626' : '#333333';
-
-        const taskHtml = `
-            <div class="text-event" 
-                 style="background-color: ${backgroundColor}; color: ${textColor};" 
-                 data-task-id="${task.id}"
-                 title="${task.title}">
-                ${task.title}
-            </div>
-        `;
-
-        $boxEvent.append(taskHtml);
+        const $dayCell = $(`.calendar-day[data-calendar-date="${dateStr}"]`);
+        
+        if ($dayCell.length > 0) {
+            const $boxEvent = $dayCell.find('.box-event');
+            
+            const taskHtml = `
+                <div class="text-event" 
+                     style="background-color: ${backgroundColor}; color: ${textColor};" 
+                     data-task-id="${task.id}"
+                     title="${task.title}">
+                    ${task.title}
+                </div>
+            `;
+            
+            $boxEvent.append(taskHtml);
+        }
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
     }
 }
 
