@@ -911,15 +911,26 @@ function handleTaskDetail(taskId) {
     });
 }
 
-$(document).on('click', '.text-event', function (e) {
+let openedFromTaskItemDate = false;
+
+$(document).on('click', '.text-event, .task-item-date', function (e) {
     e.stopPropagation();
     e.preventDefault();
 
     const taskId = $(this).data('task-id');
     if (!taskId) return;
 
+    openedFromTaskItemDate = $(this).hasClass('task-item-date');
+
     try { $('#taskModalDate').modal('hide'); } catch (_) { }
     handleTaskDetail(taskId);
+});
+
+$('#taskDetailModal').on('hidden.bs.modal', function () {
+    if (openedFromTaskItemDate) {
+        openedFromTaskItemDate = false;
+        $('#taskModalDate').modal('show');
+    }
 });
 
 $(document).ready(function () {
