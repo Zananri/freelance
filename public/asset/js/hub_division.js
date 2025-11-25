@@ -364,21 +364,20 @@ async function renderEventCalendar(year, month) {
 
 $(document).on("click", ".calendar-day", function () {
     const clickedDate = $(this).data("calendar-date");
-    
+    if (!clickedDate || !selectedEmployeeId) return;
+
+    $(".calendar-day").removeClass("selected-date");
     $(this).addClass("selected-date");
 
-    if (!clickedDate || !selectedEmployeeId) {
-        return;
-    }
+    const dateObj = new Date(clickedDate);
+    const formattedDate = dateObj.toISOString().split("T")[0];
 
-    // Get employee info
-    const selectedEmployeeItem = $(`.employee-item[data-employee-id="${selectedEmployeeId}"]`);
-    const employeeName = selectedEmployeeItem.find('.employee-name').text();
-    const employeeJob = selectedEmployeeItem.find('.employee-job').text();
-    const employeePhoto = selectedEmployeeItem.data('employee-photo');
+    const emp = $(`.employee-item[data-employee-id="${selectedEmployeeId}"]`);
+    const employeeName = emp.find('.employee-name').text();
+    const employeeJob = emp.find('.employee-job').text();
+    const employeePhoto = emp.data('employee-photo');
 
-    // Load tasks for this date
-    loadTasksForDate(clickedDate, selectedEmployeeId, employeeName, employeeJob, employeePhoto);
+    loadTasksForDate(formattedDate, selectedEmployeeId, employeeName, employeeJob, employeePhoto);
 });
 
 async function loadTasksForDate(date, employeeId, employeeName, employeeJob, employeePhoto) {
@@ -387,57 +386,48 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
             url: appUrl + "/hub_division/employee-tasks-by-date",
             type: "GET",
             data: {
-                'employee_id': employeeId,
-                'date': date
+                employee_id: employeeId,
+                date: date
             },
-            dataType: 'json'
+            dataType: "json"
         });
 
-        if (response.success) {
-
-            const tasks = response.data || [];
-            const totalTasks = tasks.length;
-
-            // Format date
-            const dateObj = new Date(date);
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const formattedDate = dateObj.toLocaleDateString('en-US', options);
-
-            // Update modal header
-            $(".selected-task-date").text(formattedDate);
-            $(".selected-total-task").text("Total task " + totalTasks);
-
-            // Update employee info in modal
-            $("#taskModalDate .selected-employee-name").text(employeeName);
-            $("#taskModalDate .selected-employee-task").text(employeeJob || "Division");
-
-            if (employeePhoto) {
-                $("#taskModalDate .selected-employee-photo").attr("src", employeePhoto).removeClass("d-none");
-            } else {
-                $("#taskModalDate .selected-employee-photo").addClass("d-none");
-            }
-
-            // Render task list
-            renderTaskListByDate(tasks);
-
-            // Show modal
-            $("#taskModalDate").modal("show");
-        } else {
-            console.error("Response not successful:", response);
+        if (!response.success) {
             showFloatingAlert(response.message || "Failed to load tasks", "danger", 3000);
+            return;
         }
 
-    } catch (error) {
-        console.error("Error loading tasks for date:", error);
+        const tasks = response.data || [];
+        const totalTasks = tasks.length;
 
-        let errorMsg = "Failed to load tasks";
-        if (error.responseJSON && error.responseJSON.message) {
-            errorMsg = error.responseJSON.message;
-        } else if (error.statusText) {
-            errorMsg = "Failed to load tasks: " + error.statusText;
+        const formattedDate = new Date(date).toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        });
+
+        $(".selected-task-date").text(formattedDate);
+        $(".selected-total-task").text("Total task " + totalTasks);
+
+        $("#taskModalDate .selected-employee-name").text(employeeName);
+        $("#taskModalDate .selected-employee-task").text(employeeJob || "Division");
+
+        if (employeePhoto) {
+            $("#taskModalDate .selected-employee-photo")
+                .attr("src", employeePhoto)
+                .removeClass("d-none");
+        } else {
+            $("#taskModalDate .selected-employee-photo").addClass("d-none");
         }
 
-        showFloatingAlert(errorMsg, "danger", 3000);
+        renderTaskListByDate(tasks);
+
+        $("#taskModalDate").modal("show");
+
+    } catch (err) {
+        console.error("Error loadTasksForDate:", err);
+        showFloatingAlert("Failed to load tasks", "danger", 3000);
     }
 }
 
@@ -959,6 +949,10 @@ $('#taskDetailModal').on('hidden.bs.modal', function () {
     }
 });
 
+$("#taskModalDate").on('hidden.bs.modal', function () {
+    $("")
+})
+
 $(document).ready(function () {
     const monthNames = ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
@@ -974,10 +968,6 @@ $(document).ready(function () {
         const totalProgress = $this.data('total-progress') ?? 0;
         const totalLate = $this.data('total-late') ?? 0;
         const totalFinish = $this.data('total-finish') ?? 0;
-
-        console.log(totalProgress);
-        console.log(totalLate);
-        console.log(totalFinish);
 
         $('.selected-employee-name').text(name);
         $('.selected-employee-task').text('Total task: ' + totalTask);
