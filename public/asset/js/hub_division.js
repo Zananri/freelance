@@ -949,10 +949,6 @@ $('#taskDetailModal').on('hidden.bs.modal', function () {
     }
 });
 
-$("#taskModalDate").on('hidden.bs.modal', function () {
-    $("")
-})
-
 $(document).ready(function () {
     const monthNames = ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
