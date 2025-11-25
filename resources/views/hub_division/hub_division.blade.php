@@ -163,11 +163,11 @@
         <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-body modal-body-custom">
+                <div class="modal-content scrollbar-transparent">
+                    <div class="modal-body p-0">
                         <div id="taskDetailContent"></div>
                     </div>
-                    <div class="modal-footer modal-footer-custom mt-3">
+                    <div class="modal-footer modal-footer-custom px-4 py-3">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
@@ -241,7 +241,7 @@
         <div class="modal fade" id="taskModalDate" tabindex="-1" aria-labelledby="taskModalDateLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content modal-content-custom">
+                <div class="modal-content modal-content-custom p-0">
                     <div class="modal-header border-0">
                         <div class="w-100">
                             <div class="d-flex justify-content-between align-items-center">
@@ -255,8 +255,8 @@
                         </div>
                     </div>
                     <div class="barrier-custom"></div>
-                    <div class="modal-body modal-body-custom">
-                        <div class="selected-employee-info d-flex align-items-center gap-3 p-3 rounded-3">
+                    <div class="modal-body modal-body-custom p-0">
+                        <div class="selected-employee-info d-flex align-items-center gap-3 py-3 px-4 rounded-3">
                             <img src="" class="selected-employee-photo rounded-circle d-none">
                             <div>
                                 <div class="selected-employee-name fw-semibold mb-0"
@@ -264,9 +264,9 @@
                                 <small class="selected-employee-task text-muted" style="font-size: 12px;"></small>
                             </div>
                         </div>
-                        <div id="taskListByDate" class="scrollbar-transparent"></div>
+                        <div id="taskListByDate" class="scrollbar-transparent px-4"></div>
                     </div>
-                    <div class="modal-footer modal-footer-custom">
+                    <div class="modal-footer modal-footer-custom px-5 py-3">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close
                         </button>
                     </div>

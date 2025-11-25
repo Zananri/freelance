@@ -831,8 +831,8 @@ function handleTaskDetail(taskId) {
         `;
 
         const html = `
-            <div class="custom-card rounded-4 p-3 border-0" data-task-id="${t.id}">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="rounded-4 border-0" data-task-id="${t.id}">
+                    <div class="d-flex justify-content-between align-items-start px-4 py-3">
                         <div class="d-flex align-items-center task-card-header">
                             ${avatar}
                             <div>
@@ -847,8 +847,8 @@ function handleTaskDetail(taskId) {
                             }
                         </div>
                     </div>
-                    <div class="mt-3" style="font-size: 12px;">${t.description || ""}</div>
-                    <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                    <div class="px-4" style="font-size: 12px;">${t.description || ""}</div>
+                    <div class="d-flex justify-content-between px-4 py-2" style="font-size:12px;">
                         <div class="d-flex justify-content-start gap-3">
                             <span style="font-size: 8px;">Priority: <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${t.priority}</span></span>
                             <span style="font-size: 8px;">Deadline: ${formatDateENMedium(t.due_date)}</span>
@@ -868,9 +868,11 @@ function handleTaskDetail(taskId) {
                         </div>
                     </div>
                     
-                    <div style="border-bottom: solid 3px #DEDFE7;"></div>
-                
-                <div class="scrollable-content scrollbar-transparent">
+                    <div class="px-4">
+                        <div style="border-bottom: solid 3px #DEDFE7;"></div>
+                    </div>
+
+                <div class="scrollable-content scrollbar-transparent px-4 py-3">
                     <div class="collapse" id="completeContent">
                         ${completeContentHtml}
                     </div>
