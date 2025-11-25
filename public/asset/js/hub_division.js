@@ -13,6 +13,8 @@ function getTaskStatusColor(status) {
         return '#FEF3C7';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
         return '#FEEAE8';
+    } else if (statusLower.includes('late')) {
+        return '#FECACA';
     } else if (statusLower.includes('complete')) {
         return '#DEF5E5';
     } else if (statusLower.includes('finish')) {
@@ -31,12 +33,39 @@ function getTaskStatusTextColor(status) {
         return '#D97706';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
         return '#DC2626';
+    } else if (statusLower.includes('late')) {
+        return '#DC2626';
     } else if (statusLower.includes('complete')) {
         return '#1EB978';
     } else if (statusLower.includes('finish')) {
         return '#1799DE';
     } else {
         return '#6B7280';
+    }
+}
+
+function isTaskLate(task) {
+    try {
+        const statusLower = (task.status || '').toLowerCase();
+        
+        // Jika sudah completed atau finished, tidak dianggap late
+        if (statusLower.includes('complete') || statusLower.includes('finish')) {
+            return false;
+        }
+        
+        // Check if task has due_date
+        if (!task.due_date) {
+            return false;
+        }
+        
+        // Parse due_date
+        const dueDate = new Date(task.due_date);
+        const now = new Date();
+        
+        // Task is late if due_date has passed
+        return dueDate < now;
+    } catch (e) {
+        return false;
     }
 }
 
@@ -172,11 +201,15 @@ function renderTaskBar(task) {
 
     if ($dayCell.length > 0) {
         const $boxEvent = $dayCell.find('.box-event');
-        const backgroundColor = getTaskStatusColor(task.status);
+        const taskIsLate = isTaskLate(task);
+        
+        // Jika late, gunakan warna late, jika tidak gunakan warna status
+        const backgroundColor = taskIsLate ? '#FECACA' : getTaskStatusColor(task.status);
+        const textColor = taskIsLate ? '#DC2626' : '#333333';
 
         const taskHtml = `
             <div class="text-event" 
-                 style="background-color: ${backgroundColor};" 
+                 style="background-color: ${backgroundColor}; color: ${textColor};" 
                  data-task-id="${task.id}"
                  title="${task.title}">
                 ${task.title}
@@ -399,6 +432,7 @@ function renderTaskListByDate(tasks) {
     tasks.forEach(task => {
         const statusColor = getTaskStatusColor(task.status);
         const statusLower = (task.status || '').toLowerCase();
+        const taskIsLate = isTaskLate(task);
 
         // Parse priority color
         let priorityColor = '#4B4F5E';
@@ -419,9 +453,12 @@ function renderTaskListByDate(tasks) {
                             ${task.title || '-'}
                         </h6>
 
-                        <span style="display: inline-block; margin-top: 4px; color: ${getTaskStatusTextColor(task.status)}; background-color: ${statusColor}; font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 5px;">
-                            ${task.status || 'New'}
-                        </span>
+                        <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
+                            ${taskIsLate ? 
+                                '<span style="display: inline-block; color: #DC2626; background-color: #FECACA; font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 5px;">Late</span>' : 
+                                `<span style="display: inline-block; color: ${getTaskStatusTextColor(task.status)}; background-color: ${statusColor}; font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 5px;">${task.status || 'New'}</span>`
+                            }
+                        </div>
 
                         <p class="text-muted" style="font-size: 12px; font-weight: 400; color: #4C5060; line-height: 1.5;">
                             ${task.description ? (task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description) : ''}
@@ -502,6 +539,7 @@ function handleTaskDetail(taskId) {
         const statusColor = getTaskStatusColor(t.status);
         const statusLower = (String(t.status || '').toLowerCase());
         const statusText = t.status ? (String(t.status).charAt(0).toUpperCase() + String(t.status).slice(1)) : '';
+        const taskIsLate = isTaskLate(t);
 
         const avatar = img
             ? `<img src="${img}" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.src='${appUrl}/asset/img/avatar.png'">`
@@ -803,7 +841,10 @@ function handleTaskDetail(taskId) {
                             </div>
                         </div>
                         <div class="mt-2 mx-2 d-flex align-items-center" tabindex="0" style="gap:8px;">
-                            <span class="status-text" style="font-size:12px;color:${getTaskStatusTextColor(t.status)};font-weight:600;background-color:${statusColor};padding:4px 12px;border-radius:6px;">${escapeHtml(statusText)}</span>
+                            ${taskIsLate ? 
+                                '<span class="status-text" style="font-size:12px;color:#DC2626;font-weight:600;background-color:#FECACA;padding:4px 12px;border-radius:6px;">Late</span>' : 
+                                `<span class="status-text" style="font-size:12px;color:${getTaskStatusTextColor(t.status)};font-weight:600;background-color:${statusColor};padding:4px 12px;border-radius:6px;">${escapeHtml(statusText)}</span>`
+                            }
                         </div>
                     </div>
                     <div class="mt-3" style="font-size: 12px;">${t.description || ""}</div>
