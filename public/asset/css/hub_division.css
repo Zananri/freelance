@@ -620,6 +620,7 @@
 .task-item-date {
     background: #f8f8fc;
     border-radius: 20px;
+    cursor: pointer;
 }
 
 .task-item-date h6 {
