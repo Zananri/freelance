@@ -8,17 +8,35 @@ function getTaskStatusColor(status) {
     const statusLower = (status || '').toLowerCase();
 
     if (statusLower.includes('request') || statusLower === 'new') {
-        return '#f2e2e4';
+        return '#E5E7EB';
     } else if (statusLower.includes('progress')) {
-        return '#f5efce';
+        return '#FEF3C7';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
-        return '#F2E2E4';
+        return '#FEEAE8';
     } else if (statusLower.includes('complete')) {
-        return '#DCF2E2';
+        return '#DEF5E5';
     } else if (statusLower.includes('finish')) {
-        return '#DCE5F2';
+        return '#DEEBF5';
     } else {
-        return '#dde4e8';
+        return '#F3F4F6';
+    }
+}
+
+function getTaskStatusTextColor(status) {
+    const statusLower = (status || '').toLowerCase();
+
+    if (statusLower.includes('request') || statusLower === 'new') {
+        return '#4B5563';
+    } else if (statusLower.includes('progress')) {
+        return '#D97706';
+    } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
+        return '#DC2626';
+    } else if (statusLower.includes('complete')) {
+        return '#1EB978';
+    } else if (statusLower.includes('finish')) {
+        return '#1799DE';
+    } else {
+        return '#6B7280';
     }
 }
 
@@ -401,7 +419,7 @@ function renderTaskListByDate(tasks) {
                             ${task.title || '-'}
                         </h6>
 
-                        <span style="display: block; margin-top: 2px; color: ${statusColor}; font-size: 10px; font-weight: 400;">
+                        <span style="display: inline-block; margin-top: 4px; color: ${getTaskStatusTextColor(task.status)}; background-color: ${statusColor}; font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 5px;">
                             ${task.status || 'New'}
                         </span>
 
@@ -785,7 +803,7 @@ function handleTaskDetail(taskId) {
                             </div>
                         </div>
                         <div class="mt-2 mx-2 d-flex align-items-center" tabindex="0" style="gap:8px;">
-                            <span class="status-text" style="font-size:12px;color:${statusColor};font-weight:600;">${escapeHtml(statusText)}</span>
+                            <span class="status-text" style="font-size:12px;color:${getTaskStatusTextColor(t.status)};font-weight:600;background-color:${statusColor};padding:4px 12px;border-radius:6px;">${escapeHtml(statusText)}</span>
                         </div>
                     </div>
                     <div class="mt-3" style="font-size: 12px;">${t.description || ""}</div>
