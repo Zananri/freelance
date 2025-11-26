@@ -37,23 +37,7 @@ class HubDivisionController extends Controller
             $canSeeAll = false;
         }
 
-        $baseQuery = Task::whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
-        $employeeId = $user && $user->employee ? $user->employee->id : null;
-
-        if (!$canSeeAll) {
-            if ($employeeId) {
-                $baseQuery->whereHas('assignments', function ($q) use ($employeeId) {
-                    $q->where('employee_id', $employeeId)
-                        ->where(function ($r) {
-                            $r->where('role', 'PIC')->orWhere('role', 'EXECUTOR');
-                        });
-                });
-            } else {
-                $baseQuery->whereRaw('1 = 0');
-            }
-        }
-
-        $currentEmployee = Employee::where('user_id', $userId)->first();
+        $currentEmployee = Employee::with('division')->where('user_id', $userId)->first();
 
         $tasksCountSub = DB::raw("(SELECT COUNT(ta.id)
             FROM task_assignments ta
@@ -63,72 +47,76 @@ class HubDivisionController extends Controller
         ) as tasks_count");
 
         if ($canSeeAll) {
-            $employee = Employee::select(
-                'employees.id',
-                'employees.department_id',
-                'employees.division_id',
-                'employees.name',
-                'employees.status',
-                'employees.user_id',
-                'employees.photo',
-                'employees.profile_picture',
-                'users.photo as user_photo',
-                'job_list.job_name',
-                'divisions.name_division',
-                $tasksCountSub
-            )
+            $employeeQuery = Employee::select(
+                    'employees.id',
+                    'employees.department_id',
+                    'employees.division_id',
+                    'employees.name',
+                    'employees.status',
+                    'employees.user_id',
+                    'employees.photo',
+                    'employees.profile_picture',
+                    'users.photo as user_photo',
+                    'job_list.job_name',
+                    'divisions.name_division',
+                    $tasksCountSub
+                )
                 ->join('job_list', 'employees.job_id', '=', 'job_list.id')
                 ->join('users', 'employees.user_id', '=', 'users.id')
                 ->join('divisions', 'employees.division_id', '=', 'divisions.id')
                 ->where('employees.status', "ACTIVE")
                 ->where('users.user_type', '<>', "ADMINISTRATOR")
-                ->orderBy('divisions.name_division', 'asc')
-                ->orderBy('employees.name', 'asc')
-                ->get();
+                ->where('employees.department_id', $currentEmployee->department_id)
+                ->orderBy('employees.name', 'asc');
 
-            $divisions = Division::select(
-                'divisions.id',
-                'divisions.name_division',
-                'divisions.department_id'
-            )
+            $employee = $employeeQuery->get();
+
+            $divisionsQuery = Division::select(
+                    'divisions.id',
+                    'divisions.name_division',
+                    'divisions.department_id'
+                )
+                ->where('divisions.department_id', $currentEmployee->department_id)
                 ->where('divisions.status', 'ACTIVE')
-                ->orderBy('divisions.name_division', 'asc')
-                ->get();
+                ->orderBy('divisions.name_division', 'asc');
 
+            $divisions = $divisionsQuery->get();
         } else {
-
-            $employee = Employee::select(
-                'employees.id',
-                'employees.department_id',
-                'employees.division_id',
-                'employees.name',
-                'employees.status',
-                'employees.user_id',
-                'employees.photo',
-                'employees.profile_picture',
-                'users.photo as user_photo',
-                'job_list.job_name',
-                'divisions.name_division',
-                $tasksCountSub
-            )
+            $employeeQuery = Employee::select(
+                    'employees.id',
+                    'employees.department_id',
+                    'employees.division_id',
+                    'employees.name',
+                    'employees.status',
+                    'employees.user_id',
+                    'employees.photo',
+                    'employees.profile_picture',
+                    'users.photo as user_photo',
+                    'job_list.job_name',
+                    'divisions.name_division',
+                    $tasksCountSub
+                )
                 ->join('job_list', 'employees.job_id', '=', 'job_list.id')
                 ->join('users', 'employees.user_id', '=', 'users.id')
                 ->join('divisions', 'employees.division_id', '=', 'divisions.id')
                 ->where('employees.status', "ACTIVE")
                 ->where('users.user_type', '<>', "ADMINISTRATOR")
+                ->where('employees.department_id', $currentEmployee->department_id)
                 ->where('employees.division_id', $currentEmployee->division_id)
-                ->orderBy('divisions.name_division', 'asc')
-                ->orderBy('employees.name', 'asc')
-                ->get();
+                ->orderBy('employees.name', 'asc');
 
-            $divisions = Division::select(
-                'divisions.id',
-                'divisions.name_division',
-                'divisions.department_id'
-            )
+            $employee = $employeeQuery->get();
+
+            $divisionsQuery = Division::select(
+                    'divisions.id',
+                    'divisions.name_division',
+                    'divisions.department_id'
+                )
+                ->where('divisions.department_id', $currentEmployee->department_id)
                 ->where('divisions.id', $currentEmployee->division_id)
-                ->where('divisions.status', 'ACTIVE')
-                ->get();
+                ->where('divisions.status', 'ACTIVE');
+
+            $divisions = $divisionsQuery->get();
         }
 
         return view(
