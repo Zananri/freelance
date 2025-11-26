@@ -610,6 +610,105 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal Edit -->
+        <div class="modal fade scrollbar-transparent" id="modalPayslipSend" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalPayslipSendLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered scrollbar-transparent">
+                <div class="modal-content scrollbar-transparent">
+
+                    <div class="modal-body p-0 position-relative">
+                        <form id="form-send-payslip" action="" novalidate="" method="POST">
+                            @csrf
+                            
+                            <input type="hidden" name="employee_id" value="">
+                            <input type="hidden" name="year" value="">
+                            <input type="hidden" name="month" value="">
+                            <input type="hidden" name="attendance_not_complete" value="">
+                            
+
+                            <div class="p-4 pb-0">
+                                <div class="text-center">
+                                        <div class="fw-light fs-24">Payslip</div>
+                                        <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
+                                        <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
+                                </div>
+                                <div class="mb-4 text-center">
+                                    <span class="fw-normal fs-14 text-secondary attendance-date"></span>
+                                </div>
+
+                                <div class="mb-3 pb-2 border-bottom border-3">
+
+                                    <div class="d-flex mb-2 justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Employee</div>
+                                        </div>
+                                        <div>
+                                            <div class="employee-name fw-medium fs-14"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between align-items-center w-100">
+                                            <div>
+                                                <div class="fs-14 text-secondary fw-normal">Division</div>
+                                            </div>
+                                            <div>
+                                                <div class="employee-division fs-14 fw-normal"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between align-items-start w-100">
+                                            <div>
+                                                <div class="fs-14 text-secondary fw-normal">Salary</div>
+                                                <div class="fs-8 text-secondary fw-normal">(Take Home Pay)</div>
+                                            </div>
+                                            <div>
+                                                <div class="employee-salary-thp fs-14 fw-normal"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <div>
+                                
+                            </div>
+
+                            
+                            <div class="p-4 pt-2">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">Cancel</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-save-salary">Save</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                        </form>
+
+                        <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                            <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                                <div>
+                                    <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="fs-14">Loading...</div>
+                                </div>
+                                
+                            </div>
+                            
+                        </div> 
+                    </div>
+
+                </div>
+            </div>
+        </div>
         
     </x-slot>
 

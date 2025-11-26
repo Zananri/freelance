@@ -124,24 +124,24 @@ class LeaveController extends Controller
 
         if($qrySearch <> ''){
 
-            $employeeLeaveRequest = $employeeLeaveRequest->where('reason','like','%'.$qrySearch.'%')
-            ->where(function($query) use ($qrySearch){
-                $query->where('reject_reason','like','%'.$qrySearch.'%');
+            $employeeLeaveRequest = $employeeLeaveRequest->where(function($query) use ($qrySearch){
+                $query->where('reason','like','%'.$qrySearch.'%');
+                $query->orWhere('reject_reason','like','%'.$qrySearch.'%');
                 $query->orWhere('day_amount','like','%'.$qrySearch.'%');
                 $query->orWhere('start_date','like','%'.$qrySearch.'%');
                 $query->orWhere('end_date','like','%'.$qrySearch.'%');
                 $query->orWhere('leave_type','like','%'.$qrySearch.'%');
-                $query->orWhere('employees.name','like','%'.$qrySearch.'%');
+                $query->orWhereHas('employee',function($query) use ($qrySearch) {
+                    $query->where('name', 'like', '%' . $qrySearch . '%');
+                });
                 //->orWhere('category','like','%'.$searchText.'%');
-            })
-            ->whereHas('employee',function($query){
-                $query->where('name','like','%'.$qrySearch.'% ');
             });
+            
 
         }
 
-        $employeeLeaveRequest = $employeeLeaveRequest->orderBy('created_at','desc')
-        ->get();
+        $employeeLeaveRequest = $employeeLeaveRequest->orderBy('end_date','desc')
+        ->paginate(30);
     
         
         return response()->json([
@@ -243,12 +243,31 @@ class LeaveController extends Controller
             ->first();
 
             if(!$employeeLeaveRequest){
-                throw new \Exception('Time off request not found');
+                throw new \Exception('Leave request not found');
             }
 
             $yearLeave = Carbon::parse($employeeLeaveRequest->start_date)->format('Y');
 
             $employeeLeave = EmployeeLeave::where('employee_id',$employeeId)->where('year',$yearLeave)->first();
+
+            if(!$employeeLeave){
+                EmployeeLeave::updateOrCreate(
+                    [
+                        'employee_id' => $employeeId,
+                        'year' => $yearLeave,
+                    ],
+                    [
+                        'annual_leave' => 0,
+                        'remaining_annual_leave' => 0,
+                        'sick' => 0,
+                        'created_by' => $userId,
+                    ]
+                );
+
+                $employeeLeave = EmployeeLeave::where('employee_id',$employeeId)->where('year',$yearLeave)->first();
+            }
+
+
 
             if($employeeLeaveRequest->leave_type == 'ANNUAL_LEAVE'){
 
@@ -263,6 +282,8 @@ class LeaveController extends Controller
                 $employeeLeave->remaining_annual_leave = $employeeLeave->remaining_annual_leave - $employeeLeaveRequest->day_amount;
                 $employeeLeave->save();
             }
+
+
 
             if($employeeLeaveRequest->leave_type == 'SICK'){
                 $employeeLeave->sick = $employeeLeave->sick + $employeeLeaveRequest->day_amount;

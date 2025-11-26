@@ -361,7 +361,7 @@ function getAllEmployeeLeaveRequest(){
         },
         success: function(response) {
             
-            DATA_LEAVE_REQUEST = response.data.employeeLeaveRequest;
+            DATA_LEAVE_REQUEST = response.data.employeeLeaveRequest.data;
 
             let rowItem = '';
                 

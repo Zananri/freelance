@@ -4,6 +4,10 @@ const modalSalaryEdit = new bootstrap.Modal('#modalSalaryEdit', {
    keyboard: false
 });
 
+const modalPayslipSend = new bootstrap.Modal('#modalPayslipSend', {
+   keyboard: false
+});
+
 $('.input-search-query').on('keyup',function(){
     filterEmployee();
 });
