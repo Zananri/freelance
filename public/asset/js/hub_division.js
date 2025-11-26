@@ -3,6 +3,8 @@ const appUrl = $('meta[name=app-url]').attr("content");
 
 let currentDate = new Date();
 let selectedEmployeeId = null;
+let currentSearchQuery = ''; 
+let allTasksData = []; 
 
 function getTaskStatusColor(status) {
     const statusLower = (status || '').toLowerCase();
@@ -132,11 +134,11 @@ $(document).on('click', '.employee-item', function () {
     selectedEmployeeId = $(this).data('employee-id');
 
     const employeeName = $(this).find('.employee-name').text();
-    const employeePhoto = $(this).data('photo');
-    const employeeTask = $(this).data('task');
-    const progressTask = $(this).data('progress');
-    const lateTask = $(this).data('late');
-    const finishTask = $(this).data('finish');
+    const employeePhoto = $(this).data('employee-photo');
+    const employeeTask = $(this).data('total-task');
+    const progressTask = $(this).data('total-progress');
+    const lateTask = $(this).data('total-late');
+    const finishTask = $(this).data('total-finish');
 
     $('.selected-employee-photo').attr('src', employeePhoto);
     $('.selected-employee-name').text(employeeName);
@@ -164,6 +166,9 @@ async function loadEmployeeTasks(employeeId, year, month) {
         });
 
         if (response.success) {
+            // Store all tasks data for search filtering
+            allTasksData = response.data || [];
+            
             return {
                 tasks: response.data,
                 total: response.total_tasks,
@@ -176,6 +181,7 @@ async function loadEmployeeTasks(employeeId, year, month) {
 
     } catch (error) {
         console.error("Error loading employee tasks:", error);
+        allTasksData = [];
         return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0 };
     }
 }
@@ -222,6 +228,7 @@ function renderTaskBar(task) {
                 <div class="text-event" 
                      style="background-color: ${backgroundColor}; color: ${textColor};" 
                      data-task-id="${task.id}"
+                     data-task-title="${escapeHtml(task.title)}"
                      title="${task.title}">
                     ${task.title}
                 </div>
@@ -232,6 +239,42 @@ function renderTaskBar(task) {
         
         // Move to next day
         currentDate.setDate(currentDate.getDate() + 1);
+    }
+}
+
+// Filter and render tasks based on search query
+function filterAndRenderTasks(searchQuery) {
+    try {
+        // Clear all existing tasks from calendar
+        $('.box-event').empty();
+        
+        if (!allTasksData || allTasksData.length === 0) {
+            return;
+        }
+        
+        // Normalize search query
+        const query = (searchQuery || '').toLowerCase().trim();
+        
+        // Filter tasks by title
+        let tasksToRender = allTasksData;
+        
+        if (query) {
+            tasksToRender = allTasksData.filter(task => {
+                const taskTitle = (task.title || '').toLowerCase();
+                return taskTitle.includes(query);
+            });
+        }
+        
+        // Render filtered tasks
+        tasksToRender.forEach(task => renderTaskBar(task));
+        
+        // If search is active and no tasks found, optionally show a message
+        if (query && tasksToRender.length === 0) {
+            console.log('No tasks found matching:', query);
+        }
+        
+    } catch (error) {
+        console.error('Error filtering tasks:', error);
     }
 }
 
@@ -284,6 +327,7 @@ $('.calendar-prev-month').click(function () {
     $('.calendar-year').text(currentDate.getFullYear());
 
     // Reload calendar (with or without employee tasks)
+    // Search query will be maintained automatically via renderEventCalendar
     if (selectedEmployeeId) {
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
     } else {
@@ -301,6 +345,7 @@ $('.calendar-next-month').click(function () {
     $('.calendar-year').text(currentDate.getFullYear());
 
     // Reload calendar (with or without employee tasks)
+    // Search query will be maintained automatically via renderEventCalendar
     if (selectedEmployeeId) {
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
     } else {
@@ -320,6 +365,7 @@ $(document).on('click', '.month-item', function () {
     $('.calendar-year').text(currentDate.getFullYear());
 
     // Reload calendar (with or without employee tasks)
+    // Search query will be maintained automatically via renderEventCalendar
     if (selectedEmployeeId) {
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
     } else {
@@ -347,7 +393,14 @@ async function renderEventCalendar(year, month) {
             $('.selected-employee-finish').text("Finish: " + totalFinished);
 
             $('.box-event').empty();
-            tasks.forEach(task => renderTaskBar(task));
+            
+            // Apply search filter if there's an active search query
+            if (currentSearchQuery) {
+                filterAndRenderTasks(currentSearchQuery);
+            } else {
+                // Render all tasks
+                tasks.forEach(task => renderTaskBar(task));
+            }
         }
 
         return 'done-rendering';
@@ -974,10 +1027,10 @@ $(document).ready(function () {
 
         const name = $emp.find('.employee-name').text().trim();
         const photo = $emp.data('employee-photo') || '';
-        const task = Number($emp.data('task')) || 0;
-        const progress = Number($emp.data('progress')) || 0;
-        const late = Number($emp.data('late')) || 0;
-        const finish = Number($emp.data('finish')) || 0;
+        const task = Number($emp.data('total-task')) || 0;
+        const progress = Number($emp.data('total-progress')) || 0;
+        const late = Number($emp.data('total-late')) || 0;
+        const finish = Number($emp.data('total-finish')) || 0;
 
         if (photo) {
             $('.selected-employee-photo').css('background-image', `url('${photo}')`);
@@ -991,7 +1044,45 @@ $(document).ready(function () {
         $('.selected-employee-late').text(`Late: ${late}`);
         $('.selected-employee-finish').text(`Finish: ${finish}`);
 
+        // Clear search when switching employee
+        currentSearchQuery = '';
+        $('#search_task').val('');
+
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    });
+
+    // Search task functionality
+    let searchTimeout = null;
+    
+    $('#search_task').on('input', function() {
+        const searchValue = $(this).val().trim();
+        
+        // Clear previous timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // Debounce search by 300ms
+        searchTimeout = setTimeout(function() {
+            currentSearchQuery = searchValue;
+            
+            // Only filter if employee is selected
+            if (selectedEmployeeId && allTasksData.length > 0) {
+                filterAndRenderTasks(currentSearchQuery);
+            }
+        }, 300);
+    });
+
+    // Clear search button functionality (optional enhancement)
+    $('#search_task').on('keydown', function(e) {
+        if (e.key === 'Escape') {
+            $(this).val('');
+            currentSearchQuery = '';
+            
+            if (selectedEmployeeId && allTasksData.length > 0) {
+                filterAndRenderTasks('');
+            }
+        }
     });
 });
 
