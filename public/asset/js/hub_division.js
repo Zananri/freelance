@@ -465,7 +465,7 @@ function renderTaskListByDate(tasks) {
             <div class="task-item-date mb-3 p-3" data-task-id="${task.id}">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
-                        <h6 class="mb-0" style="font-size: 12px; font-weight: 500; color: #3B3D42;">
+                        <h6 class="mb-2" style="font-size: 12px; font-weight: 500; color: #3B3D42;">
                             ${task.title || '-'}
                         </h6>
 
@@ -865,7 +865,7 @@ function handleTaskDetail(taskId) {
                             }
                         </div>
                     </div>
-                    <div class="px-4" style="font-size: 12px;">${t.description || ""}</div>
+                    <div class="px-4 task-detail-description" style="font-size: 12px; margin-bottom: 0;">${t.description || ""}</div>
                     <div class="d-flex justify-content-between px-4 py-2" style="font-size:12px;">
                         <div class="d-flex align-items-center" style="min-width:120px;">
                             <span style="font-size: 8px; font-weight:600; color:#797E91;">Priority:&nbsp;</span>
