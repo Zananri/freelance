@@ -34,9 +34,9 @@ function getTaskStatusTextColor(status) {
     } else if (statusLower.includes('progress')) {
         return '#D97706';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
-        return '#DC2626';
+        return '#F4DCDF';
     } else if (statusLower.includes('late')) {
-        return '#DC2626';
+        return '#F4DCDF';
     } else if (statusLower.includes('complete')) {
         return '#1EB978';
     } else if (statusLower.includes('finish')) {
@@ -209,7 +209,7 @@ function renderTaskBar(task) {
     const taskIsLate = isTaskLate(task);
     
     const backgroundColor = taskIsLate ? '#FECACA' : getTaskStatusColor(task.status);
-    const textColor = taskIsLate ? '#DC2626' : '#333333';
+    const textColor = taskIsLate ? '#46505B' : '#46505B';
     
     // Loop through all dates from start to end
     let currentDate = new Date(start);
@@ -514,8 +514,8 @@ function renderTaskListByDate(tasks) {
 
                         <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
                             ${taskIsLate ? 
-                                '<span style="display: inline-block; color: #DC2626; background-color: #FECACA; font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 5px;">Late</span>' : 
-                                `<span style="display: inline-block; color: ${getTaskStatusTextColor(task.status)}; background-color: ${statusColor}; font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 5px;">${task.status || 'New'}</span>`
+                                '<span class="status-text-late">Late</span>' : 
+                                `<span class="status-text" style="color: ${getTaskStatusTextColor(task.status)}; background-color: ${statusColor};>${task.status || 'New'}</span>`
                             }
                         </div>
 
