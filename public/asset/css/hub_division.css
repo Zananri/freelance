@@ -774,3 +774,28 @@
     color: #374151;
     margin-left: 4px;
 }
+
+/* Bootstrap standard collapse animation */
+.collapse {
+    display: none;
+}
+
+.collapse.show {
+    display: block;
+}
+
+.collapsing {
+    position: relative;
+    height: 0;
+    overflow: hidden;
+    transition: height 0.35s ease;
+}
+
+/* Ensure smooth transition for complete content */
+#completeContent {
+    transition: height 0.35s ease;
+}
+
+#completeContent.collapsing {
+    transition: height 0.35s ease;
+}
