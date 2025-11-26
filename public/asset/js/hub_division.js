@@ -462,7 +462,7 @@ function renderTaskListByDate(tasks) {
         }
 
         const taskHtml = `
-            <div class="task-item-date mb-3 p-3 rounded-3" data-task-id="${task.id}">
+            <div class="task-item-date mb-3 p-3" data-task-id="${task.id}">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
                         <h6 class="mb-0" style="font-size: 12px; font-weight: 500; color: #3B3D42;">
@@ -867,11 +867,16 @@ function handleTaskDetail(taskId) {
                     </div>
                     <div class="px-4" style="font-size: 12px;">${t.description || ""}</div>
                     <div class="d-flex justify-content-between px-4 py-2" style="font-size:12px;">
-                        <div class="d-flex justify-content-start gap-3">
-                            <span style="font-size: 8px;">Priority: <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${t.priority}</span></span>
-                            <span style="font-size: 8px;">Deadline: ${formatDateENMedium(t.due_date)}</span>
+                        <div class="d-flex align-items-center" style="min-width:120px;">
+                            <span style="font-size: 8px; font-weight:600; color:#797E91;">Priority:&nbsp;</span>
+                            <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}; font-size:8px; font-weight:400;">${t.priority}</span>
                         </div>
-                        <div class="d-flex justify-content-end align-items-start gap-3">
+
+                        <div class="d-flex justify-content-center align-items-center flex-grow-1">
+                            <span style="font-size: 8px; color: #4B4F5E; text-align: center;">${t.start_date ? formatDateENMedium(t.start_date) : '-'} - ${t.due_date ? formatDateENMedium(t.due_date) : '-'}</span>
+                        </div>
+
+                        <div class="d-flex justify-content-end align-items-start gap-3" style="min-width:120px;">
                             ${(statusLower.includes('finish') || statusLower.includes('complete')) ? `
                                 <div class="d-flex align-items-center">
                                     <button class="btn btn-sm p-0 m-0 border-0" data-bs-target="#completeContent" data-bs-toggle="collapse">
