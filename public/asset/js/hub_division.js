@@ -140,10 +140,10 @@ $(document).on('click', '.employee-item', function () {
 
     $('.selected-employee-photo').attr('src', employeePhoto);
     $('.selected-employee-name').text(employeeName);
-    $('.selected-employee-task').text(employeeTask + " total tasks");
-    $('.selected-employee-progress').text(progressTask + " total tasks");
-    $('.selected-employee-late').text(lateTask + " total tasks");
-    $('.selected-employee-finish').text(finishTask + " total tasks");
+    $('.selected-employee-task').text(employeeTask);
+    $('.selected-employee-progress').text(progressTask);
+    $('.selected-employee-late').text(lateTask);
+    $('.selected-employee-finish').text(finishTask);
 
     $('.selected-employee-info').show();
     $('.total-status-task').show();
@@ -341,7 +341,7 @@ async function renderEventCalendar(year, month) {
             const totalFinished = result.total_finished;
 
             // Update panel
-            $('.selected-employee-task').text(total + " total tasks");
+            $('.selected-employee-task').text("Total task: " + total);
             $('.selected-employee-progress').text("In Progress: " + totalInProgress);
             $('.selected-employee-late').text("Late: " + totalLate);
             $('.selected-employee-finish').text("Finish: " + totalFinished);
@@ -548,8 +548,8 @@ function handleTaskDetail(taskId) {
         const taskIsLate = isTaskLate(t);
 
         const avatar = img
-            ? `<img src="${img}" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.src='${appUrl}/asset/img/avatar.png'">`
-            : `<div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${color};">${initials}</div>`;
+            ? `<img src="${img}" class="project-image me-3">`
+            : `<div class="project-initial-avatar me-3" style="background:${color};">${initials}</div>`;
 
         let refFilesHtml = '';
         const rawRefFiles = t.reference_files || t.reference_file || [];
@@ -587,15 +587,15 @@ function handleTaskDetail(taskId) {
                 const fileName = decodeURIComponent(rawName).toLocaleLowerCase();
                 return `
                     <div class="col-6">
-                        <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="position:relative;">
+                        <div class="ref-file-item d-flex align-items-center p-2 rounded bg-light mb-1" style="position:relative;">
 
                             <a href="${u}" target="_blank"
                                 class="text-decoration-none flex-grow-1 text-truncate"
-                                style="color: #444; font-size: 10px;" title="${fileName}">
+                                title="${fileName}">
                                 ${fileName}
                             </a>
 
-                            <a href="${u}" download="${fileName}" class="ms-2 text-decoration-none" title="Download ${fileName}">
+                            <a href="${u}" download="${fileName}" class="ms-2 text-decoration-none download-icon" title="Download ${fileName}">
                                 <span class="material-symbols-outlined action-icon">download</span>
                             </a>
                         </div>
@@ -676,11 +676,11 @@ function handleTaskDetail(taskId) {
                 const completeFileName = decodeURIComponent(rawCompleteFileName).toLocaleLowerCase();
                 return `
                     <div class="col-6">
-                        <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="position:relative;">
+                        <div class="ref-file-item d-flex align-items-center p-2 rounded bg-light mb-1" style="position:relative;">
 
                             <a href="${u}" target="_blank"
                                 class="text-decoration-none flex-grow-1 text-truncate"
-                                style="color: #444; font-size: 10px;" title="${completeFileName}">
+                                title="${completeFileName}">
                                 ${completeFileName}
                             </a>
 
@@ -704,11 +704,11 @@ function handleTaskDetail(taskId) {
                 const displayCompleteUrl = u || '';
 
                 refCompleteUrlsHtml += `
-                            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="position:relative;">
+                            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1 position-relative">
                                 
                                 <a href="${u}" target="_blank"
                                     class="text-decoration-none flex-grow-1 text-truncate"
-                                    style="color: #444; font-size: 10px;" title="${displayCompleteUrl}">
+                                    title="${displayCompleteUrl}">
                                     ${displayCompleteUrl}
                                 </a>
 
@@ -769,8 +769,8 @@ function handleTaskDetail(taskId) {
                         <img src="${(i.emp.image || i.emp.profile_picture || i.emp.user_photo || i.emp.photo || appUrl + '/asset/img/avatar.png')}" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" 
                             onerror="this.src='${appUrl}/asset/img/avatar.png'">
                         <div class="ms-2">
-                            <div style="font-size:10px;">${i.emp.name || "Unknown"}</div>
-                            <div class="text-muted" style="font-size:8px;">${i.role}</div>
+                            <div class="employee-name-timeline">${i.emp.name || "Unknown"}</div>
+                            <div class="text-muted fs-8">${i.role}</div>
                         </div>
                     </div>
                 </div>
@@ -823,13 +823,13 @@ function handleTaskDetail(taskId) {
         }
 
         const completeContentHtml = `
-            <div class="p-3 rounded-3 mt-3" style="background: #F0F8F5;">
-                <h5 style="font-size:12px;margin-bottom:16px;color:#4C5060;">Complete result task</h5>
-                <div style="font-size:12px;color:#54595F;margin-bottom: 16px;">${escapeHtml(completeNotePlain || '')}</div>
-                ${completeAuthor || completeDate ? `<div style="font-size:8px;color:#4B4F5E;margin-bottom:16px;">Complete by ${completeAuthor || '-'} ${completeDate ? ' at ' + completeDate : ''}</div>` : ''}
+            <div class="complete-content p-3 rounded-3 mt-3">
+                <h5 class="complete-title-content">Complete result task</h5>
+                <div class="complete-note">${escapeHtml(completeNotePlain || '')}</div>
+                ${completeAuthor || completeDate ? `<div class="complete-logs">Complete by ${completeAuthor || '-'} ${completeDate ? ' at ' + completeDate : ''}</div>` : ''}
 
                 <div>
-                    <h6 style="font-size:12px;color:#4C5060;margin-bottom:8px;">Link & File reference</h6>
+                    <h6 class="complete-reference"Link & File reference</h6>
                     ${completeRefFilesHtml || ''}
                     ${refCompleteUrlsHtml || ''}
                 </div>
@@ -842,45 +842,45 @@ function handleTaskDetail(taskId) {
                         <div class="d-flex align-items-center task-card-header">
                             ${avatar}
                             <div>
-                                ${t.project?.id ? `<small class="text-muted" style="font-size:11px;">${t.project.title}</small>` : ""}
-                                <h5 class="mb-0" style="font-size: 14px;">${t.title || "-"}</h5>
+                                ${t.project?.id ? `<small class="project-title text-muted">${t.project.title}</small>` : ""}
+                                <h5 class="task-title-detail mb-0">${t.title || "-"}</h5>
                             </div>
                         </div>
-                        <div class="mt-2 mx-2 d-flex align-items-center" tabindex="0" style="gap:8px;">
+                        <div class="gap-2 mt-2 mx-2 d-flex align-items-center" tabindex="0">
                             ${taskIsLate ? 
-                                '<span class="status-text" style="font-size:12px;color:#DC2626;font-weight:600;background-color:#FECACA;padding:4px 12px;border-radius:6px;">Late</span>' : 
-                                `<span class="status-text" style="font-size:12px;color:${getTaskStatusTextColor(t.status)};font-weight:600;background-color:${statusColor};padding:4px 12px;border-radius:6px;">${escapeHtml(statusText)}</span>`
+                                '<span class="status-text-late">Late</span>' : 
+                                `<span class="status-text" style="color:${getTaskStatusTextColor(t.status)}; background-color:${statusColor};">${escapeHtml(statusText)}</span>`
                             }
                         </div>
                     </div>
-                    <div class="px-4 task-detail-description" style="font-size: 12px; margin-bottom: 0;">${t.description || ""}</div>
-                    <div class="d-flex justify-content-between px-4 py-2" style="font-size:12px;">
-                        <div class="d-flex align-items-center gap-2" style="min-width:120px;">
-                            <span style="font-size: 8px; font-weight:600; color:#797E91;">Priority:&nbsp;</span>
-                            <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}; font-size:8px; font-weight:400;">${t.priority}</span>
+                    <div class="px-4 task-detail-description">${t.description || ""}</div>
+                    <div class="d-flex justify-content-between px-4 py-2">
+                        <div class="priority-section d-flex align-items-center gap-2">
+                            <span class="priority-label">Priority:&nbsp;</span>
+                            <span class="priority-value" style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'};">${t.priority}</span>
                         </div>
 
                         <div class="d-flex justify-content-center align-items-center flex-grow-1">
-                            <span style="font-size: 8px; color: #4B4F5E; text-align: center;">${t.start_date ? formatDateENMedium(t.start_date) : '-'} - ${t.due_date ? formatDateENMedium(t.due_date) : '-'}</span>
+                            <span class="date-detail">${t.start_date ? formatDateENMedium(t.start_date) : '-'} - ${t.due_date ? formatDateENMedium(t.due_date) : '-'}</span>
                         </div>
 
-                        <div class="d-flex justify-content-end align-items-start gap-3" style="min-width:120px;">
+                        <div class="status-section d-flex justify-content-end align-items-start gap-3">
                             ${(statusLower.includes('finish') || statusLower.includes('complete')) ? `
                                 <div class="d-flex align-items-center">
                                     <button class="btn btn-sm p-0 m-0 border-0" type="button" data-bs-toggle="collapse" data-bs-target="#completeContent" aria-expanded="false" aria-controls="completeContent">
-                                        <span class="material-symbols-outlined task-icon" style="font-size: 18px;">playlist_add_check</span>
+                                        <span class="material-symbols-outlined task-icon">playlist_add_check</span>
                                     </button>
                                 </div>
                             ` : ''}
 
                             <div class="d-flex align-items-center position-relative">
-                                <span class="material-symbols-outlined task-icon" style="font-size: 18px;" data-task-id="${t.id}">mode_comment</span>
+                                <span class="material-symbols-outlined task-icon" data-task-id="${t.id}">mode_comment</span>
                             </div>
                         </div>
                     </div>
                     
                     <div class="px-4">
-                        <div style="border-bottom: solid 3px #DEDFE7;"></div>
+                        <div class="barrier-detail"></div>
                     </div>
 
                 <div class="scrollable-content scrollbar-transparent px-4 py-3">
@@ -893,19 +893,19 @@ function handleTaskDetail(taskId) {
                     ${collab}
 
                     <div class="mb-5">
-                        <h5 class="ref-title" style="font-size: 12px; font-weight: 400; color: #2A3542;">Link & File Reference</h5>
+                        <h5 class="ref-title">Link & File Reference</h5>
                         ${refFilesHtml}
                         ${refUrlsHtml}
                     </div>
 
-                    <div style="border-bottom: solid 3px #DEDFE7;"></div>
+                    <div class="barrier-detail"></div>
 
                     <div class="d-flex justify-content-between align-items-start mt-3 gap-3">
-                        <div class="d-flex justify-content-start" style="font-size:10px;">
+                        <div class="department-section d-flex justify-content-start">
                             <span class="text-muted">Department: &nbsp;</span>
                             <span>${t.project?.department?.name_department || t.project?.department_name || t.project?.department || "-"}</span>
                         </div>
-                        <div class="d-flex justify-content-end mb-2" style="font-size:10px;">
+                        <div class="division-section d-flex justify-content-end mb-2">
                             <span class="text-muted">Division: &nbsp;</span>
                             <span>${t.project?.division?.name_division || t.project?.division_name || t.project?.division || "-"}</span>
                         </div>
@@ -945,38 +945,53 @@ $('#taskDetailModal').on('hidden.bs.modal', function () {
 });
 
 $(document).ready(function () {
-    const monthNames = ["January", "February", "March", "April", "May", "June",
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ];
+
     $('.calendar-month').text(monthNames[currentDate.getMonth()]);
     $('.calendar-year').text(currentDate.getFullYear());
 
-    // Render kalender kosong saat halaman dimuat
     renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
 
-    $(document).on('click', '.employee-item', function () {
-        const $this = $(this);
-        const name = $this.find('.employee-info > div').first().text().trim();
-        const photo = $this.data('employee-photo') || '';
-        const totalTask = $this.data('total-task') ?? 0;
-        const totalProgress = $this.data('total-progress') ?? 0;
-        const totalLate = $this.data('total-late') ?? 0;
-        const totalFinish = $this.data('total-finish') ?? 0;
+    $('.selected-employee-photo').css('background-image', '');
+    $('.selected-employee-name').text('Please select employee');
+    $('.selected-employee-task').text('Total task: 0');
+    $('.selected-employee-progress').text('In Progress: 0');
+    $('.selected-employee-late').text('Late: 0');
+    $('.selected-employee-finish').text('Finish: 0');
+    $('.selected-employee-info').removeClass('d-none');
+    $('.total-status-task').removeClass('d-none');
 
-        $('.selected-employee-name').text(name);
-        $('.selected-employee-task').text('Total task: ' + totalTask);
-        $('.selected-employee-progress').text('In Progress: ' + totalProgress);
-        $('.selected-employee-late').text('Late: ' + totalLate);
-        $('.selected-employee-finish').text('Finish: ' + totalFinish);
+    $(document).on('click', '.employee-item', function () {
+        const $emp = $(this);
+
+        $('.employee-item').removeClass('selected');
+        $emp.addClass('selected');
+
+        selectedEmployeeId = $emp.data('employee-id');
+
+        const name = $emp.find('.employee-name').text().trim();
+        const photo = $emp.data('employee-photo') || '';
+        const task = Number($emp.data('task')) || 0;
+        const progress = Number($emp.data('progress')) || 0;
+        const late = Number($emp.data('late')) || 0;
+        const finish = Number($emp.data('finish')) || 0;
 
         if (photo) {
-            $('.selected-employee-photo').attr('src', photo).removeClass('d-none');
+            $('.selected-employee-photo').css('background-image', `url('${photo}')`);
         } else {
-            $('.selected-employee-photo').addClass('d-none');
+            $('.selected-employee-photo').css('background-image', '');
         }
 
-        $('.selected-employee-info').removeClass('d-none');
-        $('.total-status-task').removeClass('d-none');
+        $('.selected-employee-name').text(name);
+        $('.selected-employee-task').text(`Total task: ${task}`);
+        $('.selected-employee-progress').text(`In Progress: ${progress}`);
+        $('.selected-employee-late').text(`Late: ${late}`);
+        $('.selected-employee-finish').text(`Finish: ${finish}`);
+
+        renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
     });
 });
 
@@ -1081,8 +1096,8 @@ function showDeleteConfirmModal(opts) {
         const modalId = 'deleteConfirmModal_' + (type || 'f') + '_' + id + '_' + Date.now();
 
         const avatarHtml = avatarUrl ?
-            `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
-            `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s => s[0] || '').slice(0, 2).join('').toUpperCase() || 'NA'}</div>`;
+            `<img src="${avatarUrl}" class="project-image rounded-circle"` :
+            `<div class="project-initial-avatar rounded-circle d-flex align-items-center justify-content-center" style="background:#6A5AE0;">${(authorName || '').split(' ').map(s => s[0] || '').slice(0, 2).join('').toUpperCase() || 'NA'}</div>`;
 
         let title = '';
         let confirmText = '';
@@ -1247,23 +1262,14 @@ function showTaskInlineImagePreviewSmall(fileObj, dataUrl) {
         previewContainer.innerHTML = "";
 
         const imageLabel = document.createElement("div");
-        imageLabel.className = "custom-image-upload position-relative";
-        imageLabel.style.cssText =
-            "width: 32px; height: 32px; " +
-            "background-image: url('" + dataUrl + "'); " +
-            "background-size: cover; background-position: center center; background-repeat: no-repeat; " +
-            "border-radius: 6px; cursor: pointer; border: 1px solid #ddd; margin-right: 4px; " +
-            "opacity: 1; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: visible;";
+        imageLabel.className = "image-label";
+        imageLabel.style.backgroundImage = `url('${dataUrl}')`;
 
         const clearBtn = document.createElement("span");
         clearBtn.className = "image-clear-btn";
         clearBtn.innerHTML = "&times;";
         clearBtn.title = "Remove image";
-        clearBtn.style.cssText =
-            "position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; " +
-            "border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; " +
-            "text-align: center; cursor: pointer; font-weight: 700; border: none; " +
-            "box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 30; opacity: 1;";
+
 
         // Store the file object for later use
         window.__taskInlineFeedbackImageFile = fileObj;

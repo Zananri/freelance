@@ -76,20 +76,21 @@
 
             <div class="calendar-card-content overflow-hidden">
                 <div class="header-calendar">
-                    <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div class="d-flex justify-content-between mb-2">
 
                         <div class="selected-employee-info">
                             <div class="d-flex align-items-center gap-2">
-                                <img src="" class="selected-employee-photo d-none me-2">
+                                <div class="selected-employee-photo me-2"></div>
                                 <span class="selected-employee-name"></span>
                             </div>
 
-                            <div class="mt-2">
-                                <small class="selected-employee-task"></small>
+                            <div class="d-flex mt-3">
+                                <span class="material-symbols-outlined search-icon">search</span>
+                                <input type="text" class="search-input-custom border-0 ms-3" id="search_task" placeholder="search task...">
                             </div>
                         </div>
 
-                        <div class="d-flex flex-column align-items-start">
+                        <div class="d-flex flex-column">
 
                             <div class="d-flex align-items-center justify-content-end w-100">
                                 <div class="dropdown dropdown-month me-3">
@@ -117,7 +118,8 @@
                                 </div>
                             </div>
 
-                            <div class="d-flex gap-5 total-status-task mt-2">
+                            <div class="d-flex justify-content-end gap-4 total-status-task mt-2 me-3">
+                                <small class="selected-employee-task">Total task :</small>
                                 <small class="selected-employee-progress">Progress :</small>
                                 <small class="selected-employee-late">Late :</small>
                                 <small class="selected-employee-finish">Finish :</small>

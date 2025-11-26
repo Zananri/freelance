@@ -10,6 +10,24 @@
     justify-content: center;
 }
 
+.search-icon {
+    font-size: 14px;
+}
+
+.search-input-custom {
+    font-size: 10px;
+    font-weight: 400;
+    background: transparent;
+}
+
+.search-input-custom:focus,
+.search-input-custom:active,
+.search-input-custom:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
 .calendar-container.row {
     display: flex;
     align-items: flex-start;
@@ -81,8 +99,7 @@
 
 .employee-list {
     margin: 0;
-    overflow-y: auto;
-    max-height: 175px;
+
 }
 
 .employee-item {
@@ -157,7 +174,9 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    object-fit: cover;
+    background: #ccc;
+    background-size: cover;
+    background-position: center;
 }
 
 .selected-employee-name {
@@ -432,7 +451,7 @@
 
 #taskDetailModal .task-icon {
     color: #555;
-    font-size: 20px;
+    font-size: 18px;
     line-height: 1;
     cursor: pointer;
 }
@@ -442,11 +461,10 @@
     color: #777;
 }
 
-#taskDetailModal .task-detail-description {
-    margin-bottom: 0 !important;
-}
+#taskDetailModal .task-detail-description,
 #taskDetailModal .task-detail-description p {
     margin-bottom: 0 !important;
+    font-size: 12px;
 }
 
 /* Feedback Modal Styles */
@@ -545,7 +563,14 @@
     color: #444444;
 }
 
-.ref-url-item .action-icon {
+.ref-url-item .text-truncate,
+.ref-file-item .text-truncate {
+    color: #444;
+    font-size: 10px;
+}
+
+.ref-url-item .action-icon,
+.ref-file-item .action-icon {
     opacity: 0;
     transition: opacity 0.15s ease-in-out;
     cursor: pointer;
@@ -553,15 +578,18 @@
     color: #444;
 }
 
-.ref-url-item:hover .action-icon {
+.ref-url-item:hover .action-icon,
+.ref-file-item:hover .action-icon {
     opacity: 1;
 }
 
-.ref-url-item:hover {
+.ref-url-item:hover, 
+.ref-file-item:hover {
     background: #f0f0f0;
 }
 
-.ref-url-item .action-icon:hover {
+.ref-url-item .action-icon:hover,
+.ref-file-item .action-icon:hover {
     color: #000;
     transform: scale(1.15);
 }
@@ -587,6 +615,10 @@
     border: solid 2px #dedfe7;
     margin: 10px auto 0;
     width: 95%;
+}
+
+.barrier-detail {
+    border-bottom: solid 3px #DEDFE7;
 }
 
 #taskModalDate .selected-task-date {
@@ -798,4 +830,150 @@
 
 #completeContent.collapsing {
     transition: height 0.35s ease;
+}
+
+.complete-content {
+    background-color: #F0F8F5;
+}
+
+.complete-title-content {
+    font-size: 12px;
+    margin-bottom: 16px;
+    color: #4C5060;
+}
+
+.complete-note {
+    font-size: 12px;
+    color: #54595F;
+    margin-bottom: 16px;
+}
+
+.complete-logs {
+    font-size: 8px;
+    color: #4B4F5E;
+    margin-bottom: 16px;
+}
+
+.complete-reference {
+    font-size: 12px;
+    color: #4C5060;
+    margin-bottom: 8px;
+}
+
+.project-title {
+    font-size: 11px;
+}
+
+.project-image {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.project-initial-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+}
+
+.status-text-late {
+    font-size: 12px;
+    color: #DC2626;
+    font-weight: 600;
+    background: #FECACA;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+.status-text{ 
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+.task-title-detail {
+    font-size: 14px;
+    font-weight: 400;
+    color: #2A3542;
+}
+
+.priority-section,
+.status-section {
+    min-width: 120px;
+}
+
+.priority-label {
+    font-weight: 600;
+    font-size: 8px;
+}
+
+.priority-value {
+    font-weight: 400;
+    font-size: 8px;
+}
+
+.date-detail {
+    font-size: 8px;
+    color: #4B4F5E;
+    text-align: center;
+}
+
+.ref-title {
+    font-size: 12px;
+    font-weight: 400;
+    color: #2A3542;
+}
+
+.department-section,
+.division-section {
+    font-size: 10px;
+}
+
+.employee-name-timeline {
+    font-size: 10px;
+}
+
+.image-label {
+    width: 32px;
+    height: 32px;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+    margin-right: 4px;
+    opacity: 1;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    overflow: visible;
+    position: relative;
+}
+
+.image-clear-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ff4444;
+    color: #ffffff;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 12px;
+    line-height: 16px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 700;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    z-index: 30;
+    opacity: 1;
 }
