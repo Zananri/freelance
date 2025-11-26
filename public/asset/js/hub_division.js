@@ -12,15 +12,15 @@ function getTaskStatusColor(status) {
     if (statusLower.includes('request') || statusLower === 'new') {
         return '#E5E7EB';
     } else if (statusLower.includes('progress')) {
-        return '#FEF3C7';
+        return '#F0F2DC';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
-        return '#FEEAE8';
+        return '#F4DCDF';
     } else if (statusLower.includes('late')) {
-        return '#FECACA';
+        return '#F4DCDF';
     } else if (statusLower.includes('complete')) {
-        return '#DEF5E5';
+        return '#DCF2E2';
     } else if (statusLower.includes('finish')) {
-        return '#DEEBF5';
+        return '#DCE5F2';
     } else {
         return '#F3F4F6';
     }
@@ -321,30 +321,33 @@ function hideCalendarLoading() {
 }
 
 async function renderEventCalendar(year, month) {
-    if (!selectedEmployeeId) {
-        await renderCalendar(year, month);
-        return;
-    }
-
-    showCalendarLoading();
-
     try {
         await renderCalendar(year, month);
 
-        const result = await loadEmployeeTasks(selectedEmployeeId, year, month + 1);
-        const { tasks, total, total_in_progress, total_late, total_finished } = result;
+        showCalendarLoading();
 
-        $('.selected-employee-task').text("Total task: " + total);
-        $('.selected-employee-progress').text("In Progress: " + total_in_progress);
-        $('.selected-employee-late').text("Late: " + total_late);
-        $('.selected-employee-finish').text("Finish: " + total_finished);
+        if (selectedEmployeeId) {
+            const result = await loadEmployeeTasks(
+                selectedEmployeeId,
+                year,
+                month + 1,
+                currentSearchQuery
+            );
 
-        $('.box-event').empty();
+            const tasks = result.tasks;
+            const total = result.total;
+            const totalInProgress = result.total_in_progress;
+            const totalLate = result.total_late;
+            const totalFinished = result.total_finished;
 
-        if (currentSearchQuery) {
-            filterAndRenderTasks(currentSearchQuery);
-        } else {
-            tasks.forEach(task => renderTaskBar(task));
+            $('.selected-employee-task').text("Total task: " + total);
+            $('.selected-employee-progress').text("In Progress: " + totalInProgress);
+            $('.selected-employee-late').text("Late: " + totalLate);
+            $('.selected-employee-finish').text("Finish: " + totalFinished);
+
+            $('.box-event').empty();
+
+            tasks.forEach(t => renderTaskBar(t));
         }
 
         return 'done-rendering';
@@ -460,8 +463,8 @@ function renderTaskListByDate(tasks) {
 
                         <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
                             ${taskIsLate ? 
-                                '<span class="status-text-late">Late</span>' : 
-                                `<span class="status-text" style="color: ${getTaskStatusTextColor(task.status)}; background-color: ${statusColor};>${task.status || 'New'}</span>`
+                                '<span class="status-late-list">Late</span>' : 
+                                `<span class="status-task-list" style="color: ${getTaskStatusTextColor(task.status)};">${task.status || 'New'}</span>`
                             }
                         </div>
 

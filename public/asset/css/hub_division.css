@@ -908,6 +908,16 @@
     border-radius: 6px;
 }
 
+.status-late-list {
+    color: #F4DCDF;
+}
+
+.status-late-list,
+.status-task-list {
+    font-size: 10px;
+    font-weight: 400;
+}
+
 .task-title-detail {
     font-size: 14px;
     font-weight: 400;
