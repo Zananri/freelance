@@ -127,33 +127,7 @@ $(document).on('click', '.division-item', function () {
     }
 });
 
-$(document).on('click', '.employee-item', function () {
-    $('.employee-item').removeClass('selected');
-    $(this).addClass('selected');
-
-    selectedEmployeeId = $(this).data('employee-id');
-
-    const employeeName = $(this).find('.employee-name').text();
-    const employeePhoto = $(this).data('employee-photo');
-    const employeeTask = $(this).data('total-task');
-    const progressTask = $(this).data('total-progress');
-    const lateTask = $(this).data('total-late');
-    const finishTask = $(this).data('total-finish');
-
-    $('.selected-employee-photo').attr('src', employeePhoto);
-    $('.selected-employee-name').text(employeeName);
-    $('.selected-employee-task').text(employeeTask);
-    $('.selected-employee-progress').text(progressTask);
-    $('.selected-employee-late').text(lateTask);
-    $('.selected-employee-finish').text(finishTask);
-
-    $('.selected-employee-info').show();
-    $('.total-status-task').show();
-
-    renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
-});
-
-async function loadEmployeeTasks(employeeId, year, month) {
+async function loadEmployeeTasks(employeeId, year, month, query='') {
     try {
         const response = await $.ajax({
             url: appUrl + "/hub_division/employee-tasks-by-month",
@@ -161,14 +135,14 @@ async function loadEmployeeTasks(employeeId, year, month) {
             data: {
                 'employee_id': employeeId,
                 'year': year,
-                'month': month
+                'month': month,
+                'query': query
             }
         });
 
         if (response.success) {
-            // Store all tasks data for search filtering
             allTasksData = response.data || [];
-            
+
             return {
                 tasks: response.data,
                 total: response.total_tasks,
@@ -177,7 +151,9 @@ async function loadEmployeeTasks(employeeId, year, month) {
                 total_finished: response.total_finished
             };
         }
-        return { tasks: [], total: 0 };
+
+        allTasksData = [];
+        return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0 };
 
     } catch (error) {
         console.error("Error loading employee tasks:", error);
@@ -239,42 +215,6 @@ function renderTaskBar(task) {
         
         // Move to next day
         currentDate.setDate(currentDate.getDate() + 1);
-    }
-}
-
-// Filter and render tasks based on search query
-function filterAndRenderTasks(searchQuery) {
-    try {
-        // Clear all existing tasks from calendar
-        $('.box-event').empty();
-        
-        if (!allTasksData || allTasksData.length === 0) {
-            return;
-        }
-        
-        // Normalize search query
-        const query = (searchQuery || '').toLowerCase().trim();
-        
-        // Filter tasks by title
-        let tasksToRender = allTasksData;
-        
-        if (query) {
-            tasksToRender = allTasksData.filter(task => {
-                const taskTitle = (task.title || '').toLowerCase();
-                return taskTitle.includes(query);
-            });
-        }
-        
-        // Render filtered tasks
-        tasksToRender.forEach(task => renderTaskBar(task));
-        
-        // If search is active and no tasks found, optionally show a message
-        if (query && tasksToRender.length === 0) {
-            console.log('No tasks found matching:', query);
-        }
-        
-    } catch (error) {
-        console.error('Error filtering tasks:', error);
     }
 }
 
@@ -378,7 +318,12 @@ async function renderEventCalendar(year, month) {
         await renderCalendar(year, month);
 
         if (selectedEmployeeId) {
-            const result = await loadEmployeeTasks(selectedEmployeeId, year, month + 1);
+            const result = await loadEmployeeTasks(
+                selectedEmployeeId,
+                year,
+                month + 1,
+                currentSearchQuery
+            );
 
             const tasks = result.tasks;
             const total = result.total;
@@ -386,21 +331,14 @@ async function renderEventCalendar(year, month) {
             const totalLate = result.total_late;
             const totalFinished = result.total_finished;
 
-            // Update panel
             $('.selected-employee-task').text("Total task: " + total);
             $('.selected-employee-progress').text("In Progress: " + totalInProgress);
             $('.selected-employee-late').text("Late: " + totalLate);
             $('.selected-employee-finish').text("Finish: " + totalFinished);
 
             $('.box-event').empty();
-            
-            // Apply search filter if there's an active search query
-            if (currentSearchQuery) {
-                filterAndRenderTasks(currentSearchQuery);
-            } else {
-                // Render all tasks
-                tasks.forEach(task => renderTaskBar(task));
-            }
+
+            tasks.forEach(t => renderTaskBar(t));
         }
 
         return 'done-rendering';
@@ -1005,7 +943,6 @@ $(document).ready(function () {
 
     $('.calendar-month').text(monthNames[currentDate.getMonth()]);
     $('.calendar-year').text(currentDate.getFullYear());
-
     renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
 
     $('.selected-employee-photo').css('background-image', '');
@@ -1044,46 +981,36 @@ $(document).ready(function () {
         $('.selected-employee-late').text(`Late: ${late}`);
         $('.selected-employee-finish').text(`Finish: ${finish}`);
 
-        // Clear search when switching employee
         currentSearchQuery = '';
         $('#search_task').val('');
 
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
     });
 
-    // Search task functionality
-    let searchTimeout = null;
-    
-    $('#search_task').on('input', function() {
-        const searchValue = $(this).val().trim();
-        
-        // Clear previous timeout
-        if (searchTimeout) {
-            clearTimeout(searchTimeout);
-        }
-        
-        // Debounce search by 300ms
-        searchTimeout = setTimeout(function() {
-            currentSearchQuery = searchValue;
-            
-            // Only filter if employee is selected
-            if (selectedEmployeeId && allTasksData.length > 0) {
-                filterAndRenderTasks(currentSearchQuery);
+    let typingTimer;
+    const STOP_DELAY = 800;
+
+    $('#search_task').on('input', function () {
+        const value = $(this).val().trim();
+
+        clearTimeout(typingTimer);
+
+        typingTimer = setTimeout(() => {
+            currentSearchQuery = value;
+
+            if (selectedEmployeeId) {
+                loadEmployeeTasks(
+                    selectedEmployeeId,
+                    currentDate.getFullYear(),
+                    currentDate.getMonth() + 1,
+                    currentSearchQuery
+                ).then(() => {
+                    renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
+                });
             }
-        }, 300);
+        }, STOP_DELAY);
     });
 
-    // Clear search button functionality (optional enhancement)
-    $('#search_task').on('keydown', function(e) {
-        if (e.key === 'Escape') {
-            $(this).val('');
-            currentSearchQuery = '';
-            
-            if (selectedEmployeeId && allTasksData.length > 0) {
-                filterAndRenderTasks('');
-            }
-        }
-    });
 });
 
 // Constants

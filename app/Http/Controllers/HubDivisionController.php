@@ -145,12 +145,7 @@ class HubDivisionController extends Controller
             $employeeId = $request->input('employee_id');
             $year = $request->input('year');
             $month = $request->input('month');
-
-            \Log::info('Hub Division - Get Tasks Request', [
-                'employee_id' => $employeeId,
-                'year' => $year,
-                'month' => $month
-            ]);
+            $query = trim($request->input('query', ''));
 
             if (!$employeeId || !$year || !$month) {
                 return response()->json([
@@ -162,59 +157,53 @@ class HubDivisionController extends Controller
             $firstDay = sprintf('%04d-%02d-01', $year, $month);
             $lastDay = date('Y-m-t', strtotime($firstDay));
 
-            \Log::info('Date range', ['firstDay' => $firstDay, 'lastDay' => $lastDay]);
-
             $taskAssignments = TaskAssignment::where('employee_id', $employeeId)
                 ->pluck('task_id');
 
-            \Log::info('Task assignments found', ['count' => $taskAssignments->count()]);
-
             $baseQuery = Task::whereIn('tasks.id', $taskAssignments)
-                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
-
-            $tasks = Task::select(
-                'tasks.id',
-                'tasks.title',
-                'tasks.status',
-                'tasks.start_date',
-                'tasks.due_date',
-                'tasks.priority'
-            )
-                ->whereIn('tasks.id', $taskAssignments)
-                ->where(function ($query) use ($firstDay, $lastDay) {
-                    $query->where(function ($q) use ($firstDay, $lastDay) {
-                        $q->whereBetween('tasks.start_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
-                            ->whereNotNull('tasks.start_date');
-                    })
-                    ->orWhere(function ($q) use ($firstDay, $lastDay) {
-                        $q->whereBetween('tasks.due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
-                            ->whereNotNull('tasks.due_date');
-                    });
-                })
                 ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                ->where(function ($q) use ($query) {
+                    if ($query !== '') {
+                        $q->where('tasks.title', 'LIKE', "%{$query}%")
+                        ->orWhere('tasks.description', 'LIKE', "%{$query}%");
+                    }
+                });
+
+            $tasks = $baseQuery->select(
+                    'tasks.id',
+                    'tasks.title',
+                    'tasks.status',
+                    'tasks.start_date',
+                    'tasks.due_date',
+                    'tasks.priority'
+                )
+                ->where(function ($q) use ($firstDay, $lastDay) {
+                    $q->whereBetween('tasks.start_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59'])
+                    ->orWhereBetween('tasks.due_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59']);
+                })
                 ->orderBy('tasks.start_date', 'asc')
                 ->get();
 
             $inProgress = (clone $baseQuery)
                 ->where(function ($q) use ($firstDay, $lastDay) {
-                    $q->whereBetween('start_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
-                    ->orWhereBetween('due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59']);
+                    $q->whereBetween('start_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59'])
+                    ->orWhereBetween('due_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59']);
                 })
                 ->whereRaw('LOWER(status) = ?', ['in_progress'])
                 ->count();
 
             $finished = (clone $baseQuery)
                 ->where(function ($q) use ($firstDay, $lastDay) {
-                    $q->whereBetween('start_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
-                    ->orWhereBetween('due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59']);
+                    $q->whereBetween('start_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59'])
+                    ->orWhereBetween('due_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59']);
                 })
                 ->whereRaw('LOWER(status) = ?', ['finished'])
                 ->count();
 
             $late = (clone $baseQuery)
                 ->where(function ($q) use ($firstDay, $lastDay) {
-                    $q->whereBetween('start_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
-                    ->orWhereBetween('due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59']);
+                    $q->whereBetween('start_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59'])
+                    ->orWhereBetween('due_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59']);
                 })
                 ->whereNotIn(DB::raw('LOWER(status)'), ['completed', 'finished'])
                 ->whereNotNull('due_date')
@@ -229,14 +218,8 @@ class HubDivisionController extends Controller
                 'total_late' => $late,
                 'data' => $tasks
             ]);
-        } catch (\Exception $e) {
-            \Log::error('Hub Division - Get Tasks Error', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
 
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching tasks: ' . $e->getMessage(),
