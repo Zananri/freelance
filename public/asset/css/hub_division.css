@@ -100,6 +100,12 @@
     cursor: pointer;
 }
 
+.text-division-user {
+    font-size: 16px;
+    font-weight: 400;
+    color: #3c404b;
+}
+
 .dropdown-division .dropdown-item:active,
 .dropdown-division .dropdown-item:hover {
     background-color: #e9eef4;
@@ -897,7 +903,7 @@
     font-size: 12px;
     color: #46505B;
     font-weight: 600;
-    background: #FECACA;
+    background: #F4DCDF;
     padding: 4px 12px;
     border-radius: 6px;
 }

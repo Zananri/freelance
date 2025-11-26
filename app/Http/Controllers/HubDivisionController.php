@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Helpers\ActivityHelper;
 use App\Models\Employee;
+use App\Models\Division;
 use App\Models\Task;
 use App\Models\TaskAssignment;
 use Illuminate\Support\Facades\DB;
@@ -58,7 +59,7 @@ class HubDivisionController extends Controller
             FROM task_assignments ta
             JOIN tasks t ON ta.task_id = t.id
             WHERE ta.employee_id = employees.id
-              AND LOWER(t.status) NOT IN ('canceled','deleted')
+            AND LOWER(t.status) NOT IN ('canceled','deleted')
         ) as tasks_count");
 
         if ($canSeeAll) {
@@ -85,7 +86,7 @@ class HubDivisionController extends Controller
                 ->orderBy('employees.name', 'asc')
                 ->get();
 
-            $divisions = \App\Models\Division::select(
+            $divisions = Division::select(
                 'divisions.id',
                 'divisions.name_division',
                 'divisions.department_id'
@@ -93,7 +94,9 @@ class HubDivisionController extends Controller
                 ->where('divisions.status', 'ACTIVE')
                 ->orderBy('divisions.name_division', 'asc')
                 ->get();
+
         } else {
+
             $employee = Employee::select(
                 'employees.id',
                 'employees.department_id',
@@ -113,19 +116,18 @@ class HubDivisionController extends Controller
                 ->join('divisions', 'employees.division_id', '=', 'divisions.id')
                 ->where('employees.status', "ACTIVE")
                 ->where('users.user_type', '<>', "ADMINISTRATOR")
-                ->where('employees.department_id', $currentEmployee->department_id)
+                ->where('employees.division_id', $currentEmployee->division_id)
                 ->orderBy('divisions.name_division', 'asc')
                 ->orderBy('employees.name', 'asc')
                 ->get();
 
-            $divisions = \App\Models\Division::select(
+            $divisions = Division::select(
                 'divisions.id',
                 'divisions.name_division',
                 'divisions.department_id'
             )
-                ->where('divisions.department_id', $currentEmployee->department_id)
+                ->where('divisions.id', $currentEmployee->division_id)
                 ->where('divisions.status', 'ACTIVE')
-                ->orderBy('divisions.name_division', 'asc')
                 ->get();
         }
 
@@ -134,7 +136,8 @@ class HubDivisionController extends Controller
             [
                 'employee' => $employee,
                 'current_employee' => $currentEmployee,
-                'divisions' => $divisions
+                'divisions' => $divisions,
+                'canSeeAll' => $canSeeAll
             ]
         );
     }

@@ -183,7 +183,7 @@ function renderTaskBar(task) {
     
     const taskIsLate = isTaskLate(task);
     
-    const backgroundColor = taskIsLate ? '#FECACA' : getTaskStatusColor(task.status);
+    const backgroundColor = taskIsLate ? '#F4DCDF' : getTaskStatusColor(task.status);
     const textColor = taskIsLate ? '#46505B' : '#46505B';
     
     // Loop through all dates from start to end
