@@ -405,12 +405,10 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
 
         if (employeePhoto) {
             $("#taskModalDate .selected-employee-photo")
-                .attr("src", employeePhoto);
+                .attr("src", employeePhoto)
+                .removeClass("d-none");
         } else {
-            $("#taskModalDate .selected-employee-photo")
-            .style({
-                backgroundColor: "#444",
-            });
+            $("#taskModalDate .selected-employee-photo").addClass("d-none");
         }
 
         renderTaskListByDate(tasks);
@@ -947,38 +945,53 @@ $('#taskDetailModal').on('hidden.bs.modal', function () {
 });
 
 $(document).ready(function () {
-    const monthNames = ["January", "February", "March", "April", "May", "June",
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ];
+
     $('.calendar-month').text(monthNames[currentDate.getMonth()]);
     $('.calendar-year').text(currentDate.getFullYear());
 
-    // Render kalender kosong saat halaman dimuat
     renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
 
-    $(document).on('click', '.employee-item', function () {
-        const $this = $(this);
-        const name = $this.find('.employee-info > div').first().text().trim();
-        const photo = $this.data('employee-photo') || '';
-        const totalTask = $this.data('total-task') ?? 0;
-        const totalProgress = $this.data('total-progress') ?? 0;
-        const totalLate = $this.data('total-late') ?? 0;
-        const totalFinish = $this.data('total-finish') ?? 0;
+    $('.selected-employee-photo').css('background-image', '');
+    $('.selected-employee-name').text('Please select employee');
+    $('.selected-employee-task').text('Total task: 0');
+    $('.selected-employee-progress').text('In Progress: 0');
+    $('.selected-employee-late').text('Late: 0');
+    $('.selected-employee-finish').text('Finish: 0');
+    $('.selected-employee-info').removeClass('d-none');
+    $('.total-status-task').removeClass('d-none');
 
-        $('.selected-employee-name').text(name);
-        $('.selected-employee-task').text('Total task: ' + totalTask);
-        $('.selected-employee-progress').text('In Progress: ' + totalProgress);
-        $('.selected-employee-late').text('Late: ' + totalLate);
-        $('.selected-employee-finish').text('Finish: ' + totalFinish);
+    $(document).on('click', '.employee-item', function () {
+        const $emp = $(this);
+
+        $('.employee-item').removeClass('selected');
+        $emp.addClass('selected');
+
+        selectedEmployeeId = $emp.data('employee-id');
+
+        const name = $emp.find('.employee-name').text().trim();
+        const photo = $emp.data('employee-photo') || '';
+        const task = Number($emp.data('task')) || 0;
+        const progress = Number($emp.data('progress')) || 0;
+        const late = Number($emp.data('late')) || 0;
+        const finish = Number($emp.data('finish')) || 0;
 
         if (photo) {
-            $('.selected-employee-photo').attr('src', photo).removeClass('d-none');
+            $('.selected-employee-photo').css('background-image', `url('${photo}')`);
         } else {
-            $('.selected-employee-photo').addClass('d-none');
+            $('.selected-employee-photo').css('background-image', '');
         }
 
-        // $('.selected-employee-info').removeClass('d-none');
-        $('.total-status-task').removeClass('d-none');
+        $('.selected-employee-name').text(name);
+        $('.selected-employee-task').text(`Total task: ${task}`);
+        $('.selected-employee-progress').text(`In Progress: ${progress}`);
+        $('.selected-employee-late').text(`Late: ${late}`);
+        $('.selected-employee-finish').text(`Finish: ${finish}`);
+
+        renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
     });
 });
 

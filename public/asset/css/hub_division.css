@@ -81,7 +81,7 @@
 
 .employee-list {
     margin: 0;
-    
+
 }
 
 .employee-item {
@@ -156,7 +156,9 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    object-fit: cover;
+    background: #ccc;
+    background-size: cover;
+    background-position: center;
 }
 
 .selected-employee-name {

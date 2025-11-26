@@ -80,7 +80,7 @@
 
                         <div class="selected-employee-info">
                             <div class="d-flex align-items-center gap-2">
-                                <img src="" class="selected-employee-photo d-none me-2">
+                                <div class="selected-employee-photo me-2"></div>
                                 <span class="selected-employee-name"></span>
                             </div>
 
