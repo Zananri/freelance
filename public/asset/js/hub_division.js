@@ -148,17 +148,6 @@ $(document).on('click', '.employee-item', function () {
     $('.selected-employee-info').show();
     $('.total-status-task').show();
 
-    $('.calendar-placeholder').hide();
-    $('.table-calendar').show();
-
-    const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ];
-
-    $('.calendar-month').text(monthNames[currentDate.getMonth()]);
-    $('.calendar-year').text(currentDate.getFullYear());
-
     renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
 });
 
@@ -294,9 +283,11 @@ $('.calendar-prev-month').click(function () {
     $('.calendar-month').text(monthNames[currentDate.getMonth()]);
     $('.calendar-year').text(currentDate.getFullYear());
 
-    // Reload calendar if employee is selected
+    // Reload calendar (with or without employee tasks)
     if (selectedEmployeeId) {
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    } else {
+        renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
     }
 });
 
@@ -309,9 +300,11 @@ $('.calendar-next-month').click(function () {
     $('.calendar-month').text(monthNames[currentDate.getMonth()]);
     $('.calendar-year').text(currentDate.getFullYear());
 
-    // Reload calendar if employee is selected
+    // Reload calendar (with or without employee tasks)
     if (selectedEmployeeId) {
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    } else {
+        renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
     }
 });
 
@@ -326,9 +319,11 @@ $(document).on('click', '.month-item', function () {
     $('.calendar-month').text(monthNames[currentDate.getMonth()]);
     $('.calendar-year').text(currentDate.getFullYear());
 
-    // Reload calendar if employee is selected
+    // Reload calendar (with or without employee tasks)
     if (selectedEmployeeId) {
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    } else {
+        renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
     }
 });
 
@@ -955,6 +950,9 @@ $(document).ready(function () {
     ];
     $('.calendar-month').text(monthNames[currentDate.getMonth()]);
     $('.calendar-year').text(currentDate.getFullYear());
+
+    // Render kalender kosong saat halaman dimuat
+    renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
 
     $(document).on('click', '.employee-item', function () {
         const $this = $(this);

@@ -127,12 +127,7 @@
                 </div>
 
                 <div class="box-table-calendar">
-                    <div class="calendar-placeholder text-center py-5" style="color: #797E91;">
-                        <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.3;">person_search</span>
-                        <p class="mt-2" style="font-size: 14px;">Select an employee to view their tasks</p>
-                    </div>
-
-                    <table class="table-calendar scrollbar-transparent" style="display: none;">
+                    <table class="table-calendar scrollbar-transparent">
                         <thead>
                             <tr>
                                 <th>Sun</th>
