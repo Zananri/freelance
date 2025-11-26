@@ -23,23 +23,32 @@
         <div class="row">
             <div class="employee-card-content overflow-hidden">
                 <div class="header-employe-card">
-                    <div class="dropdown dropdown-division">
-                        <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span class="selected-division-text">All Division</span>
-                        </button>
 
-                        <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                            <li class="dropdown-item division-item" data-division-id="all">
-                                All Division
-                            </li>
-                            @foreach ($divisions as $division)
-                                <li class="dropdown-item division-item" data-division-id="{{ $division->id }}">
-                                    {{ $division->name_division }}
+                    @if($canSeeAll)
+                        <div class="dropdown dropdown-division">
+                            <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="selected-division-text">All Division</span>
+                            </button>
+
+                            <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                                <li class="dropdown-item division-item" data-division-id="all">
+                                    All Division
                                 </li>
-                            @endforeach
-                        </ul>
-                    </div>
+                                @foreach ($divisions as $division)
+                                    <li class="dropdown-item division-item" data-division-id="{{ $division->id }}">
+                                        {{ $division->name_division }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @else
+                        <div class="text-division-user">
+                            {{ $current_employee->division->name_division ?? 'Unknown Division' }}
+                        </div>
+                    @endif
+
                 </div>
+
                 <div class="header-barier"></div>
                 <div class="employee-list scrollbar-transparent">
                     @foreach ($employee as $emp)
