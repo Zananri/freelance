@@ -10,6 +10,24 @@
     justify-content: center;
 }
 
+.search-icon {
+    font-size: 14px;
+}
+
+.search-input-custom {
+    font-size: 10px;
+    font-weight: 400;
+    background: transparent;
+}
+
+.search-input-custom:focus,
+.search-input-custom:active,
+.search-input-custom:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
 .calendar-container.row {
     display: flex;
     align-items: flex-start;

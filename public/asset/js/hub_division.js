@@ -140,10 +140,10 @@ $(document).on('click', '.employee-item', function () {
 
     $('.selected-employee-photo').attr('src', employeePhoto);
     $('.selected-employee-name').text(employeeName);
-    $('.selected-employee-task').text(employeeTask + " total tasks");
-    $('.selected-employee-progress').text(progressTask + " total tasks");
-    $('.selected-employee-late').text(lateTask + " total tasks");
-    $('.selected-employee-finish').text(finishTask + " total tasks");
+    $('.selected-employee-task').text(employeeTask);
+    $('.selected-employee-progress').text(progressTask);
+    $('.selected-employee-late').text(lateTask);
+    $('.selected-employee-finish').text(finishTask);
 
     $('.selected-employee-info').show();
     $('.total-status-task').show();
@@ -341,7 +341,7 @@ async function renderEventCalendar(year, month) {
             const totalFinished = result.total_finished;
 
             // Update panel
-            $('.selected-employee-task').text(total + " total tasks");
+            $('.selected-employee-task').text("Total task: " + total);
             $('.selected-employee-progress').text("In Progress: " + totalInProgress);
             $('.selected-employee-late').text("Late: " + totalLate);
             $('.selected-employee-finish').text("Finish: " + totalFinished);

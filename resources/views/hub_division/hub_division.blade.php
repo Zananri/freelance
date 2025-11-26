@@ -84,8 +84,9 @@
                                 <span class="selected-employee-name"></span>
                             </div>
 
-                            <div class="mt-2">
-                                <small class="selected-employee-task"></small>
+                            <div class="d-flex mt-3">
+                                <span class="material-symbols-outlined search-icon">search</span>
+                                <input type="text" class="search-input-custom border-0 ms-3" id="search_task" placeholder="search task...">
                             </div>
                         </div>
 
@@ -118,6 +119,7 @@
                             </div>
 
                             <div class="d-flex justify-content-end gap-4 total-status-task mt-2 me-3">
+                                <small class="selected-employee-task">Total task :</small>
                                 <small class="selected-employee-progress">Progress :</small>
                                 <small class="selected-employee-late">Late :</small>
                                 <small class="selected-employee-finish">Finish :</small>
