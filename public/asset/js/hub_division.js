@@ -405,10 +405,12 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
 
         if (employeePhoto) {
             $("#taskModalDate .selected-employee-photo")
-                .attr("src", employeePhoto)
-                .removeClass("d-none");
+                .attr("src", employeePhoto);
         } else {
-            $("#taskModalDate .selected-employee-photo").addClass("d-none");
+            $("#taskModalDate .selected-employee-photo")
+            .style({
+                backgroundColor: "#444",
+            });
         }
 
         renderTaskListByDate(tasks);
@@ -975,7 +977,7 @@ $(document).ready(function () {
             $('.selected-employee-photo').addClass('d-none');
         }
 
-        $('.selected-employee-info').removeClass('d-none');
+        // $('.selected-employee-info').removeClass('d-none');
         $('.total-status-task').removeClass('d-none');
     });
 });

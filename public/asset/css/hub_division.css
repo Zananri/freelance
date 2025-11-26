@@ -81,8 +81,7 @@
 
 .employee-list {
     margin: 0;
-    overflow-y: auto;
-    max-height: 175px;
+    
 }
 
 .employee-item {
