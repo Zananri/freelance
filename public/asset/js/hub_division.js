@@ -133,10 +133,10 @@ async function loadEmployeeTasks(employeeId, year, month, query='') {
             url: appUrl + "/hub_division/employee-tasks-by-month",
             type: "GET",
             data: {
-                'employee_id': employeeId,
-                'year': year,
-                'month': month,
-                'query': query
+                employee_id: employeeId,
+                year: year,
+                month: month,
+                query: query
             }
         });
 
@@ -154,7 +154,6 @@ async function loadEmployeeTasks(employeeId, year, month, query='') {
 
         allTasksData = [];
         return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0 };
-
     } catch (error) {
         console.error("Error loading employee tasks:", error);
         allTasksData = [];
@@ -313,38 +312,47 @@ $(document).on('click', '.month-item', function () {
     }
 });
 
+function showCalendarLoading() {
+    $('.box-loader').removeClass('d-none');
+}
+
+function hideCalendarLoading() {
+    $('.box-loader').addClass('d-none');
+}
+
 async function renderEventCalendar(year, month) {
+    if (!selectedEmployeeId) {
+        await renderCalendar(year, month);
+        return;
+    }
+
+    showCalendarLoading();
+
     try {
         await renderCalendar(year, month);
 
-        if (selectedEmployeeId) {
-            const result = await loadEmployeeTasks(
-                selectedEmployeeId,
-                year,
-                month + 1,
-                currentSearchQuery
-            );
+        const result = await loadEmployeeTasks(selectedEmployeeId, year, month + 1);
+        const { tasks, total, total_in_progress, total_late, total_finished } = result;
 
-            const tasks = result.tasks;
-            const total = result.total;
-            const totalInProgress = result.total_in_progress;
-            const totalLate = result.total_late;
-            const totalFinished = result.total_finished;
+        $('.selected-employee-task').text("Total task: " + total);
+        $('.selected-employee-progress').text("In Progress: " + total_in_progress);
+        $('.selected-employee-late').text("Late: " + total_late);
+        $('.selected-employee-finish').text("Finish: " + total_finished);
 
-            $('.selected-employee-task').text("Total task: " + total);
-            $('.selected-employee-progress').text("In Progress: " + totalInProgress);
-            $('.selected-employee-late').text("Late: " + totalLate);
-            $('.selected-employee-finish').text("Finish: " + totalFinished);
+        $('.box-event').empty();
 
-            $('.box-event').empty();
-
-            tasks.forEach(t => renderTaskBar(t));
+        if (currentSearchQuery) {
+            filterAndRenderTasks(currentSearchQuery);
+        } else {
+            tasks.forEach(task => renderTaskBar(task));
         }
 
         return 'done-rendering';
     } catch (error) {
-        console.error("Error fetching or processing data:", error);
+        console.error(error);
         return 'error-rendering';
+    } finally {
+        hideCalendarLoading();
     }
 }
 
