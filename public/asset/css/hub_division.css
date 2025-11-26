@@ -442,6 +442,13 @@
     color: #777;
 }
 
+#taskDetailModal .task-detail-description {
+    margin-bottom: 0 !important;
+}
+#taskDetailModal .task-detail-description p {
+    margin-bottom: 0 !important;
+}
+
 /* Feedback Modal Styles */
 .feedback-modal-dialog {
     max-width: 480px;
