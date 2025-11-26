@@ -478,7 +478,7 @@ function renderTaskListByDate(tasks) {
                 </div>
                 
                 <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center gap-2">
                         <span style="color: #797E91; text-align: start; font-size: 8px; font-weight: 600;">
                             Priority:&nbsp;
                         </span>
@@ -862,7 +862,7 @@ function handleTaskDetail(taskId) {
                     </div>
                     <div class="px-4 task-detail-description" style="font-size: 12px; margin-bottom: 0;">${t.description || ""}</div>
                     <div class="d-flex justify-content-between px-4 py-2" style="font-size:12px;">
-                        <div class="d-flex align-items-center" style="min-width:120px;">
+                        <div class="d-flex align-items-center gap-2" style="min-width:120px;">
                             <span style="font-size: 8px; font-weight:600; color:#797E91;">Priority:&nbsp;</span>
                             <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}; font-size:8px; font-weight:400;">${t.priority}</span>
                         </div>
