@@ -400,12 +400,7 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
         const tasks = response.data || [];
         const totalTasks = tasks.length;
 
-        const formattedDate = new Date(date).toLocaleDateString("en-US", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric"
-        });
+        const formattedDate = formatDateENFull(new Date(date));
 
         $(".selected-task-date").text(formattedDate);
         $(".selected-total-task").text("Total task " + totalTasks);
