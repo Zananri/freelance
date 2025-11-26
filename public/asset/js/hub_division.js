@@ -8,17 +8,64 @@ function getTaskStatusColor(status) {
     const statusLower = (status || '').toLowerCase();
 
     if (statusLower.includes('request') || statusLower === 'new') {
-        return '#f2e2e4';
+        return '#E5E7EB';
     } else if (statusLower.includes('progress')) {
-        return '#f5efce';
+        return '#FEF3C7';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
-        return '#F2E2E4';
+        return '#FEEAE8';
+    } else if (statusLower.includes('late')) {
+        return '#FECACA';
     } else if (statusLower.includes('complete')) {
-        return '#DCF2E2';
+        return '#DEF5E5';
     } else if (statusLower.includes('finish')) {
-        return '#DCE5F2';
+        return '#DEEBF5';
     } else {
-        return '#dde4e8';
+        return '#F3F4F6';
+    }
+}
+
+function getTaskStatusTextColor(status) {
+    const statusLower = (status || '').toLowerCase();
+
+    if (statusLower.includes('request') || statusLower === 'new') {
+        return '#4B5563';
+    } else if (statusLower.includes('progress')) {
+        return '#D97706';
+    } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
+        return '#DC2626';
+    } else if (statusLower.includes('late')) {
+        return '#DC2626';
+    } else if (statusLower.includes('complete')) {
+        return '#1EB978';
+    } else if (statusLower.includes('finish')) {
+        return '#1799DE';
+    } else {
+        return '#6B7280';
+    }
+}
+
+function isTaskLate(task) {
+    try {
+        const statusLower = (task.status || '').toLowerCase();
+        
+        // Jika sudah completed atau finished, tidak dianggap late
+        if (statusLower.includes('complete') || statusLower.includes('finish')) {
+            return false;
+        }
+        
+        // Check if task has due_date
+        if (!task.due_date) {
+            return false;
+        }
+        
+        // Parse due_date
+        const dueDate = new Date(task.due_date);
+        const now = new Date();
+        
+        // Task is late if due_date has passed
+        return dueDate < now;
+    } catch (e) {
+        return false;
     }
 }
 
@@ -147,25 +194,55 @@ async function loadEmployeeTasks(employeeId, year, month) {
 // Render task bar on calendar
 function renderTaskBar(task) {
     const startDate = task.start_date;
+    const dueDate = task.due_date;
+    
     if (!startDate) return;
-
-    const dateStr = startDate.split(' ')[0]; // Get date part only
-    const $dayCell = $(`.calendar-day[data-calendar-date="${dateStr}"]`);
-
-    if ($dayCell.length > 0) {
-        const $boxEvent = $dayCell.find('.box-event');
-        const backgroundColor = getTaskStatusColor(task.status);
-
-        const taskHtml = `
-            <div class="text-event" 
-                 style="background-color: ${backgroundColor};" 
-                 data-task-id="${task.id}"
-                 title="${task.title}">
-                ${task.title}
-            </div>
-        `;
-
-        $boxEvent.append(taskHtml);
+    
+    const startDateStr = startDate.split(' ')[0];
+    const start = new Date(startDateStr);
+    
+    let end = start;
+    if (dueDate) {
+        const dueDateStr = dueDate.split(' ')[0];
+        end = new Date(dueDateStr);
+    }
+    
+    if (start > end) {
+        end = start;
+    }
+    
+    const taskIsLate = isTaskLate(task);
+    
+    const backgroundColor = taskIsLate ? '#FECACA' : getTaskStatusColor(task.status);
+    const textColor = taskIsLate ? '#DC2626' : '#333333';
+    
+    // Loop through all dates from start to end
+    let currentDate = new Date(start);
+    while (currentDate <= end) {
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        
+        const $dayCell = $(`.calendar-day[data-calendar-date="${dateStr}"]`);
+        
+        if ($dayCell.length > 0) {
+            const $boxEvent = $dayCell.find('.box-event');
+            
+            const taskHtml = `
+                <div class="text-event" 
+                     style="background-color: ${backgroundColor}; color: ${textColor};" 
+                     data-task-id="${task.id}"
+                     title="${task.title}">
+                    ${task.title}
+                </div>
+            `;
+            
+            $boxEvent.append(taskHtml);
+        }
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
     }
 }
 
@@ -287,21 +364,20 @@ async function renderEventCalendar(year, month) {
 
 $(document).on("click", ".calendar-day", function () {
     const clickedDate = $(this).data("calendar-date");
-    
+    if (!clickedDate || !selectedEmployeeId) return;
+
+    $(".calendar-day").removeClass("selected-date");
     $(this).addClass("selected-date");
 
-    if (!clickedDate || !selectedEmployeeId) {
-        return;
-    }
+    const dateObj = new Date(clickedDate);
+    const formattedDate = dateObj.toISOString().split("T")[0];
 
-    // Get employee info
-    const selectedEmployeeItem = $(`.employee-item[data-employee-id="${selectedEmployeeId}"]`);
-    const employeeName = selectedEmployeeItem.find('.employee-name').text();
-    const employeeJob = selectedEmployeeItem.find('.employee-job').text();
-    const employeePhoto = selectedEmployeeItem.data('employee-photo');
+    const emp = $(`.employee-item[data-employee-id="${selectedEmployeeId}"]`);
+    const employeeName = emp.find('.employee-name').text();
+    const employeeJob = emp.find('.employee-job').text();
+    const employeePhoto = emp.data('employee-photo');
 
-    // Load tasks for this date
-    loadTasksForDate(clickedDate, selectedEmployeeId, employeeName, employeeJob, employeePhoto);
+    loadTasksForDate(formattedDate, selectedEmployeeId, employeeName, employeeJob, employeePhoto);
 });
 
 async function loadTasksForDate(date, employeeId, employeeName, employeeJob, employeePhoto) {
@@ -310,57 +386,43 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
             url: appUrl + "/hub_division/employee-tasks-by-date",
             type: "GET",
             data: {
-                'employee_id': employeeId,
-                'date': date
+                employee_id: employeeId,
+                date: date
             },
-            dataType: 'json'
+            dataType: "json"
         });
 
-        if (response.success) {
-
-            const tasks = response.data || [];
-            const totalTasks = tasks.length;
-
-            // Format date
-            const dateObj = new Date(date);
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const formattedDate = dateObj.toLocaleDateString('en-US', options);
-
-            // Update modal header
-            $(".selected-task-date").text(formattedDate);
-            $(".selected-total-task").text("Total task " + totalTasks);
-
-            // Update employee info in modal
-            $("#taskModalDate .selected-employee-name").text(employeeName);
-            $("#taskModalDate .selected-employee-task").text(employeeJob || "Division");
-
-            if (employeePhoto) {
-                $("#taskModalDate .selected-employee-photo").attr("src", employeePhoto).removeClass("d-none");
-            } else {
-                $("#taskModalDate .selected-employee-photo").addClass("d-none");
-            }
-
-            // Render task list
-            renderTaskListByDate(tasks);
-
-            // Show modal
-            $("#taskModalDate").modal("show");
-        } else {
-            console.error("Response not successful:", response);
+        if (!response.success) {
             showFloatingAlert(response.message || "Failed to load tasks", "danger", 3000);
+            return;
         }
 
-    } catch (error) {
-        console.error("Error loading tasks for date:", error);
+        const tasks = response.data || [];
+        const totalTasks = tasks.length;
 
-        let errorMsg = "Failed to load tasks";
-        if (error.responseJSON && error.responseJSON.message) {
-            errorMsg = error.responseJSON.message;
-        } else if (error.statusText) {
-            errorMsg = "Failed to load tasks: " + error.statusText;
+        const formattedDate = formatDateENFull(new Date(date));
+
+        $(".selected-task-date").text(formattedDate);
+        $(".selected-total-task").text("Total task " + totalTasks);
+
+        $("#taskModalDate .selected-employee-name").text(employeeName);
+        $("#taskModalDate .selected-employee-task").text(employeeJob || "Division");
+
+        if (employeePhoto) {
+            $("#taskModalDate .selected-employee-photo")
+                .attr("src", employeePhoto)
+                .removeClass("d-none");
+        } else {
+            $("#taskModalDate .selected-employee-photo").addClass("d-none");
         }
 
-        showFloatingAlert(errorMsg, "danger", 3000);
+        renderTaskListByDate(tasks);
+
+        $("#taskModalDate").modal("show");
+
+    } catch (err) {
+        console.error("Error loadTasksForDate:", err);
+        showFloatingAlert("Failed to load tasks", "danger", 3000);
     }
 }
 
@@ -381,6 +443,7 @@ function renderTaskListByDate(tasks) {
     tasks.forEach(task => {
         const statusColor = getTaskStatusColor(task.status);
         const statusLower = (task.status || '').toLowerCase();
+        const taskIsLate = isTaskLate(task);
 
         // Parse priority color
         let priorityColor = '#4B4F5E';
@@ -394,16 +457,19 @@ function renderTaskListByDate(tasks) {
         }
 
         const taskHtml = `
-            <div class="task-item-date mb-3 p-3 rounded-3" data-task-id="${task.id}">
+            <div class="task-item-date mb-3 p-3" data-task-id="${task.id}">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
-                        <h6 class="mb-0" style="font-size: 12px; font-weight: 500; color: #3B3D42;">
+                        <h6 class="mb-2" style="font-size: 12px; font-weight: 500; color: #3B3D42;">
                             ${task.title || '-'}
                         </h6>
 
-                        <span style="display: block; margin-top: 2px; color: ${statusColor}; font-size: 10px; font-weight: 400;">
-                            ${task.status || 'New'}
-                        </span>
+                        <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
+                            ${taskIsLate ? 
+                                '<span style="display: inline-block; color: #DC2626; background-color: #FECACA; font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 5px;">Late</span>' : 
+                                `<span style="display: inline-block; color: ${getTaskStatusTextColor(task.status)}; background-color: ${statusColor}; font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 5px;">${task.status || 'New'}</span>`
+                            }
+                        </div>
 
                         <p class="text-muted" style="font-size: 12px; font-weight: 400; color: #4C5060; line-height: 1.5;">
                             ${task.description ? (task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description) : ''}
@@ -412,7 +478,7 @@ function renderTaskListByDate(tasks) {
                 </div>
                 
                 <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center gap-2">
                         <span style="color: #797E91; text-align: start; font-size: 8px; font-weight: 600;">
                             Priority:&nbsp;
                         </span>
@@ -484,6 +550,7 @@ function handleTaskDetail(taskId) {
         const statusColor = getTaskStatusColor(t.status);
         const statusLower = (String(t.status || '').toLowerCase());
         const statusText = t.status ? (String(t.status).charAt(0).toUpperCase() + String(t.status).slice(1)) : '';
+        const taskIsLate = isTaskLate(t);
 
         const avatar = img
             ? `<img src="${img}" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.src='${appUrl}/asset/img/avatar.png'">`
@@ -719,27 +786,29 @@ function handleTaskDetail(taskId) {
         let statusLogs = '';
         if (statusChanges.length) {
             statusLogs = `
-                <div class="status-timeline position-relative mt-3 mb-3" style="padding-left:110px;">
-                    <div style="position:absolute; left:93px; top:0; bottom:0; width:3px; background:#FFFFFF;"></div>
-                    ${statusChanges.map((s, index) => {
-                const dateLabel = formatDateENMedium(s.updated_at || s.changed_at || '');
-                const label = escapeHtml(s.label || '');
-                const emp = escapeHtml(s.employee_name || '');
-                return `
-                            <div class="status-row d-flex align-items-start mb-3" style="position:relative; padding-left:20px;">
-                                <div class="date-label" style="position:absolute; left:-110px; width:80px; text-align:right; font-size:10px; color:#6B7280; font-weight:400; line-height:1.5; padding-right:15px; top:2px;">${dateLabel}</div>
+                <div class="status-timeline mt-3 mb-3">
+                    ${statusChanges.map((s) => {
+                        const dateLabel = formatDateENMedium(s.updated_at || s.changed_at || '');
+                        const label = escapeHtml(s.label || '');
+                        const emp = escapeHtml(s.employee_name || '');
 
-                                <div style="position:relative; width:100%;">
-                                    <div style="position:absolute; left:-40px; top:13px; width:9px; height:9px; background:#fff; border-radius:50%; z-index:2;"></div>
+                        return `
+                            <div class="timeline-row">
+                                <div class="timeline-date">${dateLabel}</div>
 
-                                    <div class="status-content p-2 px-3" style="background: #F9FAFB; font-size:12px; border-radius: 8px; min-height:28px; display:inline-flex; align-items:center;">
-                                        <span style="font-size:12px; color:#6B7280;">${label}</span>
-                                        <span style="font-weight:500; color:#374151;">&nbsp;${emp}</span>
+                                <div class="timeline-line">
+                                    <div class="timeline-dot"></div>
+                                </div>
+
+                                <div class="timeline-content">
+                                    <div class="status-content">
+                                        <span class="status-label">${label}</span>
+                                        <span class="status-emp">${emp}</span>
                                     </div>
                                 </div>
                             </div>
                         `;
-            }).join('')}
+                    }).join('')}
                 </div>
             `;
         }
@@ -775,8 +844,8 @@ function handleTaskDetail(taskId) {
         `;
 
         const html = `
-            <div class="custom-card rounded-4 p-3 border-0" data-task-id="${t.id}">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="rounded-4 border-0" data-task-id="${t.id}">
+                    <div class="d-flex justify-content-between align-items-start px-4 py-3">
                         <div class="d-flex align-items-center task-card-header">
                             ${avatar}
                             <div>
@@ -785,16 +854,24 @@ function handleTaskDetail(taskId) {
                             </div>
                         </div>
                         <div class="mt-2 mx-2 d-flex align-items-center" tabindex="0" style="gap:8px;">
-                            <span class="status-text" style="font-size:12px;color:${statusColor};font-weight:600;">${escapeHtml(statusText)}</span>
+                            ${taskIsLate ? 
+                                '<span class="status-text" style="font-size:12px;color:#DC2626;font-weight:600;background-color:#FECACA;padding:4px 12px;border-radius:6px;">Late</span>' : 
+                                `<span class="status-text" style="font-size:12px;color:${getTaskStatusTextColor(t.status)};font-weight:600;background-color:${statusColor};padding:4px 12px;border-radius:6px;">${escapeHtml(statusText)}</span>`
+                            }
                         </div>
                     </div>
-                    <div class="mt-3" style="font-size: 12px;">${t.description || ""}</div>
-                    <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                        <div class="d-flex justify-content-start gap-3">
-                            <span style="font-size: 8px;">Priority: <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${t.priority}</span></span>
-                            <span style="font-size: 8px;">Deadline: ${formatDateENMedium(t.due_date)}</span>
+                    <div class="px-4 task-detail-description" style="font-size: 12px; margin-bottom: 0;">${t.description || ""}</div>
+                    <div class="d-flex justify-content-between px-4 py-2" style="font-size:12px;">
+                        <div class="d-flex align-items-center gap-2" style="min-width:120px;">
+                            <span style="font-size: 8px; font-weight:600; color:#797E91;">Priority:&nbsp;</span>
+                            <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}; font-size:8px; font-weight:400;">${t.priority}</span>
                         </div>
-                        <div class="d-flex justify-content-end align-items-start gap-3">
+
+                        <div class="d-flex justify-content-center align-items-center flex-grow-1">
+                            <span style="font-size: 8px; color: #4B4F5E; text-align: center;">${t.start_date ? formatDateENMedium(t.start_date) : '-'} - ${t.due_date ? formatDateENMedium(t.due_date) : '-'}</span>
+                        </div>
+
+                        <div class="d-flex justify-content-end align-items-start gap-3" style="min-width:120px;">
                             ${(statusLower.includes('finish') || statusLower.includes('complete')) ? `
                                 <div class="d-flex align-items-center">
                                     <button class="btn btn-sm p-0 m-0 border-0" data-bs-target="#completeContent" data-bs-toggle="collapse">
@@ -809,9 +886,11 @@ function handleTaskDetail(taskId) {
                         </div>
                     </div>
                     
-                    <div style="border-bottom: solid 3px #DEDFE7;"></div>
-                
-                <div class="scrollable-content scrollbar-transparent">
+                    <div class="px-4">
+                        <div style="border-bottom: solid 3px #DEDFE7;"></div>
+                    </div>
+
+                <div class="scrollable-content scrollbar-transparent px-4 py-3">
                     <div class="collapse" id="completeContent">
                         ${completeContentHtml}
                     </div>
@@ -848,15 +927,26 @@ function handleTaskDetail(taskId) {
     });
 }
 
-$(document).on('click', '.text-event', function (e) {
+let openedFromTaskItemDate = false;
+
+$(document).on('click', '.text-event, .task-item-date', function (e) {
     e.stopPropagation();
     e.preventDefault();
 
     const taskId = $(this).data('task-id');
     if (!taskId) return;
 
+    openedFromTaskItemDate = $(this).hasClass('task-item-date');
+
     try { $('#taskModalDate').modal('hide'); } catch (_) { }
     handleTaskDetail(taskId);
+});
+
+$('#taskDetailModal').on('hidden.bs.modal', function () {
+    if (openedFromTaskItemDate) {
+        openedFromTaskItemDate = false;
+        $('#taskModalDate').modal('show');
+    }
 });
 
 $(document).ready(function () {
@@ -874,10 +964,6 @@ $(document).ready(function () {
         const totalProgress = $this.data('total-progress') ?? 0;
         const totalLate = $this.data('total-late') ?? 0;
         const totalFinish = $this.data('total-finish') ?? 0;
-
-        console.log(totalProgress);
-        console.log(totalLate);
-        console.log(totalFinish);
 
         $('.selected-employee-name').text(name);
         $('.selected-employee-task').text('Total task: ' + totalTask);

@@ -258,9 +258,6 @@ class HubDivisionController extends Controller
                 ], 400);
             }
 
-            $dateStart = $date . ' 00:00:00';
-            $dateEnd   = $date . ' 23:59:59';
-
             $taskAssignments = TaskAssignment::where('employee_id', $employeeId)
                 ->pluck('task_id');
 
@@ -268,55 +265,41 @@ class HubDivisionController extends Controller
                 ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
 
             $tasks = $baseQuery->select(
-                'tasks.id',
-                'tasks.title',
-                'tasks.description',
-                'tasks.status',
-                'tasks.start_date',
-                'tasks.due_date',
-                'tasks.priority',
-                'tasks.project_id'
-            )
+                    'tasks.id',
+                    'tasks.title',
+                    'tasks.description',
+                    'tasks.status',
+                    'tasks.start_date',
+                    'tasks.due_date',
+                    'tasks.priority',
+                    'tasks.project_id'
+                )
                 ->with([
                     'project:id,title,department_id,division_id',
                     'project.department:id,name_department',
                     'project.division:id,name_division'
                 ])
-                ->where(function ($query) use ($dateStart, $dateEnd) {
-                    $query->where(function ($q) use ($dateStart, $dateEnd) {
-                        $q->whereBetween('tasks.start_date', [$dateStart, $dateEnd])
-                            ->whereNotNull('tasks.start_date');
-                    })
-                    ->orWhere(function ($q) use ($dateStart, $dateEnd) {
-                        $q->whereBetween('tasks.due_date', [$dateStart, $dateEnd])
-                            ->whereNotNull('tasks.due_date');
-                    });
-                })
+                ->whereDate('tasks.start_date', '<=', $date)
+                ->whereDate('tasks.due_date', '>=', $date)
                 ->orderBy('tasks.priority', 'desc')
                 ->orderBy('tasks.start_date', 'asc')
                 ->get();
 
             $inProgress = (clone $baseQuery)
-                ->where(function ($q) use ($dateStart, $dateEnd) {
-                    $q->whereBetween('start_date', [$dateStart, $dateEnd])
-                    ->orWhereBetween('due_date', [$dateStart, $dateEnd]);
-                })
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('due_date', '>=', $date)
                 ->whereRaw('LOWER(status) = ?', ['in_progress'])
                 ->count();
 
             $finished = (clone $baseQuery)
-                ->where(function ($q) use ($dateStart, $dateEnd) {
-                    $q->whereBetween('start_date', [$dateStart, $dateEnd])
-                    ->orWhereBetween('due_date', [$dateStart, $dateEnd]);
-                })
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('due_date', '>=', $date)
                 ->whereRaw('LOWER(status) = ?', ['finished'])
                 ->count();
 
             $late = (clone $baseQuery)
-                ->where(function ($q) use ($dateStart, $dateEnd) {
-                    $q->whereBetween('start_date', [$dateStart, $dateEnd])
-                    ->orWhereBetween('due_date', [$dateStart, $dateEnd]);
-                })
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('due_date', '>=', $date)
                 ->whereNotIn(DB::raw('LOWER(status)'), ['completed', 'finished'])
                 ->whereNotNull('due_date')
                 ->where('due_date', '<', now())
@@ -330,13 +313,8 @@ class HubDivisionController extends Controller
                 'total_late' => $late,
                 'data' => $tasks
             ]);
+
         } catch (\Exception $e) {
-            \Log::error('Hub Division - Get Tasks Error', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
 
             return response()->json([
                 'success' => false,
