@@ -873,7 +873,7 @@ function handleTaskDetail(taskId) {
                         </div>
 
                         <div class="d-flex justify-content-center align-items-center flex-grow-1">
-                            <span style="font-size: 8px; color: #4B4F5E; text-align: center;">Deadline: ${formatDateENMedium(t.due_date)}</span>
+                            <span style="font-size: 8px; color: #4B4F5E; text-align: center;">${t.start_date ? formatDateENMedium(t.start_date) : '-'} - ${t.due_date ? formatDateENMedium(t.due_date) : '-'}</span>
                         </div>
 
                         <div class="d-flex justify-content-end align-items-start gap-3" style="min-width:120px;">
