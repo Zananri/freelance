@@ -462,7 +462,7 @@ function renderTaskListByDate(tasks) {
         }
 
         const taskHtml = `
-            <div class="task-item-date mb-3 p-3 rounded-3" data-task-id="${task.id}">
+            <div class="task-item-date mb-3 p-3" data-task-id="${task.id}">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
                         <h6 class="mb-0" style="font-size: 12px; font-weight: 500; color: #3B3D42;">
@@ -868,7 +868,7 @@ function handleTaskDetail(taskId) {
                     <div class="px-4" style="font-size: 12px;">${t.description || ""}</div>
                     <div class="d-flex justify-content-between px-4 py-2" style="font-size:12px;">
                         <div class="d-flex justify-content-start gap-3">
-                            <span style="font-size: 8px;">Priority: <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${t.priority}</span></span>
+                            <span style="font-size: 8px;">Priority: <span style="color:${t.priority === 'HIGH' ? 'red' : '#4B4F5E'}; margin-left: 1rem;">${t.priority}</span></span>
                             <span style="font-size: 8px;">Deadline: ${formatDateENMedium(t.due_date)}</span>
                         </div>
                         <div class="d-flex justify-content-end align-items-start gap-3">
