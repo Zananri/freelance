@@ -61,7 +61,8 @@
 
                         <div class="employee-item" data-employee-division="{{ $emp->division_id }}"
                             data-employee-id="{{ $emp->id }}" data-employee-photo="{{ $photoUrl }}"
-                            data-total-task="{{ $taskCount }}" data-total-progress="{{ $taskProgress }}" data-total-late="{{ $taskLate }}" data-total-finish="{{ $taskFinish }}">
+                            data-total-task="{{ $taskCount }}" data-total-progress="{{ $taskProgress }}"
+                            data-total-late="{{ $taskLate }}" data-total-finish="{{ $taskFinish }}">
                             <div class="employee-photo">
                                 <img src="{{ $photoUrl }}" alt="{{ $emp->name }}">
                             </div>
@@ -74,11 +75,22 @@
                 </div>
             </div>
 
-            <div class="calendar-card-content overflow-hidden">
+            <div class="calendar-card-content overflow-hidden position-relative">
                 <div class="header-calendar">
                     <div>
                         <div class="d-flex justify-content-between mb-2">
 
+                        <div class="selected-employee-info">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="selected-employee-photo me-2"></div>
+                                <span class="selected-employee-name"></span>
+                            </div>
+
+                            <div class="d-flex mt-3">
+                                <span class="material-symbols-outlined search-icon">search</span>
+                                <input type="text" class="search-input-custom border-0 ms-3" id="search_task"
+                                    placeholder="search task...">
+                                    
                             <div class="selected-employee-info">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="selected-employee-photo me-2"></div>
@@ -108,6 +120,16 @@
                                         </ul>
                                     </div>
 
+                                    <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                                        @for ($monthNum = 1; $monthNum <= 12; $monthNum++)
+                                            <li data-month="{{ $monthNum }}"
+                                                class="dropdown-item month-item fs-14">
+                                                <div class="dropdown-item fs-14">
+                                                    {{ date('F', mktime(0, 0, 0, $monthNum, 1)) }}
+                                                </div>
+                                            </li>
+                                        @endfor
+                                    </ul>
                                     <div class="box-view-control white-space-nowrap">
                                         <span class="material-symbols-outlined calendar-prev-month">chevron_left</span>
                                         <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
@@ -165,6 +187,16 @@
                             @endfor
                         </tbody>
                     </table>
+                </div>
+                <div class="box-loader d-none z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+                    <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                        <div>
+                            <div class="spinner-border opacity-50" style="width: 2.5rem; height: 2.5rem;" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="fs-10">Loading...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -270,8 +302,8 @@
                         <div class="selected-employee-info d-flex align-items-center gap-3 py-3 px-4 rounded-3">
                             <img src="" class="selected-employee-photo rounded-circle d-none">
                             <div>
-                                <div class="selected-employee-name mb-0"
-                                    style="font-size: 14px; color: #1F2937;"></div>
+                                <div class="selected-employee-name mb-0" style="font-size: 14px; color: #1F2937;">
+                                </div>
                                 <small class="selected-employee-task text-muted" style="font-size: 12px;"></small>
                             </div>
                         </div>

@@ -12,15 +12,15 @@ function getTaskStatusColor(status) {
     if (statusLower.includes('request') || statusLower === 'new') {
         return '#E5E7EB';
     } else if (statusLower.includes('progress')) {
-        return '#FEF3C7';
+        return '#F0F2DC';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
-        return '#FEEAE8';
+        return '#F4DCDF';
     } else if (statusLower.includes('late')) {
-        return '#FECACA';
+        return '#F4DCDF';
     } else if (statusLower.includes('complete')) {
-        return '#DEF5E5';
+        return '#DCF2E2';
     } else if (statusLower.includes('finish')) {
-        return '#DEEBF5';
+        return '#DCE5F2';
     } else {
         return '#F3F4F6';
     }
@@ -133,10 +133,10 @@ async function loadEmployeeTasks(employeeId, year, month, query='') {
             url: appUrl + "/hub_division/employee-tasks-by-month",
             type: "GET",
             data: {
-                'employee_id': employeeId,
-                'year': year,
-                'month': month,
-                'query': query
+                employee_id: employeeId,
+                year: year,
+                month: month,
+                query: query
             }
         });
 
@@ -154,7 +154,6 @@ async function loadEmployeeTasks(employeeId, year, month, query='') {
 
         allTasksData = [];
         return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0 };
-
     } catch (error) {
         console.error("Error loading employee tasks:", error);
         allTasksData = [];
@@ -313,9 +312,19 @@ $(document).on('click', '.month-item', function () {
     }
 });
 
+function showCalendarLoading() {
+    $('.box-loader').removeClass('d-none');
+}
+
+function hideCalendarLoading() {
+    $('.box-loader').addClass('d-none');
+}
+
 async function renderEventCalendar(year, month) {
     try {
         await renderCalendar(year, month);
+
+        showCalendarLoading();
 
         if (selectedEmployeeId) {
             const result = await loadEmployeeTasks(
@@ -343,8 +352,10 @@ async function renderEventCalendar(year, month) {
 
         return 'done-rendering';
     } catch (error) {
-        console.error("Error fetching or processing data:", error);
+        console.error(error);
         return 'error-rendering';
+    } finally {
+        hideCalendarLoading();
     }
 }
 
@@ -452,8 +463,8 @@ function renderTaskListByDate(tasks) {
 
                         <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
                             ${taskIsLate ? 
-                                '<span class="status-text-late">Late</span>' : 
-                                `<span class="status-text" style="color: ${getTaskStatusTextColor(task.status)}; background-color: ${statusColor};>${task.status || 'New'}</span>`
+                                '<span class="status-late-list">Late</span>' : 
+                                `<span class="status-task-list" style="color: ${getTaskStatusTextColor(task.status)};">${task.status || 'New'}</span>`
                             }
                         </div>
 
