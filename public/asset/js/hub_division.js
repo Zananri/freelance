@@ -823,17 +823,15 @@ function handleTaskDetail(taskId) {
         }
 
         const completeContentHtml = `
-            <div class="collapse" id="completeContent">
-                <div class="p-3 rounded-3 mt-3" style="background: #F0F8F5;">
-                    <h5 style="font-size:12px;margin-bottom:16px;color:#4C5060;">Complete result task</h5>
-                    <div style="font-size:12px;color:#54595F;margin-bottom: 16px;">${escapeHtml(completeNotePlain || '')}</div>
-                    ${completeAuthor || completeDate ? `<div style="font-size:8px;color:#4B4F5E;margin-bottom:16px;">Complete by ${completeAuthor || '-'} ${completeDate ? ' at ' + completeDate : ''}</div>` : ''}
+            <div class="p-3 rounded-3 mt-3" style="background: #F0F8F5;">
+                <h5 style="font-size:12px;margin-bottom:16px;color:#4C5060;">Complete result task</h5>
+                <div style="font-size:12px;color:#54595F;margin-bottom: 16px;">${escapeHtml(completeNotePlain || '')}</div>
+                ${completeAuthor || completeDate ? `<div style="font-size:8px;color:#4B4F5E;margin-bottom:16px;">Complete by ${completeAuthor || '-'} ${completeDate ? ' at ' + completeDate : ''}</div>` : ''}
 
-                    <div>
-                        <h6 style="font-size:12px;color:#4C5060;margin-bottom:8px;">Link & File reference</h6>
-                        ${completeRefFilesHtml || ''}
-                        ${refCompleteUrlsHtml || ''}
-                    </div>
+                <div>
+                    <h6 style="font-size:12px;color:#4C5060;margin-bottom:8px;">Link & File reference</h6>
+                    ${completeRefFilesHtml || ''}
+                    ${refCompleteUrlsHtml || ''}
                 </div>
             </div>
         `;
@@ -869,7 +867,7 @@ function handleTaskDetail(taskId) {
                         <div class="d-flex justify-content-end align-items-start gap-3" style="min-width:120px;">
                             ${(statusLower.includes('finish') || statusLower.includes('complete')) ? `
                                 <div class="d-flex align-items-center">
-                                    <button class="btn btn-sm p-0 m-0 border-0" data-bs-target="#completeContent" data-bs-toggle="collapse">
+                                    <button class="btn btn-sm p-0 m-0 border-0" type="button" data-bs-toggle="collapse" data-bs-target="#completeContent" aria-expanded="false" aria-controls="completeContent">
                                         <span class="material-symbols-outlined task-icon" style="font-size: 18px;">playlist_add_check</span>
                                     </button>
                                 </div>
@@ -886,9 +884,11 @@ function handleTaskDetail(taskId) {
                     </div>
 
                 <div class="scrollable-content scrollbar-transparent px-4 py-3">
-                    <div class="collapse" id="completeContent">
-                        ${completeContentHtml}
-                    </div>
+                    ${(statusLower.includes('finish') || statusLower.includes('complete')) ? `
+                        <div class="collapse" id="completeContent">
+                            ${completeContentHtml}
+                        </div>
+                    ` : ''}
 
                     ${collab}
 
