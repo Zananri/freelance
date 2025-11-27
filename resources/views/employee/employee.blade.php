@@ -104,6 +104,7 @@
                             <th scope="col" style="text-align: left;">Employee</th>
                             <th scope="col" style="text-align: left;">Hire Date</th>
                             <th scope="col" style="text-align: left;">Contract Date</th>
+                            <th scope="col" style="text-align: left;">Working Period</th>
                             <th scope="col" style="text-align: left;">Department Name</th>
                             <th scope="col" style="text-align: left;">Division Name</th>
                             <th scope="col" style="text-align: left;">Office</th>
