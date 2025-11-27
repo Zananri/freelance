@@ -95,71 +95,70 @@
             <div class="calendar-card-content overflow-hidden position-relative">
                 <div id="mobile-inside-calendar-header" class="d-none"></div>
                 <div class="header-calendar">
-                    <div class="d-flex justify-content-between">
-
-                        <div class="selected-employee-info">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="selected-employee-photo me-2"></div>
-                                <span class="selected-employee-name"></span>
-                            </div>
-
-                            <div class="d-flex align-items-center">
-                                <div class="dropdown dropdown-month me-3">
-                                    <div class="dropdown-toggle btn btn-dropdown-month mt-1 p-0"
-                                        data-bs-toggle="dropdown">
-                                        <div class="d-inline-flex align-items-center">
-                                            <span class="calendar-month">{{ date('F') }}</span>
-                                            <span class="calendar-year">{{ date('Y') }}</span>
-                                        </div>
-                                    </div>
-
-                                    <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                                        @for ($monthNum = 1; $monthNum <= 12; $monthNum++)
-                                            <li data-month="{{ $monthNum }}"
-                                                class="dropdown-item month-item fs-14">
-                                                <div class="dropdown-item fs-14">
-                                                    {{ date('F', mktime(0, 0, 0, $monthNum, 1)) }}
-                                                </div>
-                                            </li>
-                                        @endfor
-                                    </ul>
-                                </div>
-
-                                <div class="box-view-control white-space-nowrap">
-                                    <span class="material-symbols-outlined calendar-prev-month">chevron_left</span>
-                                    <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
-                                </div>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="selected-employee-photo"></div>
+                            <span class="selected-employee-name"></span>
+                        </div>
+    
+                        <div class="d-flex align-items-center gap-3">
+    
+                            <button class="btn btn-sm export-task p-0 border-0"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                data-bs-title="Report Task">
+                                <span class="material-symbols-outlined">download</span>
+                            </button>
+    
+                            <div class="search-wrapper position-relative">
+                                <span class="material-symbols-outlined search-icon position-absolute">
+                                    search
+                                </span>
+                                <input type="text" class="search-input-custom" id="search_task" placeholder="search task...">
                             </div>
                         </div>
-
-                        <div class="d-flex flex-column position-relative">
-
-                            <div class="d-flex align-items-center justify-content-end gap-2">
-                                <button class="btn btn-sm export-task p-0 me-2" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Report Task">
-                                    <span class="material-symbols-outlined">download</span>
-                                </button>
-
-                                <div class="search-wrapper position-relative">
-                                    <span class="material-symbols-outlined search-icon position-absolute">
-                                        search
-                                    </span>
-                                    <input type="text" class="search-input-custom" id="search_task" placeholder="search task...">
+    
+                    </div>
+    
+    
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-3">
+    
+                        <div class="d-flex align-items-center gap-3">
+    
+                            <div class="dropdown dropdown-month">
+                                <div class="dropdown-toggle btn btn-dropdown-month p-0" data-bs-toggle="dropdown">
+                                    <span class="calendar-month">{{ date('F') }}</span>
+                                    <span class="calendar-year">{{ date('Y') }}</span>
                                 </div>
+    
+                                <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                                    @for ($monthNum = 1; $monthNum <= 12; $monthNum++)
+                                        <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14">
+                                            {{ date('F', mktime(0, 0, 0, $monthNum, 1)) }}
+                                        </li>
+                                    @endfor
+                                </ul>
                             </div>
-
-                            <div class="d-flex justify-content-end gap-4 total-status-task mt-1">
-                                <small class="selected-employee-task">Total task :</small>
-                                <small class="selected-employee-progress">Progress :</small>
-                                <small class="selected-employee-late">Late :</small>
-                                <small class="selected-employee-finish">Finish :</small>
+    
+                            <div class="box-view-control white-space-nowrap">
+                                <span class="material-symbols-outlined calendar-prev-month">chevron_left</span>
+                                <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
                             </div>
-
+    
                         </div>
-
+    
+                        <div class="d-flex gap-4 total-status-task">
+                            <small class="selected-employee-task">Total task :</small>
+                            <small class="selected-employee-progress">Progress :</small>
+                            <small class="selected-employee-late">Late :</small>
+                            <small class="selected-employee-finish">Finish :</small>
+                        </div>
+    
                     </div>
                 </div>
 
-                <div class="box-table-calendar">
+
+                <div class="box-table-calendar mt-3">
                     <table class="table-calendar scrollbar-transparent">
                         <thead>
                             <tr>
@@ -183,20 +182,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
 
-                    <div class="w-100 h-100 d-flex justify-content-center align-items-center">
-                        <div>
-                            <div class="spinner-border opacity-50" style="width: 2.5rem; height: 2.5rem;"
-                                role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <div class="fs-10">Loading...</div>
-                        </div>
-
-                    </div>
-
-                </div>
             </div>
             <div id="legend-footer-mobile" class="d-none mb-3"></div>
         </div>
