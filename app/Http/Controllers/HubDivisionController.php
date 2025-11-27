@@ -600,95 +600,267 @@ class HubDivisionController extends Controller
             $firstDay = sprintf('%04d-%02d-01', $year, $month);
             $lastDay = date('Y-m-t', strtotime($firstDay));
 
+            // Get all task IDs assigned to this employee
             $taskAssignments = TaskAssignment::where('employee_id', $employeeId)->pluck('task_id');
 
-            $tasks = Task::whereIn('tasks.id', $taskAssignments)
+            // Get all projects where employee has tasks assigned
+            $projectIds = Task::whereIn('id', $taskAssignments)
                 ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
-                ->where(function ($q) use ($firstDay, $lastDay) {
-                    $q->whereBetween('tasks.start_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59'])
-                    ->orWhereBetween('tasks.due_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59']);
-                })
-                ->select('tasks.id','tasks.title','tasks.status','tasks.start_date','tasks.due_date','tasks.priority')
-                ->orderBy('tasks.start_date', 'asc')
+                ->distinct()
+                ->pluck('project_id');
+
+            // Get all projects with their tasks filtered by month
+            $projects = Project::whereIn('id', $projectIds)
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                ->with([
+                    'tasks' => function ($query) use ($taskAssignments, $firstDay, $lastDay) {
+                        $query->whereIn('id', $taskAssignments)
+                            ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                            ->where(function ($q) use ($firstDay, $lastDay) {
+                                $q->whereBetween('start_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59'])
+                                    ->orWhereBetween('due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59']);
+                            })
+                            ->orderBy('start_date', 'asc');
+                    }
+                ])
+                ->orderBy('created_at', 'desc')
                 ->get();
 
+            // Create spreadsheet
             $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
+            $activeWorksheet = $spreadsheet->getActiveSheet();
 
             $monthName = date('F', mktime(0, 0, 0, $month, 1));
-            $sheet->mergeCells('A1:D1');
-            $sheet->setCellValue('A1', "Task Report - {$employee->name}");
-            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-            $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            
+            // Set title
+            $activeWorksheet->mergeCells('A1:I1');
+            $activeWorksheet->setCellValue('A1', "Project Report - {$employee->name} - {$monthName} {$year}");
+            $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-            $sheet->mergeCells('A2:D2');
-            $sheet->setCellValue('A2', "{$monthName} {$year}");
-            $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12);
-            $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-            $sheet->setCellValue('A4', 'Employee Name');
-            $sheet->setCellValue('B4', 'Task');
-            $sheet->setCellValue('C4', 'Status');
-            $sheet->setCellValue('D4', 'Duration');
-
-            $headerStyle = [
-                'font' => ['bold' => true, 'size' => 11, 'color' => ['rgb' => '000000']],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']]]
+            // Set headers
+            $headers = [
+                'A2' => 'No',
+                'B2' => 'Project Name',
+                'C2' => 'Project Type',
+                'D2' => 'Task',
+                'E2' => 'Status',
+                'F2' => 'Duration',
+                'G2' => 'Reference URLs',
+                'H2' => 'Reference Files',
+                'I2' => 'Total Tasks'
             ];
-            $sheet->getStyle('A4:D4')->applyFromArray($headerStyle);
 
-            $sheet->getColumnDimension('A')->setWidth(25);
-            $sheet->getColumnDimension('B')->setWidth(40);
-            $sheet->getColumnDimension('C')->setWidth(20);
-            $sheet->getColumnDimension('D')->setWidth(35);
+            foreach ($headers as $cell => $value) {
+                $activeWorksheet->setCellValue($cell, $value);
+            }
 
-            $row = 5;
+            // Style headers
+            $headerStyle = [
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                    ],
+                ],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => [
+                        'argb' => 'FFE0E0E0',
+                    ],
+                ],
+            ];
 
-            foreach ($tasks as $task) {
-                $start = Carbon::parse($task->start_date);
-                $due = Carbon::parse($task->due_date);
-                $duration = $start->format('d M Y') . ' - ' . $due->format('d M Y');
+            $activeWorksheet->getStyle('A2:I2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+            $activeWorksheet->getStyle('A2:I2')
+                ->getAlignment()
+                ->setWrapText(true)
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
 
-                $sheet->setCellValue('A'.$row, $employee->name);
-                $sheet->setCellValue('B'.$row, $task->title);
-                $sheet->setCellValue('C'.$row, ucfirst(str_replace('_', ' ', $task->status)));
-                $sheet->setCellValue('D'.$row, $duration);
+            // Set column widths
+            $columnWidths = [
+                'A' => 5,   // No
+                'B' => 30,  // Project Name
+                'C' => 12,  // Project Type
+                'D' => 35,  // Task
+                'E' => 15,  // Status
+                'F' => 20,  // Duration
+                'G' => 30,  // Reference URLs
+                'H' => 30,  // Reference Files
+                'I' => 12   // Total Tasks
+            ];
 
-                $dataStyle = [
-                    'alignment' => ['vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
-                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]]
+            foreach ($columnWidths as $column => $width) {
+                $activeWorksheet->getColumnDimension($column)->setWidth($width);
+            }
+
+            // Helper to format duration
+            $formatDuration = function ($startRaw, $endRaw) {
+                if (empty($startRaw) && empty($endRaw)) return '-';
+                try {
+                    $start = $startRaw ? Carbon::parse($startRaw) : null;
+                } catch (\Throwable $_) {
+                    $start = null;
+                }
+                try {
+                    $end = $endRaw ? Carbon::parse($endRaw) : null;
+                } catch (\Throwable $_) {
+                    $end = null;
+                }
+                if ($start && !$end) return $start->format('j F Y');
+                if (!$start && $end) return $end->format('j F Y');
+                if (!$start && !$end) return '-';
+                $sY = $start->format('Y');
+                $eY = $end->format('Y');
+                $sM = $start->format('F');
+                $eM = $end->format('F');
+                $sD = $start->format('j');
+                $eD = $end->format('j');
+                if ($sY === $eY) {
+                    if ($sM === $eM) {
+                        if ($sD === $eD) return "{$sD} {$sM} {$sY}";
+                        return "{$sD}-{$eD} {$sM} {$sY}";
+                    }
+                    return "{$sD} {$sM} - {$eD} {$eM} {$sY}";
+                }
+                return "{$sD} {$sM} {$sY} - {$eD} {$eM} {$eY}";
+            };
+
+            // Fill data
+            $row = 3;
+            $no = 1;
+
+            foreach ($projects as $project) {
+                $baseProjectValues = [
+                    'B' => $project->title,
+                    'C' => ucfirst($project->project_type ?? 'public'),
+                    'G' => is_array($project->reference_urls) && count($project->reference_urls) > 0 
+                        ? implode("\n", array_filter($project->reference_urls)) 
+                        : ($project->reference_url ?? '-'),
+                    'H' => is_array($project->reference_files) && count($project->reference_files) > 0 
+                        ? implode("\n", array_filter($project->reference_files)) 
+                        : ($project->reference_file ?? '-'),
+                    'I' => $project->tasks->count(),
                 ];
-                $sheet->getStyle('A'.$row.':D'.$row)->applyFromArray($dataStyle);
 
-                $sheet->getStyle('A'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('C'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('D'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                if ($project->tasks->count() > 0) {
+                    // Project has tasks in this month
+                    $projectStartRow = $row;
+                    $projectNo = $no;
+                    
+                    foreach ($project->tasks as $task) {
+                        // Project columns
+                        $activeWorksheet->setCellValue('B' . $row, $baseProjectValues['B']);
+                        $activeWorksheet->setCellValue('C' . $row, $baseProjectValues['C']);
 
-                $row++;
+                        // Task columns
+                        $activeWorksheet->setCellValue('D' . $row, $task->title ?? '-');
+                        $s = (string) ($task->status ?? '');
+                        $s = str_replace('_', ' ', $s);
+                        $s = trim($s);
+                        $s = $s === '' ? '-' : ucfirst($s);
+                        $activeWorksheet->setCellValue('E' . $row, $s);
+
+                        // Duration: use task dates
+                        $startRaw = $task->start_date;
+                        $endRaw = $task->due_date;
+                        $activeWorksheet->setCellValue('F' . $row, $formatDuration($startRaw, $endRaw));
+
+                        $activeWorksheet->setCellValue('G' . $row, $baseProjectValues['G']);
+                        $activeWorksheet->setCellValue('H' . $row, $baseProjectValues['H']);
+                        $activeWorksheet->setCellValue('I' . $row, $baseProjectValues['I']);
+
+                        $activeWorksheet->getRowDimension($row)->setRowHeight(18);
+
+                        $row++;
+                    }
+
+                    // Merge project columns if multiple tasks
+                    $projectEndRow = $row - 1;
+
+                    $activeWorksheet->setCellValue('A' . $projectStartRow, $projectNo);
+                    if ($projectEndRow > $projectStartRow) {
+                        $colsToMerge = ['A', 'B', 'C', 'G', 'H', 'I'];
+                        foreach ($colsToMerge as $col) {
+                            $activeWorksheet->mergeCells($col . $projectStartRow . ':' . $col . $projectEndRow);
+                            $activeWorksheet->getStyle($col . $projectStartRow . ':' . $col . $projectEndRow)
+                                ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                                ->setVertical(Alignment::VERTICAL_CENTER);
+                        }
+                    }
+
+                    $no++;
+                } else {
+                    // Project has no tasks in this month - show with "-"
+                    $activeWorksheet->setCellValue('A' . $row, $no);
+                    $activeWorksheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    
+                    $activeWorksheet->setCellValue('B' . $row, $baseProjectValues['B']);
+                    $activeWorksheet->getStyle('B' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    
+                    $activeWorksheet->setCellValue('C' . $row, $baseProjectValues['C']);
+                    $activeWorksheet->getStyle('C' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    
+                    $activeWorksheet->setCellValue('D' . $row, '-');
+                    $activeWorksheet->setCellValue('E' . $row, '-');
+                    $activeWorksheet->setCellValue('F' . $row, '-');
+                    $activeWorksheet->getStyle('F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    
+                    $activeWorksheet->setCellValue('G' . $row, $baseProjectValues['G']);
+                    $activeWorksheet->getStyle('G' . $row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+                    
+                    $activeWorksheet->setCellValue('H' . $row, $baseProjectValues['H']);
+                    $activeWorksheet->getStyle('H' . $row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+                    
+                    $activeWorksheet->setCellValue('I' . $row, $baseProjectValues['I']);
+                    $activeWorksheet->getStyle('I' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    
+                    $activeWorksheet->getRowDimension($row)->setRowHeight(18);
+
+                    $row++;
+                    $no++;
+                }
             }
 
-            $row += 1;
-            $sheet->setCellValue('A'.$row, 'Total Tasks:');
-            $sheet->setCellValue('B'.$row, count($tasks));
-            $sheet->getStyle('A'.$row.':B'.$row)->getFont()->setBold(true);
+            // Apply borders to data rows
+            $dataStyle = [
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                    ],
+                ],
+            ];
 
-            for ($i = 5; $i < $row; $i++) {
-                $sheet->getRowDimension($i)->setRowHeight(30);
+            if ($row > 3) {
+                $activeWorksheet->getStyle('A3:I' . ($row - 1))->applyFromArray($dataStyle);
+
+                // Center align specific columns
+                $activeWorksheet->getStyle('A3:A' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('C3:C' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('F3:F' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('I3:I' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                // Enable text wrapping for Task, Status, Reference URLs, and Reference Files columns
+                $activeWorksheet->getStyle('D3:H' . ($row - 1))->getAlignment()->setWrapText(true);
+                $activeWorksheet->getStyle('D3:H' . ($row - 1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
             }
 
+            // Set sheet name
+            $activeWorksheet->setTitle('Project Report');
+
+            // Generate filename
             $employeeNameSlug = preg_replace('/[^A-Za-z0-9_\-]/', '_', $employee->name);
-            $filename = "task_by_month_{$employeeNameSlug}_{$monthName}_{$year}.xlsx";
+            $filename = "project_report_{$employeeNameSlug}_{$monthName}_{$year}.xlsx";
 
+            // Create writer and download
             $writer = new Xlsx($spreadsheet);
 
-            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header('Content-Disposition: attachment;filename="'.$filename.'"');
-            header('Cache-Control: max-age=0');
+            $tempFile = tempnam(sys_get_temp_dir(), 'project_export');
+            $writer->save($tempFile);
 
-            $writer->save('php://output');
-            exit;
+            return response()->download($tempFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ])->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
             Log::error('Export error: '.$e->getMessage());
