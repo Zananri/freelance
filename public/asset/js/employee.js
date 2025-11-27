@@ -212,7 +212,18 @@ document.addEventListener("DOMContentLoaded", function () {
             else if (status === 'CANDIDATE') statusClass = 'status-CANDIDATE';
 
             let contractDisplay = '-';
-            const hireDateDisplay = employee.hire_date;
+            const hireDateDisplay = new Date(employee.hire_date);
+
+            let now = new Date();
+            let years = now.getFullYear() - hireDateDisplay.getFullYear();
+            let months = now.getMonth() - hireDateDisplay.getMonth();
+
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+
+            let workingPeriod = `${years} Year ${months} Month`;
 
             if (employee.contract_end_date) {
                 const cDate = new Date(employee.contract_end_date);
@@ -247,6 +258,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     </td>
                     <td>${formatDateENMedium(employee.hire_date)}</td>
                     <td>${contractDisplay}</td>
+                    <td>${workingPeriod}</td>
                     <td>${departmentName}</td>
                     <td>${divisionName}</td>
                     <td>${office}</td>
