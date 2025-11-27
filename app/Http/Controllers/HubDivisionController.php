@@ -453,14 +453,12 @@ class HubDivisionController extends Controller
             $firstDay = sprintf('%04d-%02d-01', $year, $month);
             $lastDay = date('Y-m-t', strtotime($firstDay));
 
-            // Get attendance data for the month
             $attendances = \App\Models\Attendance::where('employee_id', $employeeId)
                 ->whereBetween('date_attendance', [$firstDay, $lastDay])
                 ->select('date_attendance', 'time_in', 'time_out', 'status')
                 ->get()
                 ->keyBy('date_attendance');
 
-            // Get approved leave requests (sick and annual leave) for the month
             $leaveRequests = \App\Models\EmployeeLeaveRequest::where('employee_id', $employeeId)
                 ->where('status', 'APPROVED')
                 ->where(function ($query) use ($firstDay, $lastDay) {
@@ -474,16 +472,6 @@ class HubDivisionController extends Controller
                 ->select('start_date', 'end_date', 'leave_type')
                 ->get();
 
-            // Log for debugging
-            Log::info('Leave Requests Found', [
-                'employee_id' => $employeeId,
-                'month' => $month,
-                'year' => $year,
-                'count' => $leaveRequests->count(),
-                'data' => $leaveRequests->toArray()
-            ]);
-
-            // Build a map of dates with their leave types
             $leaveDates = [];
             foreach ($leaveRequests as $leave) {
                 $start = new \DateTime($leave->start_date);
@@ -493,16 +481,12 @@ class HubDivisionController extends Controller
 
                 foreach ($period as $date) {
                     $dateStr = $date->format('Y-m-d');
-                    // Only include dates in current month
                     if ($dateStr >= $firstDay && $dateStr <= $lastDay) {
                         $leaveDates[$dateStr] = strtoupper($leave->leave_type);
                     }
                 }
             }
 
-            Log::info('Leave Dates Map', ['leaveDates' => $leaveDates]);
-
-            // Build response data for each date in the month
             $daysInMonth = date('t', strtotime($firstDay));
             $attendanceData = [];
 
@@ -516,7 +500,6 @@ class HubDivisionController extends Controller
                     'time_out' => null
                 ];
 
-                // Check if there's a leave request for this date
                 if (isset($leaveDates[$dateStr])) {
                     $leaveType = $leaveDates[$dateStr];
                     if ($leaveType === 'SICK' || $leaveType === 'SAKIT') {
@@ -524,35 +507,18 @@ class HubDivisionController extends Controller
                     } elseif ($leaveType === 'ANNUAL_LEAVE' || $leaveType === 'ANNUAL LEAVE' || $leaveType === 'CUTI' || $leaveType === 'LEAVE') {
                         $dayData['type'] = 'leave';
                     }
-
-                    // Log the leave type detection
-                    if ($dayData['type']) {
-                        Log::info('Leave detected', [
-                            'date' => $dateStr,
-                            'leave_type_raw' => $leaveType,
-                            'assigned_type' => $dayData['type']
-                        ]);
-                    }
-                }
-                // Check if there's attendance data
-                elseif (isset($attendances[$dateStr])) {
+                } elseif (isset($attendances[$dateStr])) {
                     $attendance = $attendances[$dateStr];
 
-                    if ($attendance->time_in && $attendance->time_out) {
+                    if ($attendance->status === 'ABSENT') {
+                        $dayData['type'] = 'absent';
+                    } elseif ($attendance->time_in && $attendance->time_out) {
                         $dayData['type'] = 'check_in_out';
                         $dayData['time_in'] = $attendance->time_in;
                         $dayData['time_out'] = $attendance->time_out;
                     } elseif ($attendance->time_in && !$attendance->time_out) {
                         $dayData['type'] = 'check_in_only';
                         $dayData['time_in'] = $attendance->time_in;
-                    }
-                }
-                // Check if it's a past date with no attendance and no leave (absent)
-                elseif ($dateStr < date('Y-m-d')) {
-                    // Skip weekends (Saturday = 6, Sunday = 0)
-                    $dayOfWeek = date('w', strtotime($dateStr));
-                    if ($dayOfWeek != 0 && $dayOfWeek != 6) {
-                        $dayData['type'] = 'absent';
                     }
                 }
 
