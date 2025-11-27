@@ -50,9 +50,9 @@
                 </div>
 
                 <div class="header-barier"></div>
-                <div class="d-flex justify-content-between">
-                    <span class="employee-total-task"></span>
-                    <span class="employee-total-project"></span>
+                <div class="d-flex justify-content-between px-3">
+                    <span class="employee-total-task">Total Project : 10</span>
+                    <span class="employee-total-project">Total Task : 50</span>
                 </div>
                 <div class="employee-list scrollbar-transparent">
                     @foreach ($employee as $emp)

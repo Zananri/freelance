@@ -252,9 +252,6 @@ async function renderCalendar(year, month) {
 
 
     calendarBody.append(row);
-    
-    // Pastikan tabel kalender terlihat setelah rendering
-    $('.box-table-calendar').show();
 
     return 'done-rendering';
 }
@@ -317,20 +314,17 @@ $(document).on('click', '.month-item', function () {
 
 function showCalendarLoading() {
     $('.box-loader').removeClass('d-none');
-    $('.box-table-calendar').hide();
 }
 
 function hideCalendarLoading() {
     $('.box-loader').addClass('d-none');
-    $('.box-table-calendar').show();
 }
 
 async function renderEventCalendar(year, month) {
     try {
-        // Tampilkan loading dan sembunyikan tabel terlebih dahulu
-        showCalendarLoading();
-        
         await renderCalendar(year, month);
+
+        showCalendarLoading();
 
         if (selectedEmployeeId) {
             const result = await loadEmployeeTasks(
@@ -961,11 +955,6 @@ $(document).ready(function () {
 
     $('.calendar-month').text(monthNames[currentDate.getMonth()]);
     $('.calendar-year').text(currentDate.getFullYear());
-    
-    // Pastikan tabel kalender dan loading dalam keadaan benar di awal
-    $('.box-table-calendar').show();
-    $('.box-loader').addClass('d-none');
-    
     renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
 
     $('.selected-employee-photo').css('background-image', '');
