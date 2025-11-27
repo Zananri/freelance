@@ -362,11 +362,19 @@ async function renderEventCalendar(year, month) {
             const totalInProgress = result.total_in_progress;
             const totalLate = result.total_late;
             const totalFinished = result.total_finished;
+            const totalStart = result.total_start;
+            const totalComplete = result.total_complete;
 
             $('.selected-employee-task').text("Total task: " + total);
             $('.selected-employee-progress').text("In Progress: " + totalInProgress);
             $('.selected-employee-late').text("Late: " + totalLate);
             $('.selected-employee-finish').text("Finish: " + totalFinished);
+            $('.mobile-selected-employee-task').text("Total task: " + total);
+            $('.mobile-selected-employee-start').text(totalStart);
+            $('.mobile-selected-employee-progress').text(totalInProgress);
+            $('.mobile-selected-employee-complete').text(totalComplete);
+            $('.mobile-selected-employee-late').text(totalLate);
+            $('.mobile-selected-employee-finish').text(totalFinished);
 
             $('.box-event').empty();
 

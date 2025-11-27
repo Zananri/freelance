@@ -57,7 +57,6 @@
                 <div class="employee-list scrollbar-transparent">
                     @foreach ($employee as $emp)
                         @php
-                            // hitung photo url dan task count sederhana (fallback 0)
                             $photoUrl = asset('asset/img/avatar.png');
                             if ($emp->profile_picture) {
                                 $photoUrl = asset($emp->profile_picture);
