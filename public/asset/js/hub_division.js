@@ -1267,7 +1267,7 @@ $(document).ready(function () {
         const exportUrl = `${appUrl}/hub_division/export-employee-tasks?employee_id=${selectedEmployeeId}&year=${year}&month=${month}`;
         
         // Open in new window to trigger download
-        window.open(exportUrl, '_blank');
+        window.location.href = exportUrl;
     });
 
 });
