@@ -73,16 +73,11 @@
                             $taskFinish = $emp->total_finished ?? 0;
                         @endphp
 
-                        <div class="employee-item" 
-                            data-employee-division="{{ $emp->division->name_division }}"
-                            data-employee-division-id="{{ $emp->division_id }}"
-                            data-employee-id="{{ $emp->id }}" 
-                            data-employee-photo="{{ $photoUrl }}"
-                            data-total-task="{{ $taskCount }}" 
-                            data-total-progress="{{ $taskProgress }}"
-                            data-total-late="{{ $taskLate }}" 
-                            data-total-finish="{{ $taskFinish }}" 
-                            data-total-start="{{ $taskStart }}" 
+                        <div class="employee-item" data-employee-division="{{ $emp->division->name_division }}"
+                            data-employee-division-id="{{ $emp->division_id }}" data-employee-id="{{ $emp->id }}"
+                            data-employee-photo="{{ $photoUrl }}" data-total-task="{{ $taskCount }}"
+                            data-total-progress="{{ $taskProgress }}" data-total-late="{{ $taskLate }}"
+                            data-total-finish="{{ $taskFinish }}" data-total-start="{{ $taskStart }}"
                             data-total-complete="{{ $taskComplete }}">
                             <div class="employee-photo">
                                 <img src="{{ $photoUrl }}" alt="{{ $emp->name }}">
@@ -110,7 +105,8 @@
 
                             <div class="d-flex align-items-center">
                                 <div class="dropdown dropdown-month me-3">
-                                    <div class="dropdown-toggle btn btn-dropdown-month mt-1 p-0" data-bs-toggle="dropdown">
+                                    <div class="dropdown-toggle btn btn-dropdown-month mt-1 p-0"
+                                        data-bs-toggle="dropdown">
                                         <div class="d-inline-flex align-items-center">
                                             <span class="calendar-month">{{ date('F') }}</span>
                                             <span class="calendar-year">{{ date('Y') }}</span>
@@ -141,7 +137,8 @@
                                 <span class="material-symbols-outlined search-icon position-absolute">
                                     search
                                 </span>
-                                <input type="text" class="search-input-custom" id="search_task" placeholder="search task...">
+                                <input type="text" class="search-input-custom" id="search_task"
+                                    placeholder="search task...">
                             </div>
 
                             <div class="d-flex justify-content-end gap-4 total-status-task mt-3">
@@ -179,7 +176,8 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="box-loader d-none z-3 rounded-4 bg-white position-absolute top-0 start-0 w-100 h-100" style="background-color: rgba(255, 255, 255, 0.95) !important;">
+                <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
                     <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                         <div>
                             <div class="spinner-border opacity-50" style="width: 2.5rem; height: 2.5rem;"
@@ -188,7 +186,9 @@
                             </div>
                             <div class="fs-10">Loading...</div>
                         </div>
+
                     </div>
+
                 </div>
             </div>
             <div id="legend-footer-mobile" class="d-none mb-3"></div>

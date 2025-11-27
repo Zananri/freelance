@@ -3,8 +3,8 @@ const appUrl = $('meta[name=app-url]').attr("content");
 
 let currentDate = new Date();
 let selectedEmployeeId = null;
-let currentSearchQuery = ''; 
-let allTasksData = []; 
+let currentSearchQuery = '';
+let allTasksData = [];
 
 function getTaskStatusColor(status) {
     const statusLower = (status || '').toLowerCase();
@@ -18,9 +18,29 @@ function getTaskStatusColor(status) {
     } else if (statusLower.includes('late')) {
         return '#F3E4E6';
     } else if (statusLower.includes('complete')) {
-        return '#DFF2E7';
+        return '#DCF3E5';
     } else if (statusLower.includes('finish')) {
         return '#DDE7EF';
+    } else {
+        return '#F3F4F6';
+    }
+}
+
+function getBgTaskForCalendar(status) {
+    const statusLower = (status || '').toLowerCase();
+
+    if (statusLower.includes('request') || statusLower === 'new') {
+        return '#E8E9F2';
+    } else if (statusLower.includes('progress')) {
+        return '#F0F1E3';
+    } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
+        return '#F4DCDF';
+    } else if (statusLower.includes('late')) {
+        return '#F4DCDF';
+    } else if (statusLower.includes('complete')) {
+        return '#DEF4E8';
+    } else if (statusLower.includes('finish')) {
+        return '#DDE4F6';
     } else {
         return '#F3F4F6';
     }
@@ -38,7 +58,7 @@ function getTaskStatusTextColor(status) {
     } else if (statusLower.includes('late')) {
         return '#E44C4E';
     } else if (statusLower.includes('complete')) {
-        return '#19CC64';
+        return '#42AE6F';
     } else if (statusLower.includes('finish')) {
         return '#1799DE';
     } else {
@@ -49,21 +69,21 @@ function getTaskStatusTextColor(status) {
 function isTaskLate(task) {
     try {
         const statusLower = (task.status || '').toLowerCase();
-        
+
         // Jika sudah completed atau finished, tidak dianggap late
         if (statusLower.includes('completed') || statusLower.includes('finished')) {
             return false;
         }
-        
+
         // Check if task has due_date
         if (!task.due_date) {
             return false;
         }
-        
+
         // Parse due_date
         const dueDate = new Date(task.due_date);
         const now = new Date();
-        
+
         // Task is late if due_date has passed
         return dueDate < now;
     } catch (e) {
@@ -150,65 +170,67 @@ async function updateDivisionStats(divisionId) {
     }
 }
 
-async function loadEmployeeTasks(employeeId, year, month, query='') {
-    try {
-        const response = await $.ajax({
-            url: appUrl + "/hub_division/employee-tasks-by-month",
-            type: "GET",
-            data: {
-                employee_id: employeeId,
-                year: year,
-                month: month,
-                query: query
+async function loadEmployeeTasks(employeeId, year, month, query = '') {
+
+    $.ajax({
+        url: appUrl + "/hub_division/employee-tasks-by-month",
+        type: "GET",
+        data: {
+            employee_id: employeeId,
+            year: year,
+            month: month,
+            query: query
+        },
+        beforeSend: function () {
+            $('.card-content .box-loader').fadeIn('fast');
+        },
+        success: function () {
+            if (response.success) {
+                allTasksData = response.data || [];
+
+                return {
+                    tasks: response.data,
+                    total: response.total_tasks,
+                    total_in_progress: response.total_in_progress,
+                    total_late: response.total_late,
+                    total_finished: response.total_finished
+                };
             }
-        });
 
-        if (response.success) {
-            allTasksData = response.data || [];
+            allTasksData = [];
+            $('.card-content .box-loader').delay(500).fadeOut('fast');
 
-            return {
-                tasks: response.data,
-                total: response.total_tasks,
-                total_in_progress: response.total_in_progress,
-                total_late: response.total_late,
-                total_finished: response.total_finished
-            };
+            return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0 };
+
         }
-
-        allTasksData = [];
-        return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0 };
-    } catch (error) {
-        console.error("Error loading employee tasks:", error);
-        allTasksData = [];
-        return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0 };
-    }
+    });
 }
 
 // Render task bar on calendar
 function renderTaskBar(task) {
     const startDate = task.start_date;
     const dueDate = task.due_date;
-    
+
     if (!startDate) return;
-    
+
     const startDateStr = startDate.split(' ')[0];
     const start = new Date(startDateStr);
-    
+
     let end = start;
     if (dueDate) {
         const dueDateStr = dueDate.split(' ')[0];
         end = new Date(dueDateStr);
     }
-    
+
     if (start > end) {
         end = start;
     }
-    
+
     const taskIsLate = isTaskLate(task);
-    
+
     const backgroundColor = taskIsLate ? '#F4DCDF' : getTaskStatusColor(task.status);
     const textColor = taskIsLate ? '#46505B' : '#46505B';
-    
+
     // Loop through all dates from start to end
     let currentDate = new Date(start);
     while (currentDate <= end) {
@@ -216,12 +238,12 @@ function renderTaskBar(task) {
         const month = String(currentDate.getMonth() + 1).padStart(2, '0');
         const day = String(currentDate.getDate()).padStart(2, '0');
         const dateStr = `${year}-${month}-${day}`;
-        
+
         const $dayCell = $(`.calendar-day[data-calendar-date="${dateStr}"]`);
-        
+
         if ($dayCell.length > 0) {
             const $boxEvent = $dayCell.find('.box-event');
-            
+
             const taskHtml = `
                 <div class="text-event" 
                      style="background-color: ${backgroundColor}; color: ${textColor};" 
@@ -231,10 +253,10 @@ function renderTaskBar(task) {
                     ${task.title}
                 </div>
             `;
-            
+
             $boxEvent.append(taskHtml);
         }
-        
+
         // Move to next day
         currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -335,19 +357,9 @@ $(document).on('click', '.month-item', function () {
     }
 });
 
-function showCalendarLoading() {
-    $('.box-loader').removeClass('d-none');
-}
-
-function hideCalendarLoading() {
-    $('.box-loader').addClass('d-none');
-}
-
 async function renderEventCalendar(year, month) {
     try {
         await renderCalendar(year, month);
-
-        showCalendarLoading();
 
         if (selectedEmployeeId) {
             const result = await loadEmployeeTasks(
@@ -385,8 +397,6 @@ async function renderEventCalendar(year, month) {
     } catch (error) {
         console.error(error);
         return 'error-rendering';
-    } finally {
-        hideCalendarLoading();
     }
 }
 
@@ -409,50 +419,50 @@ $(document).on("click", ".calendar-day", function () {
 });
 
 async function loadTasksForDate(date, employeeId, employeeName, employeeDivision, employeePhoto) {
-    try {
-        const response = await $.ajax({
-            url: appUrl + "/hub_division/employee-tasks-by-date",
-            type: "GET",
-            data: {
-                employee_id: employeeId,
-                date: date
-            },
-            dataType: "json"
-        });
+    $.ajax({
+        url: appUrl + "/hub_division/employee-tasks-by-date",
+        type: "GET",
+        data: {
+            employee_id: employeeId,
+            date: date
+        },
+        dataType: "json",
+        beforeSend: function () {
+            // $('.calendar-card-content .box-loader').fadeIn('fast')
+        },
+        success: function (response) {
+            if (!response.success) {
+                showFloatingAlert(response.message || "Failed to load tasks", "danger", 3000);
+                return;
+            }
 
-        if (!response.success) {
-            showFloatingAlert(response.message || "Failed to load tasks", "danger", 3000);
-            return;
+            const tasks = response.data || [];
+
+            const totalTasks = tasks.length;
+
+            const formattedDate = formatDateENFull(new Date(date));
+
+            $(".selected-task-date").text(formattedDate);
+            $(".selected-total-task").text("Total task " + totalTasks);
+
+            $("#taskModalDate .selected-employee-name").text(employeeName);
+            $("#taskModalDate .selected-employee-task").text(employeeDivision || "Division");
+
+            if (employeePhoto) {
+                $("#taskModalDate .selected-employee-photo")
+                    .attr("src", employeePhoto)
+                    .removeClass("d-none");
+            } else {
+                $("#taskModalDate .selected-employee-photo").addClass("d-none");
+            }
+
+            renderTaskListByDate(tasks);
+
+            $("#taskModalDate").modal("show");
+
+            // $('.calendar-card-content .box-loader').delay(500).fadeOut('fast');
         }
-
-        const tasks = response.data || [];
-        
-        const totalTasks = tasks.length;
-
-        const formattedDate = formatDateENFull(new Date(date));
-
-        $(".selected-task-date").text(formattedDate);
-        $(".selected-total-task").text("Total task " + totalTasks);
-
-        $("#taskModalDate .selected-employee-name").text(employeeName);
-        $("#taskModalDate .selected-employee-task").text(employeeDivision || "Division");
-
-        if (employeePhoto) {
-            $("#taskModalDate .selected-employee-photo")
-                .attr("src", employeePhoto)
-                .removeClass("d-none");
-        } else {
-            $("#taskModalDate .selected-employee-photo").addClass("d-none");
-        }
-
-        renderTaskListByDate(tasks);
-
-        $("#taskModalDate").modal("show");
-
-    } catch (err) {
-        console.error("Error loadTasksForDate:", err);
-        showFloatingAlert("Failed to load tasks", "danger", 3000);
-    }
+    });
 }
 
 function renderTaskListByDate(tasks) {
@@ -499,10 +509,10 @@ function renderTaskListByDate(tasks) {
                     </div>
 
                     <div class="d-flex g-1 mt-1">
-                        ${taskIsLate ? 
-                            '<span class="status-late-list">Late</span>' : 
-                            `<span class="status-task-list" style="color: ${getTaskStatusTextColor(task.status)};">${task.status || 'New'}</span>`
-                        }
+                        ${taskIsLate ?
+                '<span class="status-late-list">Late</span>' :
+                `<span class="status-task-list" style="color: ${getTaskStatusTextColor(task.status)};">${task.status || 'New'}</span>`
+            }
                     </div>
                 </div>
                 
@@ -539,6 +549,7 @@ async function getAllTasksEmployeeCalendarByMonth(year, month) {
             'MONTH': month
         },
         beforeSend: function () {
+            // $('.calendar-card-content .box-loader').fadeIn('fast');
         },
         error: function (res) {
             return 'error-get-data';
@@ -563,7 +574,10 @@ async function getAllTasksEmployeeCalendarByMonth(year, month) {
                 $('#calendarAllModal .box-data-event').html(' ');
             }
 
+            // $('.card-content .box-loader').delay(500).fadeOut('fast');
+
             return 'done-get-data';
+
         }
 
     });
@@ -817,11 +831,11 @@ function handleTaskDetail(taskId) {
             statusLogs = `
                 <div class="status-timeline mt-3 mb-3">
                     ${statusChanges.map((s) => {
-                        const dateLabel = formatDateENMedium(s.updated_at || s.changed_at || '');
-                        const label = escapeHtml(s.label || '');
-                        const emp = escapeHtml(s.employee_name || '');
+                const dateLabel = formatDateENMedium(s.updated_at || s.changed_at || '');
+                const label = escapeHtml(s.label || '');
+                const emp = escapeHtml(s.employee_name || '');
 
-                        return `
+                return `
                             <div class="timeline-row">
                                 <div class="timeline-date">${dateLabel}</div>
 
@@ -837,7 +851,7 @@ function handleTaskDetail(taskId) {
                                 </div>
                             </div>
                         `;
-                    }).join('')}
+            }).join('')}
                 </div>
             `;
         }
@@ -881,10 +895,10 @@ function handleTaskDetail(taskId) {
                             </div>
                         </div>
                         <div class="gap-2 mt-2 mx-2 d-flex align-items-center" tabindex="0">
-                            ${taskIsLate ? 
-                                '<span class="status-text-late">Late</span>' : 
-                                `<span class="status-text" style="color:${getTaskStatusTextColor(t.status)}; background-color:${statusColor};">${escapeHtml(statusText)}</span>`
-                            }
+                            ${taskIsLate ?
+                '<span class="status-text-late">Late</span>' :
+                `<span class="status-text" style="color:${getTaskStatusTextColor(t.status)}; background-color:${statusColor};">${escapeHtml(statusText)}</span>`
+            }
                         </div>
                     </div>
                     <div class="px-4 task-detail-description">${t.description || ""}</div>
@@ -2313,9 +2327,9 @@ function renderMobileInsideCalendarHeader() {
 
                 <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
                     ${Array.from({ length: 12 }, (_, i) => {
-                        const month = new Date(2000, i, 1).toLocaleString('en', { month: 'long' });
-                        return `<li data-month="${i + 1}" class="dropdown-item month-item fs-14">${month}</li>`;
-                    }).join('')}
+        const month = new Date(2000, i, 1).toLocaleString('en', { month: 'long' });
+        return `<li data-month="${i + 1}" class="dropdown-item month-item fs-14">${month}</li>`;
+    }).join('')}
                 </ul>
             </div>
 
