@@ -19,14 +19,29 @@
     height: 100%;
 }
 
-.search-icon {
-    font-size: 14px;
+.search-wrapper {
+    position: relative;
+    width: 200px;
 }
 
 .search-input-custom {
     font-size: 10px;
     font-weight: 400;
-    background: transparent;
+    background: #F8F8FC;
+    border-radius: 6px;
+    padding-left: 30px;
+    border: none;
+    height: 28px;
+    width: 200px;
+}
+
+.search-icon {
+    font-size: 14px;
+    top: 50%;
+    left: 8px;
+    transform: translateY(-50%);
+    color: #2A3542;
+    pointer-events: none;
 }
 
 .search-input-custom:focus,
@@ -247,7 +262,7 @@
 
 .calendar-month,
 .calendar-year {
-    font-size: 14px;
+    font-size: 12px;
     color: #2a3542;
     font-weight: 400;
     margin-left: 10px;
@@ -256,7 +271,7 @@
 .calendar-event-list,
 .calendar-next-month,
 .calendar-prev-month {
-    font-size: 20px;
+    font-size: 18px;
     color: #474c59;
     cursor: pointer;
     border-radius: 20px;
@@ -638,14 +653,14 @@
 }
 
 #taskModalDate .selected-task-date {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 300;
     color: #2a3542;
 }
 
 #taskModalDate .selected-total-task {
-    font-size: 12px;
-    color: #2a3542;
+    font-size: 14px;
+    color: #2A3542;
     font-weight: 400;
 }
 
@@ -678,16 +693,15 @@
     cursor: pointer;
 }
 
-.task-item-date h6 {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1f2937;
-    margin-bottom: 8px;
+.task-list-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: #3B3D42;
 }
 
 .task-item-date p {
     font-size: 12px;
-    color: #6b7280;
+    color: #4C5060;
     line-height: 1.5;
     margin-bottom: 12px;
 }
@@ -733,6 +747,17 @@
 }
 
 @media (max-width: 768px) {
+    .calendar-month,
+    .calendar-year {
+        font-size: 14px;
+        font-weight: 400;
+    }
+
+    .search-wrapper,
+    .search-input-custom {
+        width: 150px;
+    }
+
     #taskModalDate .modal-dialog {
         max-width: 90%;
         margin: 1rem auto;
@@ -742,12 +767,35 @@
         padding: 12px;
     }
 
-    .task-item-date h6 {
-        font-size: 13px;
+    .mobile-selected-employee-task,
+    .mobile-selected-employee-start,
+    .mobile-selected-employee-progress,
+    .mobile-selected-employee-late,
+    .mobile-selected-employee-complete,
+    .mobile-selected-employee-finish
+    {
+        font-size: 10px;
+        font-weight: 500;
+        border-radius: 14px;
+        width: 22px;
+        height: 15px;
+        text-align: center;
     }
 
-    .task-item-date p {
-        font-size: 11px;
+    .mobile-selected-employee-start {
+        background-color: #CED4D8;
+    }
+    .mobile-selected-employee-progress {
+        background-color: #E2E2CD;
+    }
+    .mobile-selected-employee-late {
+        background-color: #E0C4C4;
+    }
+    .mobile-selected-employee-complete {
+        background-color: #BFE9D2;
+    }
+    .mobile-selected-employee-finish {
+        background-color: #C3D3EB;
     }
 }
 
@@ -901,7 +949,7 @@
 
 .status-text-late {
     font-size: 12px;
-    color: #46505B;
+    color: #E44C4E;
     font-weight: 600;
     background: #F4DCDF;
     padding: 4px 12px;
@@ -916,7 +964,7 @@
 }
 
 .status-late-list {
-    color: #F4DCDF;
+    color: #E44C4E;
 }
 
 .status-late-list,

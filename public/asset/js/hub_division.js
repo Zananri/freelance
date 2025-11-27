@@ -10,17 +10,17 @@ function getTaskStatusColor(status) {
     const statusLower = (status || '').toLowerCase();
 
     if (statusLower.includes('request') || statusLower === 'new') {
-        return '#E5E7EB';
+        return '#E8E9F2';
     } else if (statusLower.includes('progress')) {
-        return '#F0F2DC';
+        return '#EEEEE3';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
-        return '#F4DCDF';
+        return '#F3E4E6';
     } else if (statusLower.includes('late')) {
-        return '#F4DCDF';
+        return '#F3E4E6';
     } else if (statusLower.includes('complete')) {
-        return '#DCF2E2';
+        return '#DFF2E7';
     } else if (statusLower.includes('finish')) {
-        return '#DCE5F2';
+        return '#DDE7EF';
     } else {
         return '#F3F4F6';
     }
@@ -30,15 +30,15 @@ function getTaskStatusTextColor(status) {
     const statusLower = (status || '').toLowerCase();
 
     if (statusLower.includes('request') || statusLower === 'new') {
-        return '#4B5563';
+        return '#7F808A';
     } else if (statusLower.includes('progress')) {
-        return '#D97706';
+        return '#C29810';
     } else if (statusLower.includes('revision') || statusLower.includes('reject')) {
-        return '#F4DCDF';
+        return '#E44C4E';
     } else if (statusLower.includes('late')) {
-        return '#F4DCDF';
+        return '#E44C4E';
     } else if (statusLower.includes('complete')) {
-        return '#1EB978';
+        return '#19CC64';
     } else if (statusLower.includes('finish')) {
         return '#1799DE';
     } else {
@@ -51,7 +51,7 @@ function isTaskLate(task) {
         const statusLower = (task.status || '').toLowerCase();
         
         // Jika sudah completed atau finished, tidak dianggap late
-        if (statusLower.includes('complete') || statusLower.includes('finish')) {
+        if (statusLower.includes('completed') || statusLower.includes('finished')) {
             return false;
         }
         
@@ -377,13 +377,13 @@ $(document).on("click", ".calendar-day", function () {
 
     const emp = $(`.employee-item[data-employee-id="${selectedEmployeeId}"]`);
     const employeeName = emp.find('.employee-name').text();
-    const employeeJob = emp.find('.employee-job').text();
+    const employeeDivision = emp.attr('data-employee-division');
     const employeePhoto = emp.data('employee-photo');
 
-    loadTasksForDate(formattedDate, selectedEmployeeId, employeeName, employeeJob, employeePhoto);
+    loadTasksForDate(formattedDate, selectedEmployeeId, employeeName, employeeDivision, employeePhoto);
 });
 
-async function loadTasksForDate(date, employeeId, employeeName, employeeJob, employeePhoto) {
+async function loadTasksForDate(date, employeeId, employeeName, employeeDivision, employeePhoto) {
     try {
         const response = await $.ajax({
             url: appUrl + "/hub_division/employee-tasks-by-date",
@@ -401,6 +401,7 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
         }
 
         const tasks = response.data || [];
+        
         const totalTasks = tasks.length;
 
         const formattedDate = formatDateENFull(new Date(date));
@@ -409,7 +410,7 @@ async function loadTasksForDate(date, employeeId, employeeName, employeeJob, emp
         $(".selected-total-task").text("Total task " + totalTasks);
 
         $("#taskModalDate .selected-employee-name").text(employeeName);
-        $("#taskModalDate .selected-employee-task").text(employeeJob || "Division");
+        $("#taskModalDate .selected-employee-task").text(employeeDivision || "Division");
 
         if (employeePhoto) {
             $("#taskModalDate .selected-employee-photo")
@@ -463,20 +464,20 @@ function renderTaskListByDate(tasks) {
             <div class="task-item-date mb-3 p-3" data-task-id="${task.id}">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
-                        <h6 class="mb-2" style="font-size: 12px; font-weight: 500; color: #3B3D42;">
+                        <h6 class="task-list-title mb-2">
                             ${task.title || '-'}
                         </h6>
 
-                        <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
-                            ${taskIsLate ? 
-                                '<span class="status-late-list">Late</span>' : 
-                                `<span class="status-task-list" style="color: ${getTaskStatusTextColor(task.status)};">${task.status || 'New'}</span>`
-                            }
-                        </div>
-
-                        <p class="text-muted" style="font-size: 12px; font-weight: 400; color: #4C5060; line-height: 1.5;">
+                        <p class="task-list-desc text-muted">
                             ${task.description ? (task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description) : ''}
                         </p>
+                    </div>
+
+                    <div class="d-flex g-1 mt-1">
+                        ${taskIsLate ? 
+                            '<span class="status-late-list">Late</span>' : 
+                            `<span class="status-task-list" style="color: ${getTaskStatusTextColor(task.status)};">${task.status || 'New'}</span>`
+                        }
                     </div>
                 </div>
                 
@@ -973,6 +974,12 @@ $(document).ready(function () {
     $('.selected-employee-progress').text('In Progress: 0');
     $('.selected-employee-late').text('Late: 0');
     $('.selected-employee-finish').text('Finish: 0');
+    $('.mobile-selected-employee-task').text('Total task: 0');
+    $('.mobile-selected-employee-start').text('0');
+    $('.mobile-selected-employee-progress').text('0');
+    $('.mobile-selected-employee-late').text('0');
+    $('.mobile-selected-employee-complete').text('0');
+    $('.mobile-selected-employee-finish').text('0');
     $('.selected-employee-info').removeClass('d-none');
     $('.total-status-task').removeClass('d-none');
 
@@ -987,8 +994,10 @@ $(document).ready(function () {
         const name = $emp.find('.employee-name').text().trim();
         const photo = $emp.data('employee-photo') || '';
         const task = Number($emp.data('total-task')) || 0;
+        const start = Number($emp.data('total-start')) || 0;
         const progress = Number($emp.data('total-progress')) || 0;
         const late = Number($emp.data('total-late')) || 0;
+        const complete = Number($emp.data('total-complete')) || 0;
         const finish = Number($emp.data('total-finish')) || 0;
 
         if (photo) {
@@ -1002,6 +1011,12 @@ $(document).ready(function () {
         $('.selected-employee-progress').text(`In Progress: ${progress}`);
         $('.selected-employee-late').text(`Late: ${late}`);
         $('.selected-employee-finish').text(`Finish: ${finish}`);
+        $('.mobile-selected-employee-task').text(`Total task: ${task}`);
+        $('.mobile-selected-employee-start').text(`${start}`);
+        $('.mobile-selected-employee-progress').text(`${progress}`);
+        $('.mobile-selected-employee-late').text(`${late}`);
+        $('.mobile-selected-employee-finish').text(`${finish}`);
+        $('.mobile-selected-employee-complete').text(`${complete}`);
 
         currentSearchQuery = '';
         $('#search_task').val('');
@@ -2250,3 +2265,114 @@ $(document).ready(function () {
     });
 });
 
+function renderMobileOutsideCalendarHeader() {
+    const container = document.getElementById('mobile-outside-calendar-header');
+
+    container.innerHTML = `
+        <div class="mobile-employee-info mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <div class="selected-employee-photo me-2"></div>
+                <span class="selected-employee-name"></span>
+            </div>
+
+            <div class="d-flex justify-content-between mt-2">
+                <div>
+                    <small class="mobile-selected-employee-task">0</small>
+                </div>
+                <div class="d-flex gap-3">
+                    <small class="mobile-selected-employee-start">0</small>
+                    <small class="mobile-selected-employee-progress">0</small>
+                    <small class="mobile-selected-employee-late">0</small>
+                    <small class="mobile-selected-employee-complete">0</small>
+                    <small class="mobile-selected-employee-finish">0</small>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderMobileInsideCalendarHeader() {
+    const container = document.getElementById('mobile-inside-calendar-header')
+
+    container.innerHTML = `
+        <div class="mobile-calendar-controls d-flex align-items-center p-2 gap-3 mb-3">
+            <div class="dropdown dropdown-month">
+                <div class="dropdown-toggle btn btn-dropdown-month p-0" data-bs-toggle="dropdown">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="calendar-month">${new Date().toLocaleString('en', { month: 'long' })}</span>
+                        <span class="calendar-year">${new Date().getFullYear()}</span>
+                    </div>
+                </div>
+
+                <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                    ${Array.from({ length: 12 }, (_, i) => {
+                        const month = new Date(2000, i, 1).toLocaleString('en', { month: 'long' });
+                        return `<li data-month="${i + 1}" class="dropdown-item month-item fs-14">${month}</li>`;
+                    }).join('')}
+                </ul>
+            </div>
+
+            <div class="d-flex align-items-center gap-1">
+                <span class="material-symbols-outlined calendar-prev-month">chevron_left</span>
+                <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
+            </div>
+
+            <div class="search-wrapper flex-grow-1 position-relative">
+                <span class="material-symbols-outlined search-icon position-absolute">search</span>
+                <input type="text" class="search-input-custom w-100" id="mobile_search_task" placeholder="search task...">
+            </div>
+        </div>`
+
+    document.getElementById('mobile_search_task').addEventListener('input', e => {
+        document.getElementById('search_task').value = e.target.value;
+        $('#search_task').trigger('input');
+    });
+
+    $('.calendar-prev-month').click(function () {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+
+        const monthNames = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"];
+        $('.calendar-month').text(monthNames[currentDate.getMonth()]);
+        $('.calendar-year').text(currentDate.getFullYear());
+
+        if (selectedEmployeeId) {
+            renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
+        } else {
+            renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+        }
+    });
+
+    $('.calendar-next-month').click(function () {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+
+        const monthNames = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"];
+        $('.calendar-month').text(monthNames[currentDate.getMonth()]);
+        $('.calendar-year').text(currentDate.getFullYear());
+
+        if (selectedEmployeeId) {
+            renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
+        } else {
+            renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+        }
+    });
+}
+
+function checkCalendarLayout() {
+    if (window.innerWidth <= 768) {
+        document.getElementById('mobile-inside-calendar-header').classList.remove('d-none');
+        document.getElementById('mobile-outside-calendar-header').classList.remove('d-none');
+        renderMobileOutsideCalendarHeader();
+        renderMobileInsideCalendarHeader();
+
+        document.querySelector('.header-calendar').classList.add('d-none');
+    } else {
+        document.getElementById('mobile-inside-calendar-header').classList.add('d-none');
+        document.getElementById('mobile-outside-calendar-header').classList.add('d-none');
+        document.querySelector('.header-calendar').classList.remove('d-none');
+    }
+}
+
+checkCalendarLayout();
+window.addEventListener('resize', checkCalendarLayout);

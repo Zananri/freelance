@@ -23,10 +23,10 @@
         <div class="row">
             <div class="employee-card-content overflow-hidden">
                 <div class="header-employe-card">
-
-                    @if($canSeeAll)
+                    @if ($canSeeAll)
                         <div class="dropdown dropdown-division">
-                            <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <span class="selected-division-text">All Division</span>
                             </button>
 
@@ -50,6 +50,10 @@
                 </div>
 
                 <div class="header-barier"></div>
+                <div class="d-flex justify-content-between">
+                    <span class="employee-total-task"></span>
+                    <span class="employee-total-project"></span>
+                </div>
                 <div class="employee-list scrollbar-transparent">
                     @foreach ($employee as $emp)
                         @php
@@ -63,15 +67,17 @@
                                 $photoUrl = asset($emp->user_photo);
                             }
                             $taskCount = $emp->tasks_count ?? 0;
+                            $taskStart = $emp->total_start ?? 0;
                             $taskProgress = $emp->total_in_progress ?? 0;
                             $taskLate = $emp->total_late ?? 0;
+                            $taskComplete = $emp->total_complete ?? 0;
                             $taskFinish = $emp->total_finished ?? 0;
                         @endphp
 
-                        <div class="employee-item" data-employee-division="{{ $emp->division_id }}"
+                        <div class="employee-item" data-employee-division="{{ $emp->division->name_division }}"
                             data-employee-id="{{ $emp->id }}" data-employee-photo="{{ $photoUrl }}"
                             data-total-task="{{ $taskCount }}" data-total-progress="{{ $taskProgress }}"
-                            data-total-late="{{ $taskLate }}" data-total-finish="{{ $taskFinish }}">
+                            data-total-late="{{ $taskLate }}" data-total-finish="{{ $taskFinish }}" data-total-start="{{ $taskStart }}" data-total-complete="{{ $taskComplete }}">
                             <div class="employee-photo">
                                 <img src="{{ $photoUrl }}" alt="{{ $emp->name }}">
                             </div>
@@ -84,9 +90,11 @@
                 </div>
             </div>
 
+            <div id="mobile-outside-calendar-header" class="d-none"></div>
             <div class="calendar-card-content overflow-hidden position-relative">
+                <div id="mobile-inside-calendar-header" class="d-none"></div>
                 <div class="header-calendar">
-                    <div class="d-flex justify-content-between mb-2">
+                    <div class="d-flex justify-content-between">
 
                         <div class="selected-employee-info">
                             <div class="d-flex align-items-center gap-2">
@@ -94,18 +102,9 @@
                                 <span class="selected-employee-name"></span>
                             </div>
 
-                            <div class="d-flex mt-3">
-                                <span class="material-symbols-outlined search-icon">search</span>
-                                <input type="text" class="search-input-custom border-0 ms-3" id="search_task"
-                                    placeholder="search task...">
-                            </div>
-                        </div>
-
-                        <div class="d-flex flex-column">
-
-                            <div class="d-flex align-items-center justify-content-end w-100">
+                            <div class="d-flex align-items-center">
                                 <div class="dropdown dropdown-month me-3">
-                                    <div class="dropdown-toggle btn btn-dropdown-month ps-0" data-bs-toggle="dropdown">
+                                    <div class="dropdown-toggle btn btn-dropdown-month mt-1 p-0" data-bs-toggle="dropdown">
                                         <div class="d-inline-flex align-items-center">
                                             <span class="calendar-month">{{ date('F') }}</span>
                                             <span class="calendar-year">{{ date('Y') }}</span>
@@ -129,14 +128,24 @@
                                     <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="d-flex justify-content-end gap-4 total-status-task mt-2 me-3">
+                        <div class="d-flex flex-column position-relative">
+                            <div class="search-wrapper ms-auto">
+                                <span class="material-symbols-outlined search-icon position-absolute">
+                                    search
+                                </span>
+                                <input type="text" class="search-input-custom" id="search_task" placeholder="search task...">
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-4 total-status-task mt-3">
                                 <small class="selected-employee-task">Total task :</small>
                                 <small class="selected-employee-progress">Progress :</small>
                                 <small class="selected-employee-late">Late :</small>
                                 <small class="selected-employee-finish">Finish :</small>
                             </div>
                         </div>
+
                     </div>
                 </div>
 
@@ -167,7 +176,8 @@
                 <div class="box-loader d-none z-3 rounded-4 bg-white position-absolute top-0 start-0 w-100 h-100" style="background-color: rgba(255, 255, 255, 0.95) !important;">
                     <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                         <div>
-                            <div class="spinner-border opacity-50" style="width: 2.5rem; height: 2.5rem;" role="status">
+                            <div class="spinner-border opacity-50" style="width: 2.5rem; height: 2.5rem;"
+                                role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <div class="fs-10">Loading...</div>
@@ -263,24 +273,24 @@
                 <div class="modal-content modal-content-custom p-0">
                     <div class="modal-header border-0">
                         <div class="w-100">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h5 class="selected-task-date mb-0"></h5>
-                                </div>
-                                <div>
-                                    <span class="selected-total-task"></span>
+                            <div class="selected-employee-info d-flex align-items-center gap-3 px-2 rounded-3">
+                                <img src="" class="selected-employee-photo rounded-circle d-none">
+                                <div class="d-flex flex-column">
+                                    <div class="selected-employee-name">
+                                    </div>
+                                    <small class="selected-employee-task fs-8 text-muted"></small>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="barrier-custom"></div>
                     <div class="modal-body modal-body-custom p-0">
-                        <div class="selected-employee-info d-flex align-items-center gap-3 py-3 px-4 rounded-3">
-                            <img src="" class="selected-employee-photo rounded-circle d-none">
+                        <div class="d-flex justify-content-between align-items-center py-3 px-4">
                             <div>
-                                <div class="selected-employee-name mb-0" style="font-size: 14px; color: #1F2937;">
-                                </div>
-                                <small class="selected-employee-task text-muted" style="font-size: 12px;"></small>
+                                <h5 class="selected-task-date mb-0"></h5>
+                            </div>
+                            <div>
+                                <span class="selected-total-task"></span>
                             </div>
                         </div>
                         <div id="taskListByDate" class="scrollbar-transparent px-4"></div>
