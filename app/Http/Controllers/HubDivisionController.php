@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Division;
 use App\Models\Task;
 use App\Models\TaskAssignment;
+use App\Models\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -119,13 +120,51 @@ class HubDivisionController extends Controller
             $divisions = $divisionsQuery->get();
         }
 
+        // Calculate total projects and tasks for the initial view
+        $totalProjects = 0;
+        $totalTasks = 0;
+
+        if ($canSeeAll) {
+            // For users who can see all divisions in their department
+            $totalProjects = Project::where('department_id', $currentEmployee->department_id)
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                ->count();
+
+            $totalTasks = Task::whereIn('project_id', function($query) use ($currentEmployee) {
+                $query->select('id')
+                    ->from('projects')
+                    ->where('department_id', $currentEmployee->department_id)
+                    ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
+            })
+            ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+            ->count();
+        } else {
+            // For regular users, show only their division
+            $totalProjects = Project::where('department_id', $currentEmployee->department_id)
+                ->where('division_id', $currentEmployee->division_id)
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                ->count();
+
+            $totalTasks = Task::whereIn('project_id', function($query) use ($currentEmployee) {
+                $query->select('id')
+                    ->from('projects')
+                    ->where('department_id', $currentEmployee->department_id)
+                    ->where('division_id', $currentEmployee->division_id)
+                    ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
+            })
+            ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+            ->count();
+        }
+
         return view(
             'hub_division.hub_division',
             [
                 'employee' => $employee,
                 'current_employee' => $currentEmployee,
                 'divisions' => $divisions,
-                'canSeeAll' => $canSeeAll
+                'canSeeAll' => $canSeeAll,
+                'totalProjects' => $totalProjects,
+                'totalTasks' => $totalTasks
             ]
         );
     }
@@ -325,6 +364,70 @@ class HubDivisionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching tasks: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getDivisionStats(Request $request)
+    {
+        try {
+            $divisionId = $request->input('division_id');
+            $userId = auth()->user()->id;
+            $currentEmployee = Employee::where('user_id', $userId)->first();
+
+            if (!$currentEmployee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee not found'
+                ], 404);
+            }
+
+            $totalProjects = 0;
+            $totalTasks = 0;
+
+            if ($divisionId === 'all') {
+                // Count all projects and tasks in the department
+                $totalProjects = Project::where('department_id', $currentEmployee->department_id)
+                    ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                    ->count();
+
+                $totalTasks = Task::whereIn('project_id', function($query) use ($currentEmployee) {
+                    $query->select('id')
+                        ->from('projects')
+                        ->where('department_id', $currentEmployee->department_id)
+                        ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
+                })
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                ->count();
+            } else {
+                // Count projects and tasks for specific division
+                $totalProjects = Project::where('department_id', $currentEmployee->department_id)
+                    ->where('division_id', $divisionId)
+                    ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                    ->count();
+
+                $totalTasks = Task::whereIn('project_id', function($query) use ($currentEmployee, $divisionId) {
+                    $query->select('id')
+                        ->from('projects')
+                        ->where('department_id', $currentEmployee->department_id)
+                        ->where('division_id', $divisionId)
+                        ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
+                })
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                ->count();
+            }
+
+            return response()->json([
+                'success' => true,
+                'total_projects' => $totalProjects,
+                'total_tasks' => $totalTasks
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching division stats: ' . $e->getMessage(),
                 'error' => $e->getMessage()
             ], 500);
         }

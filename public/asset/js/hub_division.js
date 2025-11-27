@@ -113,11 +113,12 @@ $(document).on('click', '.division-item', function () {
 
     $('.selected-division-text').text(divisionText);
 
+    // Filter employees based on division
     if (divisionId === 'all') {
         $('.employee-item').show();
     } else {
         $('.employee-item').each(function () {
-            const employeeDivisionId = $(this).data('employee-division');
+            const employeeDivisionId = $(this).data('employee-division-id');
             if (employeeDivisionId == divisionId) {
                 $(this).show();
             } else {
@@ -125,7 +126,29 @@ $(document).on('click', '.division-item', function () {
             }
         });
     }
+
+    // Update division statistics (total projects and tasks)
+    updateDivisionStats(divisionId);
 });
+
+async function updateDivisionStats(divisionId) {
+    try {
+        const response = await $.ajax({
+            url: appUrl + "/hub_division/division-stats",
+            type: "GET",
+            data: {
+                division_id: divisionId
+            }
+        });
+
+        if (response.success) {
+            $('.employee-total-task').text('Total Project : ' + response.total_projects);
+            $('.employee-total-project').text('Total Task : ' + response.total_tasks);
+        }
+    } catch (error) {
+        console.error("Error updating division stats:", error);
+    }
+}
 
 async function loadEmployeeTasks(employeeId, year, month, query='') {
     try {
