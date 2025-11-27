@@ -6,6 +6,11 @@ let selectedEmployeeId = null;
 let currentSearchQuery = '';
 let allTasksData = [];
 
+const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+tooltipTriggerList.forEach(el => {
+    new bootstrap.Tooltip(el)
+})
+
 function getTaskStatusColor(status) {
     const statusLower = (status || '').toLowerCase();
 
