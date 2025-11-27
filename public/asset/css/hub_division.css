@@ -1051,3 +1051,10 @@
     z-index: 30;
     opacity: 1;
 }
+
+.employee-total-task,
+.employee-total-project {
+    font-size: 12px;
+    font-weight: 400;
+    color: #5A5D6E;
+}
