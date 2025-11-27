@@ -346,6 +346,78 @@
     font-size: 12px;
     color: #46515f;
     font-weight: 600;
+    position: relative;
+}
+
+/* Attendance Indicators */
+.attendance-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    z-index: 10;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.attendance-indicator:hover {
+    transform: scale(1.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Check in and check out complete */
+.attendance-indicator.check-in-out {
+    background: linear-gradient(135deg, #5C88DA 50%, #858792 50%);
+}
+
+/* Absent */
+.attendance-indicator.absent {
+    background-color: #CB6365;
+}
+
+/* Sick (approved leave request) */
+.attendance-indicator.sick {
+    background-color: #E7DF82;
+}
+
+/* Leave (approved annual leave) */
+.attendance-indicator.leave {
+    background-color: #8EDAE5;
+}
+
+/* Check in only (no check out) */
+.attendance-indicator.check-in-only {
+    background-color: #5C88DA;
+}
+
+/* Tooltip for attendance */
+.attendance-tooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.9);
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 400;
+    white-space: pre-line;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    line-height: 1.4;
+}
+
+.attendance-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
 }
 
 .table-calendar tbody td .box-event {
@@ -399,6 +471,7 @@
     white-space: nowrap;
     cursor: pointer;
     transition: all 0.2s ease;
+    text-align: start;
 }
 
 .table-calendar tbody td .text-event:hover {
@@ -1103,3 +1176,4 @@
     font-weight: 400;
     color: #5a5d6e;
 }
+

@@ -191,7 +191,7 @@ async function loadEmployeeTasks(employeeId, year, month, query = '') {
             },
             success: function (response) {
                 $('.calendar-card-content .box-loader').delay(500).fadeOut('fast');
-                
+
                 if (response.success) {
                     allTasksData = response.data || [];
 
@@ -410,6 +410,9 @@ async function renderEventCalendar(year, month) {
             $('.box-event').empty();
 
             tasks.forEach(t => renderTaskBar(t));
+
+            // Load and render attendance indicators
+            await loadAndRenderAttendanceIndicators(selectedEmployeeId, year, month + 1);
         } else {
             // Hide loading jika tidak ada employee yang dipilih
             $('.calendar-card-content .box-loader').fadeOut('fast');
@@ -420,6 +423,148 @@ async function renderEventCalendar(year, month) {
         console.error(error);
         $('.calendar-card-content .box-loader').fadeOut('fast');
         return 'error-rendering';
+    }
+}
+
+// Load attendance data for employee by month
+async function loadEmployeeAttendance(employeeId, year, month) {
+    try {
+        const response = await $.ajax({
+            url: appUrl + "/hub_division/employee-attendance-by-month",
+            type: "GET",
+            data: {
+                employee_id: employeeId,
+                year: year,
+                month: month
+            }
+        });
+
+        if (response.success) {
+            return response.data || [];
+        } else {
+            console.error("Failed to load attendance:", response.message);
+            return [];
+        }
+    } catch (error) {
+        console.error("Error loading attendance:", error);
+        return [];
+    }
+}
+
+// Render attendance indicators on calendar
+function renderAttendanceIndicator(date, type, timeIn, timeOut) {
+    const $dayCell = $(`.calendar-day[data-calendar-date="${date}"]`);
+
+    if ($dayCell.length === 0) return;
+
+    // Remove existing indicator if any
+    $dayCell.find('.attendance-indicator').remove();
+
+    // Create indicator element
+    const $indicator = $('<div class="attendance-indicator"></div>');
+
+    // Set class based on type
+    if (type === 'check_in_out') {
+        $indicator.addClass('check-in-out');
+
+        // Add tooltip with times
+        const formattedTimeIn = formatTime(timeIn);
+        const formattedTimeOut = formatTime(timeOut);
+        $indicator.attr('data-tooltip', `Check In ${formattedTimeIn}\nCheck Out ${formattedTimeOut}`);
+
+    } else if (type === 'check_in_only') {
+        $indicator.addClass('check-in-only');
+
+        const formattedTimeIn = formatTime(timeIn);
+        $indicator.attr('data-tooltip', `Check In ${formattedTimeIn}\nCheck Out --:--`);
+
+    } else if (type === 'absent') {
+        $indicator.addClass('absent');
+        $indicator.attr('data-tooltip', 'ABSENT');
+
+    } else if (type === 'sick') {
+        $indicator.addClass('sick');
+        $indicator.attr('data-tooltip', 'SICK');
+
+    } else if (type === 'leave') {
+        $indicator.addClass('leave');
+        $indicator.attr('data-tooltip', 'LEAVE');
+    }
+
+    // Add hover tooltip functionality
+    $indicator.on('mouseenter', function (e) {
+        const tooltipText = $(this).attr('data-tooltip');
+        if (!tooltipText) return;
+
+        // Create tooltip element
+        const $tooltip = $('<div class="attendance-tooltip show"></div>');
+        $tooltip.text(tooltipText);
+
+        // Position tooltip
+        const rect = this.getBoundingClientRect();
+        $tooltip.css({
+            position: 'fixed',
+            left: rect.left + (rect.width / 2) + 'px',
+            top: (rect.top - 5) + 'px',
+            transform: 'translate(-50%, -100%)'
+        });
+
+        $('body').append($tooltip);
+
+        // Store reference for removal
+        $(this).data('tooltip-element', $tooltip);
+    });
+
+    $indicator.on('mouseleave', function () {
+        const $tooltip = $(this).data('tooltip-element');
+        if ($tooltip) {
+            $tooltip.remove();
+            $(this).removeData('tooltip-element');
+        }
+    });
+
+    // Append indicator to day cell
+    $dayCell.append($indicator);
+}
+
+// Format time to HH:MM
+function formatTime(timeString) {
+    if (!timeString) return '-';
+
+    try {
+        // Handle both "HH:MM:SS" and "YYYY-MM-DD HH:MM:SS" formats
+        const parts = timeString.split(' ');
+        const timePart = parts.length > 1 ? parts[1] : parts[0];
+        const [hours, minutes] = timePart.split(':');
+        return `${hours}:${minutes}`;
+    } catch (e) {
+        return timeString;
+    }
+}
+
+// Load and render all attendance indicators for the month
+async function loadAndRenderAttendanceIndicators(employeeId, year, month) {
+    try {
+        const attendanceData = await loadEmployeeAttendance(employeeId, year, month);
+
+        console.log('Attendance Data Received:', attendanceData);
+
+        // Clear existing indicators
+        $('.attendance-indicator').remove();
+
+        // Render each attendance record
+        attendanceData.forEach(record => {
+            console.log('Rendering attendance indicator:', record);
+            renderAttendanceIndicator(
+                record.date,
+                record.type,
+                record.time_in,
+                record.time_out
+            );
+        });
+
+    } catch (error) {
+        console.error("Error rendering attendance indicators:", error);
     }
 }
 
@@ -1106,6 +1251,23 @@ $(document).ready(function () {
                 });
             }
         }, STOP_DELAY);
+    });
+
+    // Export task button handler
+    $(document).on('click', '.export-task', function() {
+        if (!selectedEmployeeId) {
+            showFloatingAlert('Please select an employee first', 'warning', 3000);
+            return;
+        }
+
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth() + 1;
+
+        // Build export URL
+        const exportUrl = `${appUrl}/hub_division/export-employee-tasks?employee_id=${selectedEmployeeId}&year=${year}&month=${month}`;
+        
+        // Open in new window to trigger download
+        window.open(exportUrl, '_blank');
     });
 
 });
@@ -2342,7 +2504,7 @@ function renderMobileInsideCalendarHeader() {
     const container = document.getElementById('mobile-inside-calendar-header')
 
     container.innerHTML = `
-        <div class="mobile-calendar-controls d-flex align-items-center p-2 gap-3 mb-3">
+        <div class="mobile-calendar-controls d-flex align-items-center p-2 mb-3">
             <div class="dropdown dropdown-month">
                 <div class="dropdown-toggle btn btn-dropdown-month p-0" data-bs-toggle="dropdown">
                     <div class="d-inline-flex align-items-center">
@@ -2359,10 +2521,16 @@ function renderMobileInsideCalendarHeader() {
                 </ul>
             </div>
 
-            <div class="d-flex align-items-center gap-1">
+            <div class="d-flex align-items-center">
                 <span class="material-symbols-outlined calendar-prev-month">chevron_left</span>
                 <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
             </div>
+
+            <button class="btn btn-sm export-task border-0 me-1"
+                data-bs-toggle="tooltip" data-bs-placement="top"
+                data-bs-title="Report Task">
+                    <span class="material-symbols-outlined">download</span>
+            </button>
 
             <div class="search-wrapper flex-grow-1 position-relative">
                 <span class="material-symbols-outlined search-icon position-absolute">search</span>
