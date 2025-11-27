@@ -275,6 +275,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/hub_division/all-tasks-employee-calendar-by-month', [TaskController::class, 'allTasksEmployeeCalendarByMonth'])->name('hub_division.allTasksEmployeeCalendarByMonth');
     Route::get('/hub_division/employee-tasks-by-month', [HubDivisionController::class, 'getEmployeeTasksByMonth'])->name('hub_division.employeeTasksByMonth');
     Route::get('/hub_division/employee-tasks-by-date', [HubDivisionController::class, 'getEmployeeTasksByDate'])->name('hub_division.employeeTasksByDate');
+    Route::get('/hub_division/division-stats', [HubDivisionController::class, 'getDivisionStats'])->name('hub_division.divisionStats');
 
 
 });

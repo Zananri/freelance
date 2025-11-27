@@ -51,8 +51,8 @@
 
                 <div class="header-barier"></div>
                 <div class="d-flex justify-content-between px-3">
-                    <span class="employee-total-task">Total Project : 10</span>
-                    <span class="employee-total-project">Total Task : 50</span>
+                    <span class="employee-total-task">Total Project : {{ $totalProjects }}</span>
+                    <span class="employee-total-project">Total Task : {{ $totalTasks }}</span>
                 </div>
                 <div class="employee-list scrollbar-transparent">
                     @foreach ($employee as $emp)
@@ -74,10 +74,17 @@
                             $taskFinish = $emp->total_finished ?? 0;
                         @endphp
 
-                        <div class="employee-item" data-employee-division="{{ $emp->division->name_division }}"
-                            data-employee-id="{{ $emp->id }}" data-employee-photo="{{ $photoUrl }}"
-                            data-total-task="{{ $taskCount }}" data-total-progress="{{ $taskProgress }}"
-                            data-total-late="{{ $taskLate }}" data-total-finish="{{ $taskFinish }}" data-total-start="{{ $taskStart }}" data-total-complete="{{ $taskComplete }}">
+                        <div class="employee-item" 
+                            data-employee-division="{{ $emp->division->name_division }}"
+                            data-employee-division-id="{{ $emp->division_id }}"
+                            data-employee-id="{{ $emp->id }}" 
+                            data-employee-photo="{{ $photoUrl }}"
+                            data-total-task="{{ $taskCount }}" 
+                            data-total-progress="{{ $taskProgress }}"
+                            data-total-late="{{ $taskLate }}" 
+                            data-total-finish="{{ $taskFinish }}" 
+                            data-total-start="{{ $taskStart }}" 
+                            data-total-complete="{{ $taskComplete }}">
                             <div class="employee-photo">
                                 <img src="{{ $photoUrl }}" alt="{{ $emp->name }}">
                             </div>
