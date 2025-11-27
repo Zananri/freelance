@@ -11,6 +11,12 @@ use App\Models\TaskAssignment;
 use App\Models\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use Carbon\Carbon;
 
 class HubDivisionController extends Controller
 {
@@ -568,6 +574,210 @@ class HubDivisionController extends Controller
                 'success' => false,
                 'message' => 'Error fetching attendance: ' . $e->getMessage(),
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function exportEmployeeTasksByMonth(Request $request)
+    {
+        try {
+            $employeeId = $request->input('employee_id');
+            $year = $request->input('year');
+            $month = $request->input('month');
+
+            if (!$employeeId || !$year || !$month) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing required parameters'
+                ], 400);
+            }
+
+            // Get employee data
+            $employee = Employee::with('division', 'department', 'job')
+                ->find($employeeId);
+
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee not found'
+                ], 404);
+            }
+
+            $firstDay = sprintf('%04d-%02d-01', $year, $month);
+            $lastDay = date('Y-m-t', strtotime($firstDay));
+
+            // Get task assignments for employee
+            $taskAssignments = TaskAssignment::where('employee_id', $employeeId)
+                ->pluck('task_id');
+
+            // Get tasks for the month
+            $tasks = Task::whereIn('tasks.id', $taskAssignments)
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+                ->where(function ($q) use ($firstDay, $lastDay) {
+                    $q->whereBetween('tasks.start_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59'])
+                      ->orWhereBetween('tasks.due_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59']);
+                })
+                ->select(
+                    'tasks.id',
+                    'tasks.title',
+                    'tasks.status',
+                    'tasks.start_date',
+                    'tasks.due_date',
+                    'tasks.priority'
+                )
+                ->orderBy('tasks.start_date', 'asc')
+                ->get();
+
+            // Create spreadsheet
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // Set title
+            $monthName = date('F', mktime(0, 0, 0, $month, 1));
+            $sheet->mergeCells('A1:D1');
+            $sheet->setCellValue('A1', "Task Report - {$employee->name}");
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            // Set subtitle
+            $sheet->mergeCells('A2:D2');
+            $sheet->setCellValue('A2', "{$monthName} {$year}");
+            $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12);
+            $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            // Set headers
+            $sheet->setCellValue('A4', 'Employee Name');
+            $sheet->setCellValue('B4', 'Task');
+            $sheet->setCellValue('C4', 'Status');
+            $sheet->setCellValue('D4', 'Duration');
+
+            // Style headers
+            $headerStyle = [
+                'font' => [
+                    'bold' => true,
+                    'size' => 11,
+                    'color' => ['rgb' => 'FFFFFF']
+                ],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => '4472C4']
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ]
+            ];
+            $sheet->getStyle('A4:D4')->applyFromArray($headerStyle);
+
+            // Set column widths
+            $sheet->getColumnDimension('A')->setWidth(25);
+            $sheet->getColumnDimension('B')->setWidth(40);
+            $sheet->getColumnDimension('C')->setWidth(20);
+            $sheet->getColumnDimension('D')->setWidth(20);
+
+            // Fill data
+            $row = 5;
+            foreach ($tasks as $task) {
+                // Calculate duration
+                $duration = '-';
+                if ($task->start_date && $task->due_date) {
+                    $start = Carbon::parse($task->start_date);
+                    $end = Carbon::parse($task->due_date);
+                    $diffInDays = $start->diffInDays($end);
+                    
+                    if ($diffInDays == 0) {
+                        $duration = '1 day';
+                    } elseif ($diffInDays == 1) {
+                        $duration = '2 days';
+                    } else {
+                        $duration = ($diffInDays + 1) . ' days';
+                    }
+                }
+
+                $sheet->setCellValue('A' . $row, $employee->name);
+                $sheet->setCellValue('B' . $row, $task->title);
+                $sheet->setCellValue('C' . $row, ucfirst(str_replace('_', ' ', $task->status)));
+                $sheet->setCellValue('D' . $row, $duration);
+
+                // Style data rows
+                $dataStyle = [
+                    'alignment' => [
+                        'vertical' => Alignment::VERTICAL_CENTER,
+                        'wrapText' => true
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => 'CCCCCC']
+                        ]
+                    ]
+                ];
+                $sheet->getStyle('A' . $row . ':D' . $row)->applyFromArray($dataStyle);
+
+                // Center align for Employee Name, Status, and Duration
+                $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('C' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('D' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                // Color code status
+                $statusColor = null;
+                $statusLower = strtolower($task->status);
+                if (strpos($statusLower, 'completed') !== false || strpos($statusLower, 'finished') !== false) {
+                    $statusColor = 'C6EFCE'; // Green
+                } elseif (strpos($statusLower, 'progress') !== false) {
+                    $statusColor = 'FFEB9C'; // Yellow
+                } elseif (strpos($statusLower, 'request') !== false || strpos($statusLower, 'new') !== false) {
+                    $statusColor = 'E2E8F0'; // Gray
+                } elseif (strpos($statusLower, 'revision') !== false || strpos($statusLower, 'reject') !== false) {
+                    $statusColor = 'FFC7CE'; // Red
+                }
+
+                if ($statusColor) {
+                    $sheet->getStyle('C' . $row)->getFill()
+                        ->setFillType(Fill::FILL_SOLID)
+                        ->getStartColor()->setRGB($statusColor);
+                }
+
+                $row++;
+            }
+
+            // Add summary
+            $row += 1;
+            $sheet->setCellValue('A' . $row, 'Total Tasks:');
+            $sheet->setCellValue('B' . $row, count($tasks));
+            $sheet->getStyle('A' . $row . ':B' . $row)->getFont()->setBold(true);
+
+            // Set row height for data rows
+            for ($i = 5; $i < $row; $i++) {
+                $sheet->getRowDimension($i)->setRowHeight(30);
+            }
+
+            // Generate filename
+            $employeeNameSlug = preg_replace('/[^A-Za-z0-9_\-]/', '_', $employee->name);
+            $filename = "task_by_month_{$employeeNameSlug}_{$monthName}_{$year}.xlsx";
+
+            // Create writer and save to output
+            $writer = new Xlsx($spreadsheet);
+            
+            // Set headers for download
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+
+            $writer->save('php://output');
+            exit;
+
+        } catch (\Exception $e) {
+            Log::error('Export error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error exporting tasks: ' . $e->getMessage()
             ], 500);
         }
     }

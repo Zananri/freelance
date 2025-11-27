@@ -1253,6 +1253,23 @@ $(document).ready(function () {
         }, STOP_DELAY);
     });
 
+    // Export task button handler
+    $(document).on('click', '.export-task', function() {
+        if (!selectedEmployeeId) {
+            showFloatingAlert('Please select an employee first', 'warning', 3000);
+            return;
+        }
+
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth() + 1;
+
+        // Build export URL
+        const exportUrl = `${appUrl}/hub_division/export-employee-tasks?employee_id=${selectedEmployeeId}&year=${year}&month=${month}`;
+        
+        // Open in new window to trigger download
+        window.open(exportUrl, '_blank');
+    });
+
 });
 
 // Constants

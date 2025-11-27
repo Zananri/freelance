@@ -277,6 +277,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/hub_division/employee-tasks-by-date', [HubDivisionController::class, 'getEmployeeTasksByDate'])->name('hub_division.employeeTasksByDate');
     Route::get('/hub_division/division-stats', [HubDivisionController::class, 'getDivisionStats'])->name('hub_division.divisionStats');
     Route::get('/hub_division/employee-attendance-by-month', [HubDivisionController::class, 'getEmployeeAttendanceByMonth'])->name('hub_division.employeeAttendanceByMonth');
+    Route::get('/hub_division/export-employee-tasks', [HubDivisionController::class, 'exportEmployeeTasksByMonth'])->name('hub_division.exportEmployeeTasks');
 
 
 });
