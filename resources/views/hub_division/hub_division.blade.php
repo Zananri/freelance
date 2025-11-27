@@ -164,7 +164,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="box-loader d-none z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+                <div class="box-loader d-none z-3 rounded-4 bg-white position-absolute top-0 start-0 w-100 h-100" style="background-color: rgba(255, 255, 255, 0.95) !important;">
                     <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                         <div>
                             <div class="spinner-border opacity-50" style="width: 2.5rem; height: 2.5rem;" role="status">
