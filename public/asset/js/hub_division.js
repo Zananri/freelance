@@ -2294,19 +2294,6 @@ function renderMobileOutsideCalendarHeader() {
                 <div class="selected-employee-photo me-2"></div>
                 <span class="selected-employee-name"></span>
             </div>
-
-            <div class="d-flex justify-content-between mt-2">
-                <div>
-                    <small class="mobile-selected-employee-task">0</small>
-                </div>
-                <div class="d-flex gap-3">
-                    <small class="mobile-selected-employee-start">0</small>
-                    <small class="mobile-selected-employee-progress">0</small>
-                    <small class="mobile-selected-employee-late">0</small>
-                    <small class="mobile-selected-employee-complete">0</small>
-                    <small class="mobile-selected-employee-finish">0</small>
-                </div>
-            </div>
         </div>
     `;
 }
@@ -2379,17 +2366,57 @@ function renderMobileInsideCalendarHeader() {
     });
 }
 
+function renderFooterStatusLegend() {
+    const container = document.getElementById('legend-footer-mobile')
+
+    container.innerHTML = `
+        <div class="mobile-stats-wrapper mt-2">
+            <span class="mobile-selected-employee-task">0</span>
+
+            <div class="mobile-stats-boxes d-flex justify-content-between mt-2">
+                <div class="stat-box stat-start">
+                    <div class="stat-number mobile-selected-employee-start">0</div>
+                    <div class="stat-label">Not Started</div>
+                </div>
+
+                <div class="stat-box stat-late">
+                    <div class="stat-number mobile-selected-employee-late">0</div>
+                    <div class="stat-label">Late</div>
+                </div>
+
+                <div class="stat-box stat-progress">
+                    <div class="stat-number mobile-selected-employee-progress">0</div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+
+                <div class="stat-box stat-complete">
+                    <div class="stat-number mobile-selected-employee-complete">0</div>
+                    <div class="stat-label">Complete</div>
+                </div>
+
+                <div class="stat-box stat-finish">
+                    <div class="stat-number mobile-selected-employee-finish">0</div>
+                    <div class="stat-label">Finish</div>
+                </div>
+            </div>
+        </div>
+    `
+}
+
 function checkCalendarLayout() {
     if (window.innerWidth <= 768) {
         document.getElementById('mobile-inside-calendar-header').classList.remove('d-none');
         document.getElementById('mobile-outside-calendar-header').classList.remove('d-none');
+        document.getElementById('legend-footer-mobile').classList.remove('d-none');
         renderMobileOutsideCalendarHeader();
         renderMobileInsideCalendarHeader();
+        renderFooterStatusLegend();
 
         document.querySelector('.header-calendar').classList.add('d-none');
     } else {
         document.getElementById('mobile-inside-calendar-header').classList.add('d-none');
         document.getElementById('mobile-outside-calendar-header').classList.add('d-none');
+        document.getElementById('legend-footer-mobile').classList.add('d-none');
         document.querySelector('.header-calendar').classList.remove('d-none');
     }
 }

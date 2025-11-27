@@ -191,6 +191,7 @@
                     </div>
                 </div>
             </div>
+            <div id="legend-footer-mobile" class="d-none mb-3"></div>
         </div>
     </div>
 
