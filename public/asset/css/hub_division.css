@@ -471,6 +471,7 @@
     white-space: nowrap;
     cursor: pointer;
     transition: all 0.2s ease;
+    text-align: start;
 }
 
 .table-calendar tbody td .text-event:hover {
