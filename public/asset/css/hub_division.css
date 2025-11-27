@@ -359,13 +359,6 @@
     border-radius: 3px;
     z-index: 10;
     cursor: pointer;
-    transition: transform 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-}
-
-.attendance-indicator:hover {
-    transform: scale(1.2);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 /* Check in and check out complete */
