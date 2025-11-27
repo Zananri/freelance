@@ -171,38 +171,46 @@ async function updateDivisionStats(divisionId) {
 }
 
 async function loadEmployeeTasks(employeeId, year, month, query = '') {
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: appUrl + "/hub_division/employee-tasks-by-month",
+            type: "GET",
+            data: {
+                employee_id: employeeId,
+                year: year,
+                month: month,
+                query: query
+            },
+            beforeSend: function () {
+                $('.calendar-card-content .box-loader').fadeIn('fast');
+            },
+            success: function (response) {
+                $('.calendar-card-content .box-loader').delay(500).fadeOut('fast');
+                
+                if (response.success) {
+                    allTasksData = response.data || [];
 
-    $.ajax({
-        url: appUrl + "/hub_division/employee-tasks-by-month",
-        type: "GET",
-        data: {
-            employee_id: employeeId,
-            year: year,
-            month: month,
-            query: query
-        },
-        beforeSend: function () {
-            $('.card-content .box-loader').fadeIn('fast');
-        },
-        success: function () {
-            if (response.success) {
-                allTasksData = response.data || [];
-
-                return {
-                    tasks: response.data,
-                    total: response.total_tasks,
-                    total_in_progress: response.total_in_progress,
-                    total_late: response.total_late,
-                    total_finished: response.total_finished
-                };
+                    resolve({
+                        tasks: response.data,
+                        total: response.total_tasks,
+                        total_in_progress: response.total_in_progress,
+                        total_late: response.total_late,
+                        total_finished: response.total_finished,
+                        total_start: response.total_start || 0,
+                        total_complete: response.total_complete || 0
+                    });
+                } else {
+                    allTasksData = [];
+                    resolve({ tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0, total_start: 0, total_complete: 0 });
+                }
+            },
+            error: function (xhr, status, error) {
+                $('.calendar-card-content .box-loader').delay(500).fadeOut('fast');
+                allTasksData = [];
+                console.error("Error loading employee tasks:", error);
+                resolve({ tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0, total_start: 0, total_complete: 0 });
             }
-
-            allTasksData = [];
-            $('.card-content .box-loader').delay(500).fadeOut('fast');
-
-            return { tasks: [], total: 0, total_in_progress: 0, total_late: 0, total_finished: 0 };
-
-        }
+        });
     });
 }
 
@@ -315,7 +323,9 @@ $('.calendar-prev-month').click(function () {
     if (selectedEmployeeId) {
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
     } else {
-        renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+        renderCalendar(currentDate.getFullYear(), currentDate.getMonth()).then(() => {
+            $('.calendar-card-content .box-loader').fadeOut('fast');
+        });
     }
 });
 
@@ -333,7 +343,9 @@ $('.calendar-next-month').click(function () {
     if (selectedEmployeeId) {
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
     } else {
-        renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+        renderCalendar(currentDate.getFullYear(), currentDate.getMonth()).then(() => {
+            $('.calendar-card-content .box-loader').fadeOut('fast');
+        });
     }
 });
 
@@ -353,7 +365,9 @@ $(document).on('click', '.month-item', function () {
     if (selectedEmployeeId) {
         renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
     } else {
-        renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+        renderCalendar(currentDate.getFullYear(), currentDate.getMonth()).then(() => {
+            $('.calendar-card-content .box-loader').fadeOut('fast');
+        });
     }
 });
 
@@ -374,8 +388,8 @@ async function renderEventCalendar(year, month) {
             const totalInProgress = result.total_in_progress;
             const totalLate = result.total_late;
             const totalFinished = result.total_finished;
-            const totalStart = result.total_start;
-            const totalComplete = result.total_complete;
+            const totalStart = result.total_start || 0;
+            const totalComplete = result.total_complete || 0;
 
             $('.selected-employee-task').text("Total task: " + total);
             $('.selected-employee-progress').text("In Progress: " + totalInProgress);
@@ -391,11 +405,15 @@ async function renderEventCalendar(year, month) {
             $('.box-event').empty();
 
             tasks.forEach(t => renderTaskBar(t));
+        } else {
+            // Hide loading jika tidak ada employee yang dipilih
+            $('.calendar-card-content .box-loader').fadeOut('fast');
         }
 
         return 'done-rendering';
     } catch (error) {
         console.error(error);
+        $('.calendar-card-content .box-loader').fadeOut('fast');
         return 'error-rendering';
     }
 }
@@ -1000,7 +1018,10 @@ $(document).ready(function () {
 
     $('.calendar-month').text(monthNames[currentDate.getMonth()]);
     $('.calendar-year').text(currentDate.getFullYear());
-    renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    renderCalendar(currentDate.getFullYear(), currentDate.getMonth()).then(() => {
+        // Hide loading setelah calendar pertama kali di-render
+        $('.calendar-card-content .box-loader').fadeOut('fast');
+    });
 
     $('.selected-employee-photo').css('background-image', '');
     $('.selected-employee-name').text('Please select employee');
@@ -2360,7 +2381,9 @@ function renderMobileInsideCalendarHeader() {
         if (selectedEmployeeId) {
             renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
         } else {
-            renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+            renderCalendar(currentDate.getFullYear(), currentDate.getMonth()).then(() => {
+                $('.calendar-card-content .box-loader').fadeOut('fast');
+            });
         }
     });
 
@@ -2375,7 +2398,9 @@ function renderMobileInsideCalendarHeader() {
         if (selectedEmployeeId) {
             renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
         } else {
-            renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+            renderCalendar(currentDate.getFullYear(), currentDate.getMonth()).then(() => {
+                $('.calendar-card-content .box-loader').fadeOut('fast');
+            });
         }
     });
 }
