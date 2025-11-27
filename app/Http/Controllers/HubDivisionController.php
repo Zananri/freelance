@@ -183,6 +183,22 @@ class HubDivisionController extends Controller
                 ->whereRaw('LOWER(status) = ?', ['in_progress'])
                 ->count();
 
+            $start = (clone $baseQuery)
+                ->where(function ($q) use ($firstDay, $lastDay) {
+                    $q->whereBetween('start_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59'])
+                    ->orWhereBetween('due_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59']);
+                })
+                ->whereRaw('LOWER(status) = ?', ['not_started'])
+                ->count();
+
+            $complete = (clone $baseQuery)
+                ->where(function ($q) use ($firstDay, $lastDay) {
+                    $q->whereBetween('start_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59'])
+                    ->orWhereBetween('due_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59']);
+                })
+                ->whereRaw('LOWER(status) = ?', ['completed'])
+                ->count();
+
             $finished = (clone $baseQuery)
                 ->where(function ($q) use ($firstDay, $lastDay) {
                     $q->whereBetween('start_date', [$firstDay.' 00:00:00', $lastDay.' 23:59:59'])
@@ -204,7 +220,9 @@ class HubDivisionController extends Controller
             return response()->json([
                 'success' => true,
                 'total_tasks' => $tasks->count(),
+                'total_start' => $start,
                 'total_in_progress' => $inProgress,
+                'total_complete' => $complete,
                 'total_finished' => $finished,
                 'total_late' => $late,
                 'data' => $tasks
@@ -259,10 +277,22 @@ class HubDivisionController extends Controller
                 ->orderBy('tasks.start_date', 'asc')
                 ->get();
 
+            $start = (clone $baseQuery)
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('due_date', '>=', $date)
+                ->whereRaw('LOWER(status) = ?', ['not_started'])
+                ->count();
+
             $inProgress = (clone $baseQuery)
                 ->whereDate('start_date', '<=', $date)
                 ->whereDate('due_date', '>=', $date)
                 ->whereRaw('LOWER(status) = ?', ['in_progress'])
+                ->count();
+
+            $complete = (clone $baseQuery)
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('due_date', '>=', $date)
+                ->whereRaw('LOWER(status) = ?', ['completed'])
                 ->count();
 
             $finished = (clone $baseQuery)
@@ -282,8 +312,10 @@ class HubDivisionController extends Controller
             return response()->json([
                 'success' => true,
                 'total_tasks' => $tasks->count(),
+                'total_start' => $start,
                 'total_in_progress' => $inProgress,
                 'total_finished' => $finished,
+                'total_complete' => $complete,
                 'total_late' => $late,
                 'data' => $tasks
             ]);
