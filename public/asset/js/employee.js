@@ -248,11 +248,13 @@ document.addEventListener("DOMContentLoaded", function () {
             rows += `
                 <tr data-id="${employee.id}">
                     <td>
-                        <div class="d-flex align-items-center gap-3">
-                            <img src="${photoUrl}" alt="Employee Photo" class="table-image rounded-circle" width="40" height="40" onerror="this.onerror=null;this.src='${fallbackAvatar}';" />
-                            <div>
-                                <div class="fw-semibold" style="font-size: 14px;">${employee.first_name} ${employee.last_name}</div>
-                                <div style="font-size: 10px; color: #6c757d;">${employee.email}</div>
+                        <div class="d-inline-block w-100">
+                            <div class="d-flex align-items-center gap-3 w-100">
+                                <img src="${photoUrl}" alt="Employee Photo" class="table-image rounded-circle" width="40" height="40" onerror="this.onerror=null;this.src='${fallbackAvatar}';" />
+                                <div class="overflow-hidden">
+                                    <div class="fw-semibold" style="font-size: 14px;">${employee.first_name} ${employee.last_name}</div>
+                                    <div class="employee-email" >${employee.email}</div>
+                                </div>
                             </div>
                         </div>
                     </td>

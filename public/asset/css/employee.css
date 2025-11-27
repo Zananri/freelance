@@ -150,35 +150,11 @@
     flex-shrink: 0;
 }
 
-/* Employee info column - prevent text overflow */
-table.table td:first-child > div {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 48px;
-}
 
-table.table td:first-child > div > div {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-}
 
-table.table td:first-child .fw-semibold {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
 
-table.table td:first-child div[style*="color: #6c757d"] {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
 
 table.table thead tr th:first-child {
-    width: 220px;
-    min-width: 220px;
     padding-left: 12px;
     padding-right: 12px;
 }
@@ -186,8 +162,6 @@ table.table thead tr th:first-child {
 table.table tbody tr td:first-child {
     padding-left: 12px;
     padding-right: 12px;
-    width: 220px;
-    min-width: 220px;
 }
 
 .image-clear-btn {
@@ -354,21 +328,12 @@ table.table th {
     font-weight: 600;
 }
 
-/* Employee name and email column styling */
-table.table td:first-child .d-flex {
-    gap: 12px !important;
-}
-
 table.table td:first-child .fw-semibold {
     font-size: 14px;
     line-height: 1.4;
     margin-bottom: 2px;
 }
 
-table.table td:first-child div[style*="font-size: 10px"] {
-    font-size: 11px !important;
-    line-height: 1.3;
-}
 
 .status-ACTIVE {
     background-color: #28a745;
@@ -447,10 +412,57 @@ td > .btn-delete {
 }
 
 /* Action buttons container */
-table.table td:last-child {
+
+.table-employee{
+    width: 120vw !important;
+}
+
+.table-employee td,
+.table-employee th{
     white-space: nowrap;
+}
+
+.table-employee td{
+    z-index: 0;
+}
+
+.table-employee th{
+    z-index: 1;
+}
+table.table th{
+    position: sticky;
+    top: 0px;
+    background-color: #f0f1f8 !important;
+}
+
+.table-employee th:first-child{
+    z-index: 2;
+}
+
+.table-employee .employee-email{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 10px; 
+    color: #6c757d;
+}
+
+.table-employee td:first-child,
+.table-employee th:first-child {
+    min-width: auto !important;
+    width: 250px !important;
+    position: sticky;
+    left: 0px;
+    background-color: #f0f1f8 !important;
+}
+
+table.table td:last-child,
+table.table th:last-child {
+    position: sticky;
+    right: 0px;
     text-align: right;
     padding-right: 12px;
+    background-color: #f0f1f8 !important;
+    width: 150px !important;
 }
 
 table.table > thead > tr {
@@ -463,7 +475,11 @@ table.table > tbody > tr {
 }
 
 table.table > tbody > tr:hover {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: #ebecf3;
+}
+
+table.table > tbody > tr:hover td{
+    background-color: #ebecf3 !important;   
 }
 
 table.table > tbody > tr > td {
@@ -480,23 +496,14 @@ table.table > thead > tr > th {
     color: #495057;
 }
 
-/* Set specific column widths for better layout */
-table.table thead tr th:nth-child(1),
-table.table tbody tr td:nth-child(1) {
-    min-width: 220px;
-    width: 220px;
-}
-
-table.table thead tr th:nth-child(2),
-table.table tbody tr td:nth-child(2) {
-    min-width: 100px;
-    width: 100px;
-}
-
-table.table thead tr th:nth-child(3),
-table.table tbody tr td:nth-child(3) {
-    min-width: 110px;
-    width: 110px;
+.table-employee tr th:nth-child(2),
+.table-employee tr th:nth-child(3),
+.table-employee tr td:nth-child(2),
+.table-employee tr td:nth-child(3){
+    width: 150px !important;
+    max-width: 150px !important;
+    min-width: 150px !important;
+    text-align: center !important;
 }
 
 /* Contract date warning styling */
@@ -506,23 +513,10 @@ table.table tbody tr td:nth-child(3) .text-danger {
     white-space: nowrap;
 }
 
-table.table thead tr th:nth-child(4),
-table.table tbody tr td:nth-child(4) {
-    min-width: 130px;
-    width: 130px;
-}
 
-table.table thead tr th:nth-child(5),
-table.table tbody tr td:nth-child(5) {
-    min-width: 120px;
-    width: 120px;
-}
 
 table.table thead tr th:nth-child(6),
 table.table tbody tr td:nth-child(6) {
-    min-width: 200px;
-    max-width: 250px;
-    width: 200px;
     word-wrap: break-word;
     word-break: break-word;
     white-space: normal;
@@ -534,8 +528,6 @@ table.table tbody tr td:nth-child(6) {
 
 table.table thead tr th:nth-child(7),
 table.table tbody tr td:nth-child(7) {
-    min-width: 80px;
-    width: 80px;
     text-align: center;
     padding: 12px 8px;
 }
@@ -547,9 +539,7 @@ table.table tbody tr td:nth-child(7) {
 
 table.table thead tr th:nth-child(8),
 table.table tbody tr td:nth-child(8) {
-    min-width: 120px;
-    width: 120px;
-    text-align: right;
+    text-align: center;
 }
 
 .table-responsive {

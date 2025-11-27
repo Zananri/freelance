@@ -98,7 +98,7 @@
 
         <div class="table-responsive">
             <div class="table-scroll-wrapper">
-                <table class="table table-borderless align-middle table-transparent">
+                <table class="table-employee table table-borderless align-middle table-transparent">
                     <thead>
                         <tr>
                             <th scope="col" style="text-align: left;">Employee</th>
