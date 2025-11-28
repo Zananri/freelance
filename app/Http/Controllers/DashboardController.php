@@ -283,11 +283,39 @@ class DashboardController extends Controller
             }
 
             if($attendance->time_out){
-                $timeOut = Carbon::parse($attendance->time_out)->format('H:i');
+                // Cek apakah time_out adalah 00:00:00 atau 00:00
+                // Jika iya, anggap sebagai TIDAK CHECKOUT (sama dengan NULL)
+                $timeOutStr = is_string($attendance->time_out) 
+                    ? trim($attendance->time_out) 
+                    : (string)$attendance->time_out;
+                
+                // Ekstrak hanya bagian waktu (HH:MM:SS atau HH:MM)
+                if (strpos($timeOutStr, ' ') !== false) {
+                    // Format: YYYY-MM-DD HH:MM:SS
+                    $timeOutStr = explode(' ', $timeOutStr)[1];
+                }
+                
+                // Jika time_out BUKAN 00:00:00 atau 00:00, maka valid
+                if ($timeOutStr !== '00:00:00' && $timeOutStr !== '00:00') {
+                    $timeOut = Carbon::parse($attendance->time_out)->format('H:i');
+                }
+                // Jika 00:00:00, $timeOut tetap kosong (tidak checkout)
             }
             
             if($attendance->time_in && $attendance->time_out){
-                $totalWorkHour = Carbon::parse($attendance->time_in)->diffInHours(Carbon::parse($attendance->time_out));
+                // Cek apakah time_out adalah 00:00:00 atau 00:00
+                $timeOutStr = is_string($attendance->time_out) 
+                    ? trim($attendance->time_out) 
+                    : (string)$attendance->time_out;
+                
+                if (strpos($timeOutStr, ' ') !== false) {
+                    $timeOutStr = explode(' ', $timeOutStr)[1];
+                }
+                
+                // Hanya hitung total work hour jika time_out BUKAN 00:00:00
+                if ($timeOutStr !== '00:00:00' && $timeOutStr !== '00:00') {
+                    $totalWorkHour = Carbon::parse($attendance->time_in)->diffInHours(Carbon::parse($attendance->time_out));
+                }
             }
         }
 
