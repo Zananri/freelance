@@ -548,7 +548,7 @@ $(document).on('click', '.playlist_add_check', function () {
 
                     const extMatch = raw.match(/\.[^/.]+$/);
                     const ext = extMatch ? extMatch[0] : "";
-                    const fileName = `TASK_FILE_${idx + 1}${ext}`;
+                    const fileName = files;
 
                     const lower = absUrl.toLowerCase();
                     const isPreviewable =
@@ -1837,7 +1837,7 @@ function showReferenceFilesForTask(taskId) {
                         title.style.fontSize = "10px";
                         title.href = fileUrl;
                         title.target = '_blank';
-                        title.textContent = "REF_FILE_TASK_" + (idx + 1);
+                        title.textContent = referenceFiles;
                         title.style.color = "#444444";
                         item.appendChild(title);
 
