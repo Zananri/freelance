@@ -363,12 +363,12 @@
 
 /* Check in and check out complete */
 .attendance-indicator.check-in-out {
-    background: linear-gradient(135deg, #5C88DA 50%, #858792 50%);
+    background: linear-gradient(135deg, #3391F1 50%, #5D6164 50%);
 }
 
 /* Absent */
 .attendance-indicator.absent {
-    background-color: #CB6365;
+    background-color: #D58889;
 }
 
 /* Sick (approved leave request) */
@@ -383,7 +383,7 @@
 
 /* Check in only (no check out) */
 .attendance-indicator.check-in-only {
-    background-color: #5C88DA;
+    background-color: #3391F1;
 }
 
 /* Tooltip for attendance */
