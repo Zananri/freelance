@@ -579,7 +579,6 @@ class HubDivisionController extends Controller
             $projects = Project::whereIn('id', $projectIds)
                 ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
                 ->with([
-                    'projectAssignments.employee',
                     'tasks' => function ($query) use ($taskAssignments, $firstDay, $lastDay) {
                         $query->whereIn('id', $taskAssignments)
                             ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
@@ -700,23 +699,23 @@ class HubDivisionController extends Controller
                 return "{$sD} {$sM} {$sY} - {$eD} {$eM} {$eY}";
             };
 
-            // Helper to get PIC from project
-            $getPIC = function ($project) {
-                $pics = $project->projectAssignments->filter(function ($assignment) {
-                    return strtolower($assignment->role ?? '') === 'pic';
-                })->map(function ($assignment) {
-                    return $assignment->employee ? $assignment->employee->name : '-';
-                });
-                return $pics->count() > 0 ? $pics->implode(', ') : '-';
+            // Helper to get PIC from task (not project)
+            $getPIC = function ($task) {
+                if (!$task->assignments) return '-';
+                $picAssign = $task->assignments->firstWhere('role', 'PIC');
+                return $picAssign && $picAssign->employee ? ($picAssign->employee->name ?? '-') : '-';
             };
 
             // Helper to get Executors from task
             $getExecutors = function ($task) {
-                $executors = $task->assignments->filter(function ($assignment) {
-                    return strtolower($assignment->role ?? '') === 'executor';
-                })->map(function ($assignment) {
-                    return $assignment->employee ? $assignment->employee->name : '-';
-                });
+                if (!$task->assignments) return '-';
+                $executors = $task->assignments->where('role', 'EXECUTOR')
+                    ->map(function ($assignment) {
+                        return $assignment->employee ? $assignment->employee->name : null;
+                    })
+                    ->filter()
+                    ->unique()
+                    ->values();
                 return $executors->count() > 0 ? $executors->implode(', ') : '-';
             };
 
@@ -733,7 +732,6 @@ class HubDivisionController extends Controller
                     'D' => is_array($project->reference_files) && count($project->reference_files) > 0 
                         ? implode("\n", array_filter($project->reference_files)) 
                         : ($project->reference_file ?? '-'),
-                    'H' => $getPIC($project),
                     'L' => $project->tasks->count(),
                 ];
 
@@ -761,8 +759,8 @@ class HubDivisionController extends Controller
                         $endRaw = $task->due_date;
                         $activeWorksheet->setCellValue('G' . $row, $formatDuration($startRaw, $endRaw));
 
-                        // PIC (from project)
-                        $activeWorksheet->setCellValue('H' . $row, $baseProjectValues['H']);
+                        // PIC (from task assignments)
+                        $activeWorksheet->setCellValue('H' . $row, $getPIC($task));
 
                         // Executor (from task assignments)
                         $activeWorksheet->setCellValue('I' . $row, $getExecutors($task));
@@ -792,7 +790,8 @@ class HubDivisionController extends Controller
 
                     $activeWorksheet->setCellValue('A' . $projectStartRow, $projectNo);
                     if ($projectEndRow > $projectStartRow) {
-                        $colsToMerge = ['A', 'B', 'C', 'D', 'H', 'L'];
+                        // Only merge project-level columns (not PIC and Executor which are task-level)
+                        $colsToMerge = ['A', 'B', 'C', 'D', 'L'];
                         foreach ($colsToMerge as $col) {
                             $activeWorksheet->mergeCells($col . $projectStartRow . ':' . $col . $projectEndRow);
                             $activeWorksheet->getStyle($col . $projectStartRow . ':' . $col . $projectEndRow)
@@ -821,9 +820,7 @@ class HubDivisionController extends Controller
                     $activeWorksheet->setCellValue('G' . $row, '-');
                     $activeWorksheet->getStyle('G' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     
-                    $activeWorksheet->setCellValue('H' . $row, $baseProjectValues['H']);
-                    $activeWorksheet->getStyle('H' . $row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
-                    
+                    $activeWorksheet->setCellValue('H' . $row, '-');
                     $activeWorksheet->setCellValue('I' . $row, '-');
                     $activeWorksheet->setCellValue('J' . $row, '-');
                     $activeWorksheet->setCellValue('K' . $row, '-');
