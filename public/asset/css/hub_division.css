@@ -667,8 +667,13 @@
     font-size: 10px;
 }
 
-.ref-url-item .action-icon,
 .ref-file-item .action-icon {
+    font-size: 18px;
+    color: #444;
+    cursor: pointer;
+}
+
+.ref-url-item .action-icon {
     opacity: 0;
     transition: opacity 0.15s ease-in-out;
     cursor: pointer;
@@ -676,20 +681,13 @@
     color: #444;
 }
 
-.ref-url-item:hover .action-icon,
-.ref-file-item:hover .action-icon {
+.ref-url-item:hover .action-icon {
     opacity: 1;
 }
 
 .ref-url-item:hover,
 .ref-file-item:hover {
     background: #f0f0f0;
-}
-
-.ref-url-item .action-icon:hover,
-.ref-file-item .action-icon:hover {
-    color: #000;
-    transform: scale(1.15);
 }
 
 /* .task-card-header {
