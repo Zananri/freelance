@@ -453,6 +453,9 @@ class HubDivisionController extends Controller
             $firstDay = sprintf('%04d-%02d-01', $year, $month);
             $lastDay = date('Y-m-t', strtotime($firstDay));
 
+            // Dapatkan tanggal hari ini untuk pengecekan pergantian hari
+            $today = Carbon::now()->toDateString();
+
             $attendances = \App\Models\Attendance::where('employee_id', $employeeId)
                 ->whereBetween('date_attendance', [$firstDay, $lastDay])
                 ->select('date_attendance', 'time_in', 'time_out', 'status')
@@ -513,12 +516,37 @@ class HubDivisionController extends Controller
                     if ($attendance->status === 'ABSENT') {
                         $dayData['type'] = 'absent';
                     } elseif ($attendance->time_in && $attendance->time_out) {
-                        $dayData['type'] = 'check_in_out';
-                        $dayData['time_in'] = $attendance->time_in;
-                        $dayData['time_out'] = $attendance->time_out;
+                        // Cek apakah time_out adalah 00:00:00 atau 00:00
+                        // Jika iya, anggap sebagai TIDAK CHECKOUT (sama dengan NULL)
+                        $timeOutStr = is_string($attendance->time_out) 
+                            ? trim($attendance->time_out) 
+                            : (string)$attendance->time_out;
+                        
+                        // Ekstrak hanya bagian waktu (HH:MM:SS atau HH:MM)
+                        if (strpos($timeOutStr, ' ') !== false) {
+                            // Format: YYYY-MM-DD HH:MM:SS
+                            $timeOutStr = explode(' ', $timeOutStr)[1];
+                        }
+                        
+                        // Jika time_out adalah 00:00:00 atau 00:00, anggap sebagai tidak checkout
+                        if ($timeOutStr === '00:00:00' || $timeOutStr === '00:00') {
+                            $dayData['type'] = 'check_in_only';
+                            $dayData['time_in'] = $attendance->time_in;
+                            // time_out tetap null, akan ditampilkan sebagai --:-- di frontend
+                        } else {
+                            // time_out valid (bukan 00:00:00)
+                            $dayData['type'] = 'check_in_out';
+                            $dayData['time_in'] = $attendance->time_in;
+                            $dayData['time_out'] = $attendance->time_out;
+                        }
                     } elseif ($attendance->time_in && !$attendance->time_out) {
+                        // Jika sudah berganti hari (tanggal attendance < hari ini) dan belum checkout,
+                        // maka tetap tampilkan sebagai check_in_only (checkout --:--)
+                        // Ini memastikan bahwa setelah jam 00:00, employee yang belum checkout
+                        // tidak akan bisa checkout lagi dan akan ditampilkan sebagai tidak checkout
                         $dayData['type'] = 'check_in_only';
                         $dayData['time_in'] = $attendance->time_in;
+                        // time_out akan tetap null, yang akan ditampilkan sebagai --:-- di frontend
                     }
                 }
 
