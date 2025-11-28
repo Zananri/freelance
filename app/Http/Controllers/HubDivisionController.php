@@ -600,7 +600,7 @@ class HubDivisionController extends Controller
             $monthName = date('F', mktime(0, 0, 0, $month, 1));
             
             // Set title
-            $activeWorksheet->mergeCells('A1:L1');
+            $activeWorksheet->mergeCells('A1:M1');
             $activeWorksheet->setCellValue('A1', "Project Report - {$employee->name} - {$monthName} {$year}");
             $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
             $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -618,7 +618,8 @@ class HubDivisionController extends Controller
                 'I2' => 'Executor',
                 'J2' => 'Task Reff File',
                 'K2' => 'Task Ref Url',
-                'L2' => 'Total Tasks'
+                'L2' => 'Complete Task',
+                'M2' => 'Total Tasks'
             ];
 
             foreach ($headers as $cell => $value) {
@@ -640,8 +641,8 @@ class HubDivisionController extends Controller
                 ],
             ];
 
-            $activeWorksheet->getStyle('A2:L2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
-            $activeWorksheet->getStyle('A2:L2')
+            $activeWorksheet->getStyle('A2:M2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+            $activeWorksheet->getStyle('A2:M2')
                 ->getAlignment()
                 ->setWrapText(true)
                 ->setHorizontal(Alignment::HORIZONTAL_CENTER)
@@ -660,7 +661,8 @@ class HubDivisionController extends Controller
                 'I' => 20,  // Executor
                 'J' => 25,  // Task Reff File
                 'K' => 25,  // Task Ref Url
-                'L' => 12   // Total Tasks
+                'L' => 35,  // Complete Task
+                'M' => 12   // Total Tasks
             ];
 
             foreach ($columnWidths as $column => $width) {
@@ -777,8 +779,26 @@ class HubDivisionController extends Controller
                             : ($task->reference_url ?? '-');
                         $activeWorksheet->setCellValue('K' . $row, $taskReffUrls);
 
+                        // Complete Task (note + files + urls)
+                        $completeNote = trim((string) ($task->complete_note ?? ''));
+                        $completeFilesArr = is_array($task->complete_files) ? array_filter($task->complete_files) : (empty($task->complete_files) ? [] : [$task->complete_files]);
+                        $completeUrlsArr = is_array($task->complete_urls) ? array_filter($task->complete_urls) : (empty($task->complete_urls) ? [] : [$task->complete_urls]);
+
+                        $completeLines = [];
+                        if ($completeNote !== '') {
+                            $completeLines[] = 'Description: ' . $completeNote;
+                        }
+                        if (count($completeFilesArr) > 0) {
+                            $completeLines[] = 'File Ref: ' . implode("\n", $completeFilesArr);
+                        }
+                        if (count($completeUrlsArr) > 0) {
+                            $completeLines[] = 'Url Reff: ' . implode("\n", $completeUrlsArr);
+                        }
+                        $completeText = count($completeLines) > 0 ? implode("\n", $completeLines) : '-';
+                        $activeWorksheet->setCellValue('L' . $row, $completeText);
+
                         // Total Tasks
-                        $activeWorksheet->setCellValue('L' . $row, $baseProjectValues['L']);
+                        $activeWorksheet->setCellValue('M' . $row, $baseProjectValues['L']);
 
                         $activeWorksheet->getRowDimension($row)->setRowHeight(18);
 
@@ -791,7 +811,7 @@ class HubDivisionController extends Controller
                     $activeWorksheet->setCellValue('A' . $projectStartRow, $projectNo);
                     if ($projectEndRow > $projectStartRow) {
                         // Only merge project-level columns (not PIC and Executor which are task-level)
-                        $colsToMerge = ['A', 'B', 'C', 'D', 'L'];
+                        $colsToMerge = ['A', 'B', 'C', 'D', 'M'];
                         foreach ($colsToMerge as $col) {
                             $activeWorksheet->mergeCells($col . $projectStartRow . ':' . $col . $projectEndRow);
                             $activeWorksheet->getStyle($col . $projectStartRow . ':' . $col . $projectEndRow)
@@ -825,8 +845,9 @@ class HubDivisionController extends Controller
                     $activeWorksheet->setCellValue('J' . $row, '-');
                     $activeWorksheet->setCellValue('K' . $row, '-');
                     
-                    $activeWorksheet->setCellValue('L' . $row, $baseProjectValues['L']);
-                    $activeWorksheet->getStyle('L' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    $activeWorksheet->setCellValue('L' . $row, '-');
+                    $activeWorksheet->setCellValue('M' . $row, $baseProjectValues['L']);
+                    $activeWorksheet->getStyle('M' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     
                     $activeWorksheet->getRowDimension($row)->setRowHeight(18);
 
@@ -845,19 +866,19 @@ class HubDivisionController extends Controller
             ];
 
             if ($row > 3) {
-                $activeWorksheet->getStyle('A3:L' . ($row - 1))->applyFromArray($dataStyle);
+                $activeWorksheet->getStyle('A3:M' . ($row - 1))->applyFromArray($dataStyle);
 
                 // Center align specific columns
                 $activeWorksheet->getStyle('A3:A' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $activeWorksheet->getStyle('G3:G' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $activeWorksheet->getStyle('L3:L' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('M3:M' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 // Enable text wrapping for relevant columns
                 $activeWorksheet->getStyle('C3:F' . ($row - 1))->getAlignment()->setWrapText(true);
                 $activeWorksheet->getStyle('C3:F' . ($row - 1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
                 
-                $activeWorksheet->getStyle('H3:K' . ($row - 1))->getAlignment()->setWrapText(true);
-                $activeWorksheet->getStyle('H3:K' . ($row - 1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+                $activeWorksheet->getStyle('H3:L' . ($row - 1))->getAlignment()->setWrapText(true);
+                $activeWorksheet->getStyle('H3:L' . ($row - 1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
             }
 
             // Set sheet name
