@@ -19,7 +19,7 @@
 
     </div>
 
-    <div class="calendar-container">
+    <div class="calendar-container mt-3">
         <div class="row">
             <div class="employee-card-content overflow-hidden">
                 <div class="header-employe-card">
@@ -141,8 +141,8 @@
                             </div>
     
                             <div class="box-view-control white-space-nowrap">
-                                <span class="material-symbols-outlined calendar-prev-month">chevron_left</span>
-                                <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
+                                <span class="material-symbols-outlined calendar-prev-month p-1">chevron_left</span>
+                                <span class="material-symbols-outlined calendar-next-month p-1">chevron_right</span>
                             </div>
     
                         </div>
@@ -158,7 +158,7 @@
                 </div>
 
 
-                <div class="box-table-calendar mt-3">
+                <div class="box-table-calendar mb-2">
                     <table class="table-calendar scrollbar-transparent">
                         <thead>
                             <tr>
