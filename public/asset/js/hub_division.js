@@ -999,7 +999,7 @@ function handleTaskDetail(taskId) {
                             onerror="this.src='${appUrl}/asset/img/avatar.png'">
                         <div class="ms-2">
                             <div class="employee-name-timeline">${i.emp.name || "Unknown"}</div>
-                            <div class="text-muted fs-8">${i.role}</div>
+                            <div class="employee-role-timeline text-muted fs-8">${i.role}</div>
                         </div>
                     </div>
                 </div>
@@ -1058,7 +1058,7 @@ function handleTaskDetail(taskId) {
                 ${completeAuthor || completeDate ? `<div class="complete-logs">Complete by ${completeAuthor || '-'} ${completeDate ? ' at ' + completeDate : ''}</div>` : ''}
 
                 <div>
-                    <h6 class="complete-reference"Link & File reference</h6>
+                    <h6 class="complete-reference">Link & File reference</h6>
                     ${completeRefFilesHtml || ''}
                     ${refCompleteUrlsHtml || ''}
                 </div>
