@@ -651,6 +651,13 @@ function renderTaskListByDate(tasks) {
         const statusColor = getTaskStatusColor(task.status);
         const statusLower = (task.status || '').toLowerCase();
         const taskIsLate = isTaskLate(task);
+        const statusText = task.status
+            ? String(task.status)
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join(' ')
+        : '';
 
         // Parse priority color
         let priorityColor = '#4B4F5E';
@@ -679,7 +686,7 @@ function renderTaskListByDate(tasks) {
                     <div class="d-flex g-1 mt-1">
                         ${taskIsLate ?
                 '<span class="status-late-list">Late</span>' :
-                `<span class="status-task-list" style="color: ${getTaskStatusTextColor(task.status)};">${task.status || 'New'}</span>`
+                `<span class="status-task-list" style="color: ${getTaskStatusTextColor(task.status)};">${statusText || 'New'}</span>`
             }
                     </div>
                 </div>
@@ -760,7 +767,13 @@ function handleTaskDetail(taskId) {
         const color = img ? "" : getRandomColorFromText(t.title);
         const statusColor = getTaskStatusColor(t.status);
         const statusLower = (String(t.status || '').toLowerCase());
-        const statusText = t.status ? (String(t.status).charAt(0).toUpperCase() + String(t.status).slice(1)) : '';
+        const statusText = t.status
+            ? String(t.status)
+                .replace(/_/g, ' ')
+                .split(' ')
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                .join(' ')
+            : '';
         const taskIsLate = isTaskLate(t);
 
         const avatar = img
