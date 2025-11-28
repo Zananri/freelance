@@ -840,7 +840,7 @@ class HubDivisionController extends Controller
                         // Total Tasks
                         $activeWorksheet->setCellValue('M' . $row, $baseProjectValues['L']);
 
-                        $activeWorksheet->getRowDimension($row)->setRowHeight(18);
+                        $activeWorksheet->getRowDimension($row)->setRowHeight(-1);
 
                         $row++;
                     }
@@ -889,7 +889,7 @@ class HubDivisionController extends Controller
                     $activeWorksheet->setCellValue('M' . $row, $baseProjectValues['L']);
                     $activeWorksheet->getStyle('M' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     
-                    $activeWorksheet->getRowDimension($row)->setRowHeight(18);
+                    $activeWorksheet->getRowDimension($row)->setRowHeight(-1);
 
                     $row++;
                     $no++;

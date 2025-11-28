@@ -1555,8 +1555,10 @@ class TaskController extends Controller
             // Handle image upload
             if ($request->hasFile('image')) {
                 $imageFile = $request->file('image');
-                $imageExtension = $imageFile->getClientOriginalExtension();
-                $imageName = 'TASK_' . time() . '.' . $imageExtension;
+                $orig = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
+                $orig = preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                $ext = $imageFile->getClientOriginalExtension();
+                $imageName = time() . '_' . $orig . '.' . $ext;
                 $imageFile->move(public_path('file/task'), $imageName);
                 $data['image'] = $imageName;
             }
@@ -2291,14 +2293,16 @@ class TaskController extends Controller
 
             // Handle image upload
             if ($request->hasFile('image')) {
-                // Delete old image
                 if ($task->image && file_exists(public_path('file/task/' . $task->image))) {
                     unlink(public_path('file/task/' . $task->image));
                 }
 
                 $imageFile = $request->file('image');
-                $imageExtension = $imageFile->getClientOriginalExtension();
-                $imageName = 'TASK_' . time() . '.' . $imageExtension;
+                $orig = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
+                $orig = preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                $ext = $imageFile->getClientOriginalExtension();
+                $imageName = time() . '_' . $orig . '.' . $ext;
+
                 $imageFile->move(public_path('file/task'), $imageName);
                 $data['image'] = $imageName;
             }
@@ -2920,12 +2924,18 @@ class TaskController extends Controller
                 if ($request->hasFile('complete_files')) {
                     $taskCompleteDir = public_path('file/task_complete_files');
                     if (!is_dir($taskCompleteDir)) @mkdir($taskCompleteDir, 0775, true);
+
                     foreach ($request->file('complete_files') as $idx => $file) {
                         if (!$file) continue;
-                        $ext = $file->getClientOriginalExtension();
-                        $name = 'TASK_COMPLETE_' . time() . '_' . $idx . '.' . $ext;
-                        $file->move($taskCompleteDir, $name);
-                        $uploadedCompleteFiles[] = $name;
+
+                        $originalName = $file->getClientOriginalName();
+                        $cleanName = preg_replace('/\s+/', '_', $originalName); // hilangin spasi biar aman
+                        $timestamp = time();
+
+                        $newName = $timestamp . '_' . $cleanName;
+
+                        $file->move($taskCompleteDir, $newName);
+                        $uploadedCompleteFiles[] = $newName;
                     }
                 }
 

@@ -6215,7 +6215,7 @@
                             /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) ||
                             fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
 
-                        const label = "PROJECT_FILE_" + (fidx + 1);
+                        const label = files;
                         const item = createRefItem(label, fileUrl, isImage, true);
                         container.appendChild(item);
                     });

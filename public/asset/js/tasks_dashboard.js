@@ -627,13 +627,7 @@ function addAttachFileIconListeners(taskId) {
                                 title.className = 'flex-grow-1 text-decoration-none text-truncate';
                                 title.href = fileUrl;
                                 title.target = '_blank';
-                                try {
-                                    var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
-                                    var num = Number(idx) + 1;
-                                    title.textContent = ext ? ('PROJECT_REF_FILE_' + num + '.' + ext) : ('PROJECT_REF_FILE_' + num);
-                                } catch (e) {
-                                    title.textContent = fileName;
-                                }
+                                title.textContent = fileName;
                                 title.style.color = "#444444"
                                 item.appendChild(title);
 
