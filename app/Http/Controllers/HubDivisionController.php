@@ -579,6 +579,7 @@ class HubDivisionController extends Controller
             $projects = Project::whereIn('id', $projectIds)
                 ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
                 ->with([
+                    'projectAssignments.employee',
                     'tasks' => function ($query) use ($taskAssignments, $firstDay, $lastDay) {
                         $query->whereIn('id', $taskAssignments)
                             ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
@@ -587,7 +588,8 @@ class HubDivisionController extends Controller
                                     ->orWhereBetween('due_date', [$firstDay . ' 00:00:00', $lastDay . ' 23:59:59']);
                             })
                             ->orderBy('start_date', 'asc');
-                    }
+                    },
+                    'tasks.assignments.employee'
                 ])
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -599,7 +601,7 @@ class HubDivisionController extends Controller
             $monthName = date('F', mktime(0, 0, 0, $month, 1));
             
             // Set title
-            $activeWorksheet->mergeCells('A1:I1');
+            $activeWorksheet->mergeCells('A1:L1');
             $activeWorksheet->setCellValue('A1', "Project Report - {$employee->name} - {$monthName} {$year}");
             $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
             $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -608,13 +610,16 @@ class HubDivisionController extends Controller
             $headers = [
                 'A2' => 'No',
                 'B2' => 'Project Name',
-                'C2' => 'Project Type',
-                'D2' => 'Task',
-                'E2' => 'Status',
-                'F2' => 'Duration',
-                'G2' => 'Reference URLs',
-                'H2' => 'Reference Files',
-                'I2' => 'Total Tasks'
+                'C2' => 'Project Reff URL',
+                'D2' => 'Project Reff File',
+                'E2' => 'Task',
+                'F2' => 'Status',
+                'G2' => 'Duration',
+                'H2' => 'PIC',
+                'I2' => 'Executor',
+                'J2' => 'Task Reff File',
+                'K2' => 'Task Ref Url',
+                'L2' => 'Total Tasks'
             ];
 
             foreach ($headers as $cell => $value) {
@@ -636,8 +641,8 @@ class HubDivisionController extends Controller
                 ],
             ];
 
-            $activeWorksheet->getStyle('A2:I2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
-            $activeWorksheet->getStyle('A2:I2')
+            $activeWorksheet->getStyle('A2:L2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+            $activeWorksheet->getStyle('A2:L2')
                 ->getAlignment()
                 ->setWrapText(true)
                 ->setHorizontal(Alignment::HORIZONTAL_CENTER)
@@ -647,13 +652,16 @@ class HubDivisionController extends Controller
             $columnWidths = [
                 'A' => 5,   // No
                 'B' => 30,  // Project Name
-                'C' => 12,  // Project Type
-                'D' => 35,  // Task
-                'E' => 15,  // Status
-                'F' => 20,  // Duration
-                'G' => 30,  // Reference URLs
-                'H' => 30,  // Reference Files
-                'I' => 12   // Total Tasks
+                'C' => 25,  // Project Reff URL
+                'D' => 25,  // Project Reff File
+                'E' => 35,  // Task
+                'F' => 15,  // Status
+                'G' => 20,  // Duration
+                'H' => 20,  // PIC
+                'I' => 20,  // Executor
+                'J' => 25,  // Task Reff File
+                'K' => 25,  // Task Ref Url
+                'L' => 12   // Total Tasks
             ];
 
             foreach ($columnWidths as $column => $width) {
@@ -692,6 +700,26 @@ class HubDivisionController extends Controller
                 return "{$sD} {$sM} {$sY} - {$eD} {$eM} {$eY}";
             };
 
+            // Helper to get PIC from project
+            $getPIC = function ($project) {
+                $pics = $project->projectAssignments->filter(function ($assignment) {
+                    return strtolower($assignment->role ?? '') === 'pic';
+                })->map(function ($assignment) {
+                    return $assignment->employee ? $assignment->employee->name : '-';
+                });
+                return $pics->count() > 0 ? $pics->implode(', ') : '-';
+            };
+
+            // Helper to get Executors from task
+            $getExecutors = function ($task) {
+                $executors = $task->assignments->filter(function ($assignment) {
+                    return strtolower($assignment->role ?? '') === 'executor';
+                })->map(function ($assignment) {
+                    return $assignment->employee ? $assignment->employee->name : '-';
+                });
+                return $executors->count() > 0 ? $executors->implode(', ') : '-';
+            };
+
             // Fill data
             $row = 3;
             $no = 1;
@@ -699,14 +727,14 @@ class HubDivisionController extends Controller
             foreach ($projects as $project) {
                 $baseProjectValues = [
                     'B' => $project->title,
-                    'C' => ucfirst($project->project_type ?? 'public'),
-                    'G' => is_array($project->reference_urls) && count($project->reference_urls) > 0 
+                    'C' => is_array($project->reference_urls) && count($project->reference_urls) > 0 
                         ? implode("\n", array_filter($project->reference_urls)) 
                         : ($project->reference_url ?? '-'),
-                    'H' => is_array($project->reference_files) && count($project->reference_files) > 0 
+                    'D' => is_array($project->reference_files) && count($project->reference_files) > 0 
                         ? implode("\n", array_filter($project->reference_files)) 
                         : ($project->reference_file ?? '-'),
-                    'I' => $project->tasks->count(),
+                    'H' => $getPIC($project),
+                    'L' => $project->tasks->count(),
                 ];
 
                 if ($project->tasks->count() > 0) {
@@ -718,23 +746,41 @@ class HubDivisionController extends Controller
                         // Project columns
                         $activeWorksheet->setCellValue('B' . $row, $baseProjectValues['B']);
                         $activeWorksheet->setCellValue('C' . $row, $baseProjectValues['C']);
+                        $activeWorksheet->setCellValue('D' . $row, $baseProjectValues['D']);
 
                         // Task columns
-                        $activeWorksheet->setCellValue('D' . $row, $task->title ?? '-');
+                        $activeWorksheet->setCellValue('E' . $row, $task->title ?? '-');
                         $s = (string) ($task->status ?? '');
                         $s = str_replace('_', ' ', $s);
                         $s = trim($s);
                         $s = $s === '' ? '-' : ucfirst($s);
-                        $activeWorksheet->setCellValue('E' . $row, $s);
+                        $activeWorksheet->setCellValue('F' . $row, $s);
 
                         // Duration: use task dates
                         $startRaw = $task->start_date;
                         $endRaw = $task->due_date;
-                        $activeWorksheet->setCellValue('F' . $row, $formatDuration($startRaw, $endRaw));
+                        $activeWorksheet->setCellValue('G' . $row, $formatDuration($startRaw, $endRaw));
 
-                        $activeWorksheet->setCellValue('G' . $row, $baseProjectValues['G']);
+                        // PIC (from project)
                         $activeWorksheet->setCellValue('H' . $row, $baseProjectValues['H']);
-                        $activeWorksheet->setCellValue('I' . $row, $baseProjectValues['I']);
+
+                        // Executor (from task assignments)
+                        $activeWorksheet->setCellValue('I' . $row, $getExecutors($task));
+
+                        // Task Reference Files
+                        $taskReffFiles = is_array($task->reference_files) && count($task->reference_files) > 0 
+                            ? implode("\n", array_filter($task->reference_files)) 
+                            : ($task->reference_file ?? '-');
+                        $activeWorksheet->setCellValue('J' . $row, $taskReffFiles);
+
+                        // Task Reference URLs
+                        $taskReffUrls = is_array($task->reference_urls) && count($task->reference_urls) > 0 
+                            ? implode("\n", array_filter($task->reference_urls)) 
+                            : ($task->reference_url ?? '-');
+                        $activeWorksheet->setCellValue('K' . $row, $taskReffUrls);
+
+                        // Total Tasks
+                        $activeWorksheet->setCellValue('L' . $row, $baseProjectValues['L']);
 
                         $activeWorksheet->getRowDimension($row)->setRowHeight(18);
 
@@ -746,7 +792,7 @@ class HubDivisionController extends Controller
 
                     $activeWorksheet->setCellValue('A' . $projectStartRow, $projectNo);
                     if ($projectEndRow > $projectStartRow) {
-                        $colsToMerge = ['A', 'B', 'C', 'G', 'H', 'I'];
+                        $colsToMerge = ['A', 'B', 'C', 'D', 'H', 'L'];
                         foreach ($colsToMerge as $col) {
                             $activeWorksheet->mergeCells($col . $projectStartRow . ':' . $col . $projectEndRow);
                             $activeWorksheet->getStyle($col . $projectStartRow . ':' . $col . $projectEndRow)
@@ -765,21 +811,25 @@ class HubDivisionController extends Controller
                     $activeWorksheet->getStyle('B' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     
                     $activeWorksheet->setCellValue('C' . $row, $baseProjectValues['C']);
-                    $activeWorksheet->getStyle('C' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    $activeWorksheet->getStyle('C' . $row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
                     
-                    $activeWorksheet->setCellValue('D' . $row, '-');
+                    $activeWorksheet->setCellValue('D' . $row, $baseProjectValues['D']);
+                    $activeWorksheet->getStyle('D' . $row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+                    
                     $activeWorksheet->setCellValue('E' . $row, '-');
                     $activeWorksheet->setCellValue('F' . $row, '-');
-                    $activeWorksheet->getStyle('F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
-                    
-                    $activeWorksheet->setCellValue('G' . $row, $baseProjectValues['G']);
-                    $activeWorksheet->getStyle('G' . $row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+                    $activeWorksheet->setCellValue('G' . $row, '-');
+                    $activeWorksheet->getStyle('G' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     
                     $activeWorksheet->setCellValue('H' . $row, $baseProjectValues['H']);
                     $activeWorksheet->getStyle('H' . $row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
                     
-                    $activeWorksheet->setCellValue('I' . $row, $baseProjectValues['I']);
-                    $activeWorksheet->getStyle('I' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    $activeWorksheet->setCellValue('I' . $row, '-');
+                    $activeWorksheet->setCellValue('J' . $row, '-');
+                    $activeWorksheet->setCellValue('K' . $row, '-');
+                    
+                    $activeWorksheet->setCellValue('L' . $row, $baseProjectValues['L']);
+                    $activeWorksheet->getStyle('L' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     
                     $activeWorksheet->getRowDimension($row)->setRowHeight(18);
 
@@ -798,17 +848,19 @@ class HubDivisionController extends Controller
             ];
 
             if ($row > 3) {
-                $activeWorksheet->getStyle('A3:I' . ($row - 1))->applyFromArray($dataStyle);
+                $activeWorksheet->getStyle('A3:L' . ($row - 1))->applyFromArray($dataStyle);
 
                 // Center align specific columns
                 $activeWorksheet->getStyle('A3:A' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $activeWorksheet->getStyle('C3:C' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $activeWorksheet->getStyle('F3:F' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $activeWorksheet->getStyle('I3:I' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('G3:G' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('L3:L' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                // Enable text wrapping for Task, Status, Reference URLs, and Reference Files columns
-                $activeWorksheet->getStyle('D3:H' . ($row - 1))->getAlignment()->setWrapText(true);
-                $activeWorksheet->getStyle('D3:H' . ($row - 1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+                // Enable text wrapping for relevant columns
+                $activeWorksheet->getStyle('C3:F' . ($row - 1))->getAlignment()->setWrapText(true);
+                $activeWorksheet->getStyle('C3:F' . ($row - 1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+                
+                $activeWorksheet->getStyle('H3:K' . ($row - 1))->getAlignment()->setWrapText(true);
+                $activeWorksheet->getStyle('H3:K' . ($row - 1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
             }
 
             // Set sheet name
