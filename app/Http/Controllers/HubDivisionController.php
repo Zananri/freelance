@@ -721,6 +721,46 @@ class HubDivisionController extends Controller
                 return $executors->count() > 0 ? $executors->implode(', ') : '-';
             };
 
+            // Helper to sanitize HTML to plain text (preserve basic line breaks)
+            $sanitizeText = function ($text) {
+                $t = (string) ($text ?? '');
+                if ($t === '') return '';
+                $t = preg_replace('/<\s*br\s*\/?>/i', "\n", $t);
+                $t = preg_replace('/<\/(p|div|li|h[1-6])>/i', "\n", $t);
+                $t = strip_tags($t);
+                $t = html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $t = preg_replace("/[\r\n]+/", "\n", $t);
+                return trim($t);
+            };
+
+            // Helper to stringify list items (files/urls) robustly
+            $stringifyList = function ($items) use ($sanitizeText) {
+                $out = [];
+                foreach ((array) $items as $item) {
+                    if (is_array($item)) {
+                        $candidate = $item['name'] ?? $item['filename'] ?? $item['path'] ?? $item['url'] ?? $item['link'] ?? null;
+                        if ($candidate !== null) {
+                            $out[] = $sanitizeText($candidate);
+                        }
+                    } elseif (is_object($item)) {
+                        try {
+                            $candidate = $item->name ?? $item->filename ?? $item->path ?? $item->url ?? $item->link ?? null;
+                            if ($candidate !== null) {
+                                $out[] = $sanitizeText($candidate);
+                            }
+                        } catch (\Throwable $_) {}
+                    } else {
+                        $val = $sanitizeText($item);
+                        if ($val !== '') {
+                            $out[] = $val;
+                        }
+                    }
+                }
+                // unique and non-empty
+                $out = array_values(array_unique(array_filter($out, fn($v) => $v !== '')));
+                return $out;
+            };
+
             // Fill data
             $row = 3;
             $no = 1;
@@ -779,20 +819,20 @@ class HubDivisionController extends Controller
                             : ($task->reference_url ?? '-');
                         $activeWorksheet->setCellValue('K' . $row, $taskReffUrls);
 
-                        // Complete Task (note + files + urls)
-                        $completeNote = trim((string) ($task->complete_note ?? ''));
-                        $completeFilesArr = is_array($task->complete_files) ? array_filter($task->complete_files) : (empty($task->complete_files) ? [] : [$task->complete_files]);
-                        $completeUrlsArr = is_array($task->complete_urls) ? array_filter($task->complete_urls) : (empty($task->complete_urls) ? [] : [$task->complete_urls]);
+                        // Complete Task (note + files + urls) - sanitized to plain text
+                        $completeNote = $sanitizeText($task->complete_note ?? '');
+                        $completeFilesArr = $stringifyList($task->complete_files ?? []);
+                        $completeUrlsArr = $stringifyList($task->complete_urls ?? []);
 
                         $completeLines = [];
                         if ($completeNote !== '') {
                             $completeLines[] = 'Description: ' . $completeNote;
                         }
                         if (count($completeFilesArr) > 0) {
-                            $completeLines[] = 'File Ref: ' . implode("\n", $completeFilesArr);
+                            $completeLines[] = 'Complete Files: ' . implode("\n", $completeFilesArr);
                         }
                         if (count($completeUrlsArr) > 0) {
-                            $completeLines[] = 'Url Reff: ' . implode("\n", $completeUrlsArr);
+                            $completeLines[] = 'Complete Urls: ' . implode("\n", $completeUrlsArr);
                         }
                         $completeText = count($completeLines) > 0 ? implode("\n", $completeLines) : '-';
                         $activeWorksheet->setCellValue('L' . $row, $completeText);
