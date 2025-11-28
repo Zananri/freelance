@@ -1567,20 +1567,26 @@ class TaskController extends Controller
             // Handle reference files upload (support both reference_files[] and reference_file[])
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $index => $file) {
-                    $referenceExtension = $file->getClientOriginalExtension();
-                    $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
+                    $orig = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $orig = preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                    $ext = $file->getClientOriginalExtension();
+                    $referenceName = time() . '_' . $orig . '.' . $ext;
                     $file->move(public_path('file/task_reference_files'), $referenceName);
                     $referenceFiles[] = $referenceName;
                 }
             }
+
             if ($request->hasFile('reference_file')) {
                 foreach ($request->file('reference_file') as $index => $file) {
-                    $referenceExtension = $file->getClientOriginalExtension();
-                    $referenceName = 'TASK_' . time() . '_' . (count($referenceFiles) + $index) . '.' . $referenceExtension;
+                    $orig = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $orig = preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                    $ext = $file->getClientOriginalExtension();
+                    $referenceName = time() . '_' . $orig . '.' . $ext;
                     $file->move(public_path('file/task_reference_files'), $referenceName);
                     $referenceFiles[] = $referenceName;
                 }
             }
+
             $data['reference_files'] = $referenceFiles;
 
             // Set created_by
@@ -2320,19 +2326,27 @@ class TaskController extends Controller
 
             $referenceFiles = $existingFilesToKeep;
 
-            // Add new files (support both reference_files[] and reference_file[])
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $index => $file) {
-                    $referenceExtension = $file->getClientOriginalExtension();
-                    $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
+
+                    $orig = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $orig = preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+
+                    $ext = $file->getClientOriginalExtension();
+
+                    $referenceName = time() . '_' . $orig . '.' . $ext;
+
                     $file->move(public_path('file/task_reference_files'), $referenceName);
+
                     $referenceFiles[] = $referenceName;
                 }
             }
             if ($request->hasFile('reference_file')) {
                 foreach ($request->file('reference_file') as $index => $file) {
-                    $referenceExtension = $file->getClientOriginalExtension();
-                    $referenceName = 'TASK_' . time() . '_' . (count($referenceFiles) + $index) . '.' . $referenceExtension;
+                    $orig = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $orig = preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                    $ext = $file->getClientOriginalExtension();
+                    $referenceName = time() . '_' . $orig . '.' . $ext;
                     $file->move(public_path('file/task_reference_files'), $referenceName);
                     $referenceFiles[] = $referenceName;
                 }
@@ -2778,7 +2792,7 @@ class TaskController extends Controller
                     continue;
                 $orig = $file->getClientOriginalName();
                 $ext = $file->getClientOriginalExtension();
-                $name = time() . '_' . Str::random(6) . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                $name = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
                 $destDir = public_path('file/task_reference_files');
                 if (!is_dir($destDir))
                     @mkdir($destDir, 0755, true);
