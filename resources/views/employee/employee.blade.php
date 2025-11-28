@@ -196,7 +196,7 @@
 
     <x-slot name="script_slot">
 
-        <script src="{{ asset('asset/js/employee.js') }}"></script>
+        <script src="{{ asset('asset/js/employee.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/date_helper.js') }}"></script>
 
         <script></script>
