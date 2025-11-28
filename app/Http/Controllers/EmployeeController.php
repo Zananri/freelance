@@ -828,12 +828,18 @@ class EmployeeController extends Controller
         $spreadsheet = new Spreadsheet();
         $activeWorksheet = $spreadsheet->getActiveSheet();
     
-        $activeWorksheet->mergeCells('A1:S1');
+        // Get current month and year
+        $currentDate = Carbon::now();
+        $monthName = $currentDate->translatedFormat('F'); // Full month name in Indonesian if locale set
+        $year = $currentDate->year;
+        $title = "Data Karyawan {$monthName} {$year}";
+    
+        $activeWorksheet->mergeCells('A1:T1');
         
         $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(34);
         $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        $activeWorksheet->setCellValue('A1', 'Data Karyawan');
+        $activeWorksheet->setCellValue('A1', $title);
 
         //No	PHOTO	NAMA KARYAWAN	EMAIL	NSAID	Department	Division	Job Position	Grade/Rank	Join Date	Selesai Kontrak	Status	Alamat	THP Take Home Pay	Gaji Pokok	Tunjangan Jabatan	Tunjangan Transportasi	Tunjangan Makan	Tunjangan Internet
         
@@ -848,14 +854,15 @@ class EmployeeController extends Controller
         $activeWorksheet->setCellValue('I2', 'Grade/Rank');
         $activeWorksheet->setCellValue('J2', 'Join Date');
         $activeWorksheet->setCellValue('K2', 'Selesai Kontrak');
-        $activeWorksheet->setCellValue('L2', 'Status');
-        $activeWorksheet->setCellValue('M2', 'Alamat');
-        $activeWorksheet->setCellValue('N2', 'THP Take Home Pay');
-        $activeWorksheet->setCellValue('O2', 'Gaji Pokok');
-        $activeWorksheet->setCellValue('P2', 'Tunjangan Jabatan');
-        $activeWorksheet->setCellValue('Q2', 'Tunjangan Transportasi');
-        $activeWorksheet->setCellValue('R2', 'Tunjangan Makan');
-        $activeWorksheet->setCellValue('S2', 'Tunjangan Internet');
+        $activeWorksheet->setCellValue('L2', 'Periode Kerja');
+        $activeWorksheet->setCellValue('M2', 'Status');
+        $activeWorksheet->setCellValue('N2', 'Alamat');
+        $activeWorksheet->setCellValue('O2', 'THP Take Home Pay');
+        $activeWorksheet->setCellValue('P2', 'Gaji Pokok');
+        $activeWorksheet->setCellValue('Q2', 'Tunjangan Jabatan');
+        $activeWorksheet->setCellValue('R2', 'Tunjangan Transportasi');
+        $activeWorksheet->setCellValue('S2', 'Tunjangan Makan');
+        $activeWorksheet->setCellValue('T2', 'Tunjangan Internet');
         
 
         // add border 
@@ -868,9 +875,9 @@ class EmployeeController extends Controller
         ];
         
 
-        $activeWorksheet->getStyle('A2:S2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+        $activeWorksheet->getStyle('A2:T2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
 
-        $activeWorksheet->getStyle('A2:S2')
+        $activeWorksheet->getStyle('A2:T2')
             ->getAlignment()
             ->setWrapText(true)
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)
@@ -946,14 +953,31 @@ class EmployeeController extends Controller
             $activeWorksheet->setCellValue('I'.$row, $employeeItem->grade->title);//'Grade/Rank'
             $activeWorksheet->setCellValue('J'.$row, $employeeItem->hire_date);//'Join Date'
             $activeWorksheet->setCellValue('K'.$row, $employeeItem->contract_end_date);//'Kontrak'
-            $activeWorksheet->setCellValue('L'.$row, $employeeItem->status);//'Status'
-            $activeWorksheet->setCellValue('M'.$row, $employeeItem->address);//'Alamat'
-            $activeWorksheet->setCellValue('N'.$row, $thp);//'Take Home Pay'
-            $activeWorksheet->setCellValue('O'.$row, $basicSalary);//'Gaji Pokok'
-            $activeWorksheet->setCellValue('P'.$row, $positionalAllowance);//'Tunjangan Jabatan'
-            $activeWorksheet->setCellValue('Q'.$row, $transportationAllowance);//'Tunjangan Transportasi'
-            $activeWorksheet->setCellValue('R'.$row, $mealAllowance);//'Tunjangan Makan'
-            $activeWorksheet->setCellValue('S'.$row, $internetPhoneAllowance);//'Tunjangan Internet'
+            
+            // Calculate work period
+            $workPeriod = '-';
+            if ($employeeItem->hire_date) {
+                try {
+                    $hireDate = Carbon::parse($employeeItem->hire_date);
+                    $now = Carbon::now();
+                    $diffInMonths = $hireDate->diffInMonths($now);
+                    $years = floor($diffInMonths / 12);
+                    $months = $diffInMonths % 12;
+                    $workPeriod = "{$years} year {$months} month";
+                } catch (\Exception $e) {
+                    $workPeriod = '-';
+                }
+            }
+            $activeWorksheet->setCellValue('L'.$row, $workPeriod);//'Periode Kerja'
+            
+            $activeWorksheet->setCellValue('M'.$row, $employeeItem->status);//'Status'
+            $activeWorksheet->setCellValue('N'.$row, $employeeItem->address);//'Alamat'
+            $activeWorksheet->setCellValue('O'.$row, $thp);//'Take Home Pay'
+            $activeWorksheet->setCellValue('P'.$row, $basicSalary);//'Gaji Pokok'
+            $activeWorksheet->setCellValue('Q'.$row, $positionalAllowance);//'Tunjangan Jabatan'
+            $activeWorksheet->setCellValue('R'.$row, $transportationAllowance);//'Tunjangan Transportasi'
+            $activeWorksheet->setCellValue('S'.$row, $mealAllowance);//'Tunjangan Makan'
+            $activeWorksheet->setCellValue('T'.$row, $internetPhoneAllowance);//'Tunjangan Internet'
             
             
             
@@ -969,9 +993,9 @@ class EmployeeController extends Controller
             ],
         ];
 
-        $activeWorksheet->getStyle('A2:S'.($row-1))->applyFromArray($dataStyle);
+        $activeWorksheet->getStyle('A2:T'.($row-1))->applyFromArray($dataStyle);
 
-        $activeWorksheet->getStyle('A2:S'.($row-1))
+        $activeWorksheet->getStyle('A2:T'.($row-1))
             ->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)
         ->setVertical(Alignment::VERTICAL_CENTER);
@@ -993,15 +1017,15 @@ class EmployeeController extends Controller
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
         
-        foreach (range('C', 'L') as $column) {
+        foreach (range('C', 'M') as $column) {
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
 
-        foreach (range('N', 'S') as $column) {
+        foreach (range('O', 'T') as $column) {
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
  
-        $fileName = 'Data Karyawan.xlsx';
+        $fileName = "Data Karyawan {$monthName} {$year}.xlsx";
         $tempFileName = tempnam(sys_get_temp_dir(), $fileName);
 
         $writer = new Xlsx($spreadsheet);
