@@ -3778,9 +3778,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         // store original filename and show formatted display name
                         titleSpan.setAttribute('data-filename', fileName);
                         try {
-                            var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
-                            var num = Number(idx) + 1;
-                            titleSpan.textContent = ext ? ('PROJECT_REF_FILE_' + num + '.' + ext) : ('PROJECT_REF_FILE_' + num);
+                            var name = String(fileName || '');
+                            titleSpan.textContent = name;
                         } catch (e) {
                             titleSpan.textContent = fileName;
                         }
@@ -16876,13 +16875,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             "flex-grow-1 text-decoration-none text-truncate";
                         title.href = fileUrl;
                         title.target = "_blank";
-                        // format display name: PROJECT_REF_FILE_{index}.{ext}
                         try {
-                            var ext = (String(fileName || "").split('.').pop() || '').toLowerCase();
-                            if (!ext || ext === fileName) ext = '';
-                            var displayIndex = (typeof idx !== 'undefined') ? (Number(idx) + 1) : 1;
-                            if (ext) title.textContent = 'PROJECT_REF_FILE_' + displayIndex + '.' + ext;
-                            else title.textContent = 'PROJECT_REF_FILE_' + displayIndex;
+                            var name = String(fileName || '');
+                            title.textContent = name;
                         } catch (e) {
                             title.textContent = fileName;
                         }

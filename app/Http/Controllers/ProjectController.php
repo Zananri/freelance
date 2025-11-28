@@ -1699,7 +1699,12 @@ class ProjectController extends Controller
             // Handle image upload
             if ($request->hasFile('image')) {
                 $image = $request->file('image');
-                $imageName = 'PROJECT_' . time() . '.' . $image->getClientOriginalExtension();
+                $orig = pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME);
+                $orig = preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                $ext = $image->getClientOriginalExtension();
+
+                $imageName = time() . '_' . $orig . '.' . $ext;
+
                 $image->move(public_path('file/project'), $imageName);
                 $project->image = $imageName;
             }
@@ -2613,8 +2618,14 @@ class ProjectController extends Controller
                 if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
                     @unlink(public_path('file/project/' . $project->image));
                 }
+
                 $image = $request->file('image');
-                $imageName = 'PROJECT_' . time() . '.' . $image->getClientOriginalExtension();
+                $orig = pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME);
+                $orig = preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                $ext = $image->getClientOriginalExtension();
+
+                $imageName = time() . '_' . $orig . '.' . $ext;
+
                 $image->move(public_path('file/project'), $imageName);
                 $project->image = $imageName;
             }
@@ -2644,7 +2655,13 @@ class ProjectController extends Controller
             }
             foreach ($incomingFiles as $idx => $file) {
                 if (!$file) continue;
-                $fileName = 'PROJECT_REF_' . time() . '_' . $idx . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
+
+                $orig = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $orig = preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                $ext = $file->getClientOriginalExtension();
+
+                $fileName = time() . '_' . $orig . '.' . $ext;
+
                 $file->move(public_path('file/project'), $fileName);
                 $finalFiles[] = $fileName;
             }
@@ -2953,7 +2970,7 @@ class ProjectController extends Controller
                     continue;
                 $orig = $file->getClientOriginalName();
                 $ext = $file->getClientOriginalExtension();
-                $name = time() . '_' . Str::random(6) . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                $name = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
                 $destDir = public_path('file/project');
                 if (!is_dir($destDir))
                     @mkdir($destDir, 0755, true);
