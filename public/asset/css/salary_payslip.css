@@ -104,6 +104,15 @@
     cursor: pointer;
 }
 
+.payslip-sent{
+    display: inline-block;
+    color:#329d6d; 
+    background-color:#DCF3E5;
+    font-size: 8px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 2px;
+}
 
 .btn-default-dropdown:hover,
 .btn-default-dropdown:active,

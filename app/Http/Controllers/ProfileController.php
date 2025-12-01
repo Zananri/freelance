@@ -4,13 +4,20 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use App\Models\Attendance;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use App\Models\Employee;
 use Log;
+use PDF;
+
 use App\Helpers\ActivityHelper;
+
+use App\Models\User;
+use App\Models\Attendance;
+use App\Models\Employee;
+use App\Models\EmployeeSalary;
+use App\Models\EmployeePayslip;
+use App\Models\EmployeeLeaveRequest;
 
 class ProfileController extends Controller
 {
@@ -30,6 +37,8 @@ class ProfileController extends Controller
     {
         $user = auth()->user();
         $employee = Employee::with('division', 'department', 'job','grade')->where('user_id', $user->id)->first();
+        $employeeSalary = EmployeeSalary::where('employee_id', $employee->id)->first();
+        $employeePayslip = EmployeePayslip::where('status', 'PAYSLIP_SENT')->where('employee_id', $employee->id)->get();
 
         try {
             ActivityHelper::record([
@@ -41,9 +50,126 @@ class ProfileController extends Controller
         } catch (\Throwable $_) {}
 
         return view('profile.profile', [
-            'id' => $user->id,
-            'employee' => $employee
-        ], compact('employee'));
+            'employee' => $employee,
+            'employeeSalary' => $employeeSalary,
+            'employeePayslip' => $employeePayslip
+        ]);
+    }
+
+    public function downloadPDFPayslip($year,$month){
+    
+        $user = auth()->user();
+        $employee = Employee::with('division', 'department', 'job','grade')->where('user_id', $user->id)->first();
+
+        if(!$employee){
+            return '<h4>Employee not found</h4>';
+        }
+
+        $employeeId = $employee->id;
+        
+        $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
+        $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+
+
+        $employeePayslip = EmployeePayslip::with('employee')
+            ->where('date_salary','>=',$firstDayOfMonth)
+            ->where('date_salary','<=',$lastDayOfMonth)
+            ->where('status','PAYSLIP_SENT')
+        ->where('employee_id',$employeeId)->first();
+
+        if(!$employeePayslip){
+            return '<h4>Payslip not generate</h4>';
+        }
+
+        $employeeSalary = EmployeeSalary::with('employee')->where('employee_id',$employeeId)->first();
+        
+        $employeeAttendanceAll = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
+            ->where('date_attendance', '<=', $lastDayOfMonth)
+            ->where('date_attendance', '>=', $firstDayOfMonth)
+            ->where('status','<>', 'ABSENT')
+            ->where('employee_id', $employeeId)
+            ->groupBy('employee_id')
+        ->get();
+
+
+        $employeeAttendanceAbsent = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
+            ->where('date_attendance', '<=', $lastDayOfMonth)
+            ->where('date_attendance', '>=', $firstDayOfMonth)
+            ->where('status','ABSENT')
+            ->where('employee_id', $employeeId)
+            ->groupBy('employee_id')
+        ->get();
+
+        $employeeAttendanceNotComplete = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
+            ->where('date_attendance', '<=', $lastDayOfMonth)
+            ->where('date_attendance', '>=', $firstDayOfMonth)
+            ->where('employee_id', $employeeId)
+            ->where(function ($query) {
+                $query->whereNull('time_in')
+                      ->orWhere('time_in', '00:00:00')
+                      ->orWhereNull('time_out')
+                      ->orWhere('time_out', '00:00:00');
+            })
+            ->where('status','<>','ABSENT')
+            ->groupBy('employee_id')
+        ->get()->pluck('total_attendance');
+
+        $totalActiveDay = $this->getActiveDay($firstDayOfMonth,$lastDayOfMonth);
+
+        $dateSalary = Carbon::create($year, $month, 1)->format('F Y');
+        
+        $workPeriod = '';
+        
+        if($employee->hire_date != null){
+            $hireDate = Carbon::parse($employee->hire_date);
+            $toSalaryDate = Carbon::create($year, $month, 1);
+
+            $monthBetween = $hireDate->diffInMonths($toSalaryDate);
+
+            $workPeriod = intval($monthBetween/12).' Tahun '.intval($monthBetween % 12).' Bulan';
+        }
+
+        $employeeLeaveSick = EmployeeLeaveRequest::select('employee_id', DB::raw('sum(day_amount) as total_leave'))
+            ->where('start_date', '<=', $lastDayOfMonth)
+            ->where('start_date', '>=', $firstDayOfMonth)
+            ->where('employee_id', $employeeId)
+            ->where('leave_type', 'SICK')
+            ->where('status','APPROVED')
+            ->groupBy('employee_id')
+        ->get()->pluck('total_leave');
+
+        $employeeLeaveSick = $employeeLeaveSick[0] ?? 0;
+        
+        $employeeAnnualLeave = EmployeeLeaveRequest::select('employee_id', DB::raw('sum(day_amount) as total_leave'))
+            ->where('start_date', '<=', $lastDayOfMonth)
+            ->where('start_date', '>=', $firstDayOfMonth)
+            ->where('employee_id', $employeeId)
+            ->where('leave_type', 'ANNUAL_LEAVE')
+            ->where('status','APPROVED')
+            ->groupBy('employee_id')
+        ->get()->pluck('total_leave');
+
+        $employeeAnnualLeave = $employeeAnnualLeave[0] ?? 0;
+
+        $data = [
+            'workPeriod'       => $workPeriod, 
+            'downloadPayslip'  => 1,
+            'yearSalary'       => $year,
+            'dateSalary'       => $dateSalary,
+            'totalActiveDay'    => $totalActiveDay,
+            'employee'          => $employee,
+            'employeeSalary'    => $employeeSalary,
+            'employeePayslip'   => $employeePayslip,
+            'employeeAttendanceAll'     => $employeeAttendanceAll,
+            'employeeAttendanceAbsent'  => $employeeAttendanceAbsent,
+            'employeeAttendanceNotComplete'  => $employeeAttendanceNotComplete,
+            'employeeLeaveSick' => $employeeLeaveSick,
+            'employeeAnnualLeave' => $employeeAnnualLeave
+        ];
+
+        $pdf = PDF::loadView('employee.view_payslip', $data)->setPaper('A4', 'portrait');
+        
+        return $pdf->download('Payslip_'.$year.'_'.$month.'.pdf');            
     }
 
     public function editPassword(Request $request){
@@ -286,5 +412,38 @@ class ProfileController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function getActiveDay(string $startDateString, string $endDateString): int {
+        // 1. Inisialisasi objek Carbon
+        $startDate = Carbon::parse($startDateString);
+        $endDate = Carbon::parse($endDateString);
+
+        // Pastikan tanggal awal sebelum tanggal akhir, tukar jika terbalik
+        if ($startDate->greaterThan($endDate)) {
+            [$startDate, $endDate] = [$endDate, $startDate];
+        }
+
+        $count = 0;
+
+        // 2. Kloning tanggal awal untuk iterasi (agar tanggal asli tidak berubah)
+        $currentDate = $startDate->copy();
+
+        // 3. Loop dari tanggal awal hingga tanggal akhir (inklusif)
+        // Metode isSameDay() membuat loop inklusif terhadap tanggal akhir
+        while ($currentDate->lessThanOrEqualTo($endDate)) {
+            
+            // Carbon memiliki metode yang sangat spesifik untuk mengecek hari kerja
+            // isWeekday() akan mengembalikan TRUE jika hari Senin-Jumat
+            if ($currentDate->isWeekday()) {
+                $count++;
+            }
+
+            // 4. Maju ke hari berikutnya
+            $currentDate->addDay();
+        }
+
+        return $count;
+        
     }
 }

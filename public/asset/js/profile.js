@@ -91,3 +91,27 @@ $('.btn-copy-link-auth').on('shown.bs.tooltip', function () {
      $('.btn-copy-link-auth').tooltip('hide');
     }, 1000);
 });
+
+$('.salary-payslip .salary_off').on('click',function(){
+    $('.salary-payslip').addClass('on');
+    $('.salary-payslip .value-salary').each(function(){
+        let valueSalary = $(this).attr('data-salary');
+        $(this).text('Rp '+parseInt(valueSalary).toLocaleString('id-ID'));
+    });
+});
+
+$('.salary-payslip .salary_on').on('click',function(){
+    $('.salary-payslip').removeClass('on');
+    $('.salary-payslip .value-salary').text('Rp *');
+});
+
+
+$('.item-payslip .download').on('click',function(){
+
+    let year = $(this).attr('data-year');
+    let month = $(this).attr('data-month');
+    let linkPayslip = appUrl + "/payslip/download/"+year+"/"+month;
+
+    window.open(linkPayslip, "_blank");
+
+})

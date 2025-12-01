@@ -248,9 +248,12 @@
                                             <td rowspan="2" class="">
                                                 <div class="gaji pt-2 pb-1 text-center fw-bold">
                                                 </div>
-                                                <div class="fs-8 text-center d-none">
-                                                    Payslip terkirim
+                                                <div class="text-center">
+                                                    <div class="payslip-sent text-center d-none" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Terkirim :">
+                                                        Payslip terkirim
+                                                    </div>
                                                 </div>
+                                                
                                             </td>
                                             <td class="hari-bln p-1"></td>
                                             <td class="hari-kerja p-1"></td>
@@ -278,6 +281,12 @@
                                                         <div>
                                                             <div class="d-flex">
                                                                 
+                                                                <div>
+                                                                    <div class="btn-icon recalled d-none" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Recalled payslip">
+                                                                        <span class="material-symbols-outlined icon-action">reset_iso</span>
+                                                                    </div>
+                                                                </div>
+
                                                                 <div>
                                                                     <div class="btn-icon send d-none" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Send to employee">
                                                                         <span class="material-symbols-outlined icon-action">upload_2</span>
@@ -561,6 +570,12 @@
                                             </label>
                                             <input type="number" class="form-control border-0 fs-14" name="thr" id="thr" value="0">
                                         </div>
+                                        <div class="col-6">
+                                            <label for="deduction" class="fs-14 text-secondary fw-normal">
+                                                Potongan
+                                            </label>
+                                            <input type="number" class="form-control border-0 fs-14" name="deduction" id="deduction" value="0">
+                                        </div>
                                         
                                     </div>
 
@@ -611,7 +626,7 @@
             </div>
         </div>
 
-        <!-- Modal Edit -->
+        <!-- Modal Sent -->
         <div class="modal fade scrollbar-transparent" id="modalPayslipSend" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalPayslipSendLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered scrollbar-transparent">
                 <div class="modal-content scrollbar-transparent">
@@ -623,7 +638,6 @@
                             <input type="hidden" name="employee_id" value="">
                             <input type="hidden" name="year" value="">
                             <input type="hidden" name="month" value="">
-                            <input type="hidden" name="attendance_not_complete" value="">
                             
 
                             <div class="p-4 pb-0">
@@ -672,6 +686,18 @@
                                 </div>
                             </div>
 
+                            <div class="p-4 pt-0">
+                                <div class="fs-12 tex-body text-opacity-50">
+                                    Please make sure to double-check all employee salary data before distributing the payslips. 
+                                    A thorough review of the entire payroll dataset is essential to guarantee that every employee's payment is accurate and correct. 
+                                    
+                                </div>
+                                <div class="fw-bold fs-12 mt-3">
+                                        Do you confirm that the payslips are ready to be sent ?
+                                </div>
+                            </div>
+
+
                             <div>
                                 
                             </div>
@@ -683,7 +709,113 @@
                                         <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">Cancel</div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-save-salary">Save</div>
+                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-send-payslip">Send</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                        </form>
+
+                        <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                            <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                                <div>
+                                    <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="fs-14">Loading...</div>
+                                </div>
+                                
+                            </div>
+                            
+                        </div> 
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Sent -->
+        <div class="modal fade scrollbar-transparent" id="modalPayslipRecalled" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalPayslipRecalledLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered scrollbar-transparent">
+                <div class="modal-content scrollbar-transparent">
+
+                    <div class="modal-body p-0 position-relative">
+                        <form id="form-recalled-payslip" action="" novalidate="" method="POST">
+                            @csrf
+                            
+                            <input type="hidden" name="employee_id" value="">
+                            <input type="hidden" name="year" value="">
+                            <input type="hidden" name="month" value="">
+                            
+
+                            <div class="p-4 pb-0">
+                                <div class="text-center">
+                                        <div class="fw-light fs-24">Payslip</div>
+                                        <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
+                                        <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
+                                </div>
+                                <div class="mb-4 text-center">
+                                    <span class="fw-normal fs-14 text-secondary attendance-date"></span>
+                                </div>
+
+                                <div class="mb-3 pb-2 border-bottom border-3">
+
+                                    <div class="d-flex mb-2 justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Employee</div>
+                                        </div>
+                                        <div>
+                                            <div class="employee-name fw-medium fs-14"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between align-items-center w-100">
+                                            <div>
+                                                <div class="fs-14 text-secondary fw-normal">Division</div>
+                                            </div>
+                                            <div>
+                                                <div class="employee-division fs-14 fw-normal"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between align-items-start w-100">
+                                            <div>
+                                                <div class="fs-14 text-secondary fw-normal">Salary</div>
+                                                <div class="fs-8 text-secondary fw-normal">(Take Home Pay)</div>
+                                            </div>
+                                            <div>
+                                                <div class="employee-salary-thp fs-14 fw-normal"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <div class="p-4 pt-0">
+                                
+                                <div class="fw-bold fs-12 mt-3">
+                                    Are You want recalled employee payslip ?
+                                </div>
+                            </div>
+
+
+                            <div>
+                                
+                            </div>
+
+                            
+                            <div class="p-4 pt-2">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">Cancel</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-recalled-payslip">Recall</div>
                                     </div>
                                 </div>
                             </div>

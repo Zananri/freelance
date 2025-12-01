@@ -8,6 +8,10 @@ const modalPayslipSend = new bootstrap.Modal('#modalPayslipSend', {
    keyboard: false
 });
 
+const modalPayslipRecalled = new bootstrap.Modal('#modalPayslipRecalled', {
+   keyboard: false
+});
+
 $('.input-search-query').on('keyup',function(){
     filterEmployee();
 });
@@ -175,8 +179,8 @@ function getEmployeeSalaryPayslipData(month,year)
             // parseInt(largeNum).toLocaleString('id-ID');
 
             $('.employee-row .hari-bln, .employee-row .hari-kerja, .employee-row .hari-um').text(DATA_TOTAL_ACTIVE_DAY);
-            
-
+            $('.basic-row .payslip-sent').addClass('d-none');
+            $('.set-row .btn-icon.recalled').addClass('d-none');
 
             for (let i = 0; i < DATA_EMPLOYEE_SALARY.length; i++) {
                 const salary = DATA_EMPLOYEE_SALARY[i];
@@ -254,7 +258,7 @@ function getEmployeeSalaryPayslipData(month,year)
             $('.set-row .lembur').text('0');
             $('.set-row .thr').text('0');
             
-            $('.set-row .btn-icon.payslip, .set-row .btn-icon.send').addClass('d-none');
+            $('.set-row .btn-icon.payslip, .set-row .btn-icon.send, .set-row .btn-icon.recalled').addClass('d-none');
             
             
             for (let i = 0; i < DATA_EMPLOYEE_PAYSLIP.length; i++) {
@@ -264,11 +268,19 @@ function getEmployeeSalaryPayslipData(month,year)
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .btn-icon.payslip').removeClass('d-none');
                 
                 $('[data-employee-id="'+salary.employee_id+'"] .gaji').text('Rp '+parseInt(salary.take_home_pay).toLocaleString('id-ID'));
+                
+                $('.basic-row[data-employee-id="'+salary.employee_id+'"] .gaji-pokok').text(parseInt(salary.basic_salary).toLocaleString('id-ID'));
+                $('.basic-row[data-employee-id="'+salary.employee_id+'"] .uang-makan').text(parseInt(salary.meal_allowance).toLocaleString('id-ID'));
+                $('.basic-row[data-employee-id="'+salary.employee_id+'"] .transportasi').text(parseInt(salary.transportation_allowance).toLocaleString('id-ID'));
+                $('.basic-row[data-employee-id="'+salary.employee_id+'"] .pulsa-internet').text(parseInt(salary.internet_phone_allowance).toLocaleString('id-ID'));
+                $('.basic-row[data-employee-id="'+salary.employee_id+'"] .jabatan').text(parseInt(salary.positional_allowance).toLocaleString('id-ID'));
+                
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .gaji-pokok').text(parseInt(salary.prorate_basic_salary).toLocaleString('id-ID'));
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .uang-makan').text(parseInt(salary.prorate_meal_allowance).toLocaleString('id-ID'));
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .transportasi').text(parseInt(salary.prorate_transportation_allowance).toLocaleString('id-ID'));
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .pulsa-internet').text(parseInt(salary.prorate_internet_phone_allowance).toLocaleString('id-ID'));
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .jabatan').text(parseInt(salary.prorate_positional_allowance).toLocaleString('id-ID'));
+                
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .bonus').text(parseInt(salary.bonus).toLocaleString('id-ID'));
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .lembur').text(parseInt(salary.overtime).toLocaleString('id-ID'));
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .thr').text(parseInt(salary.thr).toLocaleString('id-ID'));
@@ -281,8 +293,16 @@ function getEmployeeSalaryPayslipData(month,year)
                 $('[data-employee-id="'+salary.employee_id+'"] .lembur').text(parseInt(salary.overtime).toLocaleString('id-ID'));
                 $('[data-employee-id="'+salary.employee_id+'"] .thr').text(parseInt(salary.thr).toLocaleString('id-ID'));
                 
+                if(salary.status == 'PAYSLIP_SENT'){
+                    $('.basic-row[data-employee-id="'+salary.employee_id+'"] .payslip-sent').removeClass('d-none');
+                    $('.basic-row[data-employee-id="'+salary.employee_id+'"] .payslip-sent').attr('data-bs-title',formatDateENMediumWithDay(salary.date_payslip_send));
+                    $('.set-row[data-employee-id="'+salary.employee_id+'"] .btn-icon.send').addClass('d-none');
+                    $('.set-row[data-employee-id="'+salary.employee_id+'"] .btn-icon.recalled').removeClass('d-none');
+                }
             }
             
+            const tooltipTriggerListNew = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            const tooltipList = [...tooltipTriggerListNew].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
             
         
@@ -316,11 +336,13 @@ $('.table-data .btn-icon.edit-data').on('click',function(){
     let employeePhoto = $(this).closest('.employee-row').attr('data-employee-photo');
     let currentDate = CURRENT_DATE.toISOString();
 
-    $('#modalSalaryEdit .employee-name').text(employeeName);
+    $('.modal .employee-name').text(employeeName);
     $('[name="salary_date"]').val(currentDate);
 
-    
-    getEmployeeSalaryPayslipDetail(employeeId, CURRENT_DATE.getMonth()+1,CURRENT_DATE.getFullYear());
+    getEmployeeSalaryPayslipDetail(employeeId, CURRENT_DATE.getMonth()+1,CURRENT_DATE.getFullYear()).then(res=>{
+        countSalary();
+        modalSalaryEdit.show();
+    });
 
 });
 
@@ -330,7 +352,7 @@ $('.table-data .btn-icon.payslip').on('click',function(){
     let employeeName = $(this).closest('.employee-row').attr('data-employee-name');
     let currentDate = CURRENT_DATE.toISOString();
 
-    $('#modalSalaryEdit .employee-name').text(employeeName);
+    $('.modal .employee-name').text(employeeName);
     $('[name="salary_date"]').val(currentDate);
 
     let linkPayslip = appUrl + "/salary_payslip/view_payslip/"+employeeId+"/"+CURRENT_DATE.getFullYear()+"/"+(CURRENT_DATE.getMonth()+1);
@@ -351,10 +373,10 @@ let employeeAttendanceAbsent = [];
 let employeeAttendanceNotComplete = [];
 let employeeTotalActiveDay = 0;
 
-function getEmployeeSalaryPayslipDetail(employeeId,month,year)
+async function getEmployeeSalaryPayslipDetail(employeeId,month,year)
 {
 
-    $.ajax({
+    let ajaxGetDetail = await $.ajax({
         url: appUrl + "/salary_payslip/employee-salary-detail",
         type: "GET",
         data:{
@@ -379,6 +401,7 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             let thr = 0;
             let absent = 0;
             let attendanceNotComplete = 0;
+            let deduction = 0;
 
 
             employeeDetail = response.data.employee;
@@ -391,9 +414,9 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             
             // parseInt(largeNum).toLocaleString('id-ID');
 
-            $('#modalSalaryEdit [name="employee_id"]').val(employeeDetail.id);
-            $('#modalSalaryEdit [name="year"]').val(year);
-            $('#modalSalaryEdit [name="month"]').val(month);
+            $('.modal [name="employee_id"]').val(employeeDetail.id);
+            $('.modal [name="year"]').val(year);
+            $('.modal [name="month"]').val(month);
             
             $('#modalSalaryEdit [name="active_day"]').val(employeeTotalActiveDay);
             $('#modalSalaryEdit [name="working_day"]').val(employeeTotalActiveDay - employeeAttendanceAbsent);
@@ -451,26 +474,26 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
                 bonus = employeePayslip.bonus;
                 overtime = employeePayslip.overtime;
                 thr = employeePayslip.thr;
+                deduction = employeePayslip.deduction;
 
                 // thp = employeePayslip.take_home_pay;
+
+                
             }
 
             $('#modalSalaryEdit [name="bonus"]').val(bonus);
             $('#modalSalaryEdit [name="overtime"]').val(overtime);
             $('#modalSalaryEdit [name="thr"]').val(thr);
 
-            thp = thp - attendanceNotComplete * 50000;
+            thp = thp - (attendanceNotComplete * 50000) - deduction;
+            thp = employeePayslip.take_home_pay;
 
 
 
-            $('#modalSalaryEdit .employee-name').text(employeeDetail.name);
-            $('#modalSalaryEdit .employee-division').text(employeeDetail.division.name_division);
-            $('#modalSalaryEdit .employee-salary-thp').text('Rp '+parseInt(thp).toLocaleString('id-ID'));
-            
-            countSalary();
-            
-            modalSalaryEdit.show();
-            
+            $('.modal .employee-name').text(employeeDetail.name);
+            $('.modal .employee-division').text(employeeDetail.division.name_division);
+            $('.modal .employee-salary-thp').text('Rp '+parseInt(thp).toLocaleString('id-ID'));
+                        
             
             const newtooltipTriggerList = document.querySelectorAll('#modalSalaryEdit [data-bs-toggle="tooltip"]');
             const newtooltipList = [...newtooltipTriggerList].map(newtooltipTriggerEl => new bootstrap.Tooltip(newtooltipTriggerEl));
@@ -480,13 +503,14 @@ function getEmployeeSalaryPayslipDetail(employeeId,month,year)
          
     });
 
+    return ajaxGetDetail;
 }
 
 $('#modalSalaryEdit [name="working_day"], #modalSalaryEdit [name="meal_day"], #modalSalaryEdit [name="active_day"]').on('change',function(){
     countSalary();
 });
 
-$('#modalSalaryEdit [name="bonus"], #modalSalaryEdit [name="overtime"],#modalSalaryEdit [name="thr"]').on('change',function(){
+$('#modalSalaryEdit [name="bonus"], #modalSalaryEdit [name="overtime"],#modalSalaryEdit [name="thr"],#modalSalaryEdit [name="deduction"]').on('change',function(){
     countSalary();
 });
 
@@ -499,6 +523,7 @@ function countSalary(){
     let bonus = parseInt($('#modalSalaryEdit [name="bonus"]').val());
     let overtime = parseInt($('#modalSalaryEdit [name="overtime"]').val());
     let thr = parseInt($('#modalSalaryEdit [name="thr"]').val());
+    let deduction = parseInt($('#modalSalaryEdit [name="deduction"]').val());
 
     let basicSalary = 0;
     let positionalAllowance = 0;
@@ -526,7 +551,7 @@ function countSalary(){
 
     }
 
-    thp = parseInt(basicSalary) - parseInt(attendanceNotComplete*50000) + parseInt(positionalAllowance) + parseInt(mealAllowance) + parseInt(transportationAllowance) + parseInt(internetPhoneAllowance) + parseInt(bonus) + parseInt(overtime) + parseInt(thr);
+    thp = parseInt(basicSalary) - parseInt(attendanceNotComplete*50000) - parseInt(deduction)+ parseInt(positionalAllowance) + parseInt(mealAllowance) + parseInt(transportationAllowance) + parseInt(internetPhoneAllowance) + parseInt(bonus) + parseInt(overtime) + parseInt(thr);
 
     if(employeeAttendanceNotComplete.length > 0){
         thp = thp - (employeeAttendanceNotComplete[0].total_attendance * 50000);
@@ -583,10 +608,125 @@ function saveEmployeeSalaryPayslip(){
 
 
 
+$('.table-data .btn-icon.send').on('click',function(){
+
+    let employeeId = $(this).closest('.employee-row').attr('data-employee-id');
+    let employeeName = $(this).closest('.employee-row').attr('data-employee-name');
+    let employeePhoto = $(this).closest('.employee-row').attr('data-employee-photo');
+    let currentDate = CURRENT_DATE.toISOString();
+
+    $('.modal .employee-name').text(employeeName);
+    $('[name="salary_date"]').val(currentDate);
+
+    getEmployeeSalaryPayslipDetail(employeeId, CURRENT_DATE.getMonth()+1,CURRENT_DATE.getFullYear()).then(res=>{
+        if(employeePayslip != null){
+            $('.modal .employee-salary-thp').text('Rp '+parseInt(employeePayslip.take_home_pay).toLocaleString('id-ID'));
+        }
+        modalPayslipSend.show();
+    });
+});
+
+$('#modalPayslipSend .btn-close-modal-edit').on('click',function(){
+
+    modalPayslipSend.hide();
+
+});
+
+$('#modalPayslipSend .btn-send-payslip').on('click',function(){
+    sendEmployeeSalaryPayslip();
+});
+
+function sendEmployeeSalaryPayslip(){
+
+    $.ajax({
+        url: appUrl + "/salary_payslip/send-employee-payslip-by-year-month",
+        type: "POST",
+        data: new FormData($('#form-send-payslip').get(0)) ,
+        cache: false,
+        processData: false,
+        contentType: false,
+        beforeSend:function(){
+            $('#modalPayslipSend .box-loader').fadeIn();
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+            $('#modalPayslipSend .box-loader').fadeOut();
+            //$('.loader').fadeOut('fast');
+        },
+        success: function(res) {
+            
+            getEmployeeSalaryPayslipData(CURRENT_DATE.getMonth()+1,CURRENT_DATE.getFullYear());
+            
+            showAlertMsg(res.message,'success',3000);
+
+            modalPayslipSend.hide();
+            $('#modalPayslipSend .box-loader').fadeOut();
+            $('#form-send-payslip')[0].reset();
+            
+        }
+    });
+}
 
 
 
+$('.table-data .btn-icon.recalled').on('click',function(){
+
+    let employeeId = $(this).closest('.employee-row').attr('data-employee-id');
+    let employeeName = $(this).closest('.employee-row').attr('data-employee-name');
+    let employeePhoto = $(this).closest('.employee-row').attr('data-employee-photo');
+    let currentDate = CURRENT_DATE.toISOString();
+
+    $('.modal .employee-name').text(employeeName);
+    $('[name="salary_date"]').val(currentDate);
+
+    getEmployeeSalaryPayslipDetail(employeeId, CURRENT_DATE.getMonth()+1,CURRENT_DATE.getFullYear()).then(res=>{
+        if(employeePayslip != null){
+            $('.modal .employee-salary-thp').text('Rp '+parseInt(employeePayslip.take_home_pay).toLocaleString('id-ID'));
+        }
+        modalPayslipRecalled.show();
+    });
+});
 
 
+$('#modalPayslipRecalled .btn-close-modal-edit').on('click',function(){
 
+    modalPayslipRecalled.hide();
 
+});
+
+$('#modalPayslipRecalled .btn-recalled-payslip').on('click',function(){
+    recallEmployeeSalaryPayslip();
+});
+
+function recallEmployeeSalaryPayslip(){
+
+    $.ajax({
+        url: appUrl + "/salary_payslip/recall-employee-payslip-by-year-month",
+        type: "POST",
+        data: new FormData($('#form-recalled-payslip').get(0)) ,
+        cache: false,
+        processData: false,
+        contentType: false,
+        beforeSend:function(){
+            $('#modalPayslipRecalled .box-loader').fadeIn();
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+            $('#modalPayslipRecalled .box-loader').fadeOut();
+            //$('.loader').fadeOut('fast');
+        },
+        success: function(res) {
+            
+            getEmployeeSalaryPayslipData(CURRENT_DATE.getMonth()+1,CURRENT_DATE.getFullYear());
+            
+            showAlertMsg(res.message,'success',3000);
+
+            modalPayslipRecalled.hide();
+            $('#modalPayslipRecalled .box-loader').fadeOut();
+            $('#form-recalled-payslip')[0].reset();
+            
+        }
+    });
+}

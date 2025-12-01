@@ -213,6 +213,161 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="col-md-4  mb-5">
+                    <div class="salary-payslip bg-card-1 rounded-4 pb-2">
+
+                        <div class="p-4 pb-2">
+                            <div class="d-inline-block float-end  salary_off">
+                                <span class="material-symbols-outlined fs-16 text-secondary">
+                                    visibility_off
+                                </span>
+                            </div>
+
+                            <div class="d-inline-block float-end  salary_on">
+                                <span class="material-symbols-outlined fs-16 text-body">
+                                    visibility
+                                </span>
+                            </div>
+                            
+                            <h5 class="fw-light fs-18 m-0">Salary</h5>
+
+                            <div class="border mt-2"></div>
+                        </div>
+
+                        <div class="p-4 pe-3 pt-0">
+
+                            @if ($employeeSalary)
+                            
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between w-100">
+                                    
+                                    <div>
+                                        <span class="fs-14 text-secondary">Take home pay</span>
+                                    </div>
+                                    <div>
+                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->take_home_pay }}">Rp *</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between w-100">
+                                    
+                                    <div>
+                                        <span class="fs-14 text-secondary">Basic Salary</span>
+                                    </div>
+                                    <div>
+                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->basic_salary }}">Rp *</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if ($employeeSalary->positional_allowance > 0)
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between w-100">
+                                    
+                                    <div>
+                                        <span class="fs-14 text-secondary">Positional Allowance</span>
+                                    </div>
+                                    <div>
+                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->positional_allowance }}">Rp *</span>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                            @if ($employeeSalary->transportation_allowance > 0)
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between w-100">
+                                    
+                                    <div>
+                                        <span class="fs-14 text-secondary">Transportation Allowance</span>
+                                    </div>
+                                    <div>
+                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->transportation_allowance }}">Rp *</span>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                            @if ($employeeSalary->meal_allowance > 0)
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between w-100">
+                                    
+                                    <div>
+                                        <span class="fs-14 text-secondary">Meal Allowance</span>
+                                    </div>
+                                    <div>
+                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->meal_allowance }}">Rp *</span>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                            @if ($employeeSalary->internet_phone_allowance > 0)
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between w-100">
+                                    
+                                    <div>
+                                        <span class="fs-14 text-secondary">Internet phone Allowance</span>
+                                    </div>
+                                    <div>
+                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->internet_phone_allowance }}">Rp *</span>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+
+                            @endif
+                                    
+
+                        </div>
+
+                        <div class="p-4 pt-0 pb-2">
+                            <h5 class="fw-light fs-18 m-0">Payslip</h5>
+                            <div class="border mt-2"></div>
+                        </div>
+
+                        <style>
+                            .box-payslip{
+                                max-height: 130px;
+                                overflow: auto;
+                            }
+                            .item-payslip .material-symbols-outlined{
+                                font-size: 18px;
+                                cursor: pointer;
+                                color: #777;
+                            }
+                            .item-payslip .material-symbols-outlined:hover{
+                                color: #444;
+                            }
+                        </style>
+
+                        <div class="p-4 pt-2 scrollbar-transparent box-payslip mb-3">
+
+                            @foreach ($employeePayslip as $item)
+
+                            <div class="mb-2 item-payslip">
+                                <div class="d-flex justify-content-between w-100">
+                                    <div>
+                                        <span class="fs-14 text-secondary">
+                                            {{ date_format(date_create($item->date_salary),'F Y') }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span class="material-symbols-outlined download fs-18" data-year="{{ date_format(date_create($item->date_salary),'Y') }}" data-month="{{ date_format(date_create($item->date_salary),'n') }}">download</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @endforeach
+                            
+                        </div>
+                        
+                    </div>
+                </div>
+                
             </div>
     </div>
     

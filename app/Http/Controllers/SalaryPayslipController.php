@@ -16,6 +16,7 @@ use App\Models\Division;
 use App\Models\Employee;
 use App\Models\EmployeeSalary;
 use App\Models\EmployeePayslip;
+use App\Models\EmployeeLeaveRequest;
 
 use PDF;
 
@@ -95,6 +96,9 @@ class SalaryPayslipController extends Controller
             $workPeriod = intval($monthBetween/12).' Tahun '.intval($monthBetween % 12).' Bulan';
         }
 
+        
+
+
         $data = [
             'workPeriod'       => $workPeriod,
             'downloadPayslip'  => 1,
@@ -128,7 +132,7 @@ class SalaryPayslipController extends Controller
         $employeePayslip = EmployeePayslip::with('employee')
             ->where('date_salary','>=',$firstDayOfMonth)
             ->where('date_salary','<=',$lastDayOfMonth)
-            ->where('status','ACTIVE')
+            ->where('status','<>','DELETED')
         ->where('employee_id',$employeeId)->first();
 
         if(!$employeePayslip){
@@ -183,6 +187,28 @@ class SalaryPayslipController extends Controller
             $workPeriod = intval($monthBetween/12).' Tahun '.intval($monthBetween % 12).' Bulan';
         }
 
+        $employeeLeaveSick = EmployeeLeaveRequest::select('employee_id', DB::raw('sum(day_amount) as total_leave'))
+            ->where('start_date', '<=', $lastDayOfMonth)
+            ->where('start_date', '>=', $firstDayOfMonth)
+            ->where('employee_id', $employeeId)
+            ->where('leave_type', 'SICK')
+            ->where('status','APPROVED')
+            ->groupBy('employee_id')
+        ->get()->pluck('total_leave');
+
+        $employeeLeaveSick = $employeeLeaveSick[0] ?? 0;
+        
+        $employeeAnnualLeave = EmployeeLeaveRequest::select('employee_id', DB::raw('sum(day_amount) as total_leave'))
+            ->where('start_date', '<=', $lastDayOfMonth)
+            ->where('start_date', '>=', $firstDayOfMonth)
+            ->where('employee_id', $employeeId)
+            ->where('leave_type', 'ANNUAL_LEAVE')
+            ->where('status','APPROVED')
+            ->groupBy('employee_id')
+        ->get()->pluck('total_leave');
+
+        $employeeAnnualLeave = $employeeAnnualLeave[0] ?? 0;
+
         $data = [
             'workPeriod'       => $workPeriod, 
             'downloadPayslip'  => 1,
@@ -194,7 +220,9 @@ class SalaryPayslipController extends Controller
             'employeePayslip'   => $employeePayslip,
             'employeeAttendanceAll'     => $employeeAttendanceAll,
             'employeeAttendanceAbsent'  => $employeeAttendanceAbsent,
-            'employeeAttendanceNotComplete'  => $employeeAttendanceNotComplete
+            'employeeAttendanceNotComplete'  => $employeeAttendanceNotComplete,
+            'employeeLeaveSick' => $employeeLeaveSick,
+            'employeeAnnualLeave' => $employeeAnnualLeave
         ];
 
         $pdf = PDF::loadView('employee.view_payslip', $data)->setPaper('A4', 'portrait');
@@ -255,7 +283,7 @@ class SalaryPayslipController extends Controller
         $employeePayslip = EmployeePayslip::with('employee')
             ->where('date_salary','>=',$firstDayOfMonth)
             ->where('date_salary','<=',$lastDayOfMonth)
-            ->where('status','ACTIVE')
+            ->where('status','<>','DELETED')
         ->whereIn('employee_id',$employeeActiveIds)->get();
 
         $employeeAttendance = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
@@ -325,7 +353,7 @@ class SalaryPayslipController extends Controller
         $employeePayslip = EmployeePayslip::with('employee')
             ->where('date_salary','>=',$firstDayOfMonth)
             ->where('date_salary','<=',$lastDayOfMonth)
-            ->where('status','ACTIVE')
+            ->where('status','<>','DELETED')
         ->where('employee_id',$employeeId)->first();
 
         $employeeAttendanceAll = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
@@ -401,6 +429,7 @@ class SalaryPayslipController extends Controller
                 'bonus' => 'required|integer',
                 'overtime' => 'required|integer',
                 'thr' => 'required|integer',
+                'deduction' => 'required|integer',
 
                 'active_day' => 'required|integer',
                 'working_day' => 'required|integer',
@@ -443,6 +472,7 @@ class SalaryPayslipController extends Controller
                 ->where('status','<>','ABSENT')
                 ->groupBy('employee_id')
             ->get()->pluck('total_attendance');
+
             $employeeAttendanceNotComplete = $employeeAttendanceNotComplete[0] ?? 0;
 
             
@@ -461,8 +491,9 @@ class SalaryPayslipController extends Controller
             $salaryData['thr'] = $request->thr;
             $salaryData['bonus'] = $request->bonus;
             $salaryData['overtime'] = $request->overtime;
+            $salaryData['deduction'] = $request->deduction;
 
-            $salaryData['take_home_pay'] = $request->basic_salary - (intVal($employeeAttendanceNotComplete) * 50000)  + $request->positional_allowance + $request->meal_allowance + $request->transportation_allowance + $request->internet_phone_allowance + $request->bonus + $request->overtime + $request->thr;
+            $salaryData['take_home_pay'] = $request->basic_salary - (intVal($employeeAttendanceNotComplete) * 50000) - (intVal($request->deduction))  + $request->positional_allowance + $request->meal_allowance + $request->transportation_allowance + $request->internet_phone_allowance + $request->bonus + $request->overtime + $request->thr;
             $salaryData['prorate_basic_salary'] = $request->basic_salary;
             $salaryData['prorate_positional_allowance'] = $request->positional_allowance;
             $salaryData['prorate_internet_phone_allowance'] = $request->internet_phone_allowance;
@@ -506,7 +537,138 @@ class SalaryPayslipController extends Controller
             ], 500);
         }
     }
+    
+    public function recallEmployeePayslipByYearMonth(Request $request){
+        try {
+            DB::beginTransaction();
 
+            $request->validate([
+                'employee_id' => 'required|integer',
+                'year' => 'required|integer',
+                'month' => 'required|integer'
+            ]);
+
+            $userId = auth()->user()->id;
+            $employee = Employee::where('id',$request->employee_id)->first();
+
+            if(!$employee){
+                throw new \Exception('Employee not found');
+            }
+            
+            $employeeSalary = EmployeeSalary::with('employee')->where('employee_id',$employee->id)->first();
+
+            if(!$employeeSalary){
+                throw new \Exception('Employee salary not setup');
+            }          
+        
+            
+            $month = $request->month;
+            $year = $request->year;
+            
+            $dateSalary = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+
+            $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
+            $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+            
+            $employeePayslip = EmployeePayslip::where('employee_id',$employee->id)
+            ->where('date_salary',$dateSalary)
+            ->first();
+
+            if(!$employeePayslip){
+                throw new \Exception('Employee Payslip not generate');
+            }
+
+            $employeePayslip->date_payslip_send = DB::raw('null');
+            $employeePayslip->status = 'PAYSLIP_RECALLED';
+            $employeePayslip->updated_by = $userId;
+            $employeePayslip->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [],
+                'message' => 'Employee payslip succesfully recalled'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function sendEmployeePayslipByYearMonth(Request $request){
+        try {
+            DB::beginTransaction();
+
+            $request->validate([
+                'employee_id' => 'required|integer',
+                'year' => 'required|integer',
+                'month' => 'required|integer'
+            ]);
+
+            $userId = auth()->user()->id;
+            $employee = Employee::where('id',$request->employee_id)->first();
+
+            if(!$employee){
+                throw new \Exception('Employee not found');
+            }
+            
+            $employeeSalary = EmployeeSalary::with('employee')->where('employee_id',$employee->id)->first();
+
+            if(!$employeeSalary){
+                throw new \Exception('Employee salary not setup');
+            }          
+        
+            
+            $month = $request->month;
+            $year = $request->year;
+            
+            $dateSalary = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+
+            $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
+            $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+            
+            $employeePayslip = EmployeePayslip::where('employee_id',$employee->id)
+            ->where('date_salary',$dateSalary)
+            ->first();
+
+            if(!$employeePayslip){
+                throw new \Exception('Employee Payslip not generate');
+            }
+
+            $employeePayslip->date_payslip_send = DB::raw('now()');
+            $employeePayslip->status = 'PAYSLIP_SENT';
+            $employeePayslip->updated_by = $userId;
+            $employeePayslip->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [],
+                'message' => 'Employee payslip succesfully sent'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
     public function viewPayslip($employeeId,$year,$month){
     
         

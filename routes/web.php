@@ -85,7 +85,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
     Route::post('/profile/edit-password', [ProfileController::class, 'editPassword'])->name('profile.editPassword');
     Route::post('/profile/edit-photo-profile', [ProfileController::class, 'editPhotoProfile'])->name('profile.editPhotoProfile');
-
+    Route::get('/payslip/download/{year}/{month}', [ProfileController::class, 'downloadPDFPayslip'])->name('salary_payslip.downloadPDFPayslip');
+    
 
     // === Project routes ===
     Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');
@@ -302,6 +303,8 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/salary_payslip/download_pdf_payslip/{employeeId}/{year}/{month}', [SalaryPayslipController::class, 'downloadPDFPayslip'])->name('salary_payslip.downloadPDFPayslip');
     
     Route::post('/salary_payslip/save-employee-salary-by-year-month', [SalaryPayslipController::class, 'saveEmployeeSalaryByYearMonth'])->name('salary_payslip.saveEmployeeSalaryByYearMonth');
+    Route::post('/salary_payslip/send-employee-payslip-by-year-month', [SalaryPayslipController::class, 'sendEmployeePayslipByYearMonth'])->name('salary_payslip.sendEmployeePayslipByYearMonth');
+    Route::post('/salary_payslip/recall-employee-payslip-by-year-month', [SalaryPayslipController::class, 'recallEmployeePayslipByYearMonth'])->name('salary_payslip.recallEmployeePayslipByYearMonth');
 
     Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword');
     Route::get('/user', [UserController::class, 'showUserPage'])->name('user');

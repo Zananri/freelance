@@ -87,6 +87,24 @@
     height: 100%;
 }
 
+.salary-payslip .salary_off{
+    cursor: pointer;
+    display: inline-block !important;
+}
+
+.salary-payslip .salary_on{
+    cursor: pointer;
+    display: none !important;
+}
+
+.salary-payslip.on .salary_off{
+    display: none !important;
+}
+
+.salary-payslip.on .salary_on{
+    display: inline-block !important;
+}
+
 .personal-info {
     max-height: auto;
     height: auto;

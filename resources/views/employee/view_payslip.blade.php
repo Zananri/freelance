@@ -237,7 +237,7 @@
                         $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->meal_allowance + $employeePayslip->transportation_allowance + $employeePayslip->internet_phone_allowance + $employeePayslip->positional_allowance;
                         $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->bonus + $employeePayslip->thr + $employeePayslip->overtime;
                         $totalPendapatan2excBonusOvertime = $totalPendapatan1 - ($employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance);
-                        $totalPengurangan = (($employeeAttendanceNotComplete[0] ?? 0)*50000) + $totalPendapatan2excBonusOvertime;
+                        $totalPengurangan = (($employeeAttendanceNotComplete[0] ?? 0)*50000) + $employeePayslip->deduction  + $totalPendapatan2excBonusOvertime;
                     @endphp
 
                     <tr style="font-weight: bold;">
@@ -266,8 +266,8 @@
 
                     <tr>
                         <td>Sakit</td>
+                        <td style="text-align: right">{{$employeeLeaveSick}}</td>
                         <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
                     </tr>
                     <tr>
                         <td>Alfa</td>
@@ -276,8 +276,8 @@
                     </tr>
                     <tr>
                         <td>Cuti</td>
+                        <td style="text-align: right">{{$employeeAnnualLeave}}</td>
                         <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
                     </tr>
 
                     <tr>
@@ -285,6 +285,16 @@
                         <td style="text-align: right">{{ $employeeAttendanceNotComplete[0] ?? 0 }}</td>
                         <td style="text-align: right">{{number_format((($employeeAttendanceNotComplete[0] ?? 0)*50000), 0, '', '.')}}</td>
                     </tr>
+
+                    @if ($employeePayslip->deduction > 0)
+                    
+                    <tr>
+                        <td>Potongan</td>
+                        <td style="text-align: right">1</td>
+                        <td style="text-align: right">{{number_format($employeePayslip->deduction, 0, '', '.')}}</td>
+                    </tr>
+
+                    @endif
                     
                     <tr style="font-weight: bold;">
                         <td colspan="2">Total Pengurangan</td>
@@ -601,7 +611,7 @@
                             $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->meal_allowance + $employeePayslip->transportation_allowance + $employeePayslip->internet_phone_allowance + $employeePayslip->positional_allowance;
                             $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->bonus + $employeePayslip->thr + $employeePayslip->overtime;
                             $totalPendapatan2excBonusOvertime = $totalPendapatan1 - $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance;
-                        
+                            $totalPengurangan = (($employeeAttendanceNotComplete[0] ?? 0)*50000) + $employeePayslip->deduction  + $totalPendapatan2excBonusOvertime;
                         @endphp
 
                         <tr style="font-weight: bold;">
@@ -630,8 +640,8 @@
 
                         <tr>
                             <td>Sakit</td>
+                            <td style="text-align: right">{{$employeeLeaveSick}}</td>
                             <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
                         </tr>
                         <tr>
                             <td>Alfa</td>
@@ -640,17 +650,26 @@
                         </tr>
                         <tr>
                             <td>Cuti</td>
+                            <td style="text-align: right">{{$employeeAnnualLeave}}</td>
                             <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
                         </tr>
                         <tr>
                             <td>Absensi Tidak Lengkap</td>
                             <td style="text-align: right">0</td>
                             <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
                         </tr>
+                        @if ($employeePayslip->deduction > 0)
+                    
+                        <tr>
+                            <td>Potongan</td>
+                            <td style="text-align: right">1</td>
+                            <td style="text-align: right">{{number_format($employeePayslip->deduction, 0, '', '.')}}</td>
+                        </tr>
+
+                        @endif
                         <tr style="font-weight: bold;">
                             <td colspan="2">Total Pengurangan</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
+                            <td style="text-align: right">{{number_format($totalPengurangan, 0, '', '.')}}</td>
                         </tr>
 
                         <tr style="background-color: #ffffff; border: 0px #fff;">
