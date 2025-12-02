@@ -1,3 +1,18 @@
+// Get appUrl and projectId from meta tags
+if (typeof appUrl === 'undefined') {
+    var appUrl = (
+        document.querySelector('meta[name="app-url"]')?.getAttribute("content") ||
+        $('meta[name=app-url]').attr("content") ||
+        ""
+    ).replace(/\/$/, "");
+}
+
+if (typeof projectId === 'undefined') {
+    var projectId = document.querySelector('meta[name="project-id"]')?.getAttribute("content") || 
+                    $('meta[name="project-id"]').attr("content") || 
+                    "";
+}
+
 let currentMaxLevel = 6;
 let allTasks = [];
 // When true, we use jsPlumb lines only and disable the old DOM/SVG connector logic
@@ -577,7 +592,7 @@ $(document).on('click', '.playlist_add_check', function () {
     });
 });
 
-$(document).on("click", "#projectTaskDetailModal .playlist-add-check", function () {
+$(document).on("click", "#taskDetailModal .playlist-add-check", function () {
     const task = this._task;
     if (!task) return console.warn("Task not found");
 
@@ -1665,7 +1680,13 @@ $(document).on("click", ".task-box, .timeline-bar", function (e) {
         return;
     }
     const taskId = $(this).data("task-id");
-    if (taskId) handleProjectTaskDetail(taskId);
+    // Now using handleTaskDetail from hub_division.js for consistent UI
+    if (taskId && typeof handleTaskDetail === 'function') {
+        handleTaskDetail(taskId);
+    } else if (taskId) {
+        console.warn('handleTaskDetail not available, falling back to old implementation');
+        handleProjectTaskDetail(taskId);
+    }
 });
 
 $(function () {
@@ -1719,10 +1740,10 @@ function renderProjectTaskDetail(res) {
 
     initProjectTaskDetailModal();
 
-    const checkBtn = document.querySelector('#projectTaskDetailModal .playlist-add-check');
+    const checkBtn = document.querySelector('#taskDetailModal .playlist-add-check');
     if (checkBtn) checkBtn._task = task;
 
-    const detailEl = document.getElementById('projectTaskDetailModal');
+    const detailEl = document.getElementById('taskDetailModal');
     if (detailEl) detailEl.dataset.taskId = String(task.id || '');
 
     const avatarContainer = document.getElementById('projectTaskProjectAvatar');
@@ -1735,7 +1756,7 @@ function renderProjectTaskDetail(res) {
             const src = img.getAttribute('src') || img.src;
             if (!src) return;
             if (typeof showImageInModal === 'function') {
-                const parent = document.getElementById('projectTaskDetailModal');
+                const parent = document.getElementById('taskDetailModal');
                 if (parent?.classList.contains('show')) bootstrap.Modal.getInstance(parent)?.hide();
                 showImageInModal(src);
                 return;
@@ -1766,7 +1787,7 @@ function renderProjectTaskDetail(res) {
         img.addEventListener('click', img._previewHandler);
     }
 
-    const $checkBtn = $("#projectTaskDetailModal .playlist-add-check").closest("button");
+    const $checkBtn = $("#taskDetailModal .playlist-add-check").closest("button");
     const isAbleShowIcon = ["completed", "finished"]
     if (isAbleShowIcon.includes(task.status?.toLowerCase())) {
         $checkBtn.show();
@@ -2101,7 +2122,7 @@ function initBootstrapTooltips(root = document) {
 }
 
 function initProjectTaskDetailModal() {
-    const el = document.getElementById('projectTaskDetailModal');
+    const el = document.getElementById('taskDetailModal');
     if (!el) return;
     const modal = bootstrap.Modal.getOrCreateInstance(el) || new bootstrap.Modal(el);
     const $modal = $(el);
@@ -3042,7 +3063,7 @@ $(function () {
     }
 
     $(document).on("click", "#projectTaskFeedbackBtn", function() {
-        const modal = document.getElementById("projectTaskDetailModal");
+        const modal = document.getElementById("taskDetailModal");
         const taskId = modal?.dataset?.taskId;
 
         loadProjectTaskFeedbackData(taskId);
@@ -3873,7 +3894,7 @@ $(function () {
                                 const dlEl = document.getElementById('taskImagePreviewDownload');
                                 if (imgEl) imgEl.src = src;
 
-                                const parentIds = ['projectTaskFeedbackModal', 'taskDetailModal', 'projectTaskDetailModal', 'projectDetailModal'];
+                                const parentIds = ['projectTaskFeedbackModal', 'taskDetailModal', 'projectDetailModal'];
                                 let parentModalEl = null;
                                 let parentWasOpen = false;
                                 try {
@@ -4415,7 +4436,7 @@ $(function () {
     }
 
     function handleProjectTaskFeedback(taskId) {
-        const detailEl = document.getElementById("projectTaskDetailModal");
+        const detailEl = document.getElementById("taskDetailModal");
         if (detailEl) {
             detailEl.setAttribute('data-child-opened', '1');
 

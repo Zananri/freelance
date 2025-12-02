@@ -17,6 +17,7 @@
             @endphp
             <meta name="project-image" content="{{ $imgUrl }}">
             <meta name="project-total-tasks" content="{{ $totalTasks }}">
+            <link rel="stylesheet" href="{{ asset('asset/css/hub_division.css?v=' . time()) }}">
             <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
             <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
             <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css?v=') . time() }}">
@@ -947,92 +948,15 @@
             </div>
         </div>
 
-        {{-- Modal Detail Task --}}
-        <div class="modal fade" id="projectTaskDetailModal" tabindex="-1"
-            aria-labelledby="projectTaskDetailModalLabel" aria-hidden="true">
+        {{-- Modal Detail Task - Using modal from hub_division --}}
+        <div class="modal fade" id="taskDetailModal" tabindex="-1"
+            aria-labelledby="taskDetailModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-body modal-body-custom">
-                        <div class="task-detail-wrapper">
-
-                            <!-- Header -->
-                            <div
-                                class="task-header d-flex justify-content-between align-items-start mb-2 task-card-header">
-                                <div class="d-flex align-items-center">
-                                    <div id="projectTaskProjectAvatar" class="me-3"></div>
-                                    <div>
-                                        <small class="text-muted" style="font-size: 11px;"
-                                            id="projectTaskProjectTitle"></small>
-                                        <h5 class="mb-0" id="projectTaskTitle"
-                                            style="font-size:14px;font-weight:600;">-
-                                        </h5>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Description -->
-                            <div class="description-container">
-                                <div id="projectTaskDescription" class="description-detail text-muted">No description
-                                </div>
-                            </div>
-
-                            <hr>
-
-                            <!-- Ref Urls -->
-                            <div id="referenceUrlsList" class="d-flex flex-column gap-2 mb-2">
-
-                            </div>
-
-                            <!-- Ref Files -->
-                            <div id="referenceFilesList" class="d-flex flex-column gap-2 mb-2">
-
-                            </div>
-
-                            <div class="d-flex justify-content-between align-items-start">
-                                <!-- Collaborators -->
-                                <div class="collab-section mt-3 mb-3" style="font-size: 12px;">
-                                    <div id="projectTaskCollaborators"></div>
-                                </div>
-
-                                <!-- Action Icon -->
-                                <div class="d-flex justify-content-end">
-                                    <button class="btn border-0 playlist-add-check" data-bs-target="#completedModal"
-                                        data-bs-toggle="modal">
-                                        <span style="font-size: 18px; color: #444;"
-                                            class="material-symbols-outlined">playlist_add_check</span>
-                                    </button>
-                                    <button class="btn border-0 feedback-detail-task" id="projectTaskFeedbackBtn" data-task-id="{{ $taskId ?? '' }}" data-bs-target="#projectTaskFeedbackModal" data-bs-toggle="modal">
-                                        <span style="font-size: 18px; color: #444;"
-                                            class="material-symbols-outlined">mode_comment</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Meta Info -->
-                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                                <div><span class="text-muted">Priority:</span> <span font
-                                        id="projectTaskPriority">-</span></div>
-                                <div><span class="text-muted">Deadline:</span> <span id="projectTaskDeadline">-</span>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
-                                <span class="text-muted">Department:</span>
-                                <span id="projectTaskDepartment">-</span>
-                            </div>
-
-                            <div class="d-flex justify-content-between mb-4" style="font-size:12px;">
-                                <span class="text-muted">Division:</span>
-                                <span id="projectTaskDivision">-</span>
-                            </div>
-
-                            <!-- Status Changes -->
-                            <div id="projectTaskStatusChanges" class="mt-3"></div>
-
-                        </div>
+                <div class="modal-content modal-content-custom scrollbar-transparent">
+                    <div class="modal-body p-0">
+                        <div id="taskDetailContent"></div>
                     </div>
-
-                    <div class="modal-footer modal-footer-custom mt-3">
+                    <div class="modal-footer modal-footer-custom px-4 py-3">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
@@ -1815,9 +1739,19 @@
         </div>
 
         <x-slot name="script_slot">
+            <script>
+                // Initialize global variables FIRST to prevent redeclaration errors
+                if (typeof appUrl === 'undefined') {
+                    var appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
+                }
+                if (typeof projectId === 'undefined') {
+                    var projectId = document.querySelector('meta[name="project-id"]')?.getAttribute('content') || '';
+                }
+            </script>
             <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script>
             <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
             <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
+            <script src="{{ asset('asset/js/task_detail_modal.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_timeline.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/task.js') }}?v={{ time() }}"></script>

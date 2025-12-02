@@ -5,6 +5,7 @@
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
         <link rel="stylesheet" href="{{ asset('asset/css/project-tree.css') }}?v={{ time() }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/hub_division.css?v=' . time()) }}">
         {{-- <link rel="stylesheet" href="{{ asset('asset/css/task.css') }}?v={{ time() }}"> --}}
         <!-- Quill editor styles (only for Project page) -->
         <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
@@ -1085,15 +1086,15 @@
         </div>
     </div>
 
-    {{-- Task Detail Modal --}}
+    {{-- Task Detail Modal - Using modal from hub_division --}}
     <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content modal-content-custom">
-                <div class="modal-body modal-body-custom">
+            <div class="modal-content modal-content-custom scrollbar-transparent">
+                <div class="modal-body p-0">
                     <div id="taskDetailContent"></div>
                 </div>
-                <div class="modal-footer modal-footer-custom mt-3">
+                <div class="modal-footer modal-footer-custom px-4 py-3">
                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
@@ -1281,11 +1282,12 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+        <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/task_detail_modal.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/project.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/project_tree.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/project_tree_plumb.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
-        <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
 
         <script>
             (function() {

@@ -8704,415 +8704,19 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
         }
     });
 
-    // Function to handle task detail view
-    function handleTaskDetail(taskId) {
-        $.ajax({
-            url: appUrl + "/task/" + taskId,
-            type: "GET",
-            dataType: "json",
-            success: function (res) {
-                const task = res && (res.data || res);
-                if (!task || typeof task !== "object") {
-                    try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { alert("Failed to load task details."); }
-                    return;
-                }
-
-                const taskImage = task.image ? `${appUrl}/file/task/${task.image}` : null;
-
-                const avatarTitle = task.title || task.project_title || "NA";
-                const useInitials = !taskImage;
-                const initials = useInitials ? getTaskInitials(task.title) : "";
-                const initialsColor = useInitials ? getRandomColorFromText(task.title) : "#6A5AE0";
-
-                const avatarHtml = useInitials
-                    ? `<div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialsColor};">${initials}</div>`
-                    : `<img src="${taskImage}" alt="Project Image" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
-
-                const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
-                const allExecutors = [];
-                if (task.pic) {
-                    allExecutors.push({ ...task.pic, role: "PIC" });
-                }
-                (task.executors || []).forEach(ex => {
-                    if (ex && !allExecutors.some(e => e && e.id === ex.id)) {
-                        allExecutors.push({ ...ex, role: "Executor" });
-                    }
-                });
-                // Build vertical collaborator list HTML for Task Detail modal to match Project Detail
-                function buildTaskCollaboratorsList(taskObj) {
-                    try {
-                        const items = [];
-                        if (taskObj && taskObj.pic) items.push({ role: 'pic', emp: taskObj.pic });
-                        if (taskObj && Array.isArray(taskObj.executors)) {
-                            taskObj.executors.forEach(emp => items.push({ role: 'executor', emp }));
-                        }
-
-                        if (!items.length) return '<div class="text-muted small">No collaborators</div>';
-
-                        function getName(emp) {
-                            try {
-                                return (
-                                    emp?.name ||
-                                    emp?.employee_name ||
-                                    emp?.username ||
-                                    emp?.full_name ||
-                                    (emp?.employee && (emp.employee.name || emp.employee.full_name)) ||
-                                    'Unknown'
-                                );
-                            } catch (_) { return 'Unknown'; }
-                        }
-
-                        function getDivision(emp) {
-                            try {
-                                // Try common fields first, then nested structures (mirror project.js logic)
-                                return (
-                                    emp?.division_name ||
-                                    emp?.division ||
-                                    emp?.division_title ||
-                                    (typeof emp?.division === 'string' ? emp?.division : null) ||
-                                    (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
-                                    emp?.employee_division ||
-                                    (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
-                                    '-'
-                                );
-                            } catch (_) { return '-'; }
-                        }
-
-                        function resolvePhotoHtmlForTask(emp, size = 36, marginLeft = 0) {
-                            let userPhoto = emp && (emp.profile_picture_url || emp.profile_picture || emp.user_photo || emp.user_photo_url || emp.photo || emp.image);
-                            let photoUrl = '';
-                            try {
-                                if (userPhoto) {
-                                    const raw = String(userPhoto).trim();
-                                    const trimmed = raw.replace(/^\/+/, '');
-                                    if (/^https?:\/\//i.test(raw)) photoUrl = raw;
-                                    else if (/^(file\/|asset\/|storage\/)/.test(trimmed)) photoUrl = appUrl + '/' + trimmed;
-                                    else if (raw.startsWith('/')) photoUrl = appUrl + raw;
-                                    else if (raw.indexOf('/') !== -1) photoUrl = appUrl + '/' + trimmed;
-                                    else photoUrl = appUrl + '/file/profile_picture/' + raw;
-                                    photoUrl = photoUrl.replace(/\/storage\/asset\//, '/asset/');
-                                } else {
-                                    photoUrl = fallbackAvatar;
-                                }
-                            } catch (e) { photoUrl = fallbackAvatar; }
-
-                            const name = (emp && (emp.name || emp.employee_name || emp.username || emp.full_name)) || 'Unknown';
-                            const titleText = name;
-                            return `<img src="${photoUrl}" alt="${name}" data-bs-toggle="tooltip" title="${titleText}" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:' + marginLeft + 'px;' : ''}" onerror="this.onerror=null;this.src='${fallbackAvatar}';">`;
-                        }
-
-                        const rows = items.map(({ role, emp }) => {
-                            const name = getName(emp);
-                            // For Task Detail, show each employee's role inside the task instead of division
-                            function getRoleLabel(role, empObj) {
-                                try {
-                                    // Prefer explicit role on employee object if available
-                                    if (empObj && empObj.role) return String(empObj.role).replace(/_/g, ' ');
-                                    if (!role) return '-';
-                                    switch (role) {
-                                        case 'pic': return 'PIC';
-                                        case 'executor': return 'Executor';
-                                        case 'author': return 'Author';
-                                        case 'co_author': return 'Co-author';
-                                        case 'contributor': return 'Contributor';
-                                        default: return String(role).charAt(0).toUpperCase() + String(role).slice(1);
-                                    }
-                                } catch (_) { return '-'; }
-                            }
-                            const roleLabel = getRoleLabel(role, emp);
-                            const photo = resolvePhotoHtmlForTask(emp, 36, 0);
-                            return (
-                                '<div class="collab-item d-flex align-items-center mb-2">' +
-                                    '<div class="flex-shrink-0">' + photo + '</div>' +
-                                    '<div class="ms-2">' +
-                                        '<div class="collab-name">' + (name || 'Unknown') + '</div>' +
-                                        '<div class="collab-division text-muted">' + (roleLabel || '-') + '</div>' +
-                                    '</div>' +
-                                '</div>'
-                            );
-                        });
-
-                        return '<div class="collab-list">' + rows.join('') + '</div>';
-                    } catch (e) {
-                        return '<div class="text-muted small">No collaborators</div>';
-                    }
-                }
-
-                let refUrlsHtml = '';
-                const referenceUrls = task.reference_urls || (task.reference_url ? [task.reference_url] : []);
-
-                if (Array.isArray(referenceUrls) && referenceUrls.length) {
-                    refUrlsHtml = '<div class="mb-2">';
-
-                    referenceUrls.forEach((u, idx) => {
-                        const displayUrl = u || '';
-
-                        refUrlsHtml += `
-                            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px; position:relative;">
-                                
-                                <a href="${u}" target="_blank"
-                                    class="text-decoration-none flex-grow-1 text-truncate"
-                                    style="color: #444;" title="${displayUrl}">
-                                    ${displayUrl}
-                                </a>
-
-                                <span class="material-symbols-outlined ms-2 open-url-btn action-icon"
-                                    data-url="${u}">
-                                    open_in_new
-                                </span>
-
-                                <span class="material-symbols-outlined ms-2 copy-url-btn action-icon"
-                                    data-url="${u}">
-                                    content_copy
-                                </span>
-
-                            </div>
-                        `;
-                    });
-
-                    refUrlsHtml += '</div>';
-                }
-
-                document.addEventListener("click", function (e) {
-                    if (e.target.classList.contains("open-url-btn")) {
-                        const url = e.target.getAttribute("data-url");
-                        if (url) window.open(url, "_blank");
-                    }
-
-                    if (e.target.classList.contains("copy-url-btn")) {
-                        const url = e.target.getAttribute("data-url");
-                        if (url) {
-                            navigator.clipboard.writeText(url)
-                                .then(() => showFloatingAlert("URL copied!", "success", 2000))
-                                .catch(() => showFloatingAlert("Failed to copy.", "danger", 2000));
-                        }
-                    }
-                });
-
-                const showDelete = (function(){
-                    try {
-                        const empId = (document.getElementById('taskFeedbackModal')?.dataset?.employeeId) || null;
-                        const picId = task?.pic?.id ? String(task.pic.id) : null;
-                        if (!empId || !picId) return false;
-                        return String(empId) === picId;
-                    } catch(_) { return false; }
-                })();
-
-                const html = `
-                <div class="custom-card rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
-                    <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
-                        <div class="d-flex align-items-center">
-                            ${avatarHtml}
-                            <div class="d-flex flex-column">
-                                ${task.project?.id ? `<small class="text-muted" style="font-size:11px;"> ${task.project.title || '-'}</small>` : ""}
-                                <h5 class="mb-0 task-title">${task.title || "Untitled Task"}</h5>
-                            </div>
-                        </div>
-                        <div class="dropdown-icon-container">
-                            <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
-                            <div class="dropdown-menu d-none">
-                                <div class="dropdown-item edit-task">Edit</div>
-                                ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
-                                ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="task-detail-description-container">
-                        <div class="task-description">
-                            ${task.description ? task.description : ''}
-                        </div>
-                    </div>
-                    <hr class="task-separator rounded-4">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div style="font-size:12px;">
-                            <span style="color:#797E91;">Priority: </span>
-                            <span style="color:${task.priority === "HIGH" ? "red" : "#4B4F5E"}">${task.priority || "-"}</span>
-                        </div>
-                        <div style="font-size:12px;">
-                            <span style="color:#797E91;">Deadline: </span>
-                            <span style="color:#4B4F5E;">${formatDateENMedium(task.due_date) || "-"}</span>
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
-                        <span class="text-muted">Department:</span>
-                        <span>${task.project?.department || "-"}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                        <span class="text-muted">Division:</span>
-                        <span>${task.project?.division || "-"}</span>
-                    </div>
-                    ${refUrlsHtml}
-                    <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
-                        <div class="flex-grow-1">${buildTaskCollaboratorsList(task)}
-                            ${(function(){
-                                try {
-                                    let scs = task.status_changes || null;
-                                    // Backwards-compat: fallback to single status_change if present
-                                    if ((!scs || !Array.isArray(scs) || scs.length === 0) && task.status_change) {
-                                        scs = [task.status_change];
-                                    }
-                                    if (!scs || !Array.isArray(scs) || scs.length === 0) return '';
-                                    function esc(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-                                    const rows = scs.map(function(sc){
-                                        const lbl = (sc.label || '').toString();
-                                        const name = (sc.employee_name || '').toString();
-                                        if (!lbl && !name) return '';
-                                        return `<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">${esc(lbl)}</span><span style="margin-left:6px;color:#454545">${esc(name)}</span></div>`;
-                                    });
-                                    return rows.join('');
-                                } catch(e){ return ''; }
-                            })()}
-                        </div>
-                        <div class="d-flex align-items-start">
-                            <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
-                                <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
-
-                                ${task.feedback_comments_count > 0
-                                    ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>`
-                                    : ""}
-                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
-                            </div>
-                            <div class="btn-attach-file-wrapper d-flex align-items-center">
-                                <span class="material-symbols-outlined task-icon">attach_file</span>
-
-                                ${task.reference_files_count > 0
-                                    ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>`
-                                    : ""}
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-
-                const contentEl = document.getElementById("taskDetailContent");
-                if (contentEl) {
-                    contentEl.innerHTML = html;
-
-                    // Make task image clickable to open a centered preview modal
-                    try {
-                        const imgs = contentEl.querySelectorAll('img.project-image');
-                        imgs.forEach(function(img) {
-                            try {
-                                img.style.cursor = 'pointer';
-                                // Prevent binding duplicate handlers
-                                if (img.__previewHandlerBound) return;
-                                img.__previewHandlerBound = true;
-
-                                img.addEventListener('click', function () {
-                                    try {
-                                        const src = this.src || this.getAttribute('src') || '';
-                                        if (!src) return;
-
-                                        // If task detail modal is open, mark it as having a child opened
-                                        // and hide it first (follow existing pattern used elsewhere)
-                                        const detailEl = document.getElementById('taskDetailModal');
-                                        if (detailEl && detailEl.classList && detailEl.classList.contains('show')) {
-                                            try {
-                                                detailEl.setAttribute('data-child-opened', '1');
-
-                                                if (detailEl._timelineHiddenHandler) {
-                                                    detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
-                                                    detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
-                                                    detailEl._timelineHiddenHandler = null;
-                                                }
-
-                                                const detailModalInst = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
-                                                try { detailModalInst.hide(); } catch (_) {}
-                                            } catch (_) {}
-                                        }
-
-                                        const modalId = 'taskImagePreviewModal_' + Date.now();
-                                        const modalHtml = `
-                                            <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
-                                                <div class="modal-dialog modal-dialog-centered modal-xl">
-                                                    <div class="modal-content modal-content-custom bg-light border-0">
-                                                        <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
-                                                            <img id="taskImagePreviewModalImg" src="${src}" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
-                                                        </div>
-                                                        <div class="modal-footer modal-footer-custom border-0 justify-content-center">
-                                                            <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>`;
-
-                                        document.body.insertAdjacentHTML('beforeend', modalHtml);
-                                        const mEl = document.getElementById(modalId);
-                                        const mInst = new bootstrap.Modal(mEl);
-
-                                        // Ensure image fits within viewport on load
-                                        mEl.addEventListener('shown.bs.modal', function () {
-                                            try { const imgEl = mEl.querySelector('#taskImagePreviewModalImg'); if (imgEl) imgEl.style.maxHeight = (window.innerHeight * 0.8) + 'px'; } catch(_) {}
-                                        }, { once: true });
-
-                                        // When preview modal hides, remove it and restore the detail modal if needed
-                                        mEl.addEventListener('hidden.bs.modal', function () {
-                                            try { mEl.remove(); } catch(_) {}
-                                            try {
-                                                const d = document.getElementById('taskDetailModal');
-                                                if (d && d.getAttribute && d.getAttribute('data-child-opened')) {
-                                                    try { d.removeAttribute('data-child-opened'); } catch(_) {}
-
-                                                    // Restore timeline hidden handler if backed up
-                                                    try {
-                                                        if (d._timelineHiddenHandlerBackup) {
-                                                            d._timelineHiddenHandler = d._timelineHiddenHandlerBackup;
-                                                            d.addEventListener('hidden.bs.modal', d._timelineHiddenHandler);
-                                                            d._timelineHiddenHandlerBackup = null;
-                                                        }
-                                                    } catch(_) {}
-
-                                                    try {
-                                                        const restoreInst = bootstrap.Modal.getOrCreateInstance(d) || new bootstrap.Modal(d);
-                                                        restoreInst.show();
-                                                    } catch(_) {}
-                                                }
-                                            } catch(_) {}
-                                        }, { once: true });
-
-                                        mInst.show();
-                                    } catch (e) {
-                                        console.warn('Failed to open image preview', e);
-                                    }
-                                });
-                            } catch (_) {}
-                        });
-                    } catch (_) {}
-                }
-
-                const detailEl = document.getElementById("taskDetailModal");
-                if (detailEl) {
-                    const detailModal = new bootstrap.Modal(detailEl);
-
-                    // Initialize tooltips for PIC and executor images in modal after it's shown
-                    detailEl.addEventListener('shown.bs.modal', function () {
-                        // Wait a bit for DOM to be fully rendered
-                        setTimeout(() => {
-                            initBootstrapTooltips(detailEl);
-                        }, 100);
-                    }, { once: true });
-
-                    // Clean up tooltips when modal is hidden
-                    detailEl.addEventListener('hidden.bs.modal', function () {
-                        const tooltipElements = detailEl.querySelectorAll('[data-bs-toggle="tooltip"]');
-                        tooltipElements.forEach(el => {
-                            const tooltip = bootstrap.Tooltip.getInstance(el);
-                            if (tooltip) {
-                                tooltip.dispose();
-                            }
-                        });
-                    }, { once: true });
-
-                    detailModal.show();
-                }
-            },
-            error: function () {
-                try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { alert("Failed to load task details."); }
-            }
-        });
-    }
-
+    // Function to handle task detail view - Now using handleTaskDetail from hub_division.js
+    // The modal and all functionality for task detail is centralized in hub_division.js
+    // This ensures consistent UI/UX across all pages (task, project, project detail, hub division)
+    
     // Expose for handlers defined outside this scope (e.g., timeline click)
-    window.handleTaskDetail = handleTaskDetail;
+    // Note: handleTaskDetail is now imported from hub_division.js
+    if (typeof window.handleTaskDetail !== 'function') {
+        // Fallback if hub_division.js is not loaded (should not happen in production)
+        window.handleTaskDetail = function(taskId) {
+            console.warn('handleTaskDetail called but hub_division.js not loaded');
+            showFloatingAlert("Failed to load task details.", "danger", 3000);
+        };
+    }
 
     // Function to handle task edit (removed old implementation)
 
@@ -11493,29 +11097,37 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
     // First render on modal show
     const timelineModal = document.getElementById("timelineModal");
-    timelineModal.addEventListener("show.bs.modal", async () => {
-        await fetchTimelineTasksOnce();
-        renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
-    });
+    if (timelineModal) {
+        timelineModal.addEventListener("show.bs.modal", async () => {
+            await fetchTimelineTasksOnce();
+            renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
+        });
+    }
 
     // Prev / Next bulan
-    document.getElementById("prevTimelineModal").addEventListener("click", () => {
-        currentMonth--;
-        if (currentMonth < 0) {
-            currentMonth = 11;
-            currentYear--;
-        }
-        renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
-    });
+    const prevBtn = document.getElementById("prevTimelineModal");
+    if (prevBtn) {
+        prevBtn.addEventListener("click", () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
+        });
+    }
 
-    document.getElementById("nextTimelineModal").addEventListener("click", () => {
-        currentMonth++;
-        if (currentMonth > 11) {
-            currentMonth = 0;
-            currentYear++;
-        }
-        renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
-    });
+    const nextBtn = document.getElementById("nextTimelineModal");
+    if (nextBtn) {
+        nextBtn.addEventListener("click", () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
+        });
+    }
 
     // Initialize tooltips for task detail modal when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
