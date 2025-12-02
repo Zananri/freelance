@@ -3036,6 +3036,37 @@ $(function () {
     }
 })();
 
+    document.addEventListener("click", function (e) {
+        const btn = e.target.closest(".project-task-feedback-btn");
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const taskId = btn.dataset.taskId;
+        const detailModalEl = document.getElementById("taskDetailModal");
+        const feedbackModalEl = document.getElementById("projectTaskFeedbackModal");
+
+        if (!feedbackModalEl) return;
+
+        const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+        if (detailModal) detailModal.hide();
+
+        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+        feedbackModal.show();
+
+        feedbackModalEl.addEventListener(
+            "hidden.bs.modal",
+            function restoreDetailModal() {
+                feedbackModalEl.removeEventListener("hidden.bs.modal", restoreDetailModal);
+                if (detailModal) detailModal.show();
+            },
+            { once: true }
+        );
+
+        if (taskId && window.handleProjectTaskFeedback) window.handleProjectTaskFeedback(taskId);
+    });
+
     function timeAgo(createdAt){
         try {
             const time = new Date(createdAt);
