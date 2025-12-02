@@ -4,6 +4,7 @@
     </x-slot>
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/task.css?v=' . time()) }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/hub_division.css?v=' . time()) }}">
         <!-- Quill editor styles (only for Task page) -->
         <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     </x-slot>
