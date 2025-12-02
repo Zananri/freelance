@@ -1,3 +1,18 @@
+// Get appUrl and projectId from meta tags
+if (typeof appUrl === 'undefined') {
+    var appUrl = (
+        document.querySelector('meta[name="app-url"]')?.getAttribute("content") ||
+        $('meta[name=app-url]').attr("content") ||
+        ""
+    ).replace(/\/$/, "");
+}
+
+if (typeof projectId === 'undefined') {
+    var projectId = document.querySelector('meta[name="project-id"]')?.getAttribute("content") || 
+                    $('meta[name="project-id"]').attr("content") || 
+                    "";
+}
+
 let currentMaxLevel = 6;
 let allTasks = [];
 // When true, we use jsPlumb lines only and disable the old DOM/SVG connector logic

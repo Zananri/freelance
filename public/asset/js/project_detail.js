@@ -22,11 +22,18 @@
         return $('meta[name="' + name + '"]').attr("content") || "";
     }
 
-    var appUrl = (
-        document
-            .querySelector('meta[name="app-url"]')
-            ?.getAttribute("content") || ""
-    ).replace(/\/$/, "");
+    if (typeof appUrl === 'undefined') {
+        var appUrl = (
+            document
+                .querySelector('meta[name="app-url"]')
+                ?.getAttribute("content") || ""
+        ).replace(/\/$/, "");
+    }
+    
+    if (typeof projectId === 'undefined') {
+        var projectId = document.querySelector('meta[name="project-id"]')?.getAttribute("content") ||
+                        $('meta[name="project-id"]').attr("content") || "";
+    }
 
     function safeText(str) {
         return str === null || typeof str === "undefined" ? "-" : String(str);
@@ -10045,8 +10052,8 @@ function initTaskMoreDropdowns() {
 
 // Function to load tasks for current project
 function loadProjectTasks() {
-    const projectId = document.querySelector('meta[name="project-id"]')?.getAttribute('content') || '';
-    if (!projectId) {
+    const pid = document.querySelector('meta[name="project-id"]')?.getAttribute('content') || '';
+    if (!pid) {
         console.error('No project ID found');
         return;
     }
@@ -10061,7 +10068,7 @@ function loadProjectTasks() {
     }
 
     $.ajax({
-        url: `${appUrl}/projects/${projectId}/tasks`,
+        url: `${appUrl}/projects/${pid}/tasks`,
         type: "GET",
         dataType: "json",
         success: function(response) {

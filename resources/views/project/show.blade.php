@@ -1739,6 +1739,15 @@
         </div>
 
         <x-slot name="script_slot">
+            <script>
+                // Initialize global variables FIRST to prevent redeclaration errors
+                if (typeof appUrl === 'undefined') {
+                    var appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
+                }
+                if (typeof projectId === 'undefined') {
+                    var projectId = document.querySelector('meta[name="project-id"]')?.getAttribute('content') || '';
+                }
+            </script>
             <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script>
             <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
             <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>

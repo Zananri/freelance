@@ -1,4 +1,6 @@
-const appUrl = $("meta[name=app-url]").attr("content");
+if (typeof appUrl === 'undefined') {
+    var appUrl = $("meta[name=app-url]").attr("content");
+}
 const BAR_COLOR_MAP = {
     new_request: "new",
     in_progress: "progress",
@@ -183,14 +185,17 @@ $(document).on("click", "#nextTimelineModal", function () {
     if (tasks.length > 0) {
         renderTimeline(tasks);
     } else {
-        let projectId = $('meta[name="project-id"]').attr("content");
-        getTaskByProject(projectId);
+        let pid = $('meta[name="project-id"]').attr("content");
+        getTaskByProject(pid);
     }
 });
 
-let projectId = $('meta[name="project-id"]').attr("content");
-if (projectId) {
+// Use global projectId if available, otherwise get from meta tag
+if (typeof projectId !== 'undefined' && projectId) {
     getTaskByProject(projectId);
+} else {
+    let pid = $('meta[name="project-id"]').attr("content");
+    if (pid) getTaskByProject(pid);
 }
 
 $("#fullscreen-btn").on("click", function () {

@@ -11097,29 +11097,37 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
     // First render on modal show
     const timelineModal = document.getElementById("timelineModal");
-    timelineModal.addEventListener("show.bs.modal", async () => {
-        await fetchTimelineTasksOnce();
-        renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
-    });
+    if (timelineModal) {
+        timelineModal.addEventListener("show.bs.modal", async () => {
+            await fetchTimelineTasksOnce();
+            renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
+        });
+    }
 
     // Prev / Next bulan
-    document.getElementById("prevTimelineModal").addEventListener("click", () => {
-        currentMonth--;
-        if (currentMonth < 0) {
-            currentMonth = 11;
-            currentYear--;
-        }
-        renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
-    });
+    const prevBtn = document.getElementById("prevTimelineModal");
+    if (prevBtn) {
+        prevBtn.addEventListener("click", () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
+        });
+    }
 
-    document.getElementById("nextTimelineModal").addEventListener("click", () => {
-        currentMonth++;
-        if (currentMonth > 11) {
-            currentMonth = 0;
-            currentYear++;
-        }
-        renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
-    });
+    const nextBtn = document.getElementById("nextTimelineModal");
+    if (nextBtn) {
+        nextBtn.addEventListener("click", () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
+        });
+    }
 
     // Initialize tooltips for task detail modal when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {

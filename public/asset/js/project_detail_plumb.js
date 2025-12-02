@@ -10,13 +10,17 @@
             return null;
         }
     }
-    var appUrl = (
-        window.appUrl ||
-        meta("app-url") ||
-        (window.location && window.location.origin) ||
-        ""
-    ).replace(/\/$/, "");
-    var projectId = String(window.projectId || meta("project-id") || "");
+    if (typeof appUrl === 'undefined') {
+        var appUrl = (
+            window.appUrl ||
+            meta("app-url") ||
+            (window.location && window.location.origin) ||
+            ""
+        ).replace(/\/$/, "");
+    }
+    if (typeof projectId === 'undefined') {
+        var projectId = String(window.projectId || meta("project-id") || "");
+    }
     var csrf = window.csrfToken || meta("csrf-token") || "";
 
     var instance = null;
