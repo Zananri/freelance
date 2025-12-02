@@ -577,7 +577,7 @@
     <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content modal-content-custom scrollbar-transparent">
+            <div class="modal-content modal-content-custom p-0 scrollbar-transparent">
                 <div class="modal-body p-0">
                     <div id="taskDetailContent"></div>
                 </div>
