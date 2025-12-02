@@ -572,15 +572,15 @@
 
     <!-- Schedule modal removed; now using separate create page -->
 
-    <!-- Task Detail Modal -->
+    <!-- Task Detail Modal - Using modal from hub_division -->
     <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content modal-content-custom">
-                <div class="modal-body modal-body-custom">
+            <div class="modal-content modal-content-custom scrollbar-transparent">
+                <div class="modal-body p-0">
                     <div id="taskDetailContent"></div>
                 </div>
-                <div class="modal-footer modal-footer-custom mt-3">
+                <div class="modal-footer modal-footer-custom px-4 py-3">
                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
@@ -819,6 +819,7 @@
 
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
         <script src="{{ asset('asset/js/date_helper.js?v=' . time()) }}"></script>
+        <script src="{{ asset('asset/js/hub_division.js?v=' . time()) }}"></script>
         <script src="{{ asset('asset/js/task.js?v=' . time()) }}"></script>
 
         <!-- Quill editor script and initialization for Task page -->
