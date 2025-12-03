@@ -562,6 +562,8 @@
 #taskDetailModal .task-detail-description p {
     margin-bottom: 0 !important;
     font-size: 12px;
+    color: #4C5060;
+    font-weight: 400;
 }
 
 /* Feedback Modal Styles */
@@ -1036,7 +1038,7 @@
 }
 
 .project-title {
-    font-size: 11px;
+    font-size: 8px;
 }
 
 .project-image {
@@ -1085,7 +1087,7 @@
 }
 
 .task-title-detail {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
     color: #2a3542;
 }
