@@ -8,7 +8,7 @@
 
 
     @php
-        $head_stitle = 'Office NSA Performance';
+        $head_stitle = 'Halo';
 
         if (isset($head_stitle_slot)) {
             $head_stitle = $head_stitle_slot;
@@ -26,9 +26,6 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <script src="{{ asset('asset/js/office_nav.js?v=' . time()) }}"></script>
-
-    <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
-    <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
@@ -67,8 +64,6 @@
             <div class="d-inline-block align-middle" id="sidebar-control">
                 <span class="material-symbols-outlined">menu</span>
             </div>
-
-           {{-- logo --}}
             
         </div>
 
