@@ -16,7 +16,7 @@ class EmployeeUserSeeder extends Seeder
     {
         $user0 = User::updateOrCreate(
             [   'email' => 'user@nsaperformance.id', 'name' => 'User', 'user_type' => 'ADMINISTRATOR','user_role' => 'GENERAL_MANAGER',
-                'password' => 'NSA_2025',
+                'password' => 'password',
                 'photo' => 'asset/img/avatar.png',
             ]
         );

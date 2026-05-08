@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tasks', function (Blueprint $table) {
-            $table->integer('position_x')->nullable()->after('parent_id');
+            $table->integer('position_x')->nullable()->after('reference_files');
             $table->integer('position_y')->nullable()->after('position_x');
             $table->boolean('free_positioned')->default(false)->after('position_y');
             

@@ -313,7 +313,7 @@ class EmployeeController extends Controller
             $user->name = $request->name;
             $user->email = $emailWork;
             $user->email_verified_at = now();
-            $user->password = bcrypt('NSA_2025');
+            $user->password = bcrypt('office123');
             $user->save();
 
             $employee = Employee::create([
