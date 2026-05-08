@@ -85,7 +85,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
     Route::post('/profile/edit-password', [ProfileController::class, 'editPassword'])->name('profile.editPassword');
     Route::post('/profile/edit-photo-profile', [ProfileController::class, 'editPhotoProfile'])->name('profile.editPhotoProfile');
-    Route::get('/payslip/download/{year}/{month}', [ProfileController::class, 'downloadPDFPayslip'])->name('salary_payslip.downloadPDFPayslip');
+    Route::get('/payslip/download/{year}/{month}', [ProfileController::class, 'downloadPDFPayslip'])->name('salary_payslip.downloadPDFPayslipProfile');
     
 
     // === Project routes ===

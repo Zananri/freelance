@@ -1452,7 +1452,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 container.innerHTML = '';
 
                 if (!projects.length) {
-                    container.innerHTML = '<div class="text-muted small">No projects to display.</div>';
+                    container.innerHTML = '<div class="text-muted text-center small">No projects to display.</div>';
                     return;
                 }
 
