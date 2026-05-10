@@ -15,7 +15,7 @@ class OfficeSeeder extends Seeder
     {
         $office = Office::updateOrCreate([
                     'name' => 'Office 1',
-                    'location' => '-6.164849, 106.809542',
+                    'location' => '0, 0',
                     'status' =>  'ACTIVE',
                     'created_by' =>  1,
                     'updated_by' =>  1
@@ -23,7 +23,7 @@ class OfficeSeeder extends Seeder
 
         $office2 = Office::updateOrCreate([
                     'name' => 'Office 2',
-                    'location' => '-6.229250, 106.781767',
+                    'location' => '0, 0',
                     'status' =>  'ACTIVE',
                     'created_by' =>  1,
                     'updated_by' =>  1

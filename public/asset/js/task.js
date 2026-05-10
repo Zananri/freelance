@@ -1943,9 +1943,9 @@ function updateTaskCountLabels() {
             renderDropdown();
         }
 
-        input.addEventListener("input", function () {
-            filterEmployees(this.value);
-        });
+        // input.addEventListener("input", function () {
+        //     filterEmployees(this.value);
+        // });
 
         input.addEventListener("focus", function () {
             filterEmployees(this.value);
