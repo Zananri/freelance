@@ -1,6 +1,5 @@
 /**
  * App JavaScript File
- * NSA Office Performance System
  * 
  * File ini dibuat untuk mengatasi error 404 pada saat mengakses halaman project
  * File ini dapat diisi dengan fungsi-fungsi JavaScript yang dibutuhkan
@@ -8,7 +7,6 @@
 
 // Fungsi untuk inisialisasi aplikasi
 document.addEventListener('DOMContentLoaded', function() {
-    //console.log('NSA Office Performance System - App.js loaded successfully');
     
     // Inisialisasi fungsi umum
     initCommonFunctions();

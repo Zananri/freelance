@@ -15,8 +15,8 @@
     <meta name="app-url" content="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
-    <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
+    <!-- <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon"> -->
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -70,12 +70,7 @@
                 </div>
             </div>
 
-<<<<<<< HEAD
             <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative" style="width: 40px; height: 40px; overflow: visible;" id="avatarDropdownToggle">
-=======
-            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative"
-                style="width: 40px; height: 40px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
->>>>>>> aa79a83c4cbceb7b7823482d590d9efc7b167423
 
                 @if (Auth::check())
                     <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
