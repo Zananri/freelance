@@ -14,7 +14,7 @@
 
     <meta name="app-url" content="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
+    
     <!-- <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
     <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon"> -->
 

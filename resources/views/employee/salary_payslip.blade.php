@@ -439,7 +439,7 @@
                                             <span class="fs-12 ms-2 info_working_day" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top" data-bs-title="0">
                                                 <i class="bi bi-info-circle"></i>
                                             </span>
-                                            <input type="number" class="form-control  border-0 fs-14" name="working_day" id="working_day">
+                                            <input type="number" class="form-control border-0 fs-14" name="working_day" id="working_day">
                                         </div>
                                         <div class="col-4">
                                             <label for="meal_day" class="fs-14 text-secondary fw-normal">
@@ -552,14 +552,14 @@
                                             <label for="bonus" class="fs-14 text-secondary fw-normal">
                                                 Bonus
                                             </label>
-                                            <input type="number" class="form-control border-0 fs-14" name="bonus" id="bonus">
+                                            <input type="number" class="form-control border-0 fs-14" name="bonus" id="bonus" value="0">
                                         </div>
                                         
                                         <div class="col-6">
                                             <label for="overtime" class="fs-14 text-secondary fw-normal">
                                                 Lembur
                                             </label>
-                                            <input type="number" class="form-control border-0 fs-14" name="overtime" id="overtime">
+                                            <input type="number" class="form-control border-0 fs-14" name="overtime" id="overtime" value="0">
                                         </div>
                                     </div>
 
