@@ -23,7 +23,7 @@
                         
                         @php
                             $data_to_encrypt = Auth::user()->id.','.Auth::user()->email; // The string you want to encrypt
-                            $cipher_method = "aes-256-cbc"; // Choose a strong cipher method '37,gio.ginanjar@nsaperformance.id'; //
+                            $cipher_method = "aes-256-cbc";
                             $key = env('APP_KEY'); // A strong, securely generated key
                             $iv_length = openssl_cipher_iv_length($cipher_method);
                             $iv = openssl_random_pseudo_bytes($iv_length); // Generate a random IV

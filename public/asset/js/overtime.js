@@ -23,62 +23,6 @@ let PAGE_OVERTIME_REQUEST = 1;
 
 
 function htmlDataRequestOvertime(dataRow){
-    
-    //     [
-    //     {
-    //         "id": 7,
-    //         "employee_id": 4,
-    //         "status": "REQUEST_SUBMIT",
-    //         "description": "Cek",
-    //         "date_overtime": "2025-10-06",
-    //         "time_start": "17:59:00",
-    //         "time_end": "18:00:00",
-    //         "total_overtime": "00:01:00",
-    //         "photo_start": "file/overtime/OVERTIME_4_1759748378.jpg",
-    //         "photo_end": "file/overtime/OVERTIME_4_1759748410.jpg",
-    //         "location_start": null,
-    //         "location_end": null,
-    //         "created_by": 9,
-    //         "updated_by": 9,
-    //         "reject_by": 0,
-    //         "approve_by": 0,
-    //         "approve_at": null,
-    //         "reject_at": null,
-    //         "reject_note": null,
-    //         "created_at": "2025-10-06T10:59:38.000000Z",
-    //         "updated_at": "2025-10-06T11:00:10.000000Z",
-    //         "employee": {
-    //             "id": 4,
-    //             "user_id": 9,
-    //             "department_id": 1,
-    //             "division_id": 2,
-    //             "job_id": 7,
-    //             "shift_id": 6,
-    //             "weekday_off": "1,5,6",
-    //             "profile_picture": "file/profile_picture/PROFILE_PICTURE_1756457192.jpg",
-    //             "name": "Hendy Pratama Herman",
-    //             "employee_niks": "NSAID-007",
-    //             "email": "hendypratama@nsaperformance.id",
-    //             "email_work": "hendypratama@nsaperformance.id",
-    //             "phone": "085174339475",
-    //             "status": "ACTIVE",
-    //             "address": "jakaKedaung Kali Angke\r\nCengkareng\r\nWest Jakarta City\r\nJakarta",
-    //             "photo": "file/photo/PHOTO_1756457192.jpg",
-    //             "ktp": "file/ktp/KTP_Hendy_Pratama_Herman.jpg",
-    //             "birth_date": "2000-01-01",
-    //             "hire_date": "2024-01-01",
-    //             "contract_end_date": "2025-09-30",
-    //             "resign_date": null,
-    //             "grade_id": 1,
-    //             "office": 1,
-    //             "created_by": 4,
-    //             "deleted_by": null,
-    //             "updated_by": 4,
-    //             "created_at": "2025-08-29T08:46:32.000000Z",
-    //             "updated_at": "2025-10-02T03:03:45.000000Z"
-    //         }
-    //     }
-    // ]
 
     let photoStart = '';
     let photoEnd = '';

@@ -74,8 +74,6 @@ Route::get('/server-time', function () {
 
 Route::middleware('auth')->group(function () {
 
-    Route::get('/bi_dashboard_mtd', [DashboardController::class, 'biDashboardMtd'])->name('bi_dashboard_mtd');
-
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 
 
@@ -85,7 +83,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
     Route::post('/profile/edit-password', [ProfileController::class, 'editPassword'])->name('profile.editPassword');
     Route::post('/profile/edit-photo-profile', [ProfileController::class, 'editPhotoProfile'])->name('profile.editPhotoProfile');
-    Route::get('/payslip/download/{year}/{month}', [ProfileController::class, 'downloadPDFPayslip'])->name('salary_payslip.downloadPDFPayslip');
+    Route::get('/payslip/download/{year}/{month}', [ProfileController::class, 'downloadPDFPayslip'])->name('salary_payslip.downloadPDFPayslipProfile');
     
 
     // === Project routes ===
@@ -288,8 +286,6 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth', 'management')->group(function () {
     
-    Route::get('/bi_dashboard', [DashboardController::class, 'biDashboard'])->name('bi_dashboard');    
-
     Route::get('/calendar_management', [EmployeeCalendarController::class, 'showCalendarPage'])->name('calendar_management');
     
     Route::get('/master', function () {

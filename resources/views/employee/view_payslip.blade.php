@@ -70,7 +70,7 @@
                                 $logoNSA = asset('asset/img/logo.png');
                             }
                         @endphp
-                        <img src="{{ $logoNSA }}" class="align-middle" width="70" alt="LOGO NSA Performance">
+                        <img src="{{ $logoNSA }}" class="align-middle" width="70" alt="LOGO">
                     </td>
                     <td style="text-align: left;">
                         <div style="margin: 0px 10px 2px 10px; font-size: 16px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">PT. Nosa Jaya Karya</div>
@@ -441,7 +441,7 @@
                                         $logoNSA = asset('asset/img/logo.png');
                                     }
                                 @endphp
-                                <img src="{{ $logoNSA }}" class="align-middle" width="70" alt="LOGO NSA Performance">
+                                <img src="{{ $logoNSA }}" class="align-middle" width="70" alt="LOGO">
                             </td>
                             <td style="text-align: left;">
                                 <div style="margin: 0px 10px 5px 10px; font-size: 18px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">PT. Nosa Jaya Karya</div>

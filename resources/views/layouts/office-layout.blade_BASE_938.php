@@ -347,7 +347,7 @@
             <div class="d-inline-block align-middle" id="sidebar-control">
                 <span class="material-symbols-outlined">menu</span>
             </div>
-            <img src="{{ asset('asset/img/logo.png') }}" class="align-middle" width="50" alt="LOGO NSA Performance">
+            <img src="{{ asset('asset/img/logo.png') }}" class="align-middle" width="50" alt="LOGO">
         </div>
 
         <div class="box-user-nav d-inline-block pt-4 pe-4 float-end" style="">

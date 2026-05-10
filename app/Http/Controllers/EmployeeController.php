@@ -206,7 +206,7 @@ class EmployeeController extends Controller
         )->get();
         // Ensure NSA Performance comes first, then others by name
         $offices = Office::orderByRaw(
-            "FIELD(name, 'NSA Performance Petojo Barat 6 No. 4','Gudang SEHA')"
+            "FIELD(name, 'Office 1', 'Office 2')"
         )->orderBy('name')->get();
         return view('employee.create', compact('grades', 'offices'));
     }
@@ -313,7 +313,7 @@ class EmployeeController extends Controller
             $user->name = $request->name;
             $user->email = $emailWork;
             $user->email_verified_at = now();
-            $user->password = bcrypt('NSA_2025');
+            $user->password = bcrypt('office_2025');
             $user->save();
 
             $employee = Employee::create([
@@ -701,7 +701,7 @@ class EmployeeController extends Controller
             "FIELD(title, 'Manager','Analyst','Senior Analyst','Associate','Junior Manager','Junior Analyst','Junior Associate')"
         )->get();
         $offices = Office::orderByRaw(
-            "FIELD(name, 'NSA Performance Petojo Barat 6 No. 4','Gudang SEHA')"
+            "FIELD(name, 'Office 1', 'Office 2')"
         )->orderBy('name')->get();
 
         return view('employee.edit', compact('employee','employeeSalaries', 'departments', 'divisions', 'jobs', 'grades', 'offices'));

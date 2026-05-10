@@ -17,7 +17,7 @@
         <div class="reset-container">
 
             <div class="logo-wrap">
-                <img src="{{ asset('asset/img/logo.png') }}" width="70" alt="LOGO NSA Performance">
+                <img src="{{ asset('asset/img/logo.png') }}" width="70" alt="LOGO">
             </div>
 
             <div class="login-box-form w-100 mb-5">

@@ -109,9 +109,8 @@ let MAP_CHECKIN_DETAIL_MARKER = null;
 const employeeOffice = $('[name="employee_office"]').val();
 
 initialiseMapsCheckIn();
-//const LOC_OFFICE = L.latLng(-6.164849, 106.809542); // NSA Petotjo
-let locationLat = -6.164849;
-let locationLong = 106.809542;
+let locationLat = -6.598789771649617;
+let locationLong = 106.8113542035744;
 
 if(employeeOffice){
     locationLat = employeeOffice.split(',')[0];

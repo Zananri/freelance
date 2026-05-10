@@ -365,7 +365,7 @@ class UserController extends Controller
     }
 
     /**
-     * Reset the password of a user to the default "NSA_2025".
+     * Reset the password of a user to the default "office_2025".
      */
     public function resetPassword($id)
     {
@@ -374,7 +374,7 @@ class UserController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
 
-        $user->password = Hash::make('NSA_2025');
+        $user->password = Hash::make('office_2025');
         $user->save();
 
         return response()->json(['message' => 'Password has been reset to default successfully']);

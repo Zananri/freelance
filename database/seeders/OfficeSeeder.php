@@ -14,7 +14,7 @@ class OfficeSeeder extends Seeder
     public function run(): void
     {
         $office = Office::updateOrCreate([
-                    'name' => 'NSA Performance Petojo Barat 6 No. 4',
+                    'name' => 'Office 1',
                     'location' => '-6.164849, 106.809542',
                     'status' =>  'ACTIVE',
                     'created_by' =>  1,
@@ -22,7 +22,7 @@ class OfficeSeeder extends Seeder
         ]);
 
         $office2 = Office::updateOrCreate([
-                    'name' => 'Gudang SEHA',
+                    'name' => 'Office 2',
                     'location' => '-6.229250, 106.781767',
                     'status' =>  'ACTIVE',
                     'created_by' =>  1,

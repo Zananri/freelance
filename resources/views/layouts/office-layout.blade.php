@@ -8,7 +8,7 @@
 
 
     @php
-        $head_stitle = 'Halo';
+        $head_stitle = 'Office';
 
         if (isset($head_stitle_slot)) {
             $head_stitle = $head_stitle_slot;
@@ -222,17 +222,6 @@
                         </a>
                     </li>
 
-                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','CEO']))
-
-                    <li>
-                        <a href="{{ route('bi_dashboard') }}" class="{{ $menu_active == 'bi_dashboard' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">area_chart</span>
-                            <span class="text-menu">BI Dashboard</span>
-                        </a>
-                    </li>
-
-                    @endif
-
                     @php
                         $employeeDivision = strtoupper(auth()->user()->employee->division->name_division);
                         $accessManagementTHD = false;
@@ -242,16 +231,6 @@
                             $accessManagementTHD = true;
                         }
                     @endphp
-
-                    @if ($accessManagementTHD)
-                        <li>
-                            <a href="{{ route('bi_dashboard_mtd') }}" class="{{ $menu_active == 'bi_dashboard_mtd' ? 'active' : '' }}">
-                                <span class="material-symbols-outlined">area_chart</span>
-                                <span class="text-menu">BI Dashboard MTD</span>
-                            </a>
-                        </li>
-                    @endif
-
 
                     @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['REGULAR']) && in_array(Auth::user()->user_role,['EMPLOYEE','PERSONAL_ASSISTANT'])) )
 

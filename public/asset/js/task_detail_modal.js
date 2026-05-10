@@ -473,8 +473,8 @@ if (typeof handleTaskDetail === 'undefined') {
                                 ` : ''}
 
                                 <div class="d-flex align-items-center position-relative">
-                                    <button class="btn p-0 border-0 project-task-feedback-btn" data-task-id="${t.id}">
-                                        <span class="material-symbols-outlined task-icon mode_comment">mode_comment</span>
+                                    <button class="btn p-0 border-0 project-task-feedback-btn">
+                                        <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${t.id}">mode_comment</span>
                                     </button>
                                 </div>
                             </div>

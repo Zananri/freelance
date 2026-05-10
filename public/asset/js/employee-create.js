@@ -193,7 +193,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (fullName.length > 0) {
                 // Only auto-fill if email_work is empty or matches previous auto-fill pattern
                 const currentEmailWork = employeeEmailWorkInput.value.trim();
-                const generatedEmailWork = fullName.replace(/\s+/g, "_").toLowerCase() + "@nsaperformance.id";
+                const generatedEmailWork = fullName.replace(/\s+/g, "_").toLowerCase() + "@office.id";
                 if (currentEmailWork === "" || currentEmailWork === employeeEmailWorkInput.getAttribute("data-auto-filled")) {
                     employeeEmailWorkInput.value = generatedEmailWork;
                     employeeEmailWorkInput.setAttribute("data-auto-filled", generatedEmailWork);
