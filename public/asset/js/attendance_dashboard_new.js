@@ -150,9 +150,9 @@ let MAP_CHECKIN_DETAIL_MARKER = null;
 
 const employeeOffice = $('[name="employee_office"]').val();
 
-// -6.598789771649617, 106.8113542035744
-let locationLat = -6.598916996575053;
-let locationLong = 106.81129856093892;
+// -6.140808415355851, 106.8323372601321
+let locationLat = -6.140808415355851;
+let locationLong = 106.8323372601321;
 
 if(employeeOffice){
     locationLat = employeeOffice.split(',')[0];
