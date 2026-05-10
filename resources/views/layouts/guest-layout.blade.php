@@ -7,7 +7,7 @@
     <title>Login Office ACER</title>
 
     <meta name="description" content="Login Office ACER">
-    <meta name="keywords" content="acer, acer performance">
+    <meta name="keywords" content="acer, ACER">
     <meta name="author" content="acer.id">
     <meta name="robots" content="index, nofollow"> 
     <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">

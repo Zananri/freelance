@@ -8,7 +8,7 @@
     <title>Office ACER</title>
 
     <meta name="description" content="Office ACER">
-    <meta name="keywords" content="acer, acer performance">
+    <meta name="keywords" content="acer, ACER">
     <meta name="author" content="acer.id">
     <meta name="robots" content="index, nofollow">
 
