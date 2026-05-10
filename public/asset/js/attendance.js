@@ -86,7 +86,7 @@ function initialiseMapsCheckIn(){
                 });
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: 'NSA Performance',
+            attribution: 'ACER',
             maxZoom: 19
         }).addTo(MAP_CHECKIN_DETAIL);
 
@@ -187,7 +187,7 @@ function initialiseMapsCheckOut(){
                 });
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: 'NSA Performance',
+            attribution: 'ACER',
             maxZoom: 19
         }).addTo(MAP_CHECKOUT_DETAIL);
 

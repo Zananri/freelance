@@ -73,7 +73,7 @@ function setDefaultDropdown(){
 
     
     $('.col-dropdown-department').attr('data-department-id',1);
-    $('.col-dropdown-department .title-dropdown').text('NSA Performance');
+    $('.col-dropdown-department .title-dropdown').text('ACER');
 
     $('.col-dropdown-division').attr('data-department-id',1);
     $('.col-dropdown-division').attr('data-division-id',0);

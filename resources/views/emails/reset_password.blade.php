@@ -15,7 +15,7 @@
   <div style="background:#e9f0f4;padding:40px 0">
     <div class="container">
       <div class="brand">
-        <h2 style="margin:0;color:#2b3946">NSA Performance</h2>
+        <h2 style="margin:0;color:#2b3946">ACER</h2>
       </div>
 
       <h3>Hello!</h3>
@@ -26,7 +26,7 @@
       <p class="muted">This password reset link will expire in 60 minutes.</p>
       <p class="muted">If you did not request a password reset, no further action is required.</p>
 
-      <p>Regards,<br>NSA Performance</p>
+      <p>Regards,<br>ACER</p>
 
       <hr>
       <p class="muted">If you're having trouble clicking the "Reset Password" button, copy and paste the URL below into your web browser: <br>

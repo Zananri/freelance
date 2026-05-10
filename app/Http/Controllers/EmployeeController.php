@@ -204,7 +204,7 @@ class EmployeeController extends Controller
         $grades = Grade::orderByRaw(
             "FIELD(title, 'Manager','Analyst','Senior Analyst','Associate','Junior Manager','Junior Analyst','Junior Associate')"
         )->get();
-        // Ensure NSA Performance comes first, then others by name
+        // Ensure ACER comes first, then others by name
         $offices = Office::orderByRaw(
             "FIELD(name, 'Office 1', 'Office 2')"
         )->orderBy('name')->get();

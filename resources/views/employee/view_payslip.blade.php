@@ -5,7 +5,7 @@
         <meta name="app-url" content="{{ url('/') }}">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>NSA Performance</title>
+        <title>ACER</title>
     
         <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
         <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
@@ -73,13 +73,8 @@
                         <img src="{{ $logoNSA }}" class="align-middle" width="70" alt="LOGO">
                     </td>
                     <td style="text-align: left;">
-                        <div style="margin: 0px 10px 2px 10px; font-size: 16px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">PT. Nosa Jaya Karya</div>
-                        <div style="margin: 0px 10px 5px 10px; font-size: 16px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">NSA Performance</div>
-                        <div style="font-size: 9px; margin: 5px 10px;">
-                            Jl. Petojo Bar. VI No.4, RT.11/RW.1, Duri Pulo, Gambir, Jakarta Pusat, 
-                            <br>
-                            Daerah Khusus Jakarta 10140
-                        </div>
+                        <div style="margin: 0px 10px 2px 10px; font-size: 16px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">PT. ACER</div>
+                        <div style="margin: 0px 10px 5px 10px; font-size: 16px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">ACER</div>
                     </td>
                 </tr>
             </table>
@@ -444,8 +439,8 @@
                                 <img src="{{ $logoNSA }}" class="align-middle" width="70" alt="LOGO">
                             </td>
                             <td style="text-align: left;">
-                                <div style="margin: 0px 10px 5px 10px; font-size: 18px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">PT. Nosa Jaya Karya</div>
-                                <div style="margin: 0px 10px 7px 10px; font-size: 18px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">NSA Performance</div>
+                                <div style="margin: 0px 10px 5px 10px; font-size: 18px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">PT. ACER</div>
+                                <div style="margin: 0px 10px 7px 10px; font-size: 18px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">ACER Performance</div>
                                 <div style="font-size: 12px; margin: 5px 10px;">
                                     Jl. Petojo Bar. VI No.4, RT.11/RW.1, Duri Pulo, Gambir, Jakarta Pusat, 
                                     <br>

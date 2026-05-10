@@ -18,7 +18,7 @@
     <div style="background:#e9f0f4;padding:40px 0">
         <div class="container">
             <div class="brand">
-                <h2 style="margin:0;color:#2b3946">NSA Performance</h2>
+                <h2 style="margin:0;color:#2b3946">ACER</h2>
             </div>
 
             <h3>Hello!</h3>
@@ -32,7 +32,7 @@
 
             <p class="muted">Please review the project details and take the necessary actions.</p>
 
-            <p>Best regards,<br>NSA Performance</p>
+            <p>Best regards,<br>ACER</p>
         </div>
 </body>
 

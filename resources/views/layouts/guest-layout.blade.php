@@ -4,11 +4,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Office NSA Performance</title>
+    <title>Login Office ACER</title>
 
-    <meta name="description" content="Login Office NSA Performance">
-    <meta name="keywords" content="nsaperformance, nsa performance">
-    <meta name="author" content="nsaperformance.id">
+    <meta name="description" content="Login Office ACER">
+    <meta name="keywords" content="acer, acer performance">
+    <meta name="author" content="acer.id">
     <meta name="robots" content="index, nofollow"> 
     <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
     <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">

@@ -231,7 +231,7 @@ class AttendanceTrackingController extends Controller
         $activeWorksheet->getStyle('K1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         
         $activeWorksheet->mergeCells('S1:BB1');
-        $activeWorksheet->setCellValue('S1', 'Present List NSA Performance Team');
+        $activeWorksheet->setCellValue('S1', 'Present List ACER Team');
 
         $activeWorksheet->getStyle('S1')->getFont()->setBold(true)->setSize(44);
         $activeWorksheet->getStyle('S1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -540,7 +540,7 @@ class AttendanceTrackingController extends Controller
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
  
-        $fileName = 'ABSENSI NSA Performance '.$monthFull.' '.$year.'.xlsx';
+        $fileName = 'ABSENSI ACER '.$monthFull.' '.$year.'.xlsx';
         $tempFileName = tempnam(sys_get_temp_dir(), $fileName);
 
         $writer = new Xlsx($spreadsheet);

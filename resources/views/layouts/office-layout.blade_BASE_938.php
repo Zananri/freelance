@@ -5,11 +5,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Office NSA Performance</title>
+    <title>Office ACER</title>
 
-    <meta name="description" content="Office NSA Performance">
-    <meta name="keywords" content="nsaperformance, nsa performance">
-    <meta name="author" content="nsaperformance.id">
+    <meta name="description" content="Office ACER">
+    <meta name="keywords" content="acer, acer performance">
+    <meta name="author" content="acer.id">
     <meta name="robots" content="index, nofollow">
 
     <meta name="app-url" content="{{ url('/') }}">
