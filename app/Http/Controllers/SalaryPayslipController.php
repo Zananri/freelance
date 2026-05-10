@@ -225,6 +225,63 @@ class SalaryPayslipController extends Controller
             'employeeAnnualLeave' => $employeeAnnualLeave
         ];
 
+        // $totalPendapatan1 =
+        //     $employeePayslip->basic_salary +
+        //     $employeePayslip->meal_allowance +
+        //     $employeePayslip->transportation_allowance +
+        //     $employeePayslip->internet_phone_allowance +
+        //     $employeePayslip->positional_allowance;
+
+        // $totalPendapatan2 =
+        //     $employeePayslip->prorate_basic_salary +
+        //     $employeePayslip->prorate_meal_allowance +
+        //     $employeePayslip->prorate_transportation_allowance +
+        //     $employeePayslip->prorate_internet_phone_allowance +
+        //     $employeePayslip->prorate_positional_allowance +
+        //     $employeePayslip->bonus +
+        //     $employeePayslip->thr +
+        //     $employeePayslip->overtime;
+
+        // $totalPendapatan2excBonusOvertime =
+        //     $totalPendapatan1 -
+        //     $employeePayslip->prorate_basic_salary -
+        //     $employeePayslip->prorate_meal_allowance -
+        //     $employeePayslip->prorate_transportation_allowance -
+        //     $employeePayslip->prorate_internet_phone_allowance -
+        //     $employeePayslip->prorate_positional_allowance;
+
+        // $totalPengurangan =
+        //     (($employeeAttendanceNotComplete[0] ?? 0) * 50000) +
+        //     $employeePayslip->deduction +
+        //     $totalPendapatan2excBonusOvertime;
+
+        // dd([
+        //     'attendance_not_complete' => $employeeAttendanceNotComplete,
+
+        //     'basic_salary' => $employeePayslip->basic_salary,
+        //     'meal_allowance' => $employeePayslip->meal_allowance,
+        //     'transportation_allowance' => $employeePayslip->transportation_allowance,
+        //     'internet_phone_allowance' => $employeePayslip->internet_phone_allowance,
+        //     'positional_allowance' => $employeePayslip->positional_allowance,
+
+        //     'prorate_basic_salary' => $employeePayslip->prorate_basic_salary,
+        //     'prorate_meal_allowance' => $employeePayslip->prorate_meal_allowance,
+        //     'prorate_transportation_allowance' => $employeePayslip->prorate_transportation_allowance,
+        //     'prorate_internet_phone_allowance' => $employeePayslip->prorate_internet_phone_allowance,
+        //     'prorate_positional_allowance' => $employeePayslip->prorate_positional_allowance,
+
+        //     'bonus' => $employeePayslip->bonus,
+        //     'thr' => $employeePayslip->thr,
+        //     'overtime' => $employeePayslip->overtime,
+
+        //     'deduction' => $employeePayslip->deduction,
+
+        //     'totalPendapatan1' => $totalPendapatan1,
+        //     'totalPendapatan2' => $totalPendapatan2,
+        //     'totalPendapatan2excBonusOvertime' => $totalPendapatan2excBonusOvertime,
+        //     'totalPengurangan' => $totalPengurangan,
+        // ]);
+
         $pdf = PDF::loadView('employee.view_payslip', $data)->setPaper('A4', 'portrait');
         
         return $pdf->stream('payslipEmployee.pdf');            

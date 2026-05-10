@@ -265,8 +265,6 @@ function getEmployeeSalaryPayslipData(month,year)
             for (let i = 0; i < DATA_EMPLOYEE_PAYSLIP.length; i++) {
                 const salary = DATA_EMPLOYEE_PAYSLIP[i];
 
-                console.log(salary);
-                
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .btn-icon.send').removeClass('d-none');
                 $('.set-row[data-employee-id="'+salary.employee_id+'"] .btn-icon.payslip').removeClass('d-none');
                 
@@ -294,7 +292,7 @@ function getEmployeeSalaryPayslipData(month,year)
                 
                 if(salary.status == 'PAYSLIP_SENT'){
                     $('.basic-row[data-employee-id="'+salary.employee_id+'"] .payslip-sent').removeClass('d-none');
-                    $('.basic-row[data-employee-id="'+salary.employee_id+'"] .payslip-sent').attr('data-bs-title',formatDateENMediumWithDay(salary.date_payslip_send));
+                    $('.basic-row[data-employee-id="'+salary.employee_id+'"] .payslip-sent').attr('data-bs-title', formatDateENMediumWithDay(salary.date_payslip_send));
                     $('.set-row[data-employee-id="'+salary.employee_id+'"] .btn-icon.send').addClass('d-none');
                     $('.set-row[data-employee-id="'+salary.employee_id+'"] .btn-icon.recalled').removeClass('d-none');
                 }
@@ -302,8 +300,6 @@ function getEmployeeSalaryPayslipData(month,year)
 
             for (let i = 0; i < DATA_EMPLOYEE_SALARY.length; i++) {
                 const salary = DATA_EMPLOYEE_SALARY[i];
-
-                console.log(salary);
 
                 $('.basic-row[data-employee-id="'+salary.employee_id+'"] .gaji-pokok').text(parseInt(salary.basic_salary).toLocaleString('id-ID'));
                 $('.basic-row[data-employee-id="'+salary.employee_id+'"] .uang-makan').text(parseInt(salary.meal_allowance).toLocaleString('id-ID'));
