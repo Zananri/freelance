@@ -68,8 +68,8 @@ class OfficeBasicSeeder extends Seeder
                 ['email' => 'john.doe@example.com'],
                 [
                     'name' => 'John Doe',
-                    'user_type' => 'EMPLOYEE',
-                    'user_role' => 'employee',
+                    'user_type' => 'REGULAR',
+                    'user_role' => 'EMPLOYEE',
                     'password' => 'password',
                     'photo' => 'asset/img/logo/google.png',
                 ]
