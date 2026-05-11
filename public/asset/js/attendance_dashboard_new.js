@@ -321,16 +321,18 @@ $('#submitCheckInBtn').click(function(){
     const distance = LOC_OFFICE.distanceTo(employeeLocation);
     //console.log(distance);
 
-    if(workOutside == 1){
-        submitCheckIn();
-    }else{
+    // if(workOutside == 1){
+    //     submitCheckIn();
+    // }else{
 
-        if(distance > 200){        
-            showAlertMsg('You are not in the office area yet','error',5000);
-        }else{
-            submitCheckIn();
-        }
-    }
+    //     if(distance > 200){        
+    //         showAlertMsg('You are not in the office area yet','error',5000);
+    //     }else{
+    //         submitCheckIn();
+    //     }
+    // }
+
+    submitCheckIn();
     
 });
 

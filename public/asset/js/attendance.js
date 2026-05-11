@@ -107,10 +107,10 @@ let MAP_CHECKIN_DETAIL_LOCATION = null;
 let MAP_CHECKIN_DETAIL_MARKER = null;
 
 const employeeOffice = $('[name="employee_office"]').val();
-// -6.140808415355851, 106.8323372601321
+// -6.140804201777809, 106.8323301103094
 initialiseMapsCheckIn();
-let locationLat = -6.140808415355851;
-let locationLong = 106.8323372601321;
+let locationLat = -6.140804201777809;
+let locationLong = 106.8323301103094;
 
 if(employeeOffice){
     locationLat = employeeOffice.split(',')[0];
