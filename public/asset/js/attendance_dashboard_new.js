@@ -546,16 +546,18 @@ $('#submitCheckOutBtn').click(function(){
     const distance = LOC_OFFICE.distanceTo(employeeLocation);
     //console.log(distance);
 
-    if(workOutside == 1){
-        submitCheckOut();
-    }else{
+    // if(workOutside == 1){
+    //     submitCheckOut();
+    // }else{
 
-        if(distance > 200){        
-            showAlertMsg('You are not in the office area yet','error',5000);
-        }else{
-            submitCheckOut();
-        }
-    }
+    //     if(distance > 200){        
+    //         showAlertMsg('You are not in the office area yet','error',5000);
+    //     }else{
+    //         submitCheckOut();
+    //     }
+    // }
+
+    submitCheckOut();
     
 });
 
