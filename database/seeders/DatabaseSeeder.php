@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Test User',
                 'user_type' => 'ADMINISTRATOR',
-                'user_role' => 'admin',
+                'user_role' => 'ADMINISTRATOR',
                 // Password will be hashed via casts in the User model
                 'password' => 'password',
             ]
