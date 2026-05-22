@@ -5431,188 +5431,188 @@
             });
     }
 
-    function createActionButtons(projectId, actionsContainer) {
-        actionsContainer.empty();
-        var appUrl = getMeta("app-url") || "";
+    // function createActionButtons(projectId, actionsContainer) {
+    //     actionsContainer.empty();
+    //     var appUrl = getMeta("app-url") || "";
 
-        // Edit button - open modal instead of navigation
-        var $edit = $("<button>")
-            .addClass("detail-icon")
-            .attr("title", "Edit")
-            .attr("type", "button")
-            .append(
-                $("<span>")
-                    .addClass("material-symbols-outlined icon-fill me-3")
-                    .text("edit")
-            );
+    //     // Edit button - open modal instead of navigation
+    //     var $edit = $("<button>")
+    //         .addClass("detail-icon")
+    //         .attr("title", "Edit")
+    //         .attr("type", "button")
+    //         .append(
+    //             $("<span>")
+    //                 .addClass("material-symbols-outlined icon-fill me-3")
+    //                 .text("edit")
+    //         );
 
-        // Delete button
-        var $delete = $("<button>")
-            .addClass("detail-icon btn-delete-project")
-            .attr("title", "Delete")
-            .append(
-                $("<span>")
-                    .addClass("material-symbols-outlined icon-fill")
-                    .text("delete")
-            );
+    //     // Delete button
+    //     var $delete = $("<button>")
+    //         .addClass("detail-icon btn-delete-project")
+    //         .attr("title", "Delete")
+    //         .append(
+    //             $("<span>")
+    //                 .addClass("material-symbols-outlined icon-fill")
+    //                 .text("delete")
+    //         );
 
-        actionsContainer.append($edit).append($delete);
+    //     actionsContainer.append($edit).append($delete);
 
-        // Edit handler: open edit modal
-        $edit.on("click", function (e) {
-            e.preventDefault();
-            var editUrl = appUrl.replace(/\/$/, "") + "/project/" + projectId + "/edit";
+    //     // Edit handler: open edit modal
+    //     $edit.on("click", function (e) {
+    //         e.preventDefault();
+    //         var editUrl = appUrl.replace(/\/$/, "") + "/project/" + projectId + "/edit";
 
-            // Fetch project data for edit modal
-            $.ajax({
-                url: editUrl,
-                method: "GET",
-                headers: { Accept: "application/json" },
-                success: function (res) {
-                    if (res) {
-                        // Populate edit modal with project data
-                        try {
-                            if (window.populateEditProjectModal && typeof window.populateEditProjectModal === 'function') {
-                                window.populateEditProjectModal(res);
-                            }
-                        } catch (err) {
-                            console.error("Error populating edit modal:", err);
-                        }
+    //         // Fetch project data for edit modal
+    //         $.ajax({
+    //             url: editUrl,
+    //             method: "GET",
+    //             headers: { Accept: "application/json" },
+    //             success: function (res) {
+    //                 if (res) {
+    //                     // Populate edit modal with project data
+    //                     try {
+    //                         if (window.populateEditProjectModal && typeof window.populateEditProjectModal === 'function') {
+    //                             window.populateEditProjectModal(res);
+    //                         }
+    //                     } catch (err) {
+    //                         console.error("Error populating edit modal:", err);
+    //                     }
 
-                        // Show edit modal
-                        var editModalEl = document.getElementById("editProjectModal");
-                        if (editModalEl) {
-                            var bsModal = new bootstrap.Modal(editModalEl, {
-                                backdrop: "static",
-                                keyboard: false,
-                            });
-                            bsModal.show();
-                        }
-                    }
-                },
-                error: function (xhr) {
-                    console.error("Error fetching project for edit", xhr);
-                    if (typeof window.showFloatingAlert === "function")
-                        window.showFloatingAlert(
-                            "Failed to load project data for editing",
-                            "warning",
-                            3500
-                        );
-                    else alert("Failed to load project data for editing");
-                },
-            });
-        });
+    //                     // Show edit modal
+    //                     var editModalEl = document.getElementById("editProjectModal");
+    //                     if (editModalEl) {
+    //                         var bsModal = new bootstrap.Modal(editModalEl, {
+    //                             backdrop: "static",
+    //                             keyboard: false,
+    //                         });
+    //                         bsModal.show();
+    //                     }
+    //                 }
+    //             },
+    //             error: function (xhr) {
+    //                 console.error("Error fetching project for edit", xhr);
+    //                 if (typeof window.showFloatingAlert === "function")
+    //                     window.showFloatingAlert(
+    //                         "Failed to load project data for editing",
+    //                         "warning",
+    //                         3500
+    //                     );
+    //                 else alert("Failed to load project data for editing");
+    //             },
+    //         });
+    //     });
 
-        // Delete handler: open modal (modal already contains server-rendered project details)
-        $delete.on("click", function (e) {
-            e.preventDefault();
-            var modalEl = document.getElementById("deleteProjectModal");
-            if (!modalEl) {
-                if (!confirm("Are you sure you want to delete this project?"))
-                    return;
-                // fallback delete
-                var appUrlFb = getMeta("app-url") || "";
-                $.ajax({
-                    url: appUrlFb.replace(/\/$/, "") + "/project/" + projectId,
-                    method: "DELETE",
-                    headers: {
-                        "X-CSRF-TOKEN": getMeta("csrf-token"),
-                        Accept: "application/json",
-                    },
-                    success: function () {
-                        window.location.href =
-                            appUrlFb.replace(/\/$/, "") + "/project";
-                    },
-                    error: function () {
-                        if (typeof window.showFloatingAlert === "function")
-                            window.showFloatingAlert(
-                                "Failed to delete",
-                                "warning",
-                                3500
-                            );
-                        else alert("Failed to delete");
-                    },
-                });
-                return;
-            }
-            // ensure confirm button has correct project id (server already set it, but set again for safety)
-            $("#confirmDeleteProjectBtn").attr("data-project-id", projectId);
-            var bsModal = new bootstrap.Modal(modalEl, {
-                backdrop: "static",
-                keyboard: false,
-            });
-            bsModal.show();
-        });
+    //     // Delete handler: open modal (modal already contains server-rendered project details)
+    //     $delete.on("click", function (e) {
+    //         e.preventDefault();
+    //         var modalEl = document.getElementById("deleteProjectModal");
+    //         if (!modalEl) {
+    //             if (!confirm("Are you sure you want to delete this project?"))
+    //                 return;
+    //             // fallback delete
+    //             var appUrlFb = getMeta("app-url") || "";
+    //             $.ajax({
+    //                 url: appUrlFb.replace(/\/$/, "") + "/project/" + projectId,
+    //                 method: "DELETE",
+    //                 headers: {
+    //                     "X-CSRF-TOKEN": getMeta("csrf-token"),
+    //                     Accept: "application/json",
+    //                 },
+    //                 success: function () {
+    //                     window.location.href =
+    //                         appUrlFb.replace(/\/$/, "") + "/project";
+    //                 },
+    //                 error: function () {
+    //                     if (typeof window.showFloatingAlert === "function")
+    //                         window.showFloatingAlert(
+    //                             "Failed to delete",
+    //                             "warning",
+    //                             3500
+    //                         );
+    //                     else alert("Failed to delete");
+    //                 },
+    //             });
+    //             return;
+    //         }
+    //         // ensure confirm button has correct project id (server already set it, but set again for safety)
+    //         $("#confirmDeleteProjectBtn").attr("data-project-id", projectId);
+    //         var bsModal = new bootstrap.Modal(modalEl, {
+    //             backdrop: "static",
+    //             keyboard: false,
+    //         });
+    //         bsModal.show();
+    //     });
 
-        // Confirm delete button handler (delegated in case element created later)
-        $(document)
-            .off("click", "#confirmDeleteProjectBtn")
-            .on("click", "#confirmDeleteProjectBtn", function (e) {
-                var $btn = $(this);
-                var pid =
-                    $btn.attr("data-project-id") || $btn.data("projectId");
-                if (!pid) {
-                    if (typeof window.showFloatingAlert === "function")
-                        window.showFloatingAlert(
-                            "Project ID no found",
-                            "warning",
-                            3500
-                        );
-                    else alert("Project ID not found");
-                    return;
-                }
-                var appUrlLocal = getMeta("app-url") || "";
-                var token = getMeta("csrf-token");
-                // show loader state on button
-                $btn.prop("disabled", true).text("Deleting...");
-                $.ajax({
-                    url: appUrlLocal.replace(/\/$/, "") + "/project/" + pid,
-                    method: "DELETE",
-                    headers: {
-                        "X-CSRF-TOKEN": token,
-                        Accept: "application/json",
-                    },
-                    success: function (res) {
-                        if (res && res.status === "success") {
-                            // hide modal and redirect
-                            var modalEl =
-                                document.getElementById("deleteProjectModal");
-                            try {
-                                var m = bootstrap.Modal.getInstance(modalEl);
-                                if (m) m.hide();
-                            } catch (_) {}
-                            window.location.href =
-                                appUrlLocal.replace(/\/$/, "") + "/project";
-                        } else {
-                            var failMsg =
-                                (res && res.message) ||
-                                "Failed to delete project";
-                            if (typeof window.showFloatingAlert === "function")
-                                window.showFloatingAlert(
-                                    failMsg,
-                                    "warning",
-                                    3500
-                                );
-                            else alert(failMsg);
-                            $btn.prop("disabled", false).text("Delete");
-                        }
-                    },
-                    error: function (xhr) {
-                        var msg = "Failed to delete project";
-                        try {
-                            msg =
-                                xhr.responseJSON && xhr.responseJSON.message
-                                    ? xhr.responseJSON.message
-                                    : msg;
-                        } catch (e) {}
-                        if (typeof window.showFloatingAlert === "function")
-                            window.showFloatingAlert(msg, "warning", 3500);
-                        else alert(msg);
-                        $btn.prop("disabled", false).text("Delete");
-                    },
-                });
-            });
-    }
+    //     // Confirm delete button handler (delegated in case element created later)
+    //     $(document)
+    //         .off("click", "#confirmDeleteProjectBtn")
+    //         .on("click", "#confirmDeleteProjectBtn", function (e) {
+    //             var $btn = $(this);
+    //             var pid =
+    //                 $btn.attr("data-project-id") || $btn.data("projectId");
+    //             if (!pid) {
+    //                 if (typeof window.showFloatingAlert === "function")
+    //                     window.showFloatingAlert(
+    //                         "Project ID no found",
+    //                         "warning",
+    //                         3500
+    //                     );
+    //                 else alert("Project ID not found");
+    //                 return;
+    //             }
+    //             var appUrlLocal = getMeta("app-url") || "";
+    //             var token = getMeta("csrf-token");
+    //             // show loader state on button
+    //             $btn.prop("disabled", true).text("Deleting...");
+    //             $.ajax({
+    //                 url: appUrlLocal.replace(/\/$/, "") + "/project/" + pid,
+    //                 method: "DELETE",
+    //                 headers: {
+    //                     "X-CSRF-TOKEN": token,
+    //                     Accept: "application/json",
+    //                 },
+    //                 success: function (res) {
+    //                     if (res && res.status === "success") {
+    //                         // hide modal and redirect
+    //                         var modalEl =
+    //                             document.getElementById("deleteProjectModal");
+    //                         try {
+    //                             var m = bootstrap.Modal.getInstance(modalEl);
+    //                             if (m) m.hide();
+    //                         } catch (_) {}
+    //                         window.location.href =
+    //                             appUrlLocal.replace(/\/$/, "") + "/project";
+    //                     } else {
+    //                         var failMsg =
+    //                             (res && res.message) ||
+    //                             "Failed to delete project";
+    //                         if (typeof window.showFloatingAlert === "function")
+    //                             window.showFloatingAlert(
+    //                                 failMsg,
+    //                                 "warning",
+    //                                 3500
+    //                             );
+    //                         else alert(failMsg);
+    //                         $btn.prop("disabled", false).text("Delete");
+    //                     }
+    //                 },
+    //                 error: function (xhr) {
+    //                     var msg = "Failed to delete project";
+    //                     try {
+    //                         msg =
+    //                             xhr.responseJSON && xhr.responseJSON.message
+    //                                 ? xhr.responseJSON.message
+    //                                 : msg;
+    //                     } catch (e) {}
+    //                     if (typeof window.showFloatingAlert === "function")
+    //                         window.showFloatingAlert(msg, "warning", 3500);
+    //                     else alert(msg);
+    //                     $btn.prop("disabled", false).text("Delete");
+    //                 },
+    //             });
+    //         });
+    // }
 
     function populateProject(data) {
         $("#project-title").text(safeText(data.title));
@@ -5677,7 +5677,7 @@
             window.__projectAuthorId = null;
             window.__projectAuthor = null;
         }
-        createActionButtons(data.id, $("#project-actions"));
+        // createActionButtons(data.id, $("#project-actions"));
     }
 
     function fetchProject(projectId) {
