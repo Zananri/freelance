@@ -421,7 +421,52 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
 
     // Load projects for select
+    window.resetScheduleCreateForm = function () {
+
+        const form = document.getElementById('scheduleCreateForm');
+
+        if (form) {
+            form.reset();
+        }
+
+        const projectInput = document.getElementById("schedule_project_context_id");
+        const projectHidden = document.getElementById("schedule_project_id");
+        const projectSelected = document.getElementById("schedule_selected_project");
+        const projectDropdown = document.getElementById("schedule_project_dropdown");
+
+        if (projectInput) projectInput.value = '';
+        if (projectHidden) projectHidden.value = '';
+
+        if (projectSelected) {
+            projectSelected.innerHTML = '';
+        }
+
+        if (projectDropdown) {
+            projectDropdown.innerHTML = '';
+            projectDropdown.style.display = 'none';
+        }
+
+        const parentInput = document.getElementById("schedule_parent_input");
+        const parentHidden = document.getElementById("schedule_parent_id");
+        const parentSelected = document.getElementById("schedule_selected_parent");
+        const parentDropdown = document.getElementById("schedule_parent_dropdown");
+
+        if (parentInput) parentInput.value = '';
+        if (parentHidden) parentHidden.value = '';
+
+        if (parentSelected) {
+            parentSelected.innerHTML = '';
+        }
+
+        if (parentDropdown) {
+            parentDropdown.innerHTML = '';
+            parentDropdown.style.display = 'none';
+        }
+
+    };
+
     (function loadProjects() {
+
         const input = document.getElementById("schedule_project_context_id");
         const dropdown = document.getElementById("schedule_project_dropdown");
         const selectedContainer = document.getElementById("schedule_selected_project");
@@ -432,12 +477,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let projects = [];
 
         function renderDropdown(filter = "") {
+
             dropdown.innerHTML = "";
+
             let filtered = projects.filter((p) =>
                 p.title.toLowerCase().includes(filter.toLowerCase())
             );
 
             filtered.forEach((p) => {
+
                 let avatarHtml = p.image
                     ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>`
                     : `<div class="rounded-circle d-flex align-items-center justify-content-center"
@@ -446,23 +494,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>`;
 
                 const item = document.createElement("div");
+
                 item.className = "dropdown-item d-flex align-items-center gap-2";
-                item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+
+                item.innerHTML = `
+                    ${avatarHtml}
+                    <span>${p.title}</span>
+                `;
+
                 item.addEventListener("click", () => {
+
                     hiddenInput.value = p.id;
                     input.value = p.title;
+
                     dropdown.style.display = "none";
+
                     showSelectedProject(p);
+
                 });
+
                 dropdown.appendChild(item);
+
             });
 
             dropdown.style.display = filtered.length ? "block" : "none";
+
         }
 
         function showSelectedProject(p) {
+
             selectedContainer.innerHTML = `
                 <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+
                     ${
                         p.image
                             ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
@@ -471,59 +534,94 @@ document.addEventListener('DOMContentLoaded', () => {
                                     ${p.title.charAt(0).toUpperCase()}
                             </div>`
                     }
+
                     <span class="flex-grow-1">${p.title}</span>
+
                     <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">
                         <span class="material-symbols-outlined">close</span>
                     </button>
+
                 </div>
             `;
 
             selectedContainer
                 .querySelector(".btn-remove-project")
                 .addEventListener("click", () => {
+
                     hiddenInput.value = "";
                     input.value = "";
+
                     selectedContainer.innerHTML = "";
-                    // Clear any selected parent task for schedule when project is removed
-                    try {
-                        const pinput = document.getElementById('schedule_parent_input'); if(pinput) pinput.value = '';
-                        const phidden = document.getElementById('schedule_parent_id'); if(phidden) phidden.value = '';
-                        const selContainer = document.getElementById('schedule_selected_parent'); if(selContainer) selContainer.innerHTML = '';
-                    } catch(_){}
+
+                    const pinput = document.getElementById('schedule_parent_input');
+                    const phidden = document.getElementById('schedule_parent_id');
+                    const selContainer = document.getElementById('schedule_selected_parent');
+                    const pdropdown = document.getElementById('schedule_parent_dropdown');
+
+                    if (pinput) pinput.value = '';
+                    if (phidden) phidden.value = '';
+
+                    if (selContainer) {
+                        selContainer.innerHTML = '';
+                    }
+
+                    if (pdropdown) {
+                        pdropdown.innerHTML = '';
+                        pdropdown.style.display = 'none';
+                    }
+
                 });
-            // Load tasks for this project into the schedule parent selector (prefix 'schedule')
-            try { 
+
+            try {
+
                 if (typeof window.loadRelatedTasks === 'function') {
-                    window.loadRelatedTasks(p.id, 'schedule', null);
-                } else {
-                    console.error('loadRelatedTasks function not available. Make sure task.js is loaded before schedule-create.js');
+
+                    window.loadRelatedTasks(
+                        p.id,
+                        'schedule',
+                        null
+                    );
+
                 }
+
             } catch(e) {
+
                 console.error('Error loading related tasks:', e);
+
             }
+
         }
 
-    fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index")
             .then((res) => res.json())
             .then((payload) => {
-                projects = (payload.data || [])
-                    .map(p => ({
-                        id: p.id,
-                        title: p.title,
-                        image: p.image || "",
-                        project_type: p.project_type || 'public'
-                    }));
+
+                projects = (payload.data || []).map(p => ({
+                    id: p.id,
+                    title: p.title,
+                    image: p.image || "",
+                    project_type: p.project_type || 'public'
+                }));
+
             })
             .catch((err) => console.error("Error loading projects:", err));
 
-        input.addEventListener("input", () => renderDropdown(input.value));
-        input.addEventListener("focus", () => renderDropdown(input.value));
+        input.addEventListener("input", () => {
+            renderDropdown(input.value);
+        });
+
+        input.addEventListener("focus", () => {
+            renderDropdown(input.value);
+        });
 
         document.addEventListener("click", (e) => {
+
             if (!dropdown.contains(e.target) && e.target !== input) {
                 dropdown.style.display = "none";
             }
+
         });
+
     })();
 
     // Load divisions and wire division -> executor behavior (mirror task.js)
@@ -699,10 +797,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Reset the form when modal is hidden (closed), so next open is clean
     try {
-        const createModalEl = document.getElementById('scheduleCreateModal');
-        if (createModalEl) {
-            createModalEl.addEventListener('hidden.bs.modal', resetCreateScheduleForm);
-        }
+        const modalEl = document.getElementById('scheduleCreateModal');
+
+        modalEl.addEventListener('show.bs.modal', () => {
+            resetScheduleCreateForm();
+        });
     } catch(_) {}
 
     // If user picks start_at first, update the day-of-week selection to match that date.
