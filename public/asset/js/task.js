@@ -1211,7 +1211,7 @@ function updateTaskCountLabels() {
         });
     }
 
-    function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
+    function  loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "", excludeTaskId = null) {
         try {
             if (prefix && typeof prefix !== 'string' && prefix.id) {
                 var match = String(prefix.id).match(/^(.+)_parent_id$/) || String(prefix.id).match(/^(.+)_parent_input$/);
@@ -1231,7 +1231,6 @@ function updateTaskCountLabels() {
             }
         } catch (_) { selectedParentId = null; }
 
-        // Fallback function if formatDateENMediumDayMonth is not available from date_helper.js
         if (typeof formatDateENMediumDayMonth === 'undefined') {
             window.formatDateENMediumDayMonth = function(date) {
                 if (!date) return '-';
@@ -1309,6 +1308,7 @@ function updateTaskCountLabels() {
         function renderDropdown(filter = "") {
             dropdown.innerHTML = "";
             let filtered = tasks.filter(t =>
+                Number(t.id) !== Number(excludeTaskId) &&
                 t.title.toLowerCase().includes(filter.toLowerCase())
             );
 
@@ -2005,20 +2005,16 @@ function updateTaskCountLabels() {
         if (editProjectSel) {
             editProjectSel.addEventListener('change', function () {
                 const excludeId = document.getElementById('edit_task_id') ? document.getElementById('edit_task_id').value : null;
-                // Use prefix 'edit_task' so loadRelatedTasks populates the edit modal parent UI
-                loadRelatedTasks(this.value || null, 'edit_task', excludeId);
+                loadRelatedTasks(this.value || null, 'edit_task', null, "", excludeId);
             });
         }
     } catch (e) { console.warn('Failed to wire project->parent selects', e); }
 
-    // Wire division select in Add Task modal to auto-select executors from that division
     try {
         const addDivisionSel = document.getElementById('task_division_id');
         if (addDivisionSel) {
-            // Read logged-in employee's department id from DOM if present
             let empDeptId = null;
             try { empDeptId = document.getElementById('taskFeedbackModal')?.dataset?.employeeDepartmentId || null; } catch(_) { empDeptId = null; }
-            // Populate divisions on page load: prefer department-scoped list when department id available
             const populateAddDivisions = (data) => {
                 if (!data || !data.data) return;
                 let opts = '<option value="">Select Division</option>';
@@ -8754,7 +8750,8 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                     showSelectedProject(p);
                     // Do not pass a DOM element as selectedParentId; no parent is selected by
                     // default when user picks a project manually via the dropdown.
-                    loadRelatedTasks(p.id, "edit_task", null);
+                    const currentTaskId = document.getElementById("edit_task_id") ? document.getElementById("edit_task_id").value : null;
+                    loadRelatedTasks(p.id, "edit_task", null, "", currentTaskId);
                 });
                 dropdown.appendChild(item);
             });
@@ -9669,8 +9666,13 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                             try { console.debug('handleTaskEdit: calling loadRelatedTasks', { projectId: projectId, prefix: 'edit_task', selectedParentId: t.parent_id, selectedParentTitle: (t.parent && t.parent.title) ? t.parent.title : null, t: t }); } catch(_) {}
                         }
                     } catch(_) {}
-                    // Pass the stored parent_id (and parent title when available) so the preview shows the chosen parent task
-                    loadRelatedTasks(projectId, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
+                    loadRelatedTasks(
+                        projectId,
+                        "edit_task",
+                        t.parent_id,
+                        (t.parent && t.parent.title) ? t.parent.title : "",
+                        taskId
+                    );
                     ensureParentOption(document.getElementById("edit_task_parent_id"), t.parent_id);
                 });
 
@@ -9718,7 +9720,6 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 const clearBtn = document.getElementById("editTaskImageClearBtn");
                 if (imgLabel) {
                     if (t.image) {
-                        // Normalize image URL: accept absolute URL or existing /file/task path; else prefix
                         let imgUrl = t.image;
                         if (typeof imgUrl === 'string') {
                             const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
@@ -9727,7 +9728,6 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                             if (!isAbsolute && !isFileTask && !isPublicPath) {
                                 imgUrl = appUrl + '/file/task/' + imgUrl;
                             } else if (!isAbsolute && (isFileTask || isPublicPath)) {
-                                // Ensure leading slash and appUrl prefix
                                 imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
                             }
                         }
@@ -9754,9 +9754,6 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                     })));
                 }
 
-                // parent select is set by loadRelatedTasks (selectedParentId)
-
-                // Existing reference files
                 let refFiles = t.reference_files;
                 if (typeof refFiles === 'string') {
                     try { refFiles = JSON.parse(refFiles); }
@@ -9766,7 +9763,6 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                     window.displayExistingReferenceFiles(Array.isArray(refFiles) ? refFiles : []);
                 }
 
-                // Fields populated; loader will be hidden in complete
             },
             error: function () {
                 showFloatingAlert('Failed to load task data.', 'danger');
