@@ -407,7 +407,7 @@
                             </div>
                             <div style="margin-top: 10px; font-weight: bolder; ">
                                 <span style="border-bottom: 1px solid #333;">
-                                    GLENN THEODORE
+                                    CEO
                                 </span>
                                 
                             </div>
