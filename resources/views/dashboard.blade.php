@@ -258,73 +258,13 @@
                 {{-- Project Card --}}
                 <div class="row" style="flex: 1;">
                     <div class="col-12 card-fill">
-                        <div class="rounded-4 p-4 body-card">
-                            <h5 class="mb-3" style="font-size: 24px; color: #4C4D5D;">Project</h5>
+                        <div class="rounded-4 p-4 body-card justify-content-between d-flex">
+                            <h5 class="mb-3" style="font-size: 24px; color: #4C4D5D;">Attendance Summary</h5>
+                            <button class="btn btn-outline-secondary">
+                                June 2026
+                            </button>
 
-                            <!-- Project Card -->
-                            <div class="project-card">
-
-                                <!-- Chart Section -->
-                                <div class="chart-section">
-                                    <div
-                                        class="mobile-icon-project d-flex justify-content-end align-items-center mb-3">
-                                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn"
-                                            data-bs-toggle="modal" data-bs-target="#timelineModal">
-                                            <span class="material-symbols-outlined"
-                                                style="font-size: 18px; color: #858CA0;">calendar_month</span>
-                                        </button>
-                                    </div>
-
-                                    <div class="chart-container">
-                                        <canvas id="doughnutChart"></canvas>
-                                    </div>
-                                    <div class="chart-labels d-flex justify-content-between align-items-center mt-3">
-                                        <div class="text-center">
-                                            <span style="font-weight: bold; color: #222;">0</span><br>
-                                            <span style="color: #828282; font-size: 12px;">Total</span>
-                                        </div>
-                                        <div class="text-center">
-                                            <span style="font-weight: bold; color: #4fc97a;">0</span><br>
-                                            <span style="color: #828282; font-size: 12px;">Complete</span>
-                                        </div>
-                                        <div class="text-center">
-                                            <span style="font-weight: bold; color: #5a9be6;">0</span><br>
-                                            <span style="color: #828282; font-size: 12px;">On Progress</span>
-                                        </div>
-                                        <div class="text-center">
-                                            <span style="font-weight: bold; color: #ff6b6b;">0</span><br>
-                                            <span style="color: #828282; font-size: 12px;">Late</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Timeline Section -->
-                                <div class="timeline-card-mobile">
-                                    <div class="project-timeline-card">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h5 id="timelineTitle" class="fw-semibold"
-                                                style="font-size: 16px; color: #454545;">Aug
-                                                week 1</h5>
-                                            <div>
-                                                <button class="btn btn-sm me-2" id="prevTimeline">
-                                                    <span class="material-symbols-outlined">chevron_left</span>
-                                                </button>
-                                                <button class="btn btn-sm" id="nextTimeline">
-                                                    <span class="material-symbols-outlined">chevron_right</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="timeline-wrapper">
-                                            <table class="timeline-table">
-                                                <thead>
-                                                    <tr id="timelineHeader"></tr>
-                                                </thead>
-                                                <tbody id="timelineRows"></tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            
                         </div>
                     </div>
                 </div>
@@ -336,34 +276,10 @@
             <div class="col-md-4 mb-3">
                 <div class="rounded-4 p-4 body-card d-flex flex-column ">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-normal" style="color: #454545">My Task</h5>
+                        <h5 class="fw-normal" style="color: #454545">My Documents</h5>
                         <a class="btn btn-link p-0" href="{{ route('task') }}">
                             <span class="material-symbols-outlined text-secondary">chevron_right</span>
                         </a>
-                    </div>
-
-                    <!-- Tabs -->
-                    <div class="d-flex justify-between align-items-center w-100 mb-3">
-                        <button class="btn-tab-task btn btn-tab-custom flex-fill mx-2 rounded-md-4 active"
-                            data-tab-active="today">Today</button>
-                        <button class="btn-tab-task btn btn-tab-custom flex-fill rounded-md-4"
-                            data-tab-active="tomorrow">Tomorrow</button>
-                    </div>
-
-                    {{-- Legend --}}
-                    <div class="legend-task d-flex justify-content-between align-items-center mb-3 gap-3">
-                        <div class="legend-new" data-bs-toggle="tooltip" title="New Request">
-                            <span>New Request</span>
-                        </div>
-                        <div class="legend-progress" data-bs-toggle="tooltip" title="In Progress">
-                            <span>In Progress</span>
-                        </div>
-                        <div class="legend-completed" data-bs-toggle="tooltip" title="Completed">
-                            <span>Completed</span>
-                        </div>
-                        <div class="legend-finished" data-bs-toggle="tooltip" title="Finished">
-                            <span>Finished</span>
-                        </div>
                     </div>
 
                     {{-- Filter --}}
@@ -401,78 +317,7 @@
                         </div>
                     </div>
 
-                    <!-- Task List -->
-                    <div class="task-list flex-grow-1 overflow-auto">
-                        {{-- Task Content --}}
-                        <div class="task-card p-3 mb-3 d-none" style="background: #FFFAE6;">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
-                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
-                            </div>
-                            <p class="mb-2 small" style="font-size: 10px;">
-                                Description It is a long established fact that a reader will be distracted by the
-                                readable
-                                content...
-                            </p>
-                            <div class="small mt-3" style="font-size: 10px;">
-                                <div class="mb-2">
-                                    <span style="color: #828282;">Priority:</span>
-                                    <span class="mx-2" style="color: #E14F4F">High</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
-                                    <img src="https://picsum.photos/200" class="rounded-circle me-1"
-                                        style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
-                                    <img src="https://picsum.photos/201" class="rounded-circle me-1"
-                                        style="width: 20px; height: 20px; object-fit: cover;" alt="Executor 1">
-                                    <img src="https://picsum.photos/202" class="rounded-circle"
-                                        style="width: 20px; height: 20px; object-fit: cover;" alt="Executor 2">
-                                </div>
-                                <div class="mb-1">
-                                    <span style="color: #828282">Deadline:</span>
-                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
-                                </div>
-                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">mode_comment</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">attach_file</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="task-card p-3 mb-3 d-none" style="background: #FFFAE6;">
-                            <div class="d-flex align-items-center mb-2">
-                                {{-- Profile task and title task --}}
-                            </div>
-                            <p class="mb-2 small" style="font-size: 10px;">
-                                {{-- Description --}}
-                            </p>
-                            <div class="small mt-3" style="font-size: 10px;">
-                                <div class="mb-2">
-                                    {{-- Difficulty Task --}}
-                                </div>
-                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
-                                    {{-- The Collaborators --}}
-                                </div>
-                                <div class="mb-1">
-                                    {{-- Date of Deadline --}}
-                                </div>
-                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">mode_comment</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">attach_file</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Document List -->
                 </div>
             </div>
         </div>
