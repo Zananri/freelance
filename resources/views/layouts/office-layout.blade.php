@@ -245,20 +245,6 @@
                     @endif
 
                     <li>
-                        <a href="{{ url('task') }}" class="{{ $menu_active == 'task' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">task</span>
-                            <span class="text-menu">Task</span>
-                        </a>
-                    </li>
-
-                    <li>
-                        <a href="{{ url('project') }}" class="{{ $menu_active == 'project' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">rocket_launch</span>
-                            <span class="text-menu">Project</span>
-                        </a>
-                    </li>
-
-                    <li>
                         <a href="{{ route('teams') }}" class="{{ $menu_active == 'teams' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">group</span>
                             <span class="text-menu">Teams</span>
@@ -287,15 +273,6 @@
                         <a href="{{ route('calendar') }}" class="{{ $menu_active == 'calendar' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">calendar_month</span>
                             <span class="text-menu">Calendar</span>
-                        </a>
-                    </li>
-
-                    <li>
-                        <a href="{{ route('hub_division') }}" class="{{ $menu_active == 'hub_division' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">
-                                family_group
-                            </span>
-                            <span class="text-menu">Hub Division</span>
                         </a>
                     </li>
 

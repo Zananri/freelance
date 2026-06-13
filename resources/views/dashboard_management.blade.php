@@ -99,62 +99,7 @@
                             </style>
                             <div class="box-project pe-3 pb-3 scrollbar-transparent overflow-auto">
                                 <div class="row">
-
-                                    @foreach ($project as $itemProject)
-                                        
-                                        <div class="col-12 col-md-6 col-project-item mb-3" data-project="{{ $itemProject->id }}">
-                                            <div class="card-content p-3 pb-2 item-project">
-                                                <div class="item-header mb-2">
-                                                    <div class="d-flex align-items-start gap-2">
-                                                        @if ($itemProject->image)
-                                                            <div>
-                                                                <img class="image-project rounded-circle object-fit-cover me-1" src="{{ asset('file/project/'.$itemProject->image) }}" alt="">
-                                                            </div>
-                                                        @endif
-                                                        
-                                                        <div>
-                                                                <h2 class="fs-14 fw-normal">
-                                                                    <a href="{{ route('project.show', $itemProject->id) }}" class="title-project text-body text-decoration-none">
-                                                                        {{ $itemProject->title }}
-                                                                    </a>
-                                                                </h2>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="item-body border-bottom border-opacity-50 mb-2 pb-2">
-                                                    <div class="description-project fs-12 fw-normal text-body text-opacity-75 scrollbar-transparent overflow-auto">
-                                                        {{ strip_tags($itemProject->description) }}
-                                                    </div>
-                                                </div>
-                                                <div class="item-footer">
-                                                    <div class="d-flex align-items-center justify-content-between">
-                                                        <div>
-                                                            {{-- @php
-                                                                $projectAassignment = json_decode($itemProject->project_assignment);
-                                                            @endphp --}}
-
-                                                            {{-- @for ($i = 0; $i < count($projectAassignment); $i++)
-                                                                <img class="image-project-assign rounded-circle object-fit-cover" src="http://localhost/nsa-office/public/file/project/PROJECT_1752641369.jpg" alt="" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ $projectAassignment[$i]->role }}">   
-                                                            @endfor
-                                                            @foreach ($projectAassignment as $itemProjectAssignment)
-                                                                <img class="image-project-assign rounded-circle object-fit-cover" src="http://localhost/nsa-office/public/file/project/PROJECT_1752641369.jpg" alt="" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ $itemProjectAssignment }}">   
-                                                            @endforeach --}}
-                                                            {{-- <img class="image-project-assign rounded-circle object-fit-cover" src="http://localhost/nsa-office/public/file/project/PROJECT_1752641369.jpg" alt="" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Co Author">
-                                                            <img class="image-project-assign rounded-circle object-fit-cover" src="http://localhost/nsa-office/public/file/project/PROJECT_1752641369.jpg" alt="" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Contributor">
-                                                             --}}
-                                                        </div>
-                                                        <div class="">
-                                                            <div class="fs-10 text-body text-opacity-50">
-                                                                {{ $itemProject->total_task }} Task
-                                                                
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    @endforeach
+                                    
 
                                     
                                 </div>

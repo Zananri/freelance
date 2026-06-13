@@ -255,7 +255,7 @@
                     </div>
                 </div>
 
-                {{-- Project Card --}}
+                {{-- Attendance Summary Card --}}
                 <div class="row" style="flex: 1;">
                     <div class="col-12 card-fill">
                         <div class="rounded-4 p-4 body-card justify-content-between d-flex">
@@ -264,7 +264,7 @@
                                 June 2026
                             </button>
 
-                            
+
                         </div>
                     </div>
                 </div>
@@ -272,7 +272,7 @@
                 <div class="timeline-overlay"></div>
             </div>
 
-            {{-- Task Group --}}
+            {{-- Document Group --}}
             <div class="col-md-4 mb-3">
                 <div class="rounded-4 p-4 body-card d-flex flex-column ">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -293,8 +293,8 @@
                             <div class="p-3">
                                 <div class="mb-2 input-custom position-relative">
                                     <label class="form-label label-custom">Date</label>
-                                    <input type="text" class="form-control input-text border-0" id="filterDateRange"
-                                        placeholder="Select a date range">
+                                    <input type="text" class="form-control input-text border-0"
+                                        id="filterDateRange" placeholder="Select a date range">
                                     <div id="hiddenDateInputs" class="d-none">
                                         <input type="date" id="filterStartDate">
                                         <input type="date" id="filterEndDate">
@@ -318,6 +318,38 @@
                     </div>
 
                     <!-- Document List -->
+                    <div class="grid-wrapper mt-2">
+
+                        <div class="folder-wrapper">
+                            <div class="folder-shadow-tab"></div>
+                            <div class="folder-shadow"></div>
+                            <div class="folder-tab"></div>
+                            <div class="folder-body">
+                                <p class="folder-name">John Doe</p>
+                                <p class="folder-role">Data Analyst</p>
+                                <hr class="folder-divider">
+                                <div class="folder-footer">
+                                    <div class="folder-avatar"></div>
+                                    <span class="folder-items">4 Items</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="folder-wrapper">
+                            <div class="folder-shadow-tab"></div>
+                            <div class="folder-shadow"></div>
+                            <div class="folder-tab"></div>
+                            <div class="folder-body">
+                                <p class="folder-name">Jane Smith</p>
+                                <p class="folder-role">UI Designer</p>
+                                <hr class="folder-divider">
+                                <div class="folder-footer">
+                                    <div class="folder-avatar"></div>
+                                    <span class="folder-items">7 Items</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -533,146 +533,6 @@
     min-height: 100% !important;
 }
 
-/* Project Timeline Styles */
-.project-timeline-card {
-    background: transparent;
-    min-width: 100%;
-    max-width: 100%;
-    min-height: 100%;
-    max-height: 100%;
-}
-
-.timeline-toggle-btn {
-    padding: 10px;
-    display: none;
-    background-color: #e3e4ee;
-    border-radius: 50%;
-    border: none;
-}
-
-.timeline-toggle-btn.active {
-    background-color: #c8c8cd;
-    border: none;
-}
-
-.timeline-wrapper {
-    overflow-y: auto;
-    position: relative;
-    max-height: 250px;
-}
-
-.timeline-table {
-    width: 100%;
-    min-height: 37vh;
-    border-collapse: collapse;
-    border: 1px solid #dae3ed;
-    table-layout: fixed;
-}
-
-.timeline-wrapper::-webkit-scrollbar {
-    width: 4px;
-}
-
-.timeline-wrapper::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.timeline-wrapper::-webkit-scrollbar-thumb {
-    background-color: #cccccc;
-    border-radius: 4px;
-}
-
-.timeline-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    font-size: 12px;
-    font-weight: normal;
-    background-color: rgb(240, 241, 248);
-    padding: 2px 3px;
-}
-
-.timeline-table th,
-.timeline-table td {
-    border-right: 2px solid #dae3ed;
-    border-left: 2px solid #dae3ed;
-    padding: 6px;
-    text-align: center;
-}
-
-.timeline-table th {
-    font-weight: bold;
-    font-size: 15px;
-    color: #444;
-}
-
-.timeline-table th:first-child,
-.timeline-table td:first-child {
-    border-left: none;
-}
-
-.timeline-table th:last-child,
-.timeline-table td:last-child {
-    border-right: none;
-}
-
-/* Bar */
-.timeline-bar {
-    height: 28px;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    font-size: 12px;
-    font-weight: 500;
-    padding-left: 36px;
-    position: relative;
-    background: #e3f3ff;
-    margin: 4px 0;
-    cursor: pointer;
-}
-
-.timeline-bar .bar-name::-webkit-scrollbar {
-    display: none;
-}
-
-.timeline-bar .bar-name {
-    white-space: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-.timeline-bar .circle {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    background: #fff;
-}
-
-/* Warna bar */
-.timeline-bar.color1 {
-    background: #e3f3ff;
-}
-.timeline-bar.color2 {
-    background: #e9e3f7;
-}
-.timeline-bar.color3 {
-    background: #f7f3e3;
-}
-.timeline-bar.color4 {
-    background: #ffe3e3;
-}
-
-.timeline-cell.sunday {
-    color: #d34547 !important;
-    font-weight: 600;
-}
-
 /* Animasi masuk dari kanan + fade */
 @keyframes slideInRight {
     0% {
@@ -696,66 +556,14 @@
     }
 }
 
-.timeline-card-mobile.animate-in {
-    animation: slideInRight 0.4s ease forwards;
-}
-
-.timeline-card-mobile.animate-out {
-    animation: slideOutRight 0.4s ease forwards;
-}
-
-/* Fixed dimensions for project card with spacing */
 .card-fill {
     max-height: 100% !important;
     margin-bottom: 15px;
 }
 
-.chart-section {
-    width: 40%;
-}
-
-.chart-container {
-    width: 100%;
-}
-
-#doughnutChart {
-    width: 70%;
-    height: 70%;
-    min-width: 70%;
-    min-height: 70%;
-    display: block;
-    margin: 0 auto;
-}
-
-.timeline-card-mobile {
-    width: 60%;
-}
-
 /* Additional spacing utilities */
 .dashboard-section {
     margin-bottom: 2.5rem;
-}
-
-.task-list {
-    overflow-y: auto;
-    max-height: 750px;
-}
-
-.task-list::-webkit-scrollbar {
-    width: 4px;
-}
-
-.task-list::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.task-list::-webkit-scrollbar-thumb {
-    background-color: #cccccc;
-    border-radius: 4px;
-}
-
-.task-list::-webkit-scrollbar-thumb:hover {
-    background-color: #707070;
 }
 
 .custom-card {
@@ -767,36 +575,6 @@
     height: 30px;
 }
 
-/* Scrollable description used in small dashboard task cards. Matches Task page
-   behavior: limit height, allow vertical scroll, and style scrollbar to be subtle. */
-.task-desc-scroll {
-    max-height: 96px; /* same height used in JS when rendering */
-    overflow-y: auto;
-    padding-right: 6px; /* give space for scrollbar */
-}
-.task-desc-scroll p {
-    margin: 0;
-    font-size: 10px;
-    line-height: 1.3;
-    color: #333;
-}
-.task-desc-scroll::-webkit-scrollbar {
-    width: 6px;
-}
-.task-desc-scroll::-webkit-scrollbar-track {
-    background: transparent;
-}
-.task-desc-scroll::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.08);
-    border-radius: 6px;
-}
-.task-desc-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.12);
-}
-
-/* Fixed dimensions for task card - reasonable height */
-
-/* Disable flex-grow behavior */
 .row[style*="height: calc(100vh - 150px)"] {
     height: auto !important;
     min-height: auto !important;
@@ -807,26 +585,12 @@
     height: auto !important;
 }
 
-/* Ensure cards don't stretch */
 .d-flex.flex-column {
     height: auto !important;
 }
 
-/* Disable responsive media queries - override all */
 @media (max-width: 768px) {
-    .project-card {
-        display: flex;
-        flex-direction: column; /* atas-bawah */
-        gap: 1rem;
-    }
-
-    .chart-section {
-        width: 100%;
-        max-width: 100%;
-    }
-
-    .calendar-card-mobile,
-    .timeline-card-mobile {
+    .calendar-card-mobile {
         display: none;
         position: fixed;
         inset: 0;
@@ -843,8 +607,7 @@
         overflow-y: auto;
     }
 
-    .calendar-card-mobile.active,
-    .timeline-card-mobile.active {
+    .calendar-card-mobile.active {
         display: block !important;
         transform: scale(1);
         opacity: 1;
@@ -860,15 +623,13 @@
         overflow-y: auto;
     }
 
-    .calendar-toggle-btn,
-    .timeline-toggle-btn {
+    .calendar-toggle-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
     }
 
-    .calendar-overlay,
-    .timeline-overlay {
+    .calendar-overlay {
         display: none;
         position: fixed;
         top: 0;
@@ -879,85 +640,8 @@
         z-index: 1050;
     }
 
-    .calendar-overlay.active,
-    .timeline-overlay.active {
+    .calendar-overlay.active {
         display: block;
-    }
-
-    .legend-new span,
-    .legend-completed span,
-    .legend-finished span,
-    .legend-progress span {
-        display: none;
-    }
-
-    .legend-new {
-        background: #a1a3a60d;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-    }
-
-    .legend-progress {
-        background: #edebdf;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-    }
-
-    .legend-completed {
-        background: #baeed340;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-    }
-
-    .legend-finished {
-        background: #BACBEE40;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-    }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-    .project-card {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .chart-section {
-        width: 100%;
-    }
-
-    .timeline-card-mobile {
-        display: none;
-    }
-
-    .timeline-toggle-btn {
-        display: inline-flex;
-    }
-}
-
-@media (min-width: 1025px) {
-    .project-card {
-        display: flex !important;
-        flex-direction: row !important;
-        gap: 1rem;
-    }
-
-    .timeline-toggle-btn {
-        display: none !important;
-    }
-
-    .timeline-card-mobile {
-        position: relative !important;
-        transform: none !important;
-        opacity: 1 !important;
-        display: block !important;
-        box-shadow: none !important;
-        height: auto !important;
     }
 }
 
@@ -989,78 +673,23 @@
         background-color: transparent;
     }
 
-    #doughnutChart {
-        width: 60%;
-        height: 60%;
-    }
-
-    .chart-labels {
-        font-size: 12px;
-    }
-
-    .mobile-icon-project {
-        margin-top: -50px;
-    }
-
-    .timeline-card-mobile {
-        min-height: 400px;
-        height: 60%;
-        max-height: 400px;
-        overflow-y: auto;
-        bottom: 20%;
-    }
-
-    .project-timeline-card {
-        min-width: 150%;
-        min-height: 300px;
-    }
-
     .calendar-card-mobile {
         bottom: 20%;
         height: 60%;
         max-height: 500px;
     }
-
-    .task-list {
-        overflow-y: auto;
-        max-height: 300px;
-    }
-}
-
-/* Swiper container styles */
-.task-swiper {
-    width: 100%;
-    height: 100%;
-}
-
-.task-swiper .swiper-wrapper {
-    align-items: center;
-}
-
-.task-swiper .swiper-slide {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.task-swiper .task-card {
-    width: 85%;
-    max-width: 300px;
-    margin: 0 auto;
 }
 
 .modal-header-custom {
     border: 0;
 }
 
-/* Attendance Modal Styles - Copied from attendance.css */
 .modal-title-custom {
     font-weight: 300;
     font-size: 28px;
     color: rgb(103, 111, 122);
 }
 
-/* Task modal visual parity (copied from task.css) */
 .modal-content-custom {
     border-radius: 16px;
     padding: 12px 12px;
@@ -1343,7 +972,6 @@
     border: none;
 }
 
-/* Dashboard-local Task Feedback Modal styles (mirrors task.css) */
 .feedback-modal-dialog {
     max-width: 480px;
     min-height: 600px;
@@ -1502,7 +1130,9 @@
     border: 1px solid #ddd;
     border-radius: 8px;
     cursor: pointer;
-    transition: border-color 0.3s ease, opacity 0.3s ease;
+    transition:
+        border-color 0.3s ease,
+        opacity 0.3s ease;
     opacity: 0.5;
 }
 
@@ -1585,105 +1215,9 @@
     color: rgb(103, 111, 122);
 }
 
-/* =============================
-   Project Detail Modal (Dashboard)
-   Match styling with Project page
-   ============================= */
-#projectDetailModal .modal-content-custom {
-    border-radius: 16px;
-    padding: 24px;
-    background-color: rgb(240, 241, 248);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    border: none;
-}
-
-#projectDetailModal .project-detail-modal {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    color: #555;
-}
-
-#projectDetailModal .project-photo-title-author {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 1rem;
-}
-
-#projectDetailModal img.project-photo {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-#projectDetailModal .project-title {
-    text-align: center;
-    font-weight: 600;
-    color: #555;
-    margin: 0;
-}
-
-#projectDetailModal .project-description {
-    text-align: justify;
-    font-size: 14px;
-    color: #555;
-    margin: 0;
-}
-
-#projectDetailModal .project-detail-columns {
-    display: flex;
-    width: 100%;
-    gap: 3rem;
-    justify-content: center;
-}
-
-#projectDetailModal .project-detail-left,
-#projectDetailModal .project-detail-right {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-#projectDetailModal .project-detail-left p,
-#projectDetailModal .project-detail-right p {
-    font-size: 14px;
-    color: #555;
-    margin: 0;
-}
-
-#projectDetailModal .project-detail-right p a {
-    font-size: 14px;
-    margin: 0;
-    text-decoration: none;
-}
-
-#projectDetailModal .project-detail-left p strong,
-#projectDetailModal .project-detail-right p strong {
-    font-weight: 500;
-    color: #555;
-}
-
 #prevTimeline,
 #nextTimeline {
     border: none;
-}
-
-@media (max-width: 768px) {
-    #projectDetailModal .project-detail-columns {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: center;
-    }
-    #projectDetailModal .project-detail-left,
-    #projectDetailModal .project-detail-right {
-        flex: 1 1 100%;
-    }
 }
 
 .btn-close-custom {
@@ -1833,7 +1367,7 @@ input[type="file"]::file-selector-button {
 }
 
 .legend-finished {
-    background: #BACBEE40;
+    background: #bacbee40;
     border-radius: 10px;
     font-size: 8px;
     padding: 5px 10px;
@@ -1955,4 +1489,93 @@ input[type="file"]::file-selector-button {
     font-size: 10px;
     color: #444;
     margin-bottom: 4px;
+}
+
+.grid-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 44px 32px;
+    width: 100%;
+    max-width: 720px;
+}
+
+.folder-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.folder-shadow {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    right: -7px;
+    bottom: 0px;
+    background: #e8952a;
+    border-radius: 0 12px 12px 12px;
+    z-index: 0;
+}
+
+.folder-shadow-tab {
+    position: absolute;
+    top: -12px;
+    left: 7px;
+    width: 70px;
+    height: 20px;
+    background: #e8952a;
+    border-radius: 8px 8px 0 0;
+    z-index: 0;
+}
+
+.folder-tab {
+    position: relative;
+    z-index: 1;
+    width: 70px;
+    height: 20px;
+    background: #f5a623;
+    border-radius: 8px 8px 0 0;
+}
+
+.folder-body {
+    position: relative;
+    z-index: 1;
+    background: #f5a623;
+    border-radius: 0 12px 12px 12px;
+    padding: 10px;
+}
+
+.folder-name {
+    font-size: 10px;
+    font-weight: 500;
+    color: #7a4800;
+    margin: 0 0 3px 0;
+}
+
+.folder-role {
+    font-size: 8px;
+    color: #a05c00;
+    margin: 0 0 3px 0;
+}
+
+.folder-divider {
+    border: none;
+    border-top: 1.5px solid rgba(255, 255, 255, 0.45);
+    margin: 0 0 12px 0;
+}
+
+.folder-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.folder-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.folder-items {
+    font-size: 8px;
+    color: #a05c00;
 }
