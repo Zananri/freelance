@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
-            $table->string('employee_id');
+            $table->bigInteger('employee_id');
             $table->string('folder_name');
             $table->bigInteger('created_by')->default(0);
             $table->timestamps();
