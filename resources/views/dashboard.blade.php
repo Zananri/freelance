@@ -116,21 +116,6 @@
                                     </div>
                                 </div>
                             </div>
-                            {{-- <div class="attendance-actions w-100 d-flex justify-content-evenly">
-
-                                 @if ($attendanceStatus['check_in'])
-                                            <button class="btn btn-custom-check {{ $attendanceStatus['check_in'] }}" data-check-active="checkIn" id="checkInBtn" data-status="{{ $attendanceStatus['check_in'] ?? 'pending' }}">
-                                                <span class="material-symbols-outlined check-icon">check</span>
-                                                Check In
-                                            </button>
-                                        @endif
-                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkOut"
-                                    id="checkOutBtn" data-status="{{ $attendanceStatus['check_out'] ?? 'pending' }}">
-                                    <span class="material-symbols-outlined done-all-icon"
-                                        style="opacity: {{ $attendanceStatus['check_out'] === 'completed' ? '1' : '0' }};">done_all</span>
-                                    Check Out
-                                </button>
-                            </div> --}}
                             <div class="attendance-logs">
                                 <div class="justify-content-start mt-3">
                                     <h6 class="logs-title">Attendance Logs</h6>
@@ -258,13 +243,44 @@
                 {{-- Attendance Summary Card --}}
                 <div class="row" style="flex: 1;">
                     <div class="col-12 card-fill">
-                        <div class="rounded-4 p-4 body-card justify-content-between d-flex">
-                            <h5 class="mb-3" style="font-size: 24px; color: #4C4D5D;">Attendance Summary</h5>
-                            <button class="btn btn-outline-secondary">
-                                June 2026
-                            </button>
+                        <div class="rounded-4 p-4 body-card">
+                            <div class="header-card d-flex justify-content-between mb-3">
+                                <h5 class="mb-3 fw-normal" style="color: #454545;">Attendance Summary</h5>
+                                <div class="btn dropdown dropdown-toggle-split d-flex align-items-center justify-content-center dropdown-attendance"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                    June 2026
+                                    <span class="material-symbols-outlined mx-2">arrow_drop_down</span>
+                                </div>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#">Action</a></li>
+                                    <li><a class="dropdown-item" href="#">Another action</a></li>
+                                    <li><a class="dropdown-item" href="#">Something else here</a></li>
+                                </ul>
+                            </div>
 
-
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="legend-container">
+                                    <div class="present-container rounded">
+                                        <p class="attendance-status">Present</p>
+                                        <p class="attendance-status-day">20 Days</p>
+                                    </div>
+                                    <div class="sick-container rounded">
+                                        <p class="attendance-status">Sick</p>
+                                        <p class="attendance-status-day">3 Days</p>
+                                    </div>
+                                    <div class="leave-container rounded">
+                                        <p class="attendance-status">Annual Leave</p>
+                                        <p class="attendance-status-day">5 Days</p>
+                                    </div>
+                                    <div class="absent-container rounded">
+                                        <p class="attendance-status">Absent</p>
+                                        <p class="attendance-status-day">2 Days</p>
+                                    </div>
+                                </div>
+                                <div class="chart-container" style="height: 250px;">
+                                    <canvas id="attendanceChart"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -283,8 +299,14 @@
                     </div>
 
                     {{-- Filter --}}
-                    <div class="filter-dropdown-wrapper position-relative mb-3">
-                        <button class="btn btn-toggle-filter w-100" id="toggleFilterTask">
+                    <div class="d-flex align-items-center gap-2 position-relative mb-3">
+                        <div class="search-input-container">
+                            <span class="material-symbols-outlined search-icon">search</span>
+                            <input class="form-control custom-form-filter" type="text" name="search_filter"
+                                id="search_filter">
+                        </div>
+
+                        <button class="btn btn-toggle-filter" id="toggleFilterTask">
                             <span class="material-symbols-outlined icon me-2">filter_list</span>
                             <span class="text-icon">Filter</span>
                         </button>
@@ -301,12 +323,9 @@
                                     </div>
                                 </div>
                                 <div class="mb-2 input-custom">
-                                    <label class="form-label label-custom">Priority</label>
+                                    <label class="form-label label-custom">Division</label>
                                     <select class="form-select input-text border-0">
-                                        <option value="">Semua</option>
-                                        <option value="LOW">Low</option>
-                                        <option value="MEDIUM">Medium</option>
-                                        <option value="HIGH">High</option>
+                                        <option value="">All Divisions</option>
                                     </select>
                                 </div>
                                 <div class="modal-footer modal-footer-custom">

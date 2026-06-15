@@ -1579,3 +1579,84 @@ input[type="file"]::file-selector-button {
     font-size: 8px;
     color: #a05c00;
 }
+
+.search-input-container {
+    position: relative;
+    width: 200px;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-container .search-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 20px;
+    color: #a9adb7;
+    pointer-events: none;
+}
+
+.search-input-container .custom-form-filter {
+    width: 100%;
+    padding-left: 40px;
+    background: #ecedf5;
+    border: none;
+    height: 40px;
+}
+
+.search-input-container .custom-form-filter:focus {
+    outline: none;
+    box-shadow: none;
+    border-color: none;
+}
+
+.legend-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 44px 32px;
+}
+
+.present-container,
+.sick-container,
+.leave-container,
+.absent-container {
+    position: relative;
+    width: 100%;
+    text-align: left;
+    padding: 5px 10px;
+}
+
+.attendance-status {
+    font-size: 14px;
+    color: #f0f1f8;
+    font-weight: 500;
+}
+
+.attendance-status-day {
+    font-size: 8px;
+    color: #f0f1f8;
+    font-weight: 400;
+}
+
+.present-container {
+    background: #3CC3DF;
+}
+
+.sick-container {
+    background: #8979FF;
+}
+
+.leave-container {
+    background: #FFAE4C;
+}
+
+.absent-container {
+    background: #FF928A;
+}
+
+.dropdown-attendance,
+.dropdown-attendance:hover {
+    border: 1px solid #333333;
+    color: #333333;
+    border-radius: 10px;
+    font-size: 12px;
+}
