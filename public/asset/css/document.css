@@ -1,0 +1,116 @@
+.body-content {
+    min-height: 70%;
+}
+
+.search-input-container {
+    position: relative;
+    width: 200px;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-container .search-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 20px;
+    color: #a9adb7;
+    pointer-events: none;
+}
+
+.search-input-container .custom-form-filter {
+    width: 100%;
+    padding-left: 40px;
+    background: #ecedf5;
+    border: none;
+    height: 40px;
+}
+
+.search-input-container .custom-form-filter:focus {
+    outline: none;
+    box-shadow: none;
+    border-color: none;
+}
+
+.btn-add-document,
+.btn-add-document:hover {
+    background: #e9eef4;
+    border-radius: 5px;
+    color: #333;
+    height: 40px;
+}
+
+.view-switcher {
+    position: relative;
+    display: flex;
+    width: 120px;
+    border-radius: 5px;
+    background: #f1f5f9;
+}
+
+.switch-btn {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    border: none;
+    background: none;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #333;
+}
+
+.switch-btn span {
+    font-size: 18px;
+}
+
+.switch-btn.active {
+    color: #444;
+}
+
+.switch-indicator {
+    position: absolute;
+    width: 50%;
+    height: 38px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.switch-indicator.grid {
+    transform: translateX(100%);
+}
+
+.document-table {
+    min-width: 100%;
+    height: auto;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.document-table th {
+    font-size: 14px;
+    font-weight: normal;
+    color: #333;
+    border: 1px solid #d9d9d9;
+    white-space: nowrap;
+    border-width: 1px 0px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.document-table th .material-symbols-outlined {
+    font-size: 18px;
+    vertical-align: middle;
+}
+
+.document-table td {
+    font-size: 12px;
+    font-weight: normal;
+    color: #333;
+    border: 1px solid #d9d9d9;
+    border-width: 1px 0px;
+    padding: 10px;
+}

@@ -13,6 +13,8 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeOvertimeController;
 use App\Http\Controllers\EmployeeTimeOffController;
 
+use App\Http\Controllers\DocumentController;
+
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AttendanceController;
@@ -84,73 +86,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/edit-password', [ProfileController::class, 'editPassword'])->name('profile.editPassword');
     Route::post('/profile/edit-photo-profile', [ProfileController::class, 'editPhotoProfile'])->name('profile.editPhotoProfile');
     Route::get('/payslip/download/{year}/{month}', [ProfileController::class, 'downloadPDFPayslip'])->name('salary_payslip.downloadPDFPayslipProfile');
-    
-
-    // === Project routes ===
-    Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');
-    Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update.post');
-    Route::get('/project/index', [ProjectController::class, 'index'])->name('project.index');
-    Route::get('/project/get-all-projects', [ProjectController::class, 'getAllProjects'])->name('project.getAllProjects');
-    Route::get('/project/export-excel', [ProjectController::class, 'exportProjectsExcel'])->name('project.export-excel');
-    Route::get('/project/export-root-excel', [ProjectController::class, 'exportRootProjectsExcel'])->name('project.root-export-excel');
-    Route::get('/project/export-excel/{project}', [ProjectController::class, 'exportChildProjectsExcel'])->name('project.child-export-excel');
-    // Export a single project's report to Excel
-    Route::get('/project/{id}/export-excel', [ProjectController::class, 'exportProjectExcelSingle'])->name('project.export-excel.single');
-    // Export project hierarchically with all children (recursive)
-    Route::get('/project/export-hierarchical/{project}', [ProjectController::class, 'exportProjectHierarchical'])->name('project.export-hierarchical.single');
-    Route::get('/project/export-hierarchical-all', [ProjectController::class, 'exportAllProjectsHierarchical'])->name('project.export-hierarchical.all');
-    Route::get('/project/create', [ProjectController::class, 'create'])->name('project.cre  ate');
-    Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
-    // Get children of a specific project
-    Route::get('/project/{id}/children', [ProjectController::class, 'getChildren'])->name('project.children');
-    // Accept optional slug segment for SEO-friendly URLs like /project/12/nama-project-permalink
-    Route::get('/project/{id}/{slug?}', [ProjectController::class, 'show'])->name('project.show');
-    Route::get('/projects', [ProjectController::class, 'getProjectsIds'])->name('projects.ids');
-    Route::post('/project/store', [ProjectController::class, 'store'])->name('project.store');
-
-    // === Project feedback routes ===
-    Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
-    Route::put('/project-feedbacks/{id}', [ProjectController::class, 'updateFeedback'])->name('project-feedbacks.update');
-    // Allow authors to delete their own project feedback or replies
-    Route::delete('/project-feedbacks/{id}', [ProjectController::class, 'destroyFeedback'])->name('project-feedbacks.destroy');
-    Route::get('/project-feedbacks/latest', [ProjectController::class, 'getProjectsLatestFeedback'])
-        ->name('project-feedbacks.latest');
-    Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
-    Route::get('/project-feedbacks', [ProjectController::class, 'getAllProjectFeedbacks'])->name('project-feedbacks.all');
-    // Count feedbacks for a project (excludes replies whose parent no longer exists)
-    Route::get('/project-feedbacks/count/{projectId}', [ProjectController::class, 'getProjectFeedbackCount'])->name('project-feedbacks.count');
-    Route::get('/projects/feedbacks/unread-counts', [ProjectController::class, 'getAllUnreadCounts'])
-        ->name('project-feedbacks.unread-counts');
-
-    // Per project feedback endpoints
-    Route::get('/project/{id}/feedbacks/unread-count', [ProjectController::class, 'getUnreadFeedbackCount'])
-        ->name('project-feedbacks.unread-count');
-    Route::post('/project/{id}/feedbacks/mark-read', [ProjectController::class, 'markProjectFeedbacksRead'])
-        ->name('project-feedbacks.mark-read');
-
-    // === Project update & delete ===
-    Route::put('/project/{id}', [ProjectController::class, 'update'])->name('project.update');
-    Route::delete('/project/{id}', [ProjectController::class, 'destroy'])->name('project.destroy');
-    // Delete a single reference file attached to a project (authorized: author only)
-    Route::delete('/project/{id}/reference-file', [ProjectController::class, 'destroyReferenceFile'])->name('project.reference-file.destroy');
-    // Upload reference files to a project (authorized: author only)
-    Route::post('/project/{id}/reference-file', [ProjectController::class, 'storeReferenceFile'])->name('project.reference-file.store');
-
-    // === Other project routes ===
-    Route::get('/project/index/card-data', [ProjectController::class, 'getCardData'])->name('project.cardData');
-    Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignments'])->name('project.assignments');
-    // Project tree (multi-parent) endpoints
-    Route::get('/projects/tree', [ProjectController::class, 'getProjectTree'])->name('project.tree');
-    Route::post('/project/{id}/parents', [ProjectController::class, 'addParent'])->name('project.parents.add');
-    Route::delete('/project/{id}/parents', [ProjectController::class, 'removeParent'])->name('project.parents.remove');
-
-
-
-    Route::get('/task', [TaskController::class, 'showTaskPage'])->name('task');
-    Route::get('/task/index', [TaskController::class, 'index'])->name('task.index');
-    Route::get('/task/index/no-pagination', [TaskController::class, 'listNoPagination'])->name('task.index.no-pagination');
-    Route::get('/task/create', [TaskController::class, 'create'])->name('task.create');
-    Route::get('/task/employees-for-executor', [TaskController::class, 'getEmployeesForTaskExecutor'])->name('task.employees-for-executor');
 
     // Employee list for projects (accessible to all authenticated users)
     Route::get('/employees-for-projects', [EmployeeController::class, 'getEmployeesForProjects'])->name('employees.for-projects');
@@ -160,63 +95,17 @@ Route::middleware('auth')->group(function () {
 
     // Division list for projects (accessible to all authenticated users)
     Route::get('/divisions-for-projects', [DivisionController::class, 'getDivisionsForProjects'])->name('divisions.for-projects');
-    Route::get('/task/{id}/edit', [TaskController::class, 'edit'])->name('task.edit');
-    Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
-    Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
-    Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
-    // Multi-parent management
-    Route::post('/task/{id}/parents', [TaskController::class, 'addParent'])->name('task.parents.add');
-    Route::delete('/task/{id}/parents', [TaskController::class, 'removeParent'])->name('task.parents.remove');
-    // Delete a single reference file attached to a task (authorized PIC only)
-    Route::delete('/task/{id}/reference-file', [TaskController::class, 'destroyReferenceFile'])->name('task.reference-file.destroy');
-    // Upload reference files to a task
-    Route::post('/task/{id}/reference-file', [TaskController::class, 'storeReferenceFile'])->name('task.reference-file.store');
-    // Soft delete task (mark as DELETED without removing from DB)
-    Route::put('/task/{id}/soft-delete', [TaskController::class, 'softDelete'])->name('task.soft-delete');
-    Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
-    // Dashboard: Today tasks for current user
-    Route::get('/task/dashboard/today', [TaskController::class, 'getDashboardTasksToday'])->name('task.dashboard.today');
-    // Dashboard: Tomorrow tasks for current user
-    Route::get('/task/dashboard/tomorrow', [TaskController::class, 'getDashboardTasksTomorrow'])->name('task.dashboard.tomorrow');
-
-    // Task Feedback routes
-    Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');
-    Route::put('/task-feedbacks/{id}', [TaskController::class, 'updateFeedback'])->name('task-feedbacks.update');
-    // Allow authors to delete their own feedback or replies
-    Route::delete('/task-feedbacks/{id}', [TaskController::class, 'destroyFeedback'])->name('task-feedbacks.destroy');
-    // Batched latest feedbacks for multiple tasks (must be BEFORE dynamic {taskId} route)
-    Route::get('/task-feedbacks/latest', [TaskController::class, 'getLatestFeedbacksBatch'])->name('task-feedbacks.latest-batch');
-    Route::get('/task-feedbacks/{taskId}', [TaskController::class, 'getTaskFeedbacks'])->name('task-feedbacks.get');
-    Route::get('/task-feedbacks/{taskId}/latest', [TaskController::class, 'getTaskLatestFeedback'])->name('task-feedbacks.latest');
-    Route::get('/task-feedbacks/count/{taskId}', [TaskController::class, 'getTaskFeedbackCount'])->name('task-feedbacks.count');
-    // Unread feedback per task
-    Route::get('/task/{id}/feedbacks/unread-count', [TaskController::class, 'getUnreadFeedbackCount'])->name('task-feedbacks.unread-count');
-    Route::post('/task/{id}/feedbacks/mark-read', [TaskController::class, 'markTaskFeedbacksRead'])->name('task-feedbacks.mark-read');
-
-    // Task status update routes
-    Route::put('/task/{id}/status', [TaskController::class, 'updateStatus'])->name('task.update-status');
-    Route::post('/task/{id}/accept', [TaskController::class, 'acceptTask'])->name('task.accept');
-    Route::post('/task/{id}/reject', [TaskController::class, 'rejectTask'])->name('task.reject');
-    Route::get('/task/{id}/accept-status', [TaskController::class, 'checkAcceptStatus'])->name('task.accept-status');
-
-    // Get tasks by project
-    Route::get('/projects/{id}/tasks', [TaskController::class, 'getTasksByProject'])->name('project.tasks');
-    Route::get('/projects/{id}/tasks/tree', [TaskController::class, 'getTasksByProjectForTree'])->name('project.tasks.tree');
-
-    // Schedules (basic endpoints for modal create & list)
-    Route::post('/schedules/create', [ScheduleController::class, 'store'])->name('schedules.store');
-    Route::get('/schedules/index', [ScheduleController::class, 'index'])->name('schedules.index');
-    Route::get('/schedules/{id}/edit', [ScheduleController::class, 'edit'])->name('schedules.edit');
-    Route::put('/schedules/{id}', [ScheduleController::class, 'update'])->name('schedules.update');
-    Route::delete('/schedules/{id}', [ScheduleController::class, 'destroy'])->name('schedules.destroy');
-    Route::get('/get-schedule-data/{id}', [ScheduleController::class, 'show'])->name('get-schedule-data.schedules');
-    Route::get('/schedules', [ScheduleController::class, 'showSchedulePage'])->name('schedules');
 
     Route::get('/teams', [TeamsController::class, 'showTeamsPage'])->name('teams');
     Route::get('/teams/get-teams-detail', [TeamsController::class, 'getTeamsDetail'])->name('teams.getTeamsDetail');
 
     // Client-side routes JSON
     Route::get('/client-routes', [UserController::class, 'clientRoutes'])->name('client.routes');
+
+    // Document routes
+    Route::get('/document', [DocumentController::class, 'documentPage'])->name('document');
+    Route::get('/get-all-documents', [DocumentController::class, 'getAllDocuments'])->name('document.getAllDocuments');
+    Route::get('/document/{userId}', [DocumentController::class, 'getDocumentsByUser'])->name('document.getByUser');
 
     // Notification routes
     Route::get('/notifications', [NotificationController::class, 'getUserNotifications'])->name('notifications.index');
@@ -226,9 +115,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
     Route::post('/notifications/mark-project-read', [NotificationController::class, 'markProjectNotificationsRead'])->name('notifications.markProjectRead');
     Route::delete('/notifications/{id}', [NotificationController::class, 'deleteNotification'])->name('notifications.delete');
-
-    Route::post('/project/{id}/accept', [ProjectController::class, 'acceptProject'])->name('project.accept');
-    Route::get('/project/{id}/accept-status', [ProjectController::class, 'checkAcceptStatus'])->name('project.accept-status');
 
     Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
     Route::get('/attendance/get-attendance-employee-by-month', [AttendanceController::class, 'getAttendanceEmployeeByMonth'])->name('attendance.getAttendanceEmployeeByMonth');
@@ -269,16 +155,6 @@ Route::middleware('auth')->group(function () {
     // Contributions heatmap for employee (completed tasks per day)
     Route::get('/employees/{id}/contributions', [TaskController::class, 'getEmployeeContributions'])
         ->name('employees.contributions');
-
-    ROute::get('/hub_division', [HubDivisionController::class, 'showHubDivisionPage'])->name('hub_division');
-    Route::get('/hub_division/all-tasks-employee-calendar-by-month', [TaskController::class, 'allTasksEmployeeCalendarByMonth'])->name('hub_division.allTasksEmployeeCalendarByMonth');
-    Route::get('/hub_division/employee-tasks-by-month', [HubDivisionController::class, 'getEmployeeTasksByMonth'])->name('hub_division.employeeTasksByMonth');
-    Route::get('/hub_division/employee-tasks-by-date', [HubDivisionController::class, 'getEmployeeTasksByDate'])->name('hub_division.employeeTasksByDate');
-    Route::get('/hub_division/division-stats', [HubDivisionController::class, 'getDivisionStats'])->name('hub_division.divisionStats');
-    Route::get('/hub_division/employee-attendance-by-month', [HubDivisionController::class, 'getEmployeeAttendanceByMonth'])->name('hub_division.employeeAttendanceByMonth');
-    Route::get('/hub_division/export-employee-tasks', [HubDivisionController::class, 'exportEmployeeTasksByMonth'])->name('hub_division.exportEmployeeTasks');
-
-
 });
 
 

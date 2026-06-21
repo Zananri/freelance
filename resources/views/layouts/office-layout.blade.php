@@ -282,6 +282,13 @@
                             <span class="text-menu">Profile</span>
                         </a>
                     </li>
+
+                    <li>
+                        <a href="{{ route('document') }}" class="{{ $menu_active == 'document' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">folder</span>
+                            <span class="text-menu">Document</span>
+                        </a>
+                    </li>
                     
 
                     @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))

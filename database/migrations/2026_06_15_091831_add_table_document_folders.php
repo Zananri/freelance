@@ -15,10 +15,12 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('employee_id');
             $table->string('folder_name');
+            $table->unsignedBigInteger('parent_folder_id')->nullable();
             $table->bigInteger('created_by')->default(0);
             $table->timestamps();
 
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
+            $table->foreign('parent_folder_id')->references('id')->on('document_folders')->onDelete('cascade');
         });
     }
 
