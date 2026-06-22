@@ -42,13 +42,32 @@
                 <span class="material-symbols-outlined search-icon">search</span>
                 <input class="form-control custom-form-filter" type="text" name="search_filter" id="search_filter">
             </div>
-            <button class="btn btn-add-document px-3 py-2 ms-2">
-                <span class="material-symbols-outlined">add</span>
-            </button>
+            <div class="dropdown mx-2">
+                <button class="btn btn-filter-document d-flex align-items-center dropdown-toggle no-caret" data-bs-toggle="dropdown">
+                    <span class="material-symbols-outlined">filter_list</span>
+                    <span class="ms-2">Filter</span>
+                </button>
+                <div class="dropdown-menu">
+                    <div class="filter-item mb-1 px-1">
+                        <label class="mb-1" for="">Owner</label>
+                        <input type="text" class="form-control border-0">
+                    </div>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-add-document px-3 py-2 dropdown-toggle no-caret" data-bs-toggle="dropdown">
+                    <span class="material-symbols-outlined">add</span>
+                </button>
+                <div class="dropdown-menu">
+                    <div class="dropdown-item add-doc">Add Folder</div>
+                    <div class="dropdown-item add-doc">Add Files</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="body-content scrollable-container rounded-4 px-3 py-3">
+    {{-- Table View --}}
+    <div class="body-content scrollable-container table-view rounded-4 p-3">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <table class="document-table">
                 <thead>
@@ -88,6 +107,38 @@
         </div>
     </div>
 
+    {{-- Grid View --}}
+    <div class="grid-view d-none mt-5">
+        <div class="folder-wrapper">
+            <div class="folder-shadow-tab"></div>
+            <div class="folder-shadow"></div>
+            <div class="folder-tab"></div>
+            <div class="folder-body">
+                <p class="folder-name">John Doe</p>
+                <p class="folder-role">Data Analyst</p>
+                <hr class="folder-divider">
+                <div class="folder-footer">
+                    <div class="folder-avatar"></div>
+                    <span class="folder-items">4 Items</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="folder-wrapper">
+            <div class="folder-shadow-tab"></div>
+            <div class="folder-shadow"></div>
+            <div class="folder-tab"></div>
+            <div class="folder-body">
+                <p class="folder-name">Jane Smith</p>
+                <p class="folder-role">UI Designer</p>
+                <hr class="folder-divider">
+                <div class="folder-footer">
+                    <div class="folder-avatar"></div>
+                    <span class="folder-items">7 Items</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>
 

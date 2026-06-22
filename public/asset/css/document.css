@@ -37,6 +37,7 @@
     border-radius: 5px;
     color: #333;
     height: 40px;
+    border: none;
 }
 
 .view-switcher {
@@ -113,4 +114,130 @@
     border: 1px solid #d9d9d9;
     border-width: 1px 0px;
     padding: 10px;
+}
+
+.grid-view {
+    display: grid;
+    grid-template-columns: auto auto auto auto;
+    gap: 44px 32px;
+    width: 100%;
+}
+
+.folder-wrapper {
+    position: relative;
+    width: 100%;
+    cursor: pointer;
+}
+
+.folder-shadow {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    right: -7px;
+    bottom: 0px;
+    background: #e8952a;
+    border-radius: 0 12px 12px 12px;
+    z-index: 0;
+}
+
+.folder-shadow-tab {
+    position: absolute;
+    top: -12px;
+    left: 7px;
+    width: 70px;
+    height: 20px;
+    background: #e8952a;
+    border-radius: 8px 8px 0 0;
+    z-index: 0;
+}
+
+.folder-tab {
+    position: relative;
+    z-index: 1;
+    width: 70px;
+    height: 20px;
+    background: #f5a623;
+    border-radius: 8px 8px 0 0;
+}
+
+.folder-body {
+    position: relative;
+    z-index: 1;
+    background: #f5a623;
+    border-radius: 0 12px 12px 12px;
+    padding: 10px;
+}
+
+.folder-name {
+    font-size: 10px;
+    font-weight: 500;
+    color: #7a4800;
+    margin: 0 0 3px 0;
+}
+
+.folder-role {
+    font-size: 8px;
+    color: #a05c00;
+    margin: 0 0 3px 0;
+}
+
+.folder-divider {
+    border: none;
+    border-top: 1.5px solid rgba(255, 255, 255, 0.45);
+    margin: 0 0 12px 0;
+}
+
+.folder-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.folder-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.folder-items {
+    font-size: 8px;
+    color: #a05c00;
+}
+
+.btn-filter-document,
+.btn-filter-document:hover,
+.btn-filter-document:active {
+    background: #e9eef4;
+    border-radius: 5px;
+    color: #333;
+    height: 40px;
+    font-size: 12px;
+    border: none;
+}
+
+.no-caret::after {
+    display: none;
+}
+
+.dropdown-menu {
+    background: #e9eef4;
+    border: none;
+}
+
+.btn.show {
+    background: #e9eef4;
+}
+
+.dropdown-item,
+.filter-item {
+    font-size: 12px;
+    color: #333;
+    cursor: pointer;
+}
+
+.dropdown-item.add-doc:hover {
+    background: #444;
+    color: #e9eef4;
+    transition: 0.2s;
 }
