@@ -422,36 +422,11 @@
                                     </div>
                                 </div>
 
-                                <!-- Work Outside -->
-                                <div class="mb-3">
-
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <div class="fs-14 text-secondary">Work Outside</div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_yes" value="1">
-                                            <label class="form-check-label w-100 text-center"
-                                                for="work_outside_yes">Yes</label>
-                                        </div>
-                                        <div class="col-6">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_no" value="0" checked>
-                                            <label class="form-check-label w-100 text-center"
-                                                for="work_outside_no">No</label>
-                                        </div>
-                                    </div>
-
-                                </div>
-
                                 <!-- Map Location Section for Check In -->
                                 <div class="mb-3">
                                     <div class="row">
 
-                                        <div class="col-6 col-photo d-none">
+                                        <div class="col-6 col-photo">
                                             <div class="position-realtive">
 
                                                 <div class="d-none">
@@ -485,9 +460,9 @@
 
                                             </div>
                                         </div>
-                                        <div class="col-12 col-map">
+                                        <div class="col-6 col-map">
                                             <div class="">
-                                                <div class="ratio ratio-21x9">
+                                                <div class="ratio ratio-1x1">
                                                     <div id="mapCheckIn" class="rounded-2 border"></div>
                                                 </div>
 
@@ -943,82 +918,6 @@
             </div>
         </div>
 
-        {{-- Timeline Modal Fullscreen --}}
-        <div class="modal fade" id="timelineModal" tabindex="-1" aria-labelledby="TimelineModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
-                <div class="modal-content modal-content-custom"
-                    style="box-shadow: none; background-color: rgb(240, 241, 248);">
-                    <div class="modal-body modal-body-custom">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 id="timelineTitle" class="fw-semibold mb-0" style="font-size: 16px; color: #454545;">
-                                Aug week 1
-                            </h5>
-
-                            <div class="d-flex align-items-center">
-                                <button class="btn btn-sm me-2" id="prevTimeline">
-                                    <span class="material-symbols-outlined">chevron_left</span>
-                                </button>
-                                <button class="btn btn-sm me-2" id="nextTimeline">
-                                    <span class="material-symbols-outlined">chevron_right</span>
-                                </button>
-                                <button type="button" class="btn btn-sm" data-bs-dismiss="modal"
-                                    aria-label="Close">
-                                    <span class="material-symbols-outlined">fullscreen_exit</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="timeline-wrapper">
-                            <table class="timeline-table">
-                                <thead>
-                                    <tr id="timelineHeader"></tr>
-                                </thead>
-                                <tbody id="timelineRows"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Project Detail Modal (shared with Project page) -->
-        <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-labelledby="projectDetailModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
-                <div class="modal-content modal-content-custom" style="box-shadow: none;">
-                    <div class="modal-body modal-body-custom">
-                        <button type="button" class="btn-close float-end" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                        <div class="project-detail-modal">
-                            <div class="project-photo-title-author">
-                                <img id="projectDetailImage" src="" alt="Project Image"
-                                    class="project-photo" style="border-radius: 8px;">
-                                <h2 class="project-title" id="projectDetailTitle" style="text-align: justify;"></h2>
-                                <p class="project-description" id="projectDetailDescription"></p>
-                            </div>
-                            <div class="project-detail-columns">
-                                <div class="project-detail-left">
-                                    <p><strong>Department:</strong> <span id="projectDetailDepartment"></span></p>
-                                    <p><strong>Division:</strong> <span id="projectDetailDivision"></span></p>
-                                    <p><strong>Author:</strong> <span id="projectDetailAuthor"></span></p>
-                                    <p><strong>Co-Authors:</strong> <span id="projectDetailCoAuthors"></span></p>
-                                    <p><strong>Contributors:</strong> <span id="projectDetailContributors"></span></p>
-                                </div>
-                                <div class="project-detail-right">
-                                    <p><strong>Reference URL:</strong> <a href="#" target="_blank"
-                                            id="projectDetailReferenceUrl"></a></p>
-                                    <p><strong>Reference File:</strong> <a href="#"
-                                            id="projectDetailReferenceFile" download>Download</a></p>
-                                    <p><strong>Start Date:</strong> <span id="projectDetailStartDate"></span></p>
-                                    <p><strong>Due Date:</strong> <span id="projectDetailDueDate"></span></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Tutorial Overtime Modal -->
         <div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="tutorialOvertimeModalLabel">
             <div class="modal-dialog modal-dialog-centered">
@@ -1075,60 +974,6 @@
             </div>
         </div>
 
-        <div class="modal fade" id="referenceFilesModal" tabindex="-1" aria-labelledby="referenceFilesModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom" id="referenceFilesModalLabel">Reference Files</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <hr>
-                    <div class="modal-body modal-body-custom">
-                        <div id="referenceFilesList" class="d-flex flex-column gap-2"></div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-submit-black" id="openAddReferenceFilesBtn"
-                            data-bs-target="#addFilesModal" data-bs-toggle="modal">Add Files</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal fade" id="addFilesModal" tabindex="-1" aria-labelledby="addFilesModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom" id="addFilesModalLabel">Reference Files</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <hr>
-                    <div class="modal-body modal-body-custom">
-                        <form id="referenceFilesForm" enctype="multipart/form-data">
-                            <input type="hidden" name="task_id" id="refTaskId" value="">
-                            <div class="mb-3 input-custom">
-                                <label for="task_reference_files" class="form-label label-custom">Select
-                                    Files</label>
-                                <input type="file" class="form-control input-text border-0"
-                                    id="task_reference_files" name="reference_files[]"
-                                    accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
-                                <div class="form-text">Multiple files supported.</div>
-                                <div id="reference_files_preview" class="mt-2"></div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
-                        <button type="button" id="submitAddReferenceFiles"
-                            class="btn btn-submit-black">Upload</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </x-slot>
 
     <x-slot name="script_slot">
@@ -1143,8 +988,6 @@
         <script src="{{ asset('asset/js/dashboard_announcement.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/attendance_dashboard_new.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
-        <script src="{{ asset('asset/js/tasks_dashboard.js') }}?v={{ time() }}"></script>
-        <script src="{{ asset('asset/js/project_dashboard.js') }}?v={{ time() }}"></script>
         <script>
             window.APP_URL = "{{ url('/') }}";
         </script>

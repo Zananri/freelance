@@ -1,14 +1,3 @@
-
-// CALENDAR
-
-const calendarModal = new bootstrap.Modal('#calendarModal', {
-  keyboard: false
-});
-
-$('.calendar-toggle-btn').on('click',function(){
-    calendarModal.show();
-});
-
 let currentDate = new Date();
 
 async function renderCalendar(year, month) {

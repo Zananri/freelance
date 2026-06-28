@@ -199,33 +199,6 @@ function showCheckinDetail(){
     }, 700);
 }
 
-$('#checkInModal [name="is_work_outside"]').change(function() {
-    var selectedValue = $('#checkInModal input[name="is_work_outside"]:checked').val();
-    
-    if(selectedValue == 1){
-        $('#checkInModal .col-map').addClass('col-6');
-        $('#checkInModal .col-map .ratio').addClass('ratio-1x1');
-
-        $('#checkInModal .col-map').removeClass('col-12');
-        $('#checkInModal .col-map .ratio').removeClass('ratio-21x9');
-
-        $('#checkInModal .col-photo').removeClass('d-none');
-        //$('#checkInModal #imageUploadSection').removeClass('d-none');
-    }else{
-
-        $('#checkInModal .col-map').addClass('col-12');
-        $('#checkInModal .col-map').removeClass('col-6');
-
-        $('#checkInModal .col-map .ratio').removeClass('ratio-1x1');
-        $('#checkInModal .col-map .ratio').addClass('ratio-21x9');
-
-        $('#checkInModal .col-photo').addClass('d-none');
-
-        //$('#checkInModal #imageUploadSection').addClass('d-none');
-    }
-    // You can perform other actions here based on the selected value
-});
-
 const $video = $('#videoElement');
 const $canvas = $('#canvasElement');
 const $photo = $('#photoResult');
@@ -319,18 +292,6 @@ $('#submitCheckInBtn').click(function(){
     var workOutside = $('#checkInModal input[name="is_work_outside"]:checked').val();
     const employeeLocation = L.latLng(LOC_LATITUDE, LOC_LONGITUDE);
     const distance = LOC_OFFICE.distanceTo(employeeLocation);
-    //console.log(distance);
-
-    // if(workOutside == 1){
-    //     submitCheckIn();
-    // }else{
-
-    //     if(distance > 200){        
-    //         showAlertMsg('You are not in the office area yet','error',5000);
-    //     }else{
-    //         submitCheckIn();
-    //     }
-    // }
 
     submitCheckIn();
     
@@ -510,27 +471,13 @@ initialiseMapsCheckOut();
 $('#checkOutModal [name="is_work_outside"]').change(function() {
     var selectedValue = $('#checkOutModal input[name="is_work_outside"]:checked').val();
     
-    if(selectedValue == 1){
-        $('#checkOutModal .col-map').addClass('col-6');
-        $('#checkOutModal .col-map .ratio').addClass('ratio-1x1');
+    $('#checkOutModal .col-map').addClass('col-6');
+    $('#checkOutModal .col-map .ratio').addClass('ratio-1x1');
 
-        $('#checkOutModal .col-map').removeClass('col-12');
-        $('#checkOutModal .col-map .ratio').removeClass('ratio-21x9');
+    $('#checkOutModal .col-map').removeClass('col-12');
+    $('#checkOutModal .col-map .ratio').removeClass('ratio-21x9');
 
-        $('#checkOutModal .col-photo').removeClass('d-none');
-        //$('#checkInModal #imageUploadSection').removeClass('d-none');
-    }else{
-
-        $('#checkOutModal .col-map').addClass('col-12');
-        $('#checkOutModal .col-map').removeClass('col-6');
-
-        $('#checkOutModal .col-map .ratio').removeClass('ratio-1x1');
-        $('#checkOutModal .col-map .ratio').addClass('ratio-21x9');
-
-        $('#checkOutModal .col-photo').addClass('d-none');
-
-        //$('#checkInModal #imageUploadSection').addClass('d-none');
-    }
+    $('#checkOutModal .col-photo').removeClass('d-none');
     // You can perform other actions here based on the selected value
 });
 
