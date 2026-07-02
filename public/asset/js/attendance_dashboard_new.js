@@ -172,7 +172,7 @@ const loopGetLocation = setInterval(setDefaultLocation, 500);
 $('#checkInBtn').click(function(){
 
     if($('#checkInBtn').hasClass('active')){
-        showCheckinDetail();
+        checkInModal.show();
     }else{
         checkInModal.show();
     }

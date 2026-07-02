@@ -11,7 +11,6 @@ class AttendanceTracking extends Model
 
     protected $fillable = [
         'attendance_id',
-        'is_work_outside',
         'type',
         'location',
         'image',
@@ -20,7 +19,6 @@ class AttendanceTracking extends Model
     ];
 
     protected $casts = [
-        'is_work_outside' => 'boolean',
         'date_time' => 'datetime',
         'image' => 'array',
     ];
