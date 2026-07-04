@@ -293,6 +293,7 @@ class AttendanceController extends Controller
             $employee = Employee::with('shift')->where('user_id', $userId)->first();
 
             $shiftId = $employee->shift_id;
+            $currentShift = $employee->shift;
 
             $employeeShiftToday = EmployeeShift::with('shift')->where('employee_id', $employee->id)
                 ->where('date_shift', $today)
@@ -324,6 +325,7 @@ class AttendanceController extends Controller
                 $timeEnd = Carbon::parse($today . ' ' . $employeeShiftToday->shift->time_end);
 
                 $shiftId = $employeeShiftToday->shift_id;
+                $currentShift = $employeeShiftToday->shift;
 
                 if ($timeEnd < $timeStart) {
 
@@ -349,6 +351,7 @@ class AttendanceController extends Controller
                     if ($now <= $checkRangeEnd && $now >= $checkRangeStart) {
 
                         $shiftId = $employeeShiftYesterday->shift_id;
+                        $currentShift = $employeeShiftYesterday->shift;
 
                         $timeStart = Carbon::parse($yesterday . ' ' . $employeeShiftYesterday->shift->time_start);
                         $timeEnd = Carbon::parse($today . ' ' . $employeeShiftYesterday->shift->time_end);
@@ -432,13 +435,20 @@ class AttendanceController extends Controller
                 );
             }
 
-            // Create attendance tracking record
+            $totalCheckIn = AttendanceTracking::where('attendance_id', $attendanceId)
+                ->where('type', 'check_in')
+                ->count();
+
+            if ($totalCheckIn >= $currentShift->total_checkpoint) {
+                throw new \Exception('You have reached the maximum number of check-ins for this shift.');
+            }
+
             $attendanceTracking = AttendanceTracking::create([
                 'attendance_id' => $attendanceId,
                 'type' => 'check_in',
-                'location' => $location, // Set null dulu sesuai permintaan
-                'device' => DeviceHelper::getDeviceFromRequest($request), // Simpan device awal
-                'image' => $imageArray, // Simpan juga di attendance_trackings
+                'location' => $location,
+                'device' => DeviceHelper::getDeviceFromRequest($request),
+                'image' => $imageArray,
                 'date_time' => $now,
                 'created_by' => $userId,
                 'updated_by' => $userId
