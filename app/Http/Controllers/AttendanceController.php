@@ -736,39 +736,34 @@ class AttendanceController extends Controller
     /**
      * Get attendance records for an employee for a specific month
      */
-    public function getMonthlyAttendance($employeeId, $year, $month)
+    public function getAttendanceToday()
     {
         try {
-            $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString();
-            $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString();
 
-            // Return all attendance records for the month (multiple per day)
-            $attendances = Attendance::where('employee_id', $employeeId)
-                ->whereBetween('date_attendance', [$startDate, $endDate])
-                ->orderBy('date_attendance', 'asc')
-                ->orderBy('time_in', 'asc')
-                ->get(['date_attendance', 'type_attendance', 'time_in', 'time_out']);
+            $employee = Employee::where('user_id', Auth::id())->first();
+
+            $attendance = Attendance::with('attendanceTrackings')
+                ->where('employee_id', $employee->id)
+                ->whereDate('date_attendance', Carbon::today())
+                ->orderBy('time_in')
+                ->get();
 
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $attendances,
-                'message' => 'Monthly attendance retrieved successfully'
+                'data' => $attendance
             ]);
+
         } catch (\Exception $e) {
-            \Log::error('Error fetching monthly attendance:', [
-                'employee_id' => $employeeId,
-                'year' => $year,
-                'month' => $month,
-                'error' => $e->getMessage()
-            ]);
 
             return response()->json([
                 'code' => 500,
                 'status' => 'error',
-                'data' => null,
-                'message' => 'Server error: ' . $e->getMessage()
+                'data' => [],
+                'message' => $e->getMessage()
             ], 500);
+
         }
     }
+
 }

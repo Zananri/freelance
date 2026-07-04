@@ -51,4 +51,8 @@ class Attendance extends Model
         return $this->belongsTo(Employee::class);
     }
 
+    public function attendanceTrackings()
+    {
+        return $this->hasMany(AttendanceTracking::class, 'attendance_id');
+    }
 }

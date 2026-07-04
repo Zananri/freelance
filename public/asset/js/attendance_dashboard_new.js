@@ -75,7 +75,6 @@ function setDefaultLocation(){
 
             },
             (error) => {
-                // Handle errors, such as user denying location access
                 switch (error.code) {
                     case error.PERMISSION_DENIED:
                     console.error("User denied the request for Geolocation.");
@@ -92,10 +91,9 @@ function setDefaultLocation(){
                 }
             },
             {
-                // Optional: configuration options for getCurrentPosition
-                enableHighAccuracy: true, // Request the most accurate position available
-                timeout: 5000, // Maximum time (in milliseconds) allowed to return a position
-                maximumAge: 0 // Do not use a cached position, always try to get the real current position
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
             }
         );
     } else {
@@ -103,11 +101,19 @@ function setDefaultLocation(){
     }
 }
 
-function initialiseMapsCheckIn(){
+async function getAttendanceToday() {
+    return await $.ajax({
+        url: '/attendance/get-attendance-today',
+        type: 'GET'
+    });
+}
+
+async function initialiseMapsCheckIn() {
+
     MAP_CHECKIN = L.map('mapCheckIn', {
-                center: [LOC_LATITUDE, LOC_LONGITUDE],
-                zoom: 16
-            });
+        center: [LOC_LATITUDE, LOC_LONGITUDE],
+        zoom: 16
+    });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: 'ACER',
@@ -115,27 +121,63 @@ function initialiseMapsCheckIn(){
     }).addTo(MAP_CHECKIN);
 
     MAP_CHECKIN_MARKER = L.marker([LOC_LATITUDE, LOC_LONGITUDE]).addTo(MAP_CHECKIN);
-    MAP_CHECKIN_MARKER.bindTooltip("Your Location", { permanent: true, direction: 'top', offset: [0, 0] });
 
+    MAP_CHECKIN_MARKER.bindTooltip("Your Location", {
+        permanent: true,
+        direction: 'top'
+    });
 
-    if($('#detailMapCheckIn').attr('data-location')){
+    const response = await getAttendanceToday();
 
-        MAP_CHECKIN_DETAIL_LOCATION = $('#detailMapCheckIn').attr('data-location').split(',');
+    if (!response.data || !response.data.length) {
+        return;
+    }
 
-        MAP_CHECKIN_DETAIL = L.map('detailMapCheckIn', {
-                    center: MAP_CHECKIN_DETAIL_LOCATION,
-                    zoom: 16
-                });
+    const latlngs = [];
+    let checkpoint = 1;
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: 'ACER',
-            maxZoom: 19
-        }).addTo(MAP_CHECKIN_DETAIL);
+    response.data.forEach(attendance => {
 
-        MAP_CHECKIN_DETAIL_MARKER = L.marker(MAP_CHECKIN_DETAIL_LOCATION).addTo(MAP_CHECKIN_DETAIL);
-        MAP_CHECKIN_DETAIL_MARKER.bindTooltip("Check In Location", { permanent: true, direction: 'top', offset: [0, 0] });
+        attendance.attendance_trackings.forEach(tracking => {
 
+            if (!tracking.location) return;
 
+            const [lat, lng] = tracking.location.split(',').map(Number);
+
+            if (isNaN(lat) || isNaN(lng)) return;
+
+            const latlng = [lat, lng];
+
+            const time = tracking.date_time
+                ? new Date(tracking.date_time).toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                })
+                : '-';
+
+            L.marker(latlng)
+                .addTo(MAP_CHECKIN)
+                .bindTooltip(
+                    `Checkpoint ${checkpoint}<br>${time}`,
+                    {
+                        permanent: true,
+                        direction: 'top'
+                    }
+                );
+
+            latlngs.push(latlng);
+            checkpoint++;
+
+        });
+
+    });
+
+    if (latlngs.length > 1) {
+        L.polyline(latlngs, {
+            color: 'blue',
+            weight: 4
+        }).addTo(MAP_CHECKIN);
     }
 }
 

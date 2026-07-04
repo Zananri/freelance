@@ -118,6 +118,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
     Route::get('/attendance/get-attendance-employee-by-month', [AttendanceController::class, 'getAttendanceEmployeeByMonth'])->name('attendance.getAttendanceEmployeeByMonth');
+    Route::get('/attendance/get-attendance-today', [AttendanceController::class, 'getAttendanceToday'])->name('attendance.getDailyAttendance');
 
     Route::post('/attendance/submit-checkin', [AttendanceController::class, 'submitCheckin'])->name('attendance.submitCheckin');
     Route::post('/attendance/submit-checkout', [AttendanceController::class, 'submitCheckout'])->name('attendance.submitCheckout');
