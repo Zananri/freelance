@@ -332,6 +332,16 @@
                     @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
                     
                     <li>
+                        <a href="{{ route('recruitment') }}" class="{{ $menu_active == 'recruitment' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">badge</span>
+                            <span class="text-menu">Recruitment</span>
+                        </a>
+                    </li>
+                    @endif
+
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
+                    
+                    <li>
                         <a href="{{ route('attendance_tracking') }}" class="{{ $menu_active == 'attendance_tracking' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">calendar_clock</span>
                             <span class="text-menu">Attendance Tracking</span>

@@ -1,0 +1,156 @@
+.employee-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background: #179bff;
+}
+.position-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background: #017dc0;
+}
+.applicants-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background: #2ecb71;
+}
+.schedule-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background: #f39a3c;
+}
+
+.title-total-employees {
+    color: #8f8f8f;
+    font-size: 14px;
+}
+
+.total-employees {
+    color: #212529;
+    font-size: 16px;
+}
+
+.tranding-up-chart {
+    color: #2ecb71;
+    font-size: 12px;
+}
+
+.tranding-down-chart {
+    color: #dc143c;
+    font-size: 12px;
+}
+
+.tranding-chart .material-symbols-outlined {
+    font-size: 18px;
+    font-variation-settings:
+        "FILL" 0,
+        "wght" 500,
+        "GRAD" 0,
+        "opsz" 24;
+}
+
+.text-chart {
+    color: #8f8f8f;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.pipeline-wrapper {
+    display: flex;
+    gap: 18px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+}
+
+.pipeline-wrapper::-webkit-scrollbar {
+    height: 6px;
+}
+
+.pipeline-wrapper::-webkit-scrollbar-thumb {
+    background: #cfcfcf;
+    border-radius: 20px;
+}
+
+.pipeline-column {
+    min-width: 220px;
+    width: 220px;
+    flex-shrink: 0;
+}
+
+.pipeline-card {
+    background: transparent;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.pipeline-header {
+    padding: 12px 15px;
+}
+
+.pipeline-body {
+    padding: 12px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.pipeline-body::-webkit-scrollbar {
+    width: 5px;
+}
+
+.pipeline-body::-webkit-scrollbar-thumb {
+    background: #c7c7c7;
+    border-radius: 20px;
+}
+
+.pipeline-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.candidate-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8f9fc;
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.candidate-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+}
+
+.candidate-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #d9d9d9;
+    flex-shrink: 0;
+}
+
+.candidate-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.candidate-position {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+.quick-btn-action,
+.quick-btn-action:hover {
+    border: 1px solid #676F7A;
+    border-radius: 5px;
+    color: #333;
+    font-size: 10px;
+}
