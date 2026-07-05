@@ -25,7 +25,7 @@
     <div class="title-content mb-3">
         <div class="d-flex align-items-center">
             <div class="w-100">
-                <h2 class="text-title-content">Documents</h2>
+                <h2 id="breadcrumbDocument" class="text-title-content"></h2>
             </div>
             <div class="view-switcher me-2">
                 <div class="switch-indicator"></div>
@@ -43,7 +43,8 @@
                 <input class="form-control custom-form-filter" type="text" name="search_filter" id="search_filter">
             </div>
             <div class="dropdown mx-2">
-                <button class="btn btn-filter-document d-flex align-items-center dropdown-toggle no-caret" data-bs-toggle="dropdown">
+                <button class="btn btn-filter-document d-flex align-items-center dropdown-toggle no-caret"
+                    data-bs-toggle="dropdown">
                     <span class="material-symbols-outlined">filter_list</span>
                     <span class="ms-2">Filter</span>
                 </button>
@@ -59,8 +60,8 @@
                     <span class="material-symbols-outlined">add</span>
                 </button>
                 <div class="dropdown-menu">
-                    <div class="dropdown-item add-doc">Add Folder</div>
-                    <div class="dropdown-item add-doc">Add Files</div>
+                    <div class="dropdown-item add-doc add-folder">Add Folder</div>
+                    <div class="dropdown-item add-doc add-files">Add Files</div>
                 </div>
             </div>
         </div>
@@ -91,51 +92,78 @@
                         <th></th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td class="d-flex align-items-center">
-                            <span class="material-symbols-outlined me-2">folder</span>
-                            Payslip
-                        </td>
-                        <td>John Doe</td>
-                        <td>-</td>
-                        <td>20 June 2026</td>
-                        <td></td>
-                    </tr>
+                <tbody id="tableFolderBody">
                 </tbody>
             </table>
         </div>
     </div>
 
     {{-- Grid View --}}
-    <div class="grid-view d-none mt-5">
+    <div class="grid-view d-none mt-5" id="gridFolderBody">
         <div class="folder-wrapper">
             <div class="folder-shadow-tab"></div>
             <div class="folder-shadow"></div>
             <div class="folder-tab"></div>
             <div class="folder-body">
-                <p class="folder-name">John Doe</p>
-                <p class="folder-role">Data Analyst</p>
+                <p class="folder-name"></p>
+                <p class="folder-role"></p>
                 <hr class="folder-divider">
                 <div class="folder-footer">
                     <div class="folder-avatar"></div>
-                    <span class="folder-items">4 Items</span>
+                    <span class="folder-items"></span>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="folder-wrapper">
-            <div class="folder-shadow-tab"></div>
-            <div class="folder-shadow"></div>
-            <div class="folder-tab"></div>
-            <div class="folder-body">
-                <p class="folder-name">Jane Smith</p>
-                <p class="folder-role">UI Designer</p>
-                <hr class="folder-divider">
-                <div class="folder-footer">
-                    <div class="folder-avatar"></div>
-                    <span class="folder-items">7 Items</span>
-                </div>
+    <div class="modal fade" id="modalCreateFolder" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+
+                <form id="formCreateFolder">
+
+                    @csrf
+
+                    <div class="modal-header border-0 position-relative d-flex justofy-content-center">
+                        <h5 class="modal-title modal-title-custom">
+                            Create Folder
+                        </h5>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="modal">
+                        </button>
+                    </div>
+
+                    <div class="modal-body modal-footer-custom">
+
+                        <input type="hidden" id="parent_folder_id" name="parent_folder_id">
+                        
+                        <div class="mb-3">
+
+                            <label class="form-label label-custom">
+                                Folder Name
+                            </label>
+
+                            <input type="text" class="form-control input-text border-0" id="folder_name"
+                                name="folder_name" placeholder="Enter folder name">
+
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom">
+
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+
+                        <button type="submit" class="btn btn-submit-black">
+                            Create
+                        </button>
+
+                    </div>
+
+                </form>
+
             </div>
         </div>
     </div>

@@ -2,20 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Document extends Model
+class DocumentFolders extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'employee_id',
-        'folder_id',
-        'file_name',
-        'file_path',
-        'file_type',
-        'file_size',
+        'folder_name',
+        'parent_folder_id',
         'created_by',
         'updated_by',
     ];
@@ -23,5 +20,10 @@ class Document extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

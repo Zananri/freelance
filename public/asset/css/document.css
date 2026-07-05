@@ -2,6 +2,32 @@
     min-height: 70%;
 }
 
+#breadcrumbDocument {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.breadcrumb-root {
+    cursor: pointer;
+}
+
+.breadcrumb-folder,
+.breadcrumb-folder:hover {
+    font-size: 20px;
+    font-weight: 300;
+    color: #333;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.breadcrumb-arrow {
+    font-size: 24px;
+    color: #333;
+    user-select: none;
+}
+
 .search-input-container {
     position: relative;
     width: 200px;
@@ -123,6 +149,18 @@
     width: 100%;
 }
 
+.empty-folder {
+    grid-column: 1 / -1;
+    min-height: 400px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    color: #8d8d8d;
+}
+
 .folder-wrapper {
     position: relative;
     width: 100%;
@@ -205,6 +243,10 @@
     color: #a05c00;
 }
 
+.folder-row {
+    cursor: pointer;
+}
+
 .btn-filter-document,
 .btn-filter-document:hover,
 .btn-filter-document:active {
@@ -240,4 +282,56 @@
     background: #444;
     color: #e9eef4;
     transition: 0.2s;
+}
+
+.label-custom {
+    font-weight: 400;
+    font-size: 14px;
+}
+
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 12px 12px;
+    background: rgb(240, 241, 248);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+.modal-title-custom {
+    font-weight: 300;
+    font-size: 28px;
+    color: rgb(103, 111, 122);
+}
+
+.modal-body-custom {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+}
+
+.modal-footer-custom {
+    width: 100%;
+    border: none;
+    justify-content: center;
+    margin-top: 3rem;
+    padding: 5px;
+}
+
+.modal-footer-custom button {
+    height: 50px;
+    width: 48%;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.modal-footer-custom .submit-employee-btn {
+    background: #444444;
+    color: #e3e4ee;
+}
+
+.modal-footer-custom .btn-light {
+    background: #e3e4ee;
+    color: #596069;
+    border: none;
 }
