@@ -66,6 +66,18 @@
     border: none;
 }
 
+.btn-menu-folder,
+.btn-menu-folder:hover {
+    color: #333;
+    border: none;
+}
+
+.edit-folder .material-symbols-outlined,
+.delete-folder .material-symbols-outlined {
+    font-size: 18px;
+    vertical-align: middle;
+}
+
 .view-switcher {
     position: relative;
     display: flex;

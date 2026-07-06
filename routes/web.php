@@ -106,8 +106,9 @@ Route::middleware('auth')->group(function () {
     // Document routes
     Route::get('/document', [DocumentController::class, 'documentPage'])->name('document');
     Route::get('/document/get-all-folder', [DocumentController::class, 'getAllFolder'])->name('document.getAllFolder');
-    Route::post('/document/create-folder', [DocumentController::class, 'createFolder'])
-        ->name('document.create-folder');
+    Route::post('/document/create-folder', [DocumentController::class, 'createFolder'])->name('document.create-folder');
+    Route::post('/document/update-folder', [DocumentController::class, 'updateFolder'])->name('document.update-folder');
+    Route::delete('/document/delete-folder/{id}', [DocumentController::class, 'deleteFolder'])->name('document.delete-folder');
 
     // Notification routes
     Route::get('/notifications', [NotificationController::class, 'getUserNotifications'])->name('notifications.index');

@@ -73,11 +73,11 @@
             <table class="document-table">
                 <thead>
                     <tr>
-                        <th>
+                        <th class="sortable" data-sort="folder_name">
                             Name
                             <span class="material-symbols-outlined">swap_vert</span>
                         </th>
-                        <th>
+                        <th class="sortable" data-sort="owner">
                             Owner
                             <span class="material-symbols-outlined">swap_vert</span>
                         </th>
@@ -85,7 +85,7 @@
                             File Size
                             <span class="material-symbols-outlined">swap_vert</span>
                         </th>
-                        <th>
+                        <th class="sortable" data-sort="updated_at">
                             Last Update
                             <span class="material-symbols-outlined">swap_vert</span>
                         </th>
@@ -163,6 +163,85 @@
                     </div>
 
                 </form>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalEditFolder" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+
+                <form id="formEditFolder">
+
+                    @csrf
+
+                    <div class="modal-header border-0 position-relative d-flex justofy-content-center">
+                        <h5 class="modal-title modal-title-custom">
+                            Rename Folder
+                        </h5>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body modal-footer-custom">
+
+                        <input type="hidden" id="edit_folder_id" name="folder_id">
+
+                        <div class="mb-3">
+
+                            <label class="form-label label-custom">
+                                Folder Name
+                            </label>
+
+                            <input type="text" class="form-control input-text border-0" id="edit_folder_name" name="folder_name" placeholder="Enter folder name">
+
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom">
+
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+
+                        <button type="submit" class="btn btn-submit-black">
+                            Save
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalDeleteFolder" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+
+                <div class="modal-header border-0 position-relative d-flex justofy-content-center">
+                    <h5 class="modal-title modal-title-custom">
+                        Confirm Delete
+                    </h5>
+
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body modal-footer-custom text-center">
+                    <p>Are you sure you want to delete this folder and all its child folders?</p>
+                </div>
+
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                        No
+                    </button>
+                    <button type="button" class="btn btn-submit-black" id="confirmDeleteFolder">
+                        Yes
+                    </button>
+                </div>
 
             </div>
         </div>

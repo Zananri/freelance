@@ -50,11 +50,34 @@ class DocumentController extends Controller
             $currentFolder = DocumentFolders::find($request->parent_id);
         }
 
-        $folders = DocumentFolders::with('creator')
-            ->where('employee_id', $employeeId)
-            ->where('parent_folder_id', $request->parent_id)
-            ->orderBy('folder_name')
-            ->get();
+        $query = DocumentFolders::query()
+            ->with('creator')
+            ->where('document_folders.employee_id', $employeeId)
+            ->where('document_folders.parent_folder_id', $request->parent_id);
+
+        $sortBy = $request->sort_by ?? 'folder_name';
+        $direction = $request->sort_direction === 'desc' ? 'desc' : 'asc';
+
+        switch ($sortBy) {
+
+            case 'owner':
+                $query->leftJoin('users', 'users.id', '=', 'document_folders.created_by')
+                    ->leftJoin('employees', 'employees.id', '=', 'users.employee_id')
+                    ->select('document_folders.*')
+                    ->orderBy('employees.name', $direction);
+                break;
+
+            case 'updated_at':
+                $query->orderBy('document_folders.updated_at', $direction);
+                break;
+
+            case 'folder_name':
+            default:
+                $query->orderBy('document_folders.folder_name', $direction);
+                break;
+        }
+
+        $folders = $query->get();
 
         return response()->json([
             'folders' => $folders,
@@ -84,6 +107,63 @@ class DocumentController extends Controller
             'status'  => true,
             'message' => 'Folder created successfully.',
             'data'    => $folder
+        ]);
+    }
+
+    public function updateFolder(Request $request)
+    {
+        $request->validate([
+            'folder_id'   => 'required|exists:document_folders,id',
+            'folder_name' => 'required|max:255',
+        ]);
+
+        $employeeId = auth()->user()->employee->id;
+
+        $folder = DocumentFolders::where('id', $request->folder_id)
+            ->where('employee_id', $employeeId)
+            ->firstOrFail();
+
+        $folder->folder_name = $request->folder_name;
+        $folder->updated_by = auth()->id();
+        $folder->save();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Folder name updated successfully.',
+            'data'    => $folder
+        ]);
+    }
+
+    public function deleteFolder($id)
+    {
+        $employeeId = auth()->user()->employee->id;
+
+        $folder = DocumentFolders::where('id', $id)
+            ->where('employee_id', $employeeId)
+            ->firstOrFail();
+
+        $deleteIds = [$folder->id];
+        $currentIds = [$folder->id];
+
+        while (!empty($currentIds)) {
+            $children = DocumentFolders::whereIn('parent_folder_id', $currentIds)
+                ->where('employee_id', $employeeId)
+                ->pluck('id')
+                ->toArray();
+
+            if (empty($children)) {
+                break;
+            }
+
+            $deleteIds = array_merge($deleteIds, $children);
+            $currentIds = $children;
+        }
+
+        DocumentFolders::whereIn('id', $deleteIds)->delete();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Folder and its child folders deleted successfully.',
         ]);
     }
 }
