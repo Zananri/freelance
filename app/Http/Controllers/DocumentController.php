@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Document;
 use App\Models\DocumentFolders;
 
 class DocumentController extends Controller
@@ -55,6 +56,11 @@ class DocumentController extends Controller
             ->where('document_folders.employee_id', $employeeId)
             ->where('document_folders.parent_folder_id', $request->parent_id);
 
+        $fileQuery = Document::query()
+            ->with('employee')
+            ->where('documents.employee_id', $employeeId)
+            ->where('documents.folder_id', $request->parent_id);
+
         $sortBy = $request->sort_by ?? 'folder_name';
         $direction = $request->sort_direction === 'desc' ? 'desc' : 'asc';
 
@@ -65,22 +71,29 @@ class DocumentController extends Controller
                     ->leftJoin('employees', 'employees.id', '=', 'users.employee_id')
                     ->select('document_folders.*')
                     ->orderBy('employees.name', $direction);
+                $fileQuery->leftJoin('employees', 'employees.id', '=', 'documents.employee_id')
+                    ->select('documents.*')
+                    ->orderBy('employees.name', $direction);
                 break;
 
             case 'updated_at':
                 $query->orderBy('document_folders.updated_at', $direction);
+                $fileQuery->orderBy('documents.updated_at', $direction);
                 break;
 
             case 'folder_name':
             default:
                 $query->orderBy('document_folders.folder_name', $direction);
+                $fileQuery->orderBy('documents.file_name', $direction);
                 break;
         }
 
         $folders = $query->get();
+        $files = $fileQuery->get();
 
         return response()->json([
             'folders' => $folders,
+            'files' => $files,
             'breadcrumb' => $this->getBreadcrumb($request->parent_id),
             'current_folder' => $currentFolder
         ]);
@@ -107,6 +120,96 @@ class DocumentController extends Controller
             'status'  => true,
             'message' => 'Folder created successfully.',
             'data'    => $folder
+        ]);
+    }
+
+    public function uploadFiles(Request $request)
+    {
+        $request->validate([
+            'folder_id' => 'nullable|exists:document_folders,id',
+            'files' => 'required|array',
+            'files.*' => 'file|max:1048576',
+        ]);
+
+        $employeeId = auth()->user()->employee->id;
+        $userId = auth()->id();
+        $savedFiles = [];
+        $uploadFolder = $request->folder_id ?? 'root';
+        $destination = public_path("file/documents/{$uploadFolder}");
+
+        if (!file_exists($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        foreach ($request->file('files') as $file) {
+            $originalName = $file->getClientOriginalName();
+            $extension = $file->getClientOriginalExtension();
+            $filename = time() . '_' . uniqid() . '.' . $extension;
+            $fileSize = $file->getSize();
+            $mimeType = $file->getClientMimeType();
+            $file->move($destination, $filename);
+
+            $savedFiles[] = Document::create([
+                'employee_id' => $employeeId,
+                'folder_id' => $request->folder_id,
+                'file_name' => $originalName,
+                'file_path' => "file/documents/{$uploadFolder}/{$filename}",
+                'file_type' => $mimeType,
+                'file_size' => $fileSize,
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Files uploaded successfully.',
+            'data' => $savedFiles,
+        ]);
+    }
+
+    public function updateFile(Request $request)
+    {
+        $request->validate([
+            'file_id' => 'required|exists:documents,id',
+            'file_name' => 'required|max:255',
+        ]);
+
+        $employeeId = auth()->user()->employee->id;
+
+        $document = Document::where('id', $request->file_id)
+            ->where('employee_id', $employeeId)
+            ->firstOrFail();
+
+        $document->file_name = $request->file_name;
+        $document->updated_by = auth()->id();
+        $document->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'File name updated successfully.',
+            'data' => $document,
+        ]);
+    }
+
+    public function deleteFile($id)
+    {
+        $employeeId = auth()->user()->employee->id;
+
+        $document = Document::where('id', $id)
+            ->where('employee_id', $employeeId)
+            ->firstOrFail();
+
+        $filePath = public_path($document->file_path);
+        if (file_exists($filePath)) {
+            @unlink($filePath);
+        }
+
+        $document->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'File deleted successfully.',
         ]);
     }
 

@@ -347,3 +347,11 @@
     color: #596069;
     border: none;
 }
+
+.edit-file .material-symbols-outlined,
+.delete-file .material-symbols-outlined,
+.detail-file .material-symbols-outlined,
+.download-file .material-symbols-outlined {
+    font-size: 18px;
+    vertical-align: middle;
+} 

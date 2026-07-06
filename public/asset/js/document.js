@@ -1,51 +1,67 @@
-$(".switch-btn").click(function () {
-    $(".switch-btn").removeClass("active");
-    $(this).addClass("active");
+const switchButtons = document.querySelectorAll('.switch-btn');
+const switchIndicator = document.querySelector('.switch-indicator');
+const tableView = document.querySelector('.table-view');
+const gridView = document.querySelector('.grid-view');
+const tableBody = document.getElementById('tableFolderBody');
+const gridBody = document.getElementById('gridFolderBody');
+const breadcrumbContainer = document.getElementById('breadcrumbDocument');
+const fileInput = document.getElementById('documentFilesInput');
+const uploadPreviewList = document.getElementById('uploadPreviewList');
+const openFileExplorer = document.getElementById('openFileExplorer');
+const uploadSelectedFilesButton = document.getElementById('uploadSelectedFiles');
+const createFolderForm = document.getElementById('formCreateFolder');
+const editFolderForm = document.getElementById('formEditFolder');
+const editFileForm = document.getElementById('formEditFile');
+const confirmDeleteFileButton = document.getElementById('confirmDeleteFile');
+let currentFolder = null;
+let selectedFiles = [];
+const currentSort = {
+    field: 'folder_name',
+    direction: 'asc'
+};
 
-    if ($(this).data("view") === "grid") {
-        $(".switch-indicator").addClass("grid");
-        $(".grid-view").removeClass("d-none");
-        $(".table-view").addClass("d-none");
-    } else {
-        $(".switch-indicator").removeClass("grid");
-        $(".table-view").removeClass("d-none");
-        $(".grid-view").addClass("d-none");
+function formatBytes(bytes) {
+    if (bytes === 0) {
+        return '0 B';
     }
-});
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(2))} ${sizes[i]}`;
+}
 
-function renderTable(folders) {
-    let html = "";
-    if (folders.length == 0) {
-        $("#tableFolderBody").html(`
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderTable(folders, files = []) {
+    let html = '';
+    if (folders.length === 0 && files.length === 0) {
+        tableBody.innerHTML = `
         <tr>
             <td colspan="5" class="text-center text-muted py-5">
                 Nothing documents found
             </td>
         </tr>
-    `);
-
+        `;
         return;
     }
-
     folders.forEach((folder) => {
         html += `
             <tr class="folder-row" data-id="${folder.id}" data-folder-name="${folder.folder_name}">
                 <td>
                     <div class="d-flex align-items-center">
-                        <span class="material-symbols-outlined me-2">
-                            folder
-                        </span>
-
+                        <span class="material-symbols-outlined me-2">folder</span>
                         ${folder.folder_name}
                     </div>
                 </td>
-
-                <td>${folder.creator.name || "Unknown"}</td>
-
+                <td>${folder.creator?.name || 'Unknown'}</td>
                 <td>-</td>
-
                 <td>${formatDateWithSlash(folder.updated_at)}</td>
-
                 <td>
                     <div class="dropdown">
                         <button class="btn btn-menu-folder px-3 py-2 dropdown-toggle no-caret" data-bs-toggle="dropdown">
@@ -60,331 +76,505 @@ function renderTable(folders) {
             </tr>
         `;
     });
-
-    $("#tableFolderBody").html(html);
+    files.forEach((file) => {
+        const href = file.file_path.startsWith('/') ? file.file_path : `/${file.file_path}`;
+        html += `
+            <tr class="file-row" data-file-id="${file.id}" data-file-name="${escapeHtml(file.file_name)}" data-file-url="${href}" data-file-size="${file.file_size}" data-file-type="${escapeHtml(file.file_type)}" data-file-updated="${file.updated_at}">
+                <td>
+                    <div class="d-flex align-items-center">
+                        <span class="material-symbols-outlined me-2">insert_drive_file</span>
+                        ${escapeHtml(file.file_name)}
+                    </div>
+                </td>
+                <td>${file.employee?.name || 'Unknown'}</td>
+                <td>${formatBytes(file.file_size)}</td>
+                <td>${formatDateWithSlash(file.updated_at)}</td>
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-menu-folder px-3 py-2 dropdown-toggle no-caret" data-bs-toggle="dropdown">
+                            <span class="material-symbols-outlined">more_vert</span>
+                        </button>
+                        <div class="dropdown-menu">
+                            <div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
+                            <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
+                            <div class="dropdown-item add-doc detail-file"><span class="material-symbols-outlined me-2">info</span>Detail</div>
+                            <div class="dropdown-item add-doc download-file"><span class="material-symbols-outlined me-2">download</span>Download</div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    tableBody.innerHTML = html;
 }
 
-$(document).on("click", ".btn-menu-folder", function (e) {
-    e.stopPropagation();
-});
-
-function renderGrid(folders) {
-    let html = "";
-
-    if (folders.length == 0) {
-        $("#gridFolderBody").html(`
+function renderGrid(folders, files = []) {
+    let html = '';
+    if (folders.length === 0 && files.length === 0) {
+        gridBody.innerHTML = `
             <div class="empty-folder">
                 <p>Nothing documents found</p>
             </div>
-        `);
-
+        `;
         return;
     }
-
     folders.forEach((folder) => {
         html += `
-            <div class="folder-wrapper folder-card"
-                 data-id="${folder.id}">
-
+            <div class="folder-wrapper folder-card" data-id="${folder.id}">
                 <div class="folder-shadow-tab"></div>
-
                 <div class="folder-shadow"></div>
-
                 <div class="folder-tab"></div>
-
                 <div class="folder-body">
-
-                    <p class="folder-name">
-                        ${folder.folder_name}
-                    </p>
-
-                    <p class="folder-role">
-                        ${folder.creator.name || "Unknown"}
-                    </p>
-
+                    <p class="folder-name">${folder.folder_name}</p>
+                    <p class="folder-role">${folder.creator?.name || 'Unknown'}</p>
                     <hr class="folder-divider">
-
                     <div class="folder-footer">
-
                         <div class="folder-avatar"></div>
-
-                        <span class="folder-items">
-                            ${folder.total_items || "0"} Items
-                        </span>
-
+                        <span class="folder-items">${folder.total_items || '0'} Items</span>
                     </div>
-
                 </div>
-
             </div>
         `;
     });
-
-    $("#gridFolderBody").html(html);
+    files.forEach((file) => {
+        const href = file.file_path.startsWith('/') ? file.file_path : `/${file.file_path}`;
+        html += `
+            <div class="folder-wrapper file-card" data-file-id="${file.id}" data-file-name="${escapeHtml(file.file_name)}" data-file-url="${href}" data-file-size="${file.file_size}" data-file-type="${escapeHtml(file.file_type)}" data-file-updated="${file.updated_at}">
+                <div class="folder-shadow-tab"></div>
+                <div class="folder-shadow"></div>
+                <div class="folder-tab file-tab"></div>
+                <div class="folder-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <p class="folder-name mb-1">${escapeHtml(file.file_name)}</p>
+                            <p class="folder-role mb-0">${file.employee?.name || 'Unknown'}</p>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-menu-folder px-3 py-2 dropdown-toggle no-caret" data-bs-toggle="dropdown">
+                                <span class="material-symbols-outlined">more_vert</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
+                                <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
+                                <div class="dropdown-item add-doc detail-file"><span class="material-symbols-outlined me-2">info</span>Detail</div>
+                                <div class="dropdown-item add-doc download-file"><span class="material-symbols-outlined me-2">download</span>Download</div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="folder-divider">
+                    <div class="folder-footer">
+                        <div class="folder-avatar"></div>
+                        <span class="folder-items">${formatBytes(file.file_size)}</span>
+                    </div>
+                    <a href="${href}" target="_blank" class="stretched-link"></a>
+                </div>
+            </div>
+        `;
+    });
+    gridBody.innerHTML = html;
 }
 
-let currentFolder = null;
-let currentFolderData = null;
-let currentSort = {
-    field: "folder_name",
-    direction: "asc",
-};
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+
+function updateSortIcon() {
+    document.querySelectorAll('.sortable .material-symbols-outlined').forEach((icon) => {
+        icon.textContent = 'swap_vert';
+    });
+    const currentIcon = document.querySelector(`.sortable[data-sort="${currentSort.field}"] .material-symbols-outlined`);
+    if (currentIcon) {
+        currentIcon.textContent = currentSort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward';
+    }
+}
+
+function renderBreadcrumb(breadcrumb = []) {
+    let html = '';
+    if (breadcrumb.length === 0) {
+        breadcrumbContainer.innerHTML = '<span class="breadcrumb-root">Documents</span>';
+        return;
+    }
+    const items = breadcrumb.length > 3 ? [...breadcrumb.slice(-3)] : [...breadcrumb];
+    if (breadcrumb.length > 3) {
+        items.unshift({ id: null, folder_name: 'Documents' });
+    }
+    items.forEach((item, index) => {
+        const isRoot = item.folder_name === 'Documents';
+        html += `<span class="${isRoot ? 'breadcrumb-root breadcrumb-clickable' : 'breadcrumb-folder'}" data-id="${item.id ?? ''}">${item.folder_name}</span>`;
+        if (index !== items.length - 1) {
+            html += '<span class="material-symbols-outlined breadcrumb-arrow">chevron_right</span>';
+        }
+    });
+    breadcrumbContainer.innerHTML = html;
+}
 
 function loadFolder(folderId = null) {
     currentFolder = folderId;
-
-    $.ajax({
-        url: "/document/get-all-folder",
-        type: "GET",
-        data: {
-            parent_id: folderId,
-            sort_by: currentSort.field,
-            sort_direction: currentSort.direction,
-        },
-        success: function (res) {
-            renderBreadcrumb(res.breadcrumb);
-            renderTable(res.folders);
-            renderGrid(res.folders);
-        },
-    });
-}
-
-// Sort By Functionality
-$(document).on("click", ".sortable", function () {
-    const field = $(this).data("sort");
-
-    if (currentSort.field === field) {
-        currentSort.direction =
-            currentSort.direction === "asc" ? "desc" : "asc";
-    } else {
-        currentSort.field = field;
-        currentSort.direction = "asc";
+    const url = new URL('/document/get-all-folder', window.location.origin);
+    if (folderId !== null) {
+        url.searchParams.set('parent_id', folderId);
     }
-
-    updateSortIcon();
-    loadFolder(currentFolder);
-});
-
-function updateSortIcon() {
-    $(".sortable .material-symbols-outlined").text("swap_vert");
-
-    const icon =
-        currentSort.direction === "asc"
-            ? "arrow_upward"
-            : "arrow_downward";
-
-    $(`.sortable[data-sort="${currentSort.field}"] .material-symbols-outlined`)
-        .text(icon);
+    url.searchParams.set('sort_by', currentSort.field);
+    url.searchParams.set('sort_direction', currentSort.direction);
+    fetch(url.toString(), {
+        method: 'GET',
+        credentials: 'same-origin'
+    }).then((response) => response.json()).then((res) => {
+        renderBreadcrumb(res.breadcrumb);
+        renderTable(res.folders, res.files);
+        renderGrid(res.folders, res.files);
+    });
 }
 
-$(document).ready(function () {
-    loadFolder();
-    updateSortIcon();
-});
+function toggleView(view) {
+    if (view === 'grid') {
+        switchIndicator.classList.add('grid');
+        gridView.classList.remove('d-none');
+        tableView.classList.add('d-none');
+    } else {
+        switchIndicator.classList.remove('grid');
+        tableView.classList.remove('d-none');
+        gridView.classList.add('d-none');
+    }
+}
 
-$(document).on('click', '.add-folder', function () {
-
-    $('#folder_name').val('');
-
-    $('#parent_folder_id').val(currentFolder);
-
-    $('#modalCreateFolder').modal('show');
-
-});
-
-$(document).on('click', '.edit-folder', function (e) {
-    e.stopPropagation();
-    const folderRow = $(this).closest('.folder-row');
-    const folderId = folderRow.data('id');
-    const folderName = folderRow.data('folder-name');
-
-    $('#edit_folder_id').val(folderId);
-    $('#edit_folder_name').val(folderName);
-    $('#modalEditFolder').modal('show');
-});
-
-$(document).on('click', '.delete-folder', function (e) {
-    e.stopPropagation();
-    const folderRow = $(this).closest('.folder-row');
-    const folderId = folderRow.data('id');
-
-    $('#confirmDeleteFolder').data('folder-id', folderId);
-    $('#modalDeleteFolder').modal('show');
-});
-
-$("#formCreateFolder").submit(function (e) {
-    e.preventDefault();
-
-    $.ajax({
-        url: "/document/create-folder",
-        type: "POST",
-        data: $(this).serialize(),
-        beforeSend: function () {
-            $("#formCreateFolder button[type=submit]")
-                .prop("disabled", true)
-                .text("Creating...");
-        },
-        success: function (res) {
-            $("#modalCreateFolder").modal("hide");
-            showAlertMsg(res.message);
-            loadFolder(currentFolder);
-            $("#formCreateFolder")[0].reset();
-        },
-        complete: function () {
-            $("#formCreateFolder button[type=submit]")
-                .prop("disabled", false)
-                .text("Create");
-        },
-        error: function (xhr) {
-            let message = "Something went wrong.";
-            if (xhr.responseJSON?.message) {
-                message = xhr.responseJSON.message;
-            }
-            if (xhr.responseJSON?.errors) {
-                message = Object.values(xhr.responseJSON.errors)[0][0];
-            }
-            showAlertMsg(message);
-        },
-    });
-});
-
-$("#formEditFolder").submit(function (e) {
-    e.preventDefault();
-
-    $.ajax({
-        url: "/document/update-folder",
-        type: "POST",
-        data: $(this).serialize(),
-        beforeSend: function () {
-            $("#formEditFolder button[type=submit]")
-                .prop("disabled", true)
-                .text("Saving...");
-        },
-        success: function (res) {
-            $("#modalEditFolder").modal("hide");
-            showAlertMsg(res.message);
-            loadFolder(currentFolder);
-        },
-        complete: function () {
-            $("#formEditFolder button[type=submit]")
-                .prop("disabled", false)
-                .text("Save");
-        },
-        error: function (xhr) {
-            let message = "Something went wrong.";
-            if (xhr.responseJSON?.message) {
-                message = xhr.responseJSON.message;
-            }
-            if (xhr.responseJSON?.errors) {
-                message = Object.values(xhr.responseJSON.errors)[0][0];
-            }
-            showAlertMsg(message);
-        },
-    });
-});
-
-$(document).on('click', '#confirmDeleteFolder', function () {
-    const folderId = $(this).data('folder-id');
-
-    $.ajax({
-        url: `/document/delete-folder/${folderId}`,
-        type: "DELETE",
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        },
-        beforeSend: function () {
-            $('#confirmDeleteFolder').prop('disabled', true).text('Deleting...');
-        },
-        success: function (res) {
-            $('#modalDeleteFolder').modal('hide');
-            showAlertMsg(res.message);
-            loadFolder(currentFolder);
-        },
-        complete: function () {
-            $('#confirmDeleteFolder').prop('disabled', false).text('Yes');
-        },
-        error: function (xhr) {
-            let message = "Something went wrong.";
-            if (xhr.responseJSON?.message) {
-                message = xhr.responseJSON.message;
-            }
-            showAlertMsg(message);
-        },
-    });
-});
-
-$(document).on("click", ".folder-row", function () {
-    const folderId = $(this).data("id");
-
-    loadFolder(folderId);
-});
-
-$(document).on("click", ".folder-row, .folder-card", function () {
-    const folderId = $(this).data("id");
-
-    loadFolder(folderId);
-});
-
-function renderBreadcrumb(breadcrumb = []) {
-
-    let html = '';
-
-    if (!breadcrumb.length) {
-        html = `
-            <span class="breadcrumb-root">Documents</span>
-        `;
-
-        $('#breadcrumbDocument').html(html);
+document.addEventListener('click', function (event) {
+    const switchButton = event.target.closest('.switch-btn');
+    if (switchButton) {
+        switchButtons.forEach((button) => button.classList.remove('active'));
+        switchButton.classList.add('active');
+        toggleView(switchButton.dataset.view);
         return;
     }
-
-    let items = [...breadcrumb];
-
-    if (items.length > 3) {
-        items = items.slice(-3);
-
-        items.unshift({
-            id: null,
-            folder_name: 'Documents'
-        });
-    }
-
-    items.forEach((item, index) => {
-
-        const isRoot = item.folder_name === 'Documents';
-
-        html += `
-            <span
-                class="${isRoot ? 'breadcrumb-root breadcrumb-clickable' : 'breadcrumb-folder'}"
-                data-id="${item.id ?? ''}">
-                ${item.folder_name}
-            </span>
-        `;
-
-        if (index !== items.length - 1) {
-            html += `
-                <span class="material-symbols-outlined breadcrumb-arrow">
-                    chevron_right
-                </span>
-            `;
+    const sortTarget = event.target.closest('.sortable');
+    if (sortTarget) {
+        const field = sortTarget.dataset.sort;
+        if (currentSort.field === field) {
+            currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            currentSort.field = field;
+            currentSort.direction = 'asc';
         }
-    });
-
-    $('#breadcrumbDocument').html(html);
-}
-
-$(document).on('click', '.breadcrumb-folder, .breadcrumb-clickable', function () {
-
-    const id = $(this).data('id');
-
-    loadFolder(id || null);
-
+        updateSortIcon();
+        loadFolder(currentFolder);
+        return;
+    }
+    const addFolder = event.target.closest('.add-folder');
+    if (addFolder) {
+        document.getElementById('folder_name').value = '';
+        document.getElementById('parent_folder_id').value = currentFolder;
+        new bootstrap.Modal(document.getElementById('modalCreateFolder')).show();
+        return;
+    }
+    const addFiles = event.target.closest('.add-files');
+    if (addFiles) {
+        selectedFiles = [];
+        new bootstrap.Modal(document.getElementById('modalUploadFiles')).show();
+        renderUploadPreview();
+        return;
+    }
+    const editTarget = event.target.closest('.edit-folder');
+    if (editTarget) {
+        event.stopPropagation();
+        const row = editTarget.closest('.folder-row');
+        document.getElementById('edit_folder_id').value = row.dataset.id;
+        document.getElementById('edit_folder_name').value = row.dataset.folderName;
+        new bootstrap.Modal(document.getElementById('modalEditFolder')).show();
+        return;
+    }
+    const deleteTarget = event.target.closest('.delete-folder');
+    if (deleteTarget) {
+        event.stopPropagation();
+        const row = deleteTarget.closest('.folder-row');
+        document.getElementById('confirmDeleteFolder').dataset.folderId = row.dataset.id;
+        new bootstrap.Modal(document.getElementById('modalDeleteFolder')).show();
+        return;
+    }
+    const editFileTarget = event.target.closest('.edit-file');
+    if (editFileTarget) {
+        event.stopPropagation();
+        const row = editFileTarget.closest('.file-row, .file-card');
+        document.getElementById('edit_file_id').value = row.dataset.fileId;
+        document.getElementById('edit_file_name').value = row.dataset.fileName;
+        new bootstrap.Modal(document.getElementById('modalEditFile')).show();
+        return;
+    }
+    const deleteFileTarget = event.target.closest('.delete-file');
+    if (deleteFileTarget) {
+        event.stopPropagation();
+        const row = deleteFileTarget.closest('.file-row, .file-card');
+        document.getElementById('confirmDeleteFile').dataset.fileId = row.dataset.fileId;
+        new bootstrap.Modal(document.getElementById('modalDeleteFile')).show();
+        return;
+    }
+    const detailFileTarget = event.target.closest('.detail-file');
+    if (detailFileTarget) {
+        event.stopPropagation();
+        const row = detailFileTarget.closest('.file-row, .file-card');
+        showFileDetail({
+            id: row.dataset.fileId,
+            name: row.dataset.fileName,
+            url: row.dataset.fileUrl,
+            size: row.dataset.fileSize,
+            type: row.dataset.fileType,
+            updated: row.dataset.fileUpdated
+        });
+        new bootstrap.Modal(document.getElementById('modalFileDetail')).show();
+        return;
+    }
+    const downloadFileTarget = event.target.closest('.download-file');
+    if (downloadFileTarget) {
+        event.stopPropagation();
+        const row = downloadFileTarget.closest('.file-row, .file-card');
+        window.open(row.dataset.fileUrl, '_blank');
+        return;
+    }
+    const breadcrumbTarget = event.target.closest('.breadcrumb-folder, .breadcrumb-clickable');
+    if (breadcrumbTarget) {
+        const id = breadcrumbTarget.dataset.id || null;
+        loadFolder(id);
+        return;
+    }
+    const folderRow = event.target.closest('.folder-row');
+    const folderCard = event.target.closest('.folder-card');
+    if (folderRow && !event.target.closest('.dropdown') && !event.target.closest('.edit-folder') && !event.target.closest('.delete-folder')) {
+        loadFolder(folderRow.dataset.id);
+    }
+    if (folderCard && !event.target.closest('.dropdown') && !event.target.closest('.edit-folder') && !event.target.closest('.delete-folder')) {
+        loadFolder(folderCard.dataset.id);
+    }
 });
 
-$(document).on('click', '.breadcrumb-folder', function () {
+function renderUploadPreview() {
+    if (!uploadPreviewList) {
+        return;
+    }
+    if (selectedFiles.length === 0) {
+        uploadPreviewList.innerHTML = '<div class="text-muted">No files selected</div>';
+        return;
+    }
+    uploadPreviewList.innerHTML = selectedFiles.map((file, index) => {
+        return `
+            <div class="d-flex align-items-center justify-content-between border rounded-3 p-2 bg-light">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="material-symbols-outlined">insert_drive_file</span>
+                    <div>
+                        <div class="fw-semibold">${file.name}</div>
+                        <div class="text-muted" style="font-size:.85rem;">${formatBytes(file.size)}</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-index="${index}">×</button>
+            </div>
+        `;
+    }).join('');
+}
 
-    const id = $(this).data('id');
+document.addEventListener('click', function (event) {
+    const removeButton = event.target.closest('#uploadPreviewList button[data-index]');
+    if (removeButton) {
+        const removeIndex = parseInt(removeButton.dataset.index, 10);
+        selectedFiles = selectedFiles.filter((_, index) => index !== removeIndex);
+        renderUploadPreview();
+        return;
+    }
+});
 
-    loadFolder(id);
+openFileExplorer.addEventListener('click', function () {
+    fileInput.click();
+});
 
+fileInput.addEventListener('change', function () {
+    const files = Array.from(fileInput.files);
+    if (files.length === 0) {
+        return;
+    }
+    const validFiles = [];
+    for (const file of files) {
+        if (file.size > 1073741824) {
+            showAlertMsg(`File ${file.name} exceeds 1GB limit`);
+            continue;
+        }
+        validFiles.push(file);
+    }
+    if (validFiles.length === 0) {
+        fileInput.value = '';
+        return;
+    }
+    selectedFiles = selectedFiles.concat(validFiles);
+    renderUploadPreview();
+    fileInput.value = '';
+});
+
+uploadSelectedFilesButton.addEventListener('click', function () {
+    if (selectedFiles.length === 0) {
+        showAlertMsg('No files selected for upload');
+        return;
+    }
+    const formData = new FormData();
+    if (currentFolder !== null) {
+        formData.append('folder_id', currentFolder);
+    }
+    selectedFiles.forEach((file) => {
+        formData.append('files[]', file);
+    });
+    fetch('/document/upload-files', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken()
+        },
+        body: formData
+    }).then((response) => response.json()).then((res) => {
+        if (res.status) {
+            showAlertMsg(res.message);
+            loadFolder(currentFolder);
+            selectedFiles = [];
+            renderUploadPreview();
+            bootstrap.Modal.getInstance(document.getElementById('modalUploadFiles')).hide();
+        } else {
+            showAlertMsg(res.message || 'Upload failed');
+        }
+    }).catch(() => {
+        showAlertMsg('Upload failed');
+    });
+});
+
+function showFileDetail(file) {
+    const content = `
+        <div class="mb-3">
+            <strong>Name:</strong>
+            <div>${escapeHtml(file.name)}</div>
+        </div>
+        <div class="mb-3">
+            <strong>Type:</strong>
+            <div>${escapeHtml(file.type)}</div>
+        </div>
+        <div class="mb-3">
+            <strong>Size:</strong>
+            <div>${formatBytes(Number(file.size) || 0)}</div>
+        </div>
+        <div class="mb-3">
+            <strong>Updated:</strong>
+            <div>${escapeHtml(file.updated)}</div>
+        </div>
+        <div class="mb-3">
+            <strong>Download:</strong>
+            <div><a href="${file.url}" target="_blank" class="text-decoration-none">Download file</a></div>
+        </div>
+    `;
+    document.getElementById('fileDetailContent').innerHTML = content;
+}
+
+editFileForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    const formData = new FormData(editFileForm);
+    fetch('/document/update-file', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken()
+        },
+        body: formData
+    }).then((response) => response.json()).then((res) => {
+        if (res.status) {
+            bootstrap.Modal.getInstance(document.getElementById('modalEditFile')).hide();
+            showAlertMsg(res.message);
+            loadFolder(currentFolder);
+        } else {
+            showAlertMsg(res.message || 'Update failed');
+        }
+    }).catch(() => {
+        showAlertMsg('Update failed');
+    });
+});
+
+confirmDeleteFileButton.addEventListener('click', function () {
+    const fileId = this.dataset.fileId;
+    if (!fileId) {
+        return;
+    }
+    fetch(`/document/delete-file/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken()
+        }
+    }).then((response) => response.json()).then((res) => {
+        if (res.status) {
+            bootstrap.Modal.getInstance(document.getElementById('modalDeleteFile')).hide();
+            showAlertMsg(res.message);
+            loadFolder(currentFolder);
+        } else {
+            showAlertMsg(res.message || 'Delete failed');
+        }
+    }).catch(() => {
+        showAlertMsg('Delete failed');
+    });
+});
+
+createFolderForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    const formData = new FormData(createFolderForm);
+    fetch('/document/create-folder', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken()
+        },
+        body: formData
+    }).then((response) => response.json()).then((res) => {
+        if (res.status) {
+            bootstrap.Modal.getInstance(document.getElementById('modalCreateFolder')).hide();
+            showAlertMsg(res.message);
+            loadFolder(currentFolder);
+            createFolderForm.reset();
+        } else {
+            showAlertMsg(res.message || 'Create folder failed');
+        }
+    }).catch(() => {
+        showAlertMsg('Create folder failed');
+    });
+});
+
+editFolderForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    const formData = new FormData(editFolderForm);
+    fetch('/document/update-folder', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken()
+        },
+        body: formData
+    }).then((response) => response.json()).then((res) => {
+        if (res.status) {
+            bootstrap.Modal.getInstance(document.getElementById('modalEditFolder')).hide();
+            showAlertMsg(res.message);
+            loadFolder(currentFolder);
+        } else {
+            showAlertMsg(res.message || 'Update folder failed');
+        }
+    }).catch(() => {
+        showAlertMsg('Update folder failed');
+    });
+});
+
+document.getElementById('confirmDeleteFolder').addEventListener('click', function () {
+    const folderId = this.dataset.folderId;
+    fetch(`/document/delete-folder/${folderId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken()
+        }
+    }).then((response) => response.json()).then((res) => {
+        if (res.status) {
+            bootstrap.Modal.getInstance(document.getElementById('modalDeleteFolder')).hide();
+            showAlertMsg(res.message);
+            loadFolder(currentFolder);
+        } else {
+            showAlertMsg(res.message || 'Delete failed');
+        }
+    }).catch(() => {
+        showAlertMsg('Delete failed');
+    });
+});
+
+window.addEventListener('DOMContentLoaded', function () {
+    loadFolder();
+    updateSortIcon();
 });

@@ -168,6 +168,33 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalUploadFiles" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header border-0 position-relative d-flex justofy-content-center">
+                    <h5 class="modal-title modal-title-custom">
+                        Upload Files
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body modal-footer-custom">
+                    <div class="mb-3">
+                        <label class="form-label label-custom">Select files</label>
+                        <button type="button" class="btn btn-outline-dark w-100" id="openFileExplorer">
+                            Choose files
+                        </button>
+                        <input type="file" class="d-none" id="documentFilesInput" name="files[]" multiple>
+                    </div>
+                    <div id="uploadPreviewList" class="d-flex flex-column gap-2"></div>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-submit-black" id="uploadSelectedFiles">Upload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="modalEditFolder" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
@@ -243,6 +270,65 @@
                     </button>
                 </div>
 
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalEditFile" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <form id="formEditFile">
+                    @csrf
+                    <div class="modal-header border-0 position-relative d-flex justofy-content-center">
+                        <h5 class="modal-title modal-title-custom">Change File Name</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body modal-footer-custom">
+                        <input type="hidden" id="edit_file_id" name="file_id">
+                        <div class="mb-3">
+                            <label class="form-label label-custom">File Name</label>
+                            <input type="text" class="form-control input-text border-0" id="edit_file_name" name="file_name" placeholder="Enter file name">
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-submit-black">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalDeleteFile" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header border-0 position-relative d-flex justofy-content-center">
+                    <h5 class="modal-title modal-title-custom">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body modal-footer-custom text-center">
+                    <p>Are you sure you want to delete this file?</p>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">No</button>
+                    <button type="button" class="btn btn-submit-black" id="confirmDeleteFile">Yes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalFileDetail" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header border-0 position-relative d-flex justofy-content-center">
+                    <h5 class="modal-title modal-title-custom">File Detail</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body modal-footer-custom" id="fileDetailContent">
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
