@@ -48,10 +48,42 @@
                     <span class="material-symbols-outlined">filter_list</span>
                     <span class="ms-2">Filter</span>
                 </button>
-                <div class="dropdown-menu">
-                    <div class="filter-item mb-1 px-1">
-                        <label class="mb-1" for="">Owner</label>
-                        <input type="text" class="form-control border-0">
+                <div class="dropdown-menu filter-dropdown p-3" style="min-width: 260px;">
+                    <div class="mb-3">
+                    
+                        <label class="form-label label-custom mb-1" for="filter_type">Item Type</label>
+                        <select id="filter_type" class="form-select form-select-sm border-0">
+                            <option value="all">All</option>
+                            <option value="folder">Folder</option>
+                            <option value="file">File</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                    
+                        <label class="form-label label-custom mb-1" for="filter_extension">File Type</label>
+                        <select id="filter_extension" class="form-select form-select-sm border-0">
+                            <option value="all">All</option>
+                            <option value="pdf">PDF</option>
+                            <option value="doc">DOC</option>
+                            <option value="docx">DOCX</option>
+                            <option value="xls">XLS</option>
+                            <option value="xlsx">XLSX</option>
+                            <option value="mp3">MP3</option>
+                            <option value="mp4">MP4</option>
+                            <option value="png">PNG</option>
+                            <option value="jpg">JPG</option>
+                            <option value="jpeg">JPEG</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                    
+                        <label class="form-label label-custom label-custom mb-1" for="filter_updated">Last Update</label>
+                        <select id="filter_updated" class="form-select form-select-sm border-0">
+                            <option value="all">All</option>
+                            <option value="7">Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                            <option value="365">Last year</option>
+                        </select>
                     </div>
                 </div>
             </div>

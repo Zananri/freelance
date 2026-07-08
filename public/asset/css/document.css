@@ -355,3 +355,14 @@
     font-size: 18px;
     vertical-align: middle;
 } 
+
+.dropdown-menu.filter-dropdown::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+    background-color: #9ca3af4c;
+}
+
+.dropdown-menu.filter-dropdown::-webkit-scrollbar-thumb {
+    background-color: #9ca3af7e;
+    border-radius: 4px;
+}

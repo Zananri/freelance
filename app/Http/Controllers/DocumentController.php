@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Document;
 use App\Models\DocumentFolders;
+use Carbon\Carbon;
 
 class DocumentController extends Controller
 {
@@ -60,6 +61,33 @@ class DocumentController extends Controller
             ->with('employee')
             ->where('documents.employee_id', $employeeId)
             ->where('documents.folder_id', $request->parent_id);
+
+        if ($request->search) {
+            $searchTerm = '%' . strtolower($request->search) . '%';
+            $query->whereRaw('LOWER(document_folders.folder_name) LIKE ?', [$searchTerm]);
+            $fileQuery->whereRaw('LOWER(documents.file_name) LIKE ?', [$searchTerm]);
+        }
+
+        if ($request->filter_extension && $request->filter_extension !== 'all') {
+            $extension = strtolower($request->filter_extension);
+            $fileQuery->where(function ($q) use ($extension) {
+                $q->whereRaw('LOWER(documents.file_type) LIKE ?', ["%{$extension}%"])
+                    ->orWhereRaw('LOWER(documents.file_name) LIKE ?', ["%.{$extension}"]);
+            });
+        }
+
+        if ($request->filter_updated && $request->filter_updated !== 'all') {
+            $days = (int) $request->filter_updated;
+            $pastDate = Carbon::now()->subDays($days)->startOfDay();
+            $query->where('document_folders.updated_at', '>=', $pastDate);
+            $fileQuery->where('documents.updated_at', '>=', $pastDate);
+        }
+
+        if ($request->filter_type === 'folder') {
+            $fileQuery->whereRaw('1 = 0');
+        } elseif ($request->filter_type === 'file') {
+            $query->whereRaw('1 = 0');
+        }
 
         $sortBy = $request->sort_by ?? 'folder_name';
         $direction = $request->sort_direction === 'desc' ? 'desc' : 'asc';

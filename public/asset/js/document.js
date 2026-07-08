@@ -13,8 +13,16 @@ const createFolderForm = document.getElementById('formCreateFolder');
 const editFolderForm = document.getElementById('formEditFolder');
 const editFileForm = document.getElementById('formEditFile');
 const confirmDeleteFileButton = document.getElementById('confirmDeleteFile');
+const searchInput = document.getElementById('search_filter');
+const filterTypeSelect = document.getElementById('filter_type');
+const filterExtensionSelect = document.getElementById('filter_extension');
+const filterUpdatedSelect = document.getElementById('filter_updated');
 let currentFolder = null;
 let selectedFiles = [];
+let currentSearch = '';
+let currentFilterType = 'all';
+let currentFilterExtension = 'all';
+let currentFilterUpdated = 'all';
 const currentSort = {
     field: 'folder_name',
     direction: 'asc'
@@ -216,6 +224,18 @@ function loadFolder(folderId = null) {
     }
     url.searchParams.set('sort_by', currentSort.field);
     url.searchParams.set('sort_direction', currentSort.direction);
+    if (currentSearch) {
+        url.searchParams.set('search', currentSearch);
+    }
+    if (currentFilterType && currentFilterType !== 'all') {
+        url.searchParams.set('filter_type', currentFilterType);
+    }
+    if (currentFilterExtension && currentFilterExtension !== 'all') {
+        url.searchParams.set('filter_extension', currentFilterExtension);
+    }
+    if (currentFilterUpdated && currentFilterUpdated !== 'all') {
+        url.searchParams.set('filter_updated', currentFilterUpdated);
+    }
     fetch(url.toString(), {
         method: 'GET',
         credentials: 'same-origin'
@@ -574,7 +594,45 @@ document.getElementById('confirmDeleteFolder').addEventListener('click', functio
     });
 });
 
+function debounce(fn, wait) {
+    let timeout;
+    return function () {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(context, args), wait);
+    };
+}
+
+if (typeof jQuery !== 'undefined') {
+    $(function () {
+        $('#search_filter').on('input', debounce(function () {
+            currentSearch = $(this).val().trim();
+            loadFolder(currentFolder);
+        }, 250));
+
+        $('#filter_type, #filter_extension, #filter_updated').on('change', function () {
+            currentFilterType = $('#filter_type').val() || 'all';
+            currentFilterExtension = $('#filter_extension').val() || 'all';
+            currentFilterUpdated = $('#filter_updated').val() || 'all';
+            loadFolder(currentFolder);
+        });
+    });
+}
+
 window.addEventListener('DOMContentLoaded', function () {
+    if (searchInput && searchInput.value) {
+        currentSearch = searchInput.value.trim();
+    }
+    if (filterTypeSelect) {
+        currentFilterType = filterTypeSelect.value || 'all';
+    }
+    if (filterExtensionSelect) {
+        currentFilterExtension = filterExtensionSelect.value || 'all';
+    }
+    if (filterUpdatedSelect) {
+        currentFilterUpdated = filterUpdatedSelect.value || 'all';
+    }
     loadFolder();
     updateSortIcon();
 });
