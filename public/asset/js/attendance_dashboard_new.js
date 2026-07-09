@@ -331,7 +331,7 @@ $('#checkInModal [name="photo_checkin"]').on('change', function(e){
 
 $('#submitCheckInBtn').click(function(){
     
-    var workOutside = $('#checkInModal input[name="is_work_outside"]:checked').val();
+    // var workOutside = $('#checkInModal input[name="is_work_outside"]:checked').val();
     const employeeLocation = L.latLng(LOC_LATITUDE, LOC_LONGITUDE);
     const distance = LOC_OFFICE.distanceTo(employeeLocation);
 
