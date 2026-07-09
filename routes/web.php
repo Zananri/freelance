@@ -168,6 +168,9 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/calendar_management', [EmployeeCalendarController::class, 'showCalendarPage'])->name('calendar_management');
     
     Route::get('/master', function () {
+        if (Auth::user()->user_type !== 'SUPERADMIN') {
+            return redirect('/');
+        }
         return view('master.master');
     })->name('master');
 

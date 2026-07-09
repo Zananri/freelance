@@ -23,7 +23,7 @@ class EmployeeHelper
         if(in_array($userType, ['ADMINISTRATOR'])){
             //show all departments
         }
-        elseif (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+        elseif (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
             //show all departments
         }else{
             $employee = $employee->where('employees.department_id',$currentEmployee->department_id);

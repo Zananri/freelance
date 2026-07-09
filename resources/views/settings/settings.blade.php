@@ -137,9 +137,9 @@
                                 <div class="select-user-type mb-3"> 
                                     <label for="user-type" class="form-label">User Type</label>
                                     <select id="user-type" name="user_type" class="form-select">
+                                        <option value="SUPERADMIN">SUPERADMIN</option>
                                         <option value="ADMINISTRATOR">ADMINISTRATOR</option>
                                         <option value="REGULAR">REGULAR</option>
-                                        <option value="MANAGEMENT">MANAGEMENT</option>
                                     </select>
                                 </div>
 

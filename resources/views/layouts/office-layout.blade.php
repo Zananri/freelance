@@ -291,7 +291,7 @@
                     </li>
                     
 
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
                     <li>
                         <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">schedule</span>
@@ -306,7 +306,7 @@
                     </li>
                     @endif
 
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
                     <li>
                         <a href="{{ route('employee') }}" class="{{ $menu_active == 'employee' ? 'active' : '' }}  menu-employee ">
                             <span class="material-symbols-outlined">groups</span>
@@ -317,7 +317,7 @@
                     @endif
                     
 
-                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
                     
                     <li>
                         <a href="{{ route('salary_payslip') }}" class="{{ $menu_active == 'salary_payslip' ? 'active' : '' }}  menu-salary-payslip ">
@@ -329,7 +329,7 @@
                     
                     @endif
                     
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
                     
                     <li>
                         <a href="{{ route('recruitment') }}" class="{{ $menu_active == 'recruitment' ? 'active' : '' }}">
@@ -339,7 +339,7 @@
                     </li>
                     @endif
 
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
                     
                     <li>
                         <a href="{{ route('attendance_tracking') }}" class="{{ $menu_active == 'attendance_tracking' ? 'active' : '' }}">
@@ -349,7 +349,7 @@
                     </li>
                     @endif
 
-                    @if ($accessManagementTHD ||(in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
+                    @if ($accessManagementTHD ||(in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
                     <li>
                         <a href="{{ route('leave') }}" class="{{ $menu_active == 'leave' ? 'active' : '' }} menu-leave">
                             <span class="material-symbols-outlined">free_cancellation</span>
@@ -373,7 +373,7 @@
                     
                     @endif
 
-                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
+                    @if (Auth::user()->user_type === 'SUPERADMIN')
                     
 
                     <li>
@@ -490,7 +490,7 @@
     <script src="{{ asset('asset/js/app.js?v=' . time()) }}"></script>
     <script src="{{ asset('asset/js/office.js?v=' . time()) }}"></script>
 
-    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))
+    @if (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']))
     <script src="{{ asset('asset/js/hr_info.js')}}?v={{time() }}"></script>
     @endif
 

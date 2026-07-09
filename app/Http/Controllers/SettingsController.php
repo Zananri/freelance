@@ -109,10 +109,10 @@ class SettingsController extends Controller
 
         try{
 
-            // ADMINISTRATOR REGULAR MANAGEMENT  
+            // SUPERADMIN ADMINISTRATOR REGULAR  
             // GENERAL_MANAGER MANAGER LEADER HR_MANAGER FINANCE_MANAGER EMPLOYEE
             $request->validate([
-                'user_type' => 'required|string|in:ADMINISTRATOR,REGULAR,MANAGEMENT',
+                'user_type' => 'required|string|in:SUPERADMIN,ADMINISTRATOR,REGULAR',
                 'user_role' => 'required|string|in:ADMINISTRATOR,CEO,GENERAL_MANAGER,MANAGER,LEADER,HR_MANAGER,PERSONAL_ASSISTANT,FINANCE_MANAGER,EMPLOYEE',
 
                 'employee_id' => 'required|numeric',

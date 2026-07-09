@@ -18,15 +18,15 @@ class Management
     public function handle(Request $request, Closure $next): Response
     {
         $userType = explode(',',Auth::user()->user_type) ;
-        $arrUserAllow = array('MANAGEMENT','ADMINISTRATOR');
+        $arrUserAllow = array('ADMINISTRATOR','SUPERADMIN');
         
-        if(Auth::user()->user_type == 'ADMINISTRATOR'){
+        if(Auth::user()->user_type == 'SUPERADMIN'){
             return $next($request);
         }
         elseif(Auth::user()->employee->department_id == 3 && Auth::user()->employee->division_id == 26){
             return $next($request);
         }
-        elseif(in_array(Auth::user()->user_type,['MANAGEMENT']) && in_array(Auth::user()->user_role,['CEO','GENERAL_MANAGER','HR_MANAGER'])){
+        elseif(in_array(Auth::user()->user_type,['ADMINISTRATOR']) && in_array(Auth::user()->user_role,['CEO','GENERAL_MANAGER','HR_MANAGER'])){
             return $next($request);
         }
 

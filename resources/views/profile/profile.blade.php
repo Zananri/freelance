@@ -19,7 +19,7 @@
                     <div class=" bg-card-1 rounded-4 p-5 pt-4 text-center position-relative">
 
                         
-                        @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER']))
+                        @if (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER']))
                         
                         @php
                             $data_to_encrypt = Auth::user()->id.','.Auth::user()->email; // The string you want to encrypt
