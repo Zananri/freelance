@@ -15,6 +15,8 @@ const createFolderForm = document.getElementById("formCreateFolder");
 const editFolderForm = document.getElementById("formEditFolder");
 const editFileForm = document.getElementById("formEditFile");
 const confirmDeleteFileButton = document.getElementById("confirmDeleteFile");
+const tableLoader = document.getElementById("tableLoader");
+const gridLoader = document.getElementById("gridLoader");
 const searchInput = document.getElementById("search_filter");
 const filterTypeSelect = document.getElementById("filter_type");
 const filterExtensionSelect = document.getElementById("filter_extension");
@@ -109,7 +111,6 @@ function renderTable(folders, files = []) {
                         <div class="dropdown-menu">
                             <div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
                             <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
-                            <div class="dropdown-item add-doc detail-file"><span class="material-symbols-outlined me-2">info</span>Detail</div>
                             <div class="dropdown-item add-doc download-file"><span class="material-symbols-outlined me-2">download</span>Download</div>
                         </div>
                     </div>
@@ -214,20 +215,21 @@ function renderGrid(folders, files = []) {
                                 <span class="material-symbols-outlined">more_vert</span>
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
-                                <div class="dropdown-item detail-file">Detail</div>
-                                <div class="dropdown-item download-file">Download</div>
-                                <div class="dropdown-item delete-file">Delete</div>
+                                <div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
+                                <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
+                                <div class="dropdown-item add-doc download-file"><span class="material-symbols-outlined me-2">download</span>Download</div>
                             </div>
                         </div>
                     </div>
                     <div class="file-preview">
-                        ${preview}
+                        <a href="${href}" target="_blank" class="file-preview-link">
+                            ${preview}
+                        </a>
                     </div>
                     <div class="file-info">
                         <div class="file-title">${escapeHtml(file.file_name)}</div>
                         <div class="file-subtitle">${file.employee?.name ?? "Unknown"}</div>
                     </div>
-                    <a href="${href}" target="_blank" class="stretched-link"></a>
                 </div>
             `;
         });
@@ -245,6 +247,24 @@ function getCsrfToken() {
     return document
         .querySelector('meta[name="csrf-token"]')
         .getAttribute("content");
+}
+
+function showDocumentLoaders() {
+    if (tableLoader) {
+        tableLoader.style.display = "block";
+    }
+    if (gridLoader) {
+        gridLoader.style.display = "block";
+    }
+}
+
+function hideDocumentLoaders() {
+    if (tableLoader) {
+        tableLoader.style.display = "none";
+    }
+    if (gridLoader) {
+        gridLoader.style.display = "none";
+    }
 }
 
 function updateSortIcon() {
@@ -305,6 +325,7 @@ function loadFolder(folderId = null) {
     if (currentFilterUpdated && currentFilterUpdated !== "all") {
         url.searchParams.set("filter_updated", currentFilterUpdated);
     }
+    showDocumentLoaders();
     fetch(url.toString(), {
         method: "GET",
         credentials: "same-origin",
@@ -314,6 +335,12 @@ function loadFolder(folderId = null) {
             renderBreadcrumb(res.breadcrumb);
             renderTable(res.folders, res.files);
             renderGrid(res.folders, res.files);
+        })
+        .catch(() => {
+            showAlertMsg("Failed to load documents");
+        })
+        .finally(() => {
+            hideDocumentLoaders();
         });
 }
 
@@ -404,21 +431,6 @@ document.addEventListener("click", function (event) {
         document.getElementById("confirmDeleteFile").dataset.fileId =
             row.dataset.fileId;
         new bootstrap.Modal(document.getElementById("modalDeleteFile")).show();
-        return;
-    }
-    const detailFileTarget = event.target.closest(".detail-file");
-    if (detailFileTarget) {
-        event.stopPropagation();
-        const row = detailFileTarget.closest(".file-row, .file-card");
-        showFileDetail({
-            id: row.dataset.fileId,
-            name: row.dataset.fileName,
-            url: row.dataset.fileUrl,
-            size: row.dataset.fileSize,
-            type: row.dataset.fileType,
-            updated: row.dataset.fileUpdated,
-        });
-        new bootstrap.Modal(document.getElementById("modalFileDetail")).show();
         return;
     }
     const downloadFileTarget = event.target.closest(".download-file");

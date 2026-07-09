@@ -100,7 +100,14 @@
     </div>
 
     {{-- Table View --}}
-    <div class="body-content scrollable-container table-view rounded-4 p-3">
+    <div class="body-content scrollable-container table-view rounded-4 p-3 position-relative">
+        <div id="tableLoader" class="loader">
+            <div class="box-loader rounded-4 bg-body bg-opacity-75 position-absolute top-0 start-0 w-100 h-100">
+                <div class="spinner-border text-secondary" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <table class="document-table">
                 <thead>
@@ -131,7 +138,14 @@
     </div>
 
     {{-- Grid View --}}
-    <div class="grid-view d-none mt-5" id="gridFolderBody">
+    <div class="grid-view d-none mt-5 position-relative" id="gridFolderBody">
+        <div id="gridLoader" class="loader">
+            <div class="box-loader rounded-4 bg-body bg-opacity-75 position-absolute top-0 start-0 w-100 h-100">
+                <div class="spinner-border text-secondary" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
         <div class="folder-wrapper">
             <div class="folder-shadow-tab"></div>
             <div class="folder-shadow"></div>

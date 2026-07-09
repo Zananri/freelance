@@ -158,10 +158,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/calendar/new-employee-event', [EmployeeCalendarController::class, 'newEmployeeEvent'])->name('calendar.newEmployeeEvent');
     Route::post('/calendar/edit-employee-event', [EmployeeCalendarController::class, 'editEmployeeEvent'])->name('calendar.editEmployeeEvent');
     Route::post('/calendar/delete-employee-event', [EmployeeCalendarController::class, 'deleteEmployeeEvent'])->name('calendar.deleteEmployeeEvent');
-
-    // Contributions heatmap for employee (completed tasks per day)
-    Route::get('/employees/{id}/contributions', [TaskController::class, 'getEmployeeContributions'])
-        ->name('employees.contributions');
 });
 
 
