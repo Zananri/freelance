@@ -152,7 +152,7 @@ function renderGrid(folders, files = []) {
                                 <p class="folder-role mb-0">${folder.creator?.name || "Unknown"}</p>
                             </div>
                             <div class="folder-card-actions dropdown">
-                                <button class="btn btn-menu-folder px-3 py-2 dropdown-toggle no-caret" data-bs-toggle="dropdown">
+                                <button class="btn btn-menu-folder p-0 dropdown-toggle no-caret" data-bs-toggle="dropdown">
                                     <span class="material-symbols-outlined">more_vert</span>
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-end">
