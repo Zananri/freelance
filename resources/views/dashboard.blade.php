@@ -34,8 +34,6 @@
                             <div class="profile-image-container">
 
                                 <input type="hidden" name="employee_id" value="{{ $employee->id }}">
-                                <input type="hidden" id="contrib-endpoint"
-                                    value="{{ route('employees.contributions', ['id' => $employee->id]) }}">
                                 <input type="hidden" name="employee_office" value="{{ $office->location }}">
 
                                 @php

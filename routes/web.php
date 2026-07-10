@@ -15,6 +15,7 @@ use App\Http\Controllers\EmployeeTimeOffController;
 
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\RecruitmentController;
+use App\Http\Controllers\MonitoringController;
 
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
@@ -260,6 +261,9 @@ Route::middleware('auth', 'management')->group(function () {
     Route::post('/weekday_off/save-employee-weekday-off', [WeekdayOffController::class, 'saveEmployeeWeekdayoff'])->name('weekday_off.saveEmployeeWeekdayoff');
 
     Route::get('recruitment', [RecruitmentController::class, 'showRecruitmentPage'])->name('recruitment');
+
+    Route::get('/monitoring', [MonitoringController::class, 'showMonitoringPage'])->name('monitoring');
+    Route::get('/monitoring/data', [MonitoringController::class, 'getMonitoringData'])->name('monitoring.data');
 
     Route::get('/hr-info/count-employee-request', [HRInfoController::class, 'countEmployeeRequest'])->name('hr_info.countEmployeeRequest');
 });

@@ -293,6 +293,14 @@
 
                     @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
                     <li>
+                        <a href="{{ route('monitoring') }}" class="{{ $menu_active == 'monitoring' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">monitor</span>
+                            <span class="text-menu">Monitoring</span>
+                        </a>
+                    </li>
+                    @endif
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
+                    <li>
                         <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">schedule</span>
                             <span class="text-menu">Shift</span>

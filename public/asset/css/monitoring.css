@@ -1,0 +1,141 @@
+.monitoring-wrapper {
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+}
+
+.monitoring-sidebar {
+    width: 320px;
+    flex-shrink: 0;
+}
+
+.monitoring-map-container {
+    flex: 1;
+}
+
+.monitoring-map-card {
+    background-color: rgb(240, 241, 248);
+    border-radius: 20px;
+    padding: 18px;
+}
+
+#monitoringMap {
+    width: 100%;
+    height: 500px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #f8f9fc;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.monitoring-card {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    padding: 18px;
+    background-color: rgb(240, 241, 248);
+}
+
+.monitoring-card .form-control,
+.monitoring-card .form-select,
+.monitoring-card .input-group-text {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    color: #2A3542;
+}
+
+.monitoring-card .input-group-text {
+    background: #F0F1F8;
+    border-right: 0;
+}
+
+.monitoring-card .form-control:focus,
+.monitoring-card .form-select:focus {
+    box-shadow: none;
+    border-color: #4d8dff;
+}
+
+.monitoring-card h6 {
+    font-size: 16px;
+    color: #2A3542;
+    margin: 0;
+}
+
+#divisionList,
+#employeeList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+#divisionList::-webkit-scrollbar,
+#employeeList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#divisionList::-webkit-scrollbar-thumb,
+#employeeList::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.16);
+    border-radius: 20px;
+}
+
+.division-item,
+.employee-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.25s ease;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.division-item:hover,
+.employee-item:hover {
+    background: #eff2fb;
+}
+
+.division-item.active,
+.employee-item.active {
+    background: #e1e6f4;
+}
+
+.division-avatar,
+.employee-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #d7d9e4;
+    flex-shrink: 0;
+}
+
+.division-name,
+.employee-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2A3542;
+}
+
+.division-job,
+.employee-job {
+    font-size: 12px;
+    color: #596069;
+}
+
+@media (max-width: 992px) {
+    .monitoring-wrapper {
+        flex-direction: column;
+    }
+
+    .monitoring-sidebar {
+        width: 100%;
+    }
+
+    #monitoringMap {
+        height: 500px;
+    }
+}
