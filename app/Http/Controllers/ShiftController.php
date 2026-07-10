@@ -81,7 +81,7 @@ class ShiftController extends Controller
             });
 
 
-            if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
                 //show all
             }else{
                 $query = $query->where('employees.department_id', $currentEmployee->department_id);

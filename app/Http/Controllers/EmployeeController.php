@@ -81,7 +81,7 @@ class EmployeeController extends Controller
             $employees = Employee::with(['department', 'division', 'job', 'user', 'grade', 'officeModel'])
                 ->where('status', '!=', 'DELETED');
             
-            if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
                 //show all
             }else{
                 $employees = $employees->where('department_id',$currentEmployee->department_id);
@@ -157,7 +157,7 @@ class EmployeeController extends Controller
         $employees = Employee::with(['department', 'division', 'job'])
             ->where('status', '!=', 'DELETED');
         
-        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
             //show all
         }else{
             $employees = $employees->where('department_id',$currentEmployee->department_id);
@@ -671,7 +671,7 @@ class EmployeeController extends Controller
         
         $employee = Employee::find($id);
 
-        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
             //show all
         }else{
             $employee = Employee::where('department_id',$currentEmployee->department_id)->find($id);
@@ -803,7 +803,7 @@ class EmployeeController extends Controller
             ->join('users','employees.user_id','=','users.id')
             ->where('employees.status',"ACTIVE");
 
-        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
             //show all
         }else{
 

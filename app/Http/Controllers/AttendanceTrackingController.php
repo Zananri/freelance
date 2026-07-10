@@ -47,7 +47,7 @@ class AttendanceTrackingController extends Controller
         ->where('employees.status',"ACTIVE");
 
 
-        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
             //show all
         }else{
             $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
@@ -203,7 +203,7 @@ class AttendanceTrackingController extends Controller
             ->join('users','employees.user_id','=','users.id')
             ->where('employees.status',"ACTIVE");
             
-        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
             //show all
         }else{
             $employee = $employee->where('employees.department_id',$currentEmployee->department_id);

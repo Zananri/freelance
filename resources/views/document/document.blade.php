@@ -4,6 +4,9 @@
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/document.css') }}?v={{ date('YmdHi') }}" rel="stylesheet">
+        <meta name="current-user-id" content="{{ auth()->id() }}">
+        <meta name="current-user-type" content="{{ strtoupper(auth()->user()->user_type ?? '') }}">
+        <meta name="current-employee-id" content="{{ auth()->user()->employee->id ?? '' }}">
     </x-slot>
 
     <!-- SVG Symbols -->

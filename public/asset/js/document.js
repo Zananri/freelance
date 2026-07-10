@@ -32,6 +32,9 @@ const currentSort = {
     direction: "asc",
 };
 
+const currentUserEmployeeId = Number(document.querySelector('meta[name="current-employee-id"]')?.content || 0);
+const currentUserType = (document.querySelector('meta[name="current-user-type"]')?.content || '').toUpperCase();
+
 function formatBytes(bytes) {
     if (bytes === 0) {
         return "0 B";
@@ -80,8 +83,8 @@ function renderTable(folders, files = []) {
                             <span class="material-symbols-outlined">more_vert</span>
                         </button>
                         <div class="dropdown-menu">
-                            <div class="dropdown-item add-doc edit-folder"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
-                            <div class="dropdown-item add-doc delete-folder"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
+                            ${Number(folder.employee_id) === currentUserEmployeeId ? `<div class="dropdown-item add-doc edit-folder"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
+                            <div class="dropdown-item add-doc delete-folder"><span class="material-symbols-outlined me-2">delete</span>Delete</div>` : ''}
                         </div>
                     </div>
                 </td>
@@ -109,8 +112,8 @@ function renderTable(folders, files = []) {
                             <span class="material-symbols-outlined">more_vert</span>
                         </button>
                         <div class="dropdown-menu">
-                            <div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
-                            <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
+                            ${Number(file.employee?.id || file.employee_id) === currentUserEmployeeId ? `<div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
+                            <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>` : ''}
                             <div class="dropdown-item add-doc download-file"><span class="material-symbols-outlined me-2">download</span>Download</div>
                         </div>
                     </div>
@@ -215,8 +218,8 @@ function renderGrid(folders, files = []) {
                                 <span class="material-symbols-outlined">more_vert</span>
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
-                                <div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
-                                <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
+                                ${Number(file.employee?.id || file.employee_id) === currentUserEmployeeId ? `<div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
+                                <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>` : ''}
                                 <div class="dropdown-item add-doc download-file"><span class="material-symbols-outlined me-2">download</span>Download</div>
                             </div>
                         </div>

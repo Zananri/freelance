@@ -50,7 +50,7 @@ public function index(Request $request)
     $departmentsQuery->where('status', '!=', 'DELETED');
     }
 
-    if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+    if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
         //show all
     }else{
         $departmentsQuery->where('id', $currentEmployee->department_id);

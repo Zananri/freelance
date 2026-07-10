@@ -47,7 +47,7 @@ class WeekdayOffController extends Controller
         ->join('users','employees.user_id','=','users.id')
         ->where('employees.status',"ACTIVE");
 
-        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
             //show all
             
             $department = Department::where('status','ACTIVE')->get();

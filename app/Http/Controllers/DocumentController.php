@@ -44,7 +44,10 @@ class DocumentController extends Controller
 
     public function getAllFolder(Request $request)
     {
-        $employeeId = auth()->user()->employee->id;
+        $authUser = auth()->user();
+        $employeeId = $authUser->employee->id;
+        $currentEmployee = $authUser->employee;
+        $userType = strtoupper((string) ($authUser->user_type ?? ''));
 
         $currentFolder = null;
 
@@ -52,15 +55,29 @@ class DocumentController extends Controller
             $currentFolder = DocumentFolders::find($request->parent_id);
         }
 
-        $query = DocumentFolders::query()
-            ->with('creator')
-            ->where('document_folders.employee_id', $employeeId)
-            ->where('document_folders.parent_folder_id', $request->parent_id);
+        $query = DocumentFolders::query()->with('creator')->where('document_folders.parent_folder_id', $request->parent_id);
 
-        $fileQuery = Document::query()
-            ->with('employee')
-            ->where('documents.employee_id', $employeeId)
-            ->where('documents.folder_id', $request->parent_id);
+        $fileQuery = Document::query()->with('employee')->where('documents.folder_id', $request->parent_id);
+
+        // Access rules:
+        // - SUPERADMIN: see all folders/files
+        // - ADMINISTRATOR: see folders/files owned by employees in same department
+        // - REGULAR: only own folders/files
+        if ($userType === 'SUPERADMIN') {
+            // no extra where
+        } elseif ($userType === 'ADMINISTRATOR') {
+            // restrict by department
+            $query->leftJoin('employees', 'employees.id', '=', 'document_folders.employee_id')
+                ->select('document_folders.*')
+                ->where('employees.department_id', $currentEmployee->department_id);
+
+            $fileQuery->leftJoin('employees', 'employees.id', '=', 'documents.employee_id')
+                ->select('documents.*')
+                ->where('employees.department_id', $currentEmployee->department_id);
+        } else {
+            $query->where('document_folders.employee_id', $employeeId);
+            $fileQuery->where('documents.employee_id', $employeeId);
+        }
 
         if ($request->search) {
             $searchTerm = '%' . strtolower($request->search) . '%';
