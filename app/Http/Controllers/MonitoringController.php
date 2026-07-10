@@ -28,8 +28,14 @@ class MonitoringController extends Controller
                     ->whereNotIn('user_type', ['ADMINISTRATOR']);
             });
 
-        if ($userType !== 'SUPERADMIN') {
-            $employeeQuery->where('department_id', $currentEmployee ? $currentEmployee->department_id : 0);
+        if ($currentEmployee) {
+            if ($userType !== 'SUPERADMIN') {
+                $employeeQuery->where('department_id', $currentEmployee->department_id);
+            }
+
+            $employeeQuery->where('id', '!=', $currentEmployee->id);
+        } else {
+            $employeeQuery->whereRaw('0 = 1');
         }
 
         $employees = $employeeQuery->get()->map(function ($employee) {
@@ -44,13 +50,14 @@ class MonitoringController extends Controller
         });
 
         $divisionIds = $employees->pluck('division_id')->filter()->unique()->values();
-        $divisions = Division::whereIn('id', $divisionIds)
+        $divisions = Division::with('department')
+            ->whereIn('id', $divisionIds)
             ->get(['id', 'name_division', 'department_id'])
             ->map(function ($division) {
                 return [
                     'id' => $division->id,
                     'name' => $division->name_division,
-                    'department_id' => $division->department_id,
+                    'department' => $division->department?->name_department,
                 ];
             });
 

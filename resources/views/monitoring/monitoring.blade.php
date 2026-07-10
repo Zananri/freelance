@@ -53,13 +53,12 @@
                 </div>
 
                 <div class="input-group mb-3">
-                    <span class="input-group-text bg-white border-end-0">
-                        <span class="material-symbols-outlined fs-6">
-                            search
-                        </span>
-                    </span>
+                    <div class="search-input-container">
+                        <span class="material-symbols-outlined search-icon division-search">search</span>
+                        <input class="form-control custom-form-filter" type="text" name="search_filter"
+                            id="search_filter">
+                    </div>
 
-                    <input type="text" class="form-control border-0 division-search">
                 </div>
 
                 <div id="divisionList"></div>
@@ -77,13 +76,11 @@
 
                 <div class="input-group mb-3">
 
-                    <span class="input-group-text bg-white border-end-0">
-                        <span class="material-symbols-outlined fs-6">
-                            search
-                        </span>
-                    </span>
-
-                    <input class="form-control border-0 employee-search">
+                    <div class="search-input-container">
+                        <span class="material-symbols-outlined search-icon">search</span>
+                        <input class="form-control custom-form-filter employee-search" type="text" name="search_filter"
+                            id="search_filter">
+                    </div>
 
                 </div>
 
@@ -96,7 +93,7 @@
         <!-- RIGHT PANEL -->
 
         <div class="monitoring-map-container">
-            <div class="card monitoring-card monitoring-map-card">
+            <div class="card monitoring-map-card border-0">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="mb-0 fw-semibold">
                         Map View

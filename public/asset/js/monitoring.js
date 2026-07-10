@@ -110,8 +110,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderDivisionList() {
         var searchTerm = (divisionSearch.value || '').trim().toLowerCase();
+        var activeDivision = divisionFilter.value;
+
         var filtered = divisions.filter(function (division) {
-            return division.name.toLowerCase().indexOf(searchTerm) !== -1;
+            var matchesDivision = activeDivision === 'all' || String(division.id) === String(activeDivision);
+            var matchesSearch = division.name.toLowerCase().indexOf(searchTerm) !== -1 ||
+                (division.department || '').toLowerCase().indexOf(searchTerm) !== -1;
+
+            return matchesDivision && matchesSearch;
         });
 
         divisionListElement.innerHTML = filtered.map(function (division) {
@@ -119,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<div class="d-flex justify-content-between align-items-center">' +
                     '<div>' +
                         '<div class="fw-semibold">' + division.name + '</div>' +
-                        '<div class="text-muted small">Department: ' + division.department_id + '</div>' +
+                        '<div class="text-muted small">Department: ' + division.department + '</div>' +
                     '</div>' +
                 '</div>' +
             '</div>';
@@ -129,6 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
             item.addEventListener('click', function () {
                 var divisionId = item.dataset.divisionId;
                 divisionFilter.value = divisionId;
+                renderDivisionList();
                 renderEmployeeList();
             });
         });
@@ -159,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         '<div class="fw-semibold">' + employee.name + '</div>' +
                         '<div class="small text-muted">' + (employee.division_name || 'No division') + ' • ' + (employee.job_name || 'No job') + '</div>' +
                     '</div>' +
-                    '<div class="text-end">' +
+                    '<div class="text-end fs-8">' +
                         '<div class="small ' + statusClass + '">' + statusLabel + '</div>' +
                         (checkin ? '<div class="small text-muted">' + formatDateTime(checkin.date_time) + '</div>' : '') +
                     '</div>' +
@@ -234,6 +241,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     divisionFilter.addEventListener('change', function () {
         renderEmployeeList();
+        renderDivisionList();
     });
 
     employeeSearch.addEventListener('input', function () {
