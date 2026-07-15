@@ -16,21 +16,21 @@ function getCountAllEmployeeRequest(){
             
             //sidebar-menu menu-leave menu-overtime pill-new-request
             
-            $('.sidebar-menu .menu-employee .pill-new-request').text(response.data.employee_end_contract);
-            $('.sidebar-menu .menu-leave .pill-new-request').text(response.data.employee_leave);
-            $('.sidebar-menu .menu-overtime .pill-new-request').text(response.data.employee_overtime);
+            // $('.sidebar-menu .menu-employee .pill-new-request').text(response.data.employee_end_contract);
+            // $('.sidebar-menu .menu-leave .pill-new-request').text(response.data.employee_leave);
+            // $('.sidebar-menu .menu-overtime .pill-new-request').text(response.data.employee_overtime);
 
-            if(response.data.employee_end_contract > 0){
-                $('.sidebar-menu .menu-employee .pill-new-request').removeClass('d-none');
-            }
+            // if(response.data.employee_end_contract > 0){
+            //     $('.sidebar-menu .menu-employee .pill-new-request').removeClass('d-none');
+            // }
 
-            if(response.data.employee_leave > 0){
-                $('.sidebar-menu .menu-leave .pill-new-request').removeClass('d-none');
-            }
+            // if(response.data.employee_leave > 0){
+            //     $('.sidebar-menu .menu-leave .pill-new-request').removeClass('d-none');
+            // }
 
-            if(response.data.employee_overtime > 0){
-                $('.sidebar-menu .menu-overtime .pill-new-request').removeClass('d-none');
-            }
+            // if(response.data.employee_overtime > 0){
+            //     $('.sidebar-menu .menu-overtime .pill-new-request').removeClass('d-none');
+            // }
         }
          
     });

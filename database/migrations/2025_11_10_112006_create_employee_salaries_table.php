@@ -18,9 +18,9 @@ return new class extends Migration
             $table->double('take_home_pay')->default(0);
             $table->double('basic_salary')->default(0);
             $table->double('positional_allowance')->default(0);
-            $table->double('internet_phone_allowance')->default(0);
-            $table->double('meal_allowance')->default(0);
-            $table->double('transportation_allowance')->default(0);
+            $table->double('bpjs_allowance')->default(0);
+            $table->double('bpjs_tenaga_kerja_allowance')->default(0);
+            $table->double('pension_allowance')->default(0);
             $table->string('bank_name')->nullable();
             $table->string('bank_account_number')->nullable();
             $table->string('bank_account_name')->nullable();

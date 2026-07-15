@@ -17,9 +17,9 @@
     @endphp
     <title>{{ $head_stitle }}</title>
 
-    <meta name="description" content="Office ACER">
-    <meta name="keywords" content="acer, ACER">
-    <meta name="author" content="office.acer.id">
+    <meta name="description" content="Office">
+    <meta name="keywords" content="office">
+    <meta name="author" content="office.id">
     <meta name="robots" content="noindex, nofollow">
 
     <meta name="app-url" content="{{ url('/') }}">
@@ -227,7 +227,7 @@
                         $accessManagementTHD = false;
                         
                         //Management HR
-                        if(auth()->user()->employee->department_id == 3 && auth()->user()->employee->division_id == 26){
+                        if(auth()->user()->employee->department_id == 1 && auth()->user()->employee->division_id == 1){
                             $accessManagementTHD = true;
                         }
                     @endphp

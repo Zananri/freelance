@@ -20,11 +20,11 @@ class OfficeBasicSeeder extends Seeder
         DB::transaction(function () {
             // Create Department
             $department = Department::updateOrCreate(
-                ['name_department' => 'Technology'],
+                ['name_department' => 'Head Office'],
                 [
                     'status' => 'Active',
-                    'description' => 'Technology department handling systems and product engineering.',
-                    'images' => 'asset/img/logo/google.png',
+                    'description' => 'Superadmin Only',
+                    'images' => 'asset/img/logo/logo.png',
                     'created_by' => 1,
                     'updated_by' => 1,
                     'deleted_by' => 1,
@@ -35,12 +35,12 @@ class OfficeBasicSeeder extends Seeder
             $division = Division::updateOrCreate(
                 [
                     'department_id' => $department->id,
-                    'name_division' => 'Engineering',
+                    'name_division' => 'Head Office.',
                 ],
                 [
                     'status' => 'Active',
                     'description' => 'Application engineering division.',
-                    'images' => 'asset/img/logo/google.png',
+                    'images' => 'asset/img/logo/logo.png',
                     'created_by' => 1,
                     'updated_by' => 1,
                     'deleted_by' => 1,
@@ -52,7 +52,7 @@ class OfficeBasicSeeder extends Seeder
                 [
                     'department_id' => $department->id,
                     'division_id' => $division->id,
-                    'job_name' => 'Software Engineer',
+                    'job_name' => 'Head Office.',
                 ],
                 [
                     'description' => 'Responsible for building and maintaining applications.',
@@ -65,34 +65,34 @@ class OfficeBasicSeeder extends Seeder
 
             // Ensure a user for the employee exists
             $user = User::updateOrCreate(
-                ['email' => 'john.doe@example.com'],
+                ['email' => 'superadminsgs@gmail.com'],
                 [
-                    'name' => 'John Doe',
-                    'user_type' => 'REGULAR',
-                    'user_role' => 'EMPLOYEE',
-                    'password' => 'password',
-                    'photo' => 'asset/img/logo/google.png',
+                    'name' => 'Superadmin SGS',
+                    'user_type' => 'SUPERADMIN',
+                    'user_role' => 'ADMINISTRATOR',
+                    'password' => 'supsgs_2026',
+                    'photo' => 'asset/img/logo/logo.png',
                 ]
             );
 
             // Create Employee
             Employee::updateOrCreate(
                 [
-                    'email' => 'john.doe@example.com',
+                    'email' => 'superadminsgs@gmail.com',
                 ],
                 [
                     'user_id' => $user->id,
                     'department_id' => $department->id,
                     'division_id' => $division->id,
                     'job_id' => $job->id,
-                    'profile_picture' => null,
-                    'name' => 'John Doe',
-                    'email_work' => 'john.doe@company.com',
+                    'profile_picture' => 'asset/img/logo/logo.png',
+                    'name' => 'Superadmin SGS',
+                    'email_work' => 'superadminsgs@gmail.com',
                     'phone' => '081234567890',
                     'status' => 'Active',
-                    'address' => 'Jl. Contoh No. 123, Jakarta',
-                    'photo' => 'asset/img/logo/google.png',
-                    'ktp' => 'asset/img/logo/google.png',
+                    'address' => 'Jl. Gn. Sahari No.1 RT.12/RW.6, Ancol, Kec. Pademangan, Jkt Utara, DKI Jakarta 14420',
+                    'photo' => 'asset/img/logo/logo.png',
+                    'ktp' => 'asset/img/logo/logo.png',
                     'birth_date' => '1990-01-01',
                     'hire_date' => '2024-01-01',
                     'resign_date' => null,
@@ -106,33 +106,33 @@ class OfficeBasicSeeder extends Seeder
             );
 
             $user = User::updateOrCreate(
-                ['email' => 'admin@example.com'],
+                ['email' => 'adminsgs@gmail.com'],
                 [
                     'name' => 'Admin User',
                     'user_type' => 'ADMINISTRATOR',
                     'user_role' => 'ADMINISTRATOR',
-                    'password' => 'password',
-                    'photo' => 'asset/img/logo/google.png',
+                    'password' => 'adminsgs_2026',
+                    'photo' => 'asset/img/logo/logo.png',
                 ]
             );
 
             Employee::updateOrCreate(
                 [
-                    'email' => 'admin@example.com',
+                    'email' => 'adminsgs@gmail.com',
                 ],
                 [
                     'user_id' => $user->id,
                     'department_id' => $department->id,
                     'division_id' => $division->id,
                     'job_id' => $job->id,
-                    'profile_picture' => null,
-                    'name' => 'Admin User',
-                    'email_work' => 'admin@office.id',
+                    'profile_picture' => 'asset/img/logo/logo.png',
+                    'name' => 'Admin SGS',
+                    'email_work' => 'adminsgs@gmail.com',
                     'phone' => '087676512376',
                     'status' => 'Active',
-                    'address' => 'Jl. Contoh No. 123, Jakarta',
-                    'photo' => 'asset/img/logo/google.png',
-                    'ktp' => 'asset/img/logo/google.png',
+                    'address' => 'Jl. Gn. Sahari No.1 RT.12/RW.6, Ancol, Kec. Pademangan, Jkt Utara, DKI Jakarta 14420',
+                    'photo' => 'asset/img/logo/logo.png',
+                    'ktp' => 'asset/img/logo/logo.png',
                     'birth_date' => '1990-01-01',
                     'hire_date' => '2024-01-01',
                     'resign_date' => null,

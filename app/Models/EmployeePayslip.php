@@ -20,11 +20,11 @@ class EmployeePayslip extends Model
         'total_working_day_meal',
 
         'take_home_pay',
-        'internet_phone_allowance',
+        'basic_salary',
+        'positional_allowance',
+        '',
         'meal_allowance',
         'transportation_allowance',
-        'positional_allowance',
-        'basic_salary',
 
         'prorate_basic_salary',
         'prorate_positional_allowance',

@@ -16,7 +16,10 @@ class ShiftSeeder extends Seeder
                     'title' => 'Morning Shift',
                     'time_start' => '09:00:00',
                     'time_end' => '18:00:00',
+                    'checkpoint_times' => '',
+                    'total_checkpoint' => '1',
                     'total_hour' => 9,
+                    'status' => 'ACTIVE',
                     'created_by' =>  1,
                     'updated_by' =>  1,
                     'deleted_by' =>  1

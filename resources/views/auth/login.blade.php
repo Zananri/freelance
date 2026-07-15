@@ -4,7 +4,7 @@
         <div class="login-container">
 
             <div class="text-center mb-5">
-                <img src="{{ asset('asset/img/logo.png') }}" width="70" alt="LOGO">
+                <img src="{{ asset('asset/img/logo/logo.png') }}" width="70" alt="LOGO">
             </div>
 
             <div class="login-box-form w-100 mb-5">
