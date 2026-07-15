@@ -899,6 +899,29 @@ $(function () {
         fp.open();
     });
 
+    $("#generateReportBtn").on("click", function () {
+        const btn = $(this);
+        const originalHtml = btn.html();
+        const params = getCurrentDateParams();
+        const query = $.param(params);
+
+        btn.prop("disabled", true).html(
+            `<span class="material-symbols-outlined me-2">hourglass_top</span><small>Generating...</small>`,
+        );
+
+        const url = `${routes.exportExcel}?${query}`;
+
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = url;
+        document.body.appendChild(iframe);
+
+        setTimeout(() => {
+            btn.prop("disabled", false).html(originalHtml);
+            iframe.remove();
+        }, 2000);
+    });
+
     if (window.recruitmentChartData && window.RecruitmentCharts) {
         window.RecruitmentCharts.render(
             Object.assign(

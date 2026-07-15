@@ -163,22 +163,63 @@ class RecruitmentController extends Controller
 
     public function exportRecruitment(Request $request)
     {
+        [$startDate, $endDate] = $this->resolveDateRange($request);
+        [$isSuper, $deptId] = $this->resolveAuthContext($request);
+
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Recruitment Report');
 
-        // Header
-        $sheet->setCellValue('A1', 'No');
-        $sheet->setCellValue('B1', 'Candidate');
-        $sheet->setCellValue('C1', 'Position');
-        $sheet->setCellValue('D1', 'Status');
-        $sheet->setCellValue('E1', 'Schedule Type');
-        $sheet->setCellValue('F1', 'Schedule Date');
-        $sheet->setCellValue('G1', 'Location');
+        $lastColumn = 'G';
 
-        // Query candidate
-        $candidates = Candidate::with(['job', 'scheduleRecruitments'])->get();
+        // Report title
+        $sheet->setCellValue('A1', 'Recruitment Report');
+        $sheet->mergeCells("A1:{$lastColumn}1");
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
 
-        $row = 2;
+        $sheet->setCellValue('A2', sprintf(
+            'Period : %s - %s',
+            $startDate->format('d M Y'),
+            $endDate->format('d M Y')
+        ));
+        $sheet->mergeCells("A2:{$lastColumn}2");
+        $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
+        $sheet->getStyle('A2')->getFont()->getColor()->setRGB('666666');
+
+        $sheet->setCellValue('A3', 'Generated at : ' . Carbon::now()->format('d M Y H:i'));
+        $sheet->mergeCells("A3:{$lastColumn}3");
+        $sheet->getStyle('A3')->getFont()->setSize(9);
+        $sheet->getStyle('A3')->getFont()->getColor()->setRGB('999999');
+
+        $headerRow = 5;
+        $headers = ['No', 'Candidate', 'Position', 'Status', 'Schedule Type', 'Schedule Date', 'Location'];
+        $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+        foreach ($headers as $index => $label) {
+            $sheet->setCellValue($columns[$index] . $headerRow, $label);
+        }
+
+        $headerRange = "A{$headerRow}:{$lastColumn}{$headerRow}";
+        $sheet->getStyle($headerRange)->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle($headerRange)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('179BFF');
+        $sheet->getStyle($headerRange)->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle($headerRange)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN);
+
+        $candidatesQuery = Candidate::with(['job', 'scheduleRecruitments'])
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        if (! $isSuper && $deptId) {
+            $this->scopeToDepartment($candidatesQuery, $deptId);
+        }
+
+        $candidates = $candidatesQuery->orderByDesc('created_at')->get();
+
+        $row = $headerRow + 1;
         $no = 1;
 
         foreach ($candidates as $candidate) {
@@ -190,20 +231,37 @@ class RecruitmentController extends Controller
             $sheet->setCellValue('C' . $row, optional($candidate->job)->job_name ?? '-');
             $sheet->setCellValue('D' . $row, $candidate->status);
             $sheet->setCellValue('E' . $row, optional($schedule)->schedule_type ?? '-');
-            $sheet->setCellValue('F' . $row, optional($schedule)->time_start ?? '-');
+            $sheet->setCellValue(
+                'F' . $row,
+                optional($schedule)->time_start ? Carbon::parse($schedule->time_start)->format('d M Y H:i') : '-'
+            );
             $sheet->setCellValue('G' . $row, optional($schedule)->location ?? '-');
+
+            $sheet->getStyle("A{$row}:{$lastColumn}{$row}")->getBorders()->getAllBorders()
+                ->setBorderStyle(Border::BORDER_THIN);
 
             $row++;
             $no++;
         }
 
-        foreach (range('A', 'G') as $column) {
+        if ($candidates->isEmpty()) {
+            $sheet->setCellValue('A' . $row, 'No data found for the selected date range.');
+            $sheet->mergeCells("A{$row}:{$lastColumn}{$row}");
+            $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("A{$row}")->getFont()->setItalic(true)->getColor()->setRGB('999999');
+        }
+
+        foreach ($columns as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
         $writer = new Xlsx($spreadsheet);
 
-        $fileName = 'Recruitment.xlsx';
+        $fileName = sprintf(
+            'Recruitment_Report_%s_%s.xlsx',
+            $startDate->format('Ymd'),
+            $endDate->format('Ymd')
+        );
         $tempFile = tempnam(sys_get_temp_dir(), 'recruitment');
 
         $writer->save($tempFile);

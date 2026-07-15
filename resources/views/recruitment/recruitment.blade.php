@@ -806,56 +806,141 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
                 <form id="scheduleForm">
+
                     <div class="modal-header modal-header-custom">
-                        <h6 class="modal-title modal-title-custom" id="scheduleModalLabel">Add Schedule</h6>
+                        <h6 class="modal-title modal-title-custom" id="scheduleModalLabel">
+                            Add Schedule
+                        </h6>
+
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
+
                     <div class="modal-body modal-body-custom">
-                        <div class="mb-3">
-                            <label class="form-label small">Candidate</label>
-                            <select id="scheduleCandidateId" class="form-select" required>
-                                <option value="">Select Candidate</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Schedule Type</label>
-                            <input type="text" id="scheduleType" class="form-control"
-                                placeholder="e.g. Interview, Tech Test" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Title</label>
-                            <input type="text" id="scheduleTitle" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Description</label>
-                            <textarea id="scheduleDescription" class="form-control" rows="2"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Location</label>
-                            <input type="text" id="scheduleLocation" class="form-control">
-                        </div>
+
                         <div class="row">
-                            <div class="col-6 mb-3">
-                                <label class="form-label small">Start</label>
-                                <input type="datetime-local" id="scheduleTimeStart" class="form-control" required>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Candidate <span class="text-danger">*</span>
+                                </label>
+
+                                <select id="scheduleCandidateId" class="form-select border-0" required>
+                                    <option value="">Select Candidate</option>
+                                </select>
                             </div>
-                            <div class="col-6 mb-3">
-                                <label class="form-label small">End</label>
-                                <input type="datetime-local" id="scheduleTimeEnd" class="form-control" required>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Schedule Type <span class="text-danger">*</span>
+                                </label>
+
+                                <select id="scheduleType" class="form-select border-0" required>
+                                    <option value="">Select Type</option>
+                                    <option value="interview">Interview</option>
+                                    <option value="tech_test">Tech Test</option>
+                                    <option value="offering">Offering</option>
+                                    <option value="other">Other</option>
+                                </select>
                             </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Location <span class="text-danger">*</span>
+                                </label>
+
+                                <select id="scheduleLocation" class="form-select border-0" required>
+                                    <option value="online">Online</option>
+                                    <option value="onsite">Onsite</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Title <span class="text-danger">*</span>
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="scheduleTitle"
+                                    class="form-control border-0"
+                                    placeholder="Interview with Candidate"
+                                    required>
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Description
+                                </label>
+
+                                <textarea
+                                    id="scheduleDescription"
+                                    rows="3"
+                                    class="form-control border-0"
+                                    placeholder="Additional notes"></textarea>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Start Time <span class="text-danger">*</span>
+                                </label>
+
+                                <input
+                                    type="datetime-local"
+                                    id="scheduleTimeStart"
+                                    class="form-control border-0"
+                                    required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    End Time <span class="text-danger">*</span>
+                                </label>
+
+                                <input
+                                    type="datetime-local"
+                                    id="scheduleTimeEnd"
+                                    class="form-control border-0"
+                                    required>
+                            </div>
+
+                            <div class="col-md-12 mb-1">
+                                <label class="form-label small fw-semibold">
+                                    Meeting Link
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="scheduleMeetingLink"
+                                    class="form-control border-0"
+                                    placeholder="https://meet.google.com/...">
+                            </div>
+
                         </div>
-                        <div class="mb-1">
-                            <label class="form-label small">Meeting Link</label>
-                            <input type="text" id="scheduleMeetingLink" class="form-control">
-                        </div>
+
                     </div>
+
                     <div class="modal-footer modal-footer-custom">
-                        <button type="button" id="deleteScheduleBtn"
-                            class="btn btn-outline-danger rounded-pill px-3 d-none me-auto">Delete</button>
-                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
-                            data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-dark rounded-pill px-4">Save</button>
+                        <button
+                            type="button"
+                            id="deleteScheduleBtn"
+                            class="btn btn-outline-danger d-none me-auto">
+                            Delete
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-light"
+                            data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="btn submit-candidate-btn">
+                            Save
+                        </button>
                     </div>
+
                 </form>
             </div>
         </div>
