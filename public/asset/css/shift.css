@@ -3,7 +3,7 @@
     max-height: calc(100vh - 210px);
 }
 
-.shift-container .input-soft {  
+.shift-container .input-soft {
     background-color: rgb(240, 241, 248);
 }
 
@@ -711,6 +711,125 @@ img {
 }
 
 .shift-container.fullscreen .table-responsive {
-    max-height: calc( 100vh - 210px );
+    max-height: calc(100vh - 210px);
     height: 100vh;
+}
+
+.checkpoint-wrapper {
+    max-height: 180px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+}
+
+.checkpoint-wrapper::-webkit-scrollbar {
+    width: 4px;
+}
+
+.checkpoint-wrapper::-webkit-scrollbar-thumb {
+    background: #bdbdbd;
+    border-radius: 20px;
+}
+
+.checkpoint-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #8f8f8f;
+}
+
+.checkpoint-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body-custom {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+}
+
+.modal-body-custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-body-custom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body-custom::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.timeline-wrapper {
+    max-height: 50px;
+}
+
+.timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    padding-bottom: 18px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    z-index: 1;
+}
+
+.timeline-dot.success {
+    background: #61d28c;
+}
+
+.timeline-dot.danger {
+    background: #ff6b6b;
+}
+
+.timeline-line {
+    position: absolute;
+    left: 5px;
+    top: 12px;
+    width: 2px;
+    height: 100%;
+    background: #d9d9d9;
+}
+
+.timeline-time {
+    margin-left: auto;
+    color: #666;
+    font-weight: 400;
+    font-size: 10px;
+}
+
+.shift-card {
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 15px;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-bottom: 10px;
+}
+
+.shift-card:hover {
+    border-color: #222;
+    transform: translateY(-2px);
+}
+
+.shift-card.active {
+    border: 2px solid #000;
+}
+
+.shift-title {
+    font-weight: 600;
+}
+
+.shift-desc {
+    color: #999;
+    font-size: 13px;
 }

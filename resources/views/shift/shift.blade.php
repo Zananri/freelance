@@ -72,12 +72,13 @@
                 </ul>
             </div>
 
-            @if (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER']))
-            <button class="btn btn-icon-toggle config-shift-btn border-dddd" type="button" data-bs-toggle="modal"
-                data-bs-target="#shiftConfigModal">
-                <span class="material-symbols-outlined icon" type="button">settings</span><span
-                    class="icon-text">Config</span>
-            </button>
+            @if (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
+                    in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'HR_MANAGER']))
+                <button class="btn btn-icon-toggle config-shift-btn border-dddd" type="button" data-bs-toggle="modal"
+                    data-bs-target="#shiftConfigModal">
+                    <span class="material-symbols-outlined icon" type="button">settings</span><span
+                        class="icon-text">Config</span>
+                </button>
             @endif
 
         </div>
@@ -256,6 +257,26 @@
                                 <p class="mb-3">Time Out :</p>
                                 <span id="editTimeEndDisplay"></span>
                             </div>
+
+                            <hr class="border-3 rounded">
+
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-semibold mb-0">
+                                    Timeline Checkpoint
+                                </h6>
+
+                                <span
+                                    id="editCheckpointCount"
+                                    class="text-dark fs-8">
+                                    0 Point
+                                </span>
+                            </div>
+
+                            <div
+                                id="shiftTimeline"
+                                class="timeline-wrapper">
+                            </div>
+
                         </div>
                     </div>
 
@@ -349,8 +370,7 @@
                 </div>
 
                 <div class="modal-footer modal-footer-custom w-100">
-                    <button type="button" class="btn btn-submit-black w-100"
-                        id="saveEmployeeBtn">Update</button>
+                    <button type="button" class="btn btn-submit-black w-100" id="saveEmployeeBtn">Update</button>
                 </div>
 
             </div>
@@ -360,7 +380,7 @@
     {{-- Shift Config Modal --}}
     <div class="modal fade" id="shiftConfigModal" tabindex="-1" aria-labelledby="shiftConfigModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-md modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
 
                 <div class="modal-header d-flex justify-content-between align-items-center">
@@ -386,7 +406,10 @@
                                 <tr>
                                     <th>Title</th>
                                     <th>Description</th>
-                                    <th>Time In & Out</th>
+                                    <th>Time In</th>
+                                    <th>Time Out</th>
+                                    <th>Total Checkpoint</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody id="shiftConfigTableBody">
@@ -404,92 +427,207 @@
     </div>
 
     {{-- Add Config Modal --}}
-    <div class="modal fade" id="addConfigModal" tabindex="-1" aria-labelledby="addConfigModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="addConfigModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="addConfigModalLabel">Add Shift</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body modal-body-custom">
-                    <!-- Use unique form ID for shift config creation to avoid clashing with other modals -->
-                    <form id="addShiftConfigForm">
+
+                <form id="addShiftConfigForm">
+
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom">
+                            Add Shift
+                        </h5>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="modal">
+                        </button>
+                    </div>
+
+                    <div class="modal-body modal-body-custom">
+
                         <input type="hidden" id="addShiftId" name="shift_id">
                         <input type="hidden" id="addEmployeeId" name="employee_id">
                         <input type="hidden" id="addDateShift" name="date_shift">
 
-                        <div class="mb-3 custom-input">
-                            <label for="addTitle" class="form-label label-custom">Title</label>
-                            <input type="text" class="form-control input-text" id="addTitle" name="title">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">
+                                Title
+                            </label>
+
+                            <input type="text" class="form-control border-0" id="addTitle" name="title"
+                                placeholder="Morning Shift">
                         </div>
 
-                        <div class="mb-3 custom-input">
-                            <label for="addDescription" class="form-label label-custom">Description</label>
-                            <input type="text" class="form-control input-text" id="addDescription"
-                                name="description">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">
+                                Description
+                            </label>
+
+                            <textarea class="form-control border-0" rows="3" id="addDescription" name="description"
+                                placeholder="Description"></textarea>
                         </div>
 
-                        <div class="mb-3 custom-input">
-                            <label for="addTimeStart" class="form-label label-custom">Time In</label>
-                            <input type="time" class="form-control input-text" id="addTimeStart"
-                                name="time_start" required>
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Time In
+                                </label>
+
+                                <input type="time" class="form-control border-0" id="addTimeStart"
+                                    name="time_start" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Time Out
+                                </label>
+
+                                <input type="time" class="form-control border-0" id="addTimeEnd" name="time_end"
+                                    required>
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+
+                                <label class="form-label small fw-semibold">
+                                    Time In Checkpoint
+                                </label>
+
+                                <div class="d-flex gap-2 mb-3">
+
+                                    <input type="text" class="form-control border-0" placeholder="Add checkpoint"
+                                        readonly>
+
+                                    <button type="button" class="btn btn-light px-3" id="addCheckpointBtn">
+
+                                        <span class="material-symbols-outlined">
+                                            add
+                                        </span>
+
+                                    </button>
+
+                                </div>
+
+                                <div id="checkpointContainer" class="checkpoint-wrapper"></div>
+
+                            </div>
+
                         </div>
 
-                        <div class="mb-3 custom-input">
-                            <label for="addTimeEnd" class="form-label label-custom">Time Out</label>
-                            <input type="time" class="form-control input-text" id="addTimeEnd" name="time_end"
-                                required>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <!-- Make this an explicit button and give it a unique ID; JS will handle the click -->
-                    <button type="button" class="btn btn-submit-black" id="saveShiftConfigBtn">Submit</button>
-                </div>
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+
+                        <button type="button" class="btn btn-submit-black" id="saveShiftConfigBtn">
+                            Save
+                        </button>
+                    </div>
+
+                </form>
+
             </div>
         </div>
     </div>
 
     {{-- Edit Config Modal --}}
-    <div class="modal fade" id="editConfigModal" tabindex="-1" aria-labelledby="editConfigModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="editConfigModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="editConfigModalLabel">Edit Shift</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body modal-body-custom">
-                    <form id="editShiftConfigForm">
+
+                <form id="editShiftConfigForm">
+
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom">
+                            Edit Shift
+                        </h5>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="modal">
+                        </button>
+                    </div>
+
+                    <div class="modal-body modal-body-custom">
+
                         <input type="hidden" id="editConfigShiftId" name="shift_id">
-                        <div class="mb-3 custom-input">
-                            <label for="editTitle" class="form-label label-custom">Title</label>
-                            <input type="text" class="form-control input-text" id="editTitle" name="title"
-                                required>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">
+                                Title
+                            </label>
+
+                            <input type="text" class="form-control border-0" id="editTitle" name="title">
                         </div>
-                        <div class="mb-3 custom-input">
-                            <label for="editDescription" class="form-label label-custom">Description</label>
-                            <input type="text" class="form-control input-text" id="editDescription"
-                                name="description">
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">
+                                Description
+                            </label>
+
+                            <textarea class="form-control border-0" rows="3" id="editDescription" name="description"></textarea>
                         </div>
-                        <div class="mb-3 custom-input">
-                            <label for="editTimeStart" class="form-label label-custom">Time In</label>
-                            <input type="time" class="form-control input-text" id="editTimeStart"
-                                name="time_start" required>
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Time In
+                                </label>
+
+                                <input type="time" class="form-control border-0" id="editTimeStart"
+                                    name="time_start">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Time Out
+                                </label>
+
+                                <input type="time" class="form-control border-0" id="editTimeEnd"
+                                    name="time_end">
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+
+                                <label class="form-label small fw-semibold">
+                                    Time In Checkpoint
+                                </label>
+
+                                <div class="d-flex gap-2 mb-3">
+
+                                    <input type="text" class="form-control border-0" placeholder="Add checkpoint"
+                                        readonly>
+
+                                    <button type="button" class="btn btn-light px-3" id="addCheckpointBtn">
+
+                                        <span class="material-symbols-outlined">
+                                            add
+                                        </span>
+
+                                    </button>
+
+                                </div>
+
+                                <div id="checkpointContainer" class="checkpoint-wrapper"></div>
+
+                            </div>
+
                         </div>
-                        <div class="mb-3 custom-input">
-                            <label for="editTimeEnd" class="form-label label-custom">Time Out</label>
-                            <input type="time" class="form-control input-text" id="editTimeEnd" name="time_end"
-                                required>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-submit-black" id="saveUpdateShiftConfigBtn">Submit</button>
-                </div>
+
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+
+                        <button type="button" class="btn btn-submit-black" id="saveUpdateShiftConfigBtn">
+                            Update
+                        </button>
+                    </div>
+
+                </form>
+
             </div>
         </div>
     </div>
@@ -517,7 +655,8 @@
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn submit-employee-btn" id="confirmDeleteShiftConfigBtn">Delete</button>
+                    <button type="button" class="btn submit-employee-btn"
+                        id="confirmDeleteShiftConfigBtn">Delete</button>
                 </div>
             </div>
         </div>

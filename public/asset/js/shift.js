@@ -472,7 +472,9 @@ function createShiftCell(employee, shift, dateKey) {
                         data-employee-picture="${toAbsoluteUrl(employee.photo || 'asset/img/avatar.png')}"
                         data-date="${dateKey}"
                         data-start="${shift?.time_start || ""}"
-                        data-end="${shift?.time_end || ""}">
+                        data-end="${shift?.time_end || ""}"
+                        data-checkpoints='${JSON.stringify(shift?.checkpoint_times || [])}'
+                        data-total-check="${shift?.total_checkpoint || ""}">
                     <span class="material-symbols-outlined">edit</span>
                 </button>
             </div>
@@ -653,17 +655,94 @@ function setEditShiftModal(btn) {
 
     // Populate shift dropdown from backend and preselect current shift
     ensureShiftsLoaded().then((shifts) => {
+        
         try {
             populateEditShiftDropdown(
                 shiftModalEl,
                 shifts,
                 btn.dataset.shiftId || null
             );
+
+            let checkpoints = btn.dataset.checkpoints || "[]";
+
+            try {
+                checkpoints = JSON.parse(checkpoints);
+
+                if (typeof checkpoints === "string") {
+                    checkpoints = JSON.parse(checkpoints);
+                }
+
+                if (!Array.isArray(checkpoints)) {
+                    checkpoints = [];
+                }
+            } catch (e) {
+                checkpoints = [];
+            }
+
+            console.log(checkpoints);
+            console.log(Array.isArray(checkpoints));
+
+            renderTimeline(
+                btn.dataset.start,
+                checkpoints,
+                btn.dataset.end
+            );
         } catch (e) {
             console.warn("Could not populate shift dropdown:", e);
         }
         shiftModal.show();
     });
+}
+
+function renderTimeline(start, checkpoints, end) {
+
+    let html = `
+        <div class="timeline-item">
+
+            <div class="timeline-dot success"></div>
+            <span style="font-size: 10px;">Check In</span>
+            <span class="timeline-time">${start}</span>
+
+            <div class="timeline-line"></div>
+
+        </div>
+    `;
+
+    checkpoints.forEach((time,index)=>{
+        html+=`
+            <div class="timeline-item">
+
+                <div class="timeline-dot success"></div>
+
+                <span style="font-size: 10px;">Checkpoint ${index+1}</span>
+
+                <span class="timeline-time">${time}</span>
+
+                <div class="timeline-line"></div>
+
+            </div>
+        `;
+
+    });
+
+    html+=`
+        <div class="timeline-item">
+
+            <div class="timeline-dot danger"></div>
+
+            <span style="font-size: 10px;">Check Out</span>
+
+            <span class="timeline-time">${end}</span>
+
+        </div>
+    `;
+
+    $("#shiftTimeline").html(html);
+
+    $("#editCheckpointCount").text(
+        `${checkpoints.length} Point${checkpoints.length>1?"s":""}`
+    );
+
 }
 
 function renderShiftConfigTable(shifts) {
@@ -689,18 +768,22 @@ function renderShiftConfigTable(shifts) {
         tr.innerHTML = `
             <td data-field="title">${s.title || "(No title)"}</td>
             <td data-field="description">${s.description || ""}</td>
-            <td data-field="time">
+            <td data-field="time">${formatTime(s.time_start || "")}</td>
+            <td data-field="time">${formatTime(s.time_end || "")}</td>
+            <td data-field="checkpoint">${s.total_checkpoint}</td>
+            <td>
                 <div class="d-flex justify-content-between align-items-center config-group-icon">
-                    <span>${formatTime(s.time_start)} - ${formatTime(s.time_end)}</span>
                     <div class="d-flex">
                         <button class="btn btn-sm edit-btn"
                             data-shift-id="${s.id}"
                             data-title="${s.title || ""}"
                             data-description="${s.description || ""}"
                             data-start="${s.time_start || ""}"
-                            data-end="${s.time_end || ""}">
+                            data-end="${s.time_end || ""}"
+                            data-checkpoints='${JSON.stringify(s.checkpoint_times || [])}'>
                             <span class="material-symbols-outlined">edit</span>
                         </button>
+
                         <button class="btn btn-sm delete-btn"
                             data-shift-id="${s.id}"
                             data-title="${s.title || ""}"
@@ -1199,6 +1282,14 @@ async function saveNewShift(formId = "addShiftForm") {
     const timeStart = formData.get("time_start");
     const timeEnd = formData.get("time_end");
 
+    const checkpoints = [];
+
+    $(".checkpoint-time").each(function () {
+        if ($(this).val()) {
+            checkpoints.push($(this).val());
+        }
+    });
+
     if (!title || !timeStart || !timeEnd) {
         showFloatingAlert("Please fill all required fields", "warning");
         return;
@@ -1222,7 +1313,8 @@ async function saveNewShift(formId = "addShiftForm") {
                 description: formData.get("description") || "",
                 time_start: timeStart,
                 time_end: timeEnd,
-            }),
+                checkpoints: checkpoints,
+            })
         });
 
         if (!response.ok) {
@@ -1289,193 +1381,68 @@ async function saveNewShift(formId = "addShiftForm") {
     }
 }
 
-// Initialize date picker for shift dates
-// let selectedShiftDates = [];
+let checkpointIndex = 0;
 
-// function initializeShiftDatePicker() {
-//     const dateDisplay = document.getElementById("editDateShiftDisplay");
-//     const dateInput = document.getElementById("editDateShift");
+$("#addCheckpointBtn").on("click", function () {
 
-//     if (!dateDisplay || !dateInput) return;
+    checkpointIndex++;
 
-//     // Create datepicker container
-//     const datepickerContainer = document.createElement("div");
-//     datepickerContainer.id = "shift-datepicker";
-//     datepickerContainer.className = "datepicker-container";
-//     datepickerContainer.style.cssText = `
-//         position: absolute;
-//         background: white;
-//         border: 1px solid #ddd;
-//         border-radius: 8px;
-//         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-//         padding: 10px;
-//         z-index: 1000;
-//         display: none;
-//         max-width: 300px;
-//     `;
+    $("#checkpointContainer").append(`
+        <div class="row align-items-center mb-2 checkpoint-item">
 
-//     dateDisplay.parentNode.style.position = "relative";
-//     dateDisplay.parentNode.appendChild(datepickerContainer);
+            <div class="col-3">
+                <small class="fw-semibold">
+                    Checkpoint ${checkpointIndex}
+                </small>
+            </div>
 
-//     // Create calendar
-//     const calendar = document.createElement("div");
-//     calendar.className = "calendar-grid";
-//     calendar.style.cssText = `
-//         display: grid;
-//         grid-template-columns: repeat(7, 1fr);
-//         gap: 2px;
-//         font-size: 12px;
-//     `;
+            <div class="col-8">
+                <input
+                    type="time"
+                    class="form-control border-0 checkpoint-time"
+                    name="checkpoints[]">
+            </div>
 
-//     // Header
-//     const header = document.createElement("div");
-//     header.style.cssText =
-//         "grid-column: span 7; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;";
-//     header.innerHTML = `
-//         <button type="button" class="btn-prev-month" style="border: none; background: none; cursor: pointer;"><</button>
-//         <span class="month-year"></span>
-//         <button type="button" class="btn-next-month" style="border: none; background: none; cursor: pointer;">></button>
-//     `;
+            <div class="col-1 text-end">
+                <button
+                    type="button"
+                    class="btn btn-sm btn-link text-dark removeCheckpoint">
 
-//     // Weekday headers
-//     const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-//     weekdays.forEach((day) => {
-//         const dayHeader = document.createElement("div");
-//         dayHeader.textContent = day;
-//         dayHeader.style.cssText =
-//             "text-align: center; font-weight: bold; padding: 5px;";
-//         calendar.appendChild(dayHeader);
-//     });
+                    <span class="material-symbols-outlined">
+                        close
+                    </span>
 
-//     datepickerContainer.appendChild(header);
-//     datepickerContainer.appendChild(calendar);
+                </button>
+            </div>
 
-//     let currentDate = new Date();
+        </div>
+    `);
 
-//     function renderCalendar() {
-//         calendar.innerHTML = "";
-//         weekdays.forEach((day) => {
-//             const dayHeader = document.createElement("div");
-//             dayHeader.textContent = day;
-//             dayHeader.style.cssText =
-//                 "text-align: center; font-weight: bold; padding: 5px;";
-//             calendar.appendChild(dayHeader);
-//         });
+});
 
-//         const firstDay = new Date(
-//             currentDate.getFullYear(),
-//             currentDate.getMonth(),
-//             1
-//         );
-//         const lastDay = new Date(
-//             currentDate.getFullYear(),
-//             currentDate.getMonth() + 1,
-//             0
-//         );
-//         const startDate = new Date(firstDay);
-//         startDate.setDate(startDate.getDate() - firstDay.getDay());
+$(document).on("click", ".removeCheckpoint", function () {
 
-//         header.querySelector(".month-year").textContent =
-//             currentDate.toLocaleDateString("en-US", {
-//                 month: "long",
-//                 year: "numeric",
-//             });
+    $(this).closest(".checkpoint-item").remove();
 
-//         for (let i = 0; i < 42; i++) {
-//             const date = new Date(startDate);
-//             date.setDate(startDate.getDate() + i);
+    $("#checkpointContainer .checkpoint-item").each(function(index){
 
-//             const dayElement = document.createElement("div");
-//             dayElement.textContent = date.getDate();
-//             dayElement.style.cssText = `
-//                 text-align: center;
-//                 padding: 8px;
-//                 cursor: pointer;
-//                 border-radius: 4px;
-//                 ${
-//                     date.getMonth() !== currentDate.getMonth()
-//                         ? "color: #ccc;"
-//                         : ""
-//                 }
-//                 ${
-//                     selectedShiftDates.some(
-//                         (d) => d.toDateString() === date.toDateString()
-//                     )
-//                         ? "background: #007bff; color: white;"
-//                         : ""
-//                 }
-//             `;
+        $(this)
+            .find("small")
+            .text(`Checkpoint ${index + 1}`);
 
-//             dayElement.addEventListener("click", () => toggleShiftDate(date));
-//             calendar.appendChild(dayElement);
-//         }
-//     }
+    });
 
-//     function toggleShiftDate(date) {
-//         const index = selectedShiftDates.findIndex(
-//             (d) => d.toDateString() === date.toDateString()
-//         );
-//         if (index > -1) {
-//             selectedShiftDates.splice(index, 1);
-//         } else {
-//             selectedShiftDates.push(new Date(date));
-//         }
-//         updateDisplay();
-//         renderCalendar();
-//     }
+    checkpointIndex = $("#checkpointContainer .checkpoint-item").length;
 
-//     function updateDisplay() {
-//         selectedShiftDates.sort((a, b) => a - b);
-//         const formattedDates = selectedShiftDates.map((d) => {
-//             // Format as YYYY-MM-DD to avoid year issues
-//             const year = d.getFullYear();
-//             const month = String(d.getMonth() + 1).padStart(2, "0");
-//             const day = String(d.getDate()).padStart(2, "0");
-//             return `${year}-${month}-${day}`;
-//         });
+});
 
-//         dateDisplay.value = formattedDates
-//             .map((d) => {
-//                 const date = new Date(d);
-//                 return date.toLocaleDateString("en-US", {
-//                     month: "short",
-//                     day: "numeric",
-//                 });
-//             })
-//             .join(", ");
+function resetCheckpoint(){
 
-//         dateInput.value = JSON.stringify(formattedDates);
-//     }
+    checkpointIndex = 0;
 
-//     // Event listeners
-//     dateDisplay.addEventListener("click", () => {
-//         datepickerContainer.style.display =
-//             datepickerContainer.style.display === "none" ? "block" : "none";
-//         renderCalendar();
-//     });
+    $("#checkpointContainer").empty();
 
-//     header.querySelector(".btn-prev-month").addEventListener("click", () => {
-//         currentDate.setMonth(currentDate.getMonth() - 1);
-//         renderCalendar();
-//     });
-
-//     header.querySelector(".btn-next-month").addEventListener("click", () => {
-//         currentDate.setMonth(currentDate.getMonth() + 1);
-//         renderCalendar();
-//     });
-
-//     // Close datepicker when clicking outside
-//     document.addEventListener("click", (e) => {
-//         if (
-//             !e.target.closest("#shift-datepicker") &&
-//             e.target !== dateDisplay
-//         ) {
-//             datepickerContainer.style.display = "none";
-//         }
-//     });
-
-//     renderCalendar();
-// }
+}
 
 // Save shift changes via AJAX
 async function saveShiftChanges() {

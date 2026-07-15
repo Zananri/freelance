@@ -61,6 +61,8 @@ class ShiftController extends Controller
                 'shifts.time_start',
                 'shifts.time_end',
                 'shifts.total_hour',
+                'shifts.total_checkpoint',
+                'shifts.checkpoint_times',
                 'shifts.created_by as shift_created_by',
                 'shifts.updated_by as shift_updated_by',
                 'shifts.deleted_by as shift_deleted_by',
@@ -142,6 +144,8 @@ class ShiftController extends Controller
                         'time_start' => $shift->time_start ? Carbon::parse($shift->time_start)->format('H:i') : null,
                         'time_end' => $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null,
                         'total_hour' => $shift->total_hour,
+                        'total_checkpoint' => $shift->total_checkpoint,
+                        'checkpoint_times' => $shift->checkpoint_times,
                     ];
                 }
             }
@@ -176,7 +180,16 @@ class ShiftController extends Controller
     public function getShifts()
     {
         try {
-            $shifts = \App\Models\Shift::select('id', 'title', 'description', 'time_start', 'time_end', 'total_hour')
+            $shifts = \App\Models\Shift::select(
+                    'id',
+                    'title',
+                    'description',
+                    'time_start',
+                    'time_end',
+                    'total_checkpoint',
+                    'checkpoint_times',
+                    'total_hour'
+                )
                 ->whereNull('deleted_by')
                 ->orderBy('title')
                 ->get();
@@ -205,16 +218,19 @@ class ShiftController extends Controller
 
     public function store(Request $request)
     {
+
+        // dd($request->all());
         try {
             DB::beginTransaction();
 
-            // Validasi input
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'time_start' => 'required|date_format:H:i',
-                // Allow overnight shifts by not enforcing after:time_start here
                 'time_end' => 'required|date_format:H:i',
+
+                'checkpoints' => 'nullable|array',
+                'checkpoints.*' => 'date_format:H:i',
             ]);
 
             $start = Carbon::createFromFormat('H:i', $validated['time_start']);
@@ -227,13 +243,16 @@ class ShiftController extends Controller
 
             $totalHour = $end->diffInHours($start, true); // true for absolute value
 
-            // Create new shift
+            $checkpoints = $request->checkpoints ?? [];
+
             $shift = \App\Models\Shift::create([
                 'title' => $validated['title'],
                 'description' => $validated['description'],
                 'time_start' => $validated['time_start'],
                 'time_end' => $validated['time_end'],
                 'total_hour' => $totalHour,
+                'total_checkpoint' => count($checkpoints),
+                'checkpoint_times' => $checkpoints,
                 'created_by' => auth()->id(),
             ]);
 
@@ -344,6 +363,9 @@ class ShiftController extends Controller
                 'description' => 'nullable|string',
                 'time_start' => 'required|date_format:H:i',
                 'time_end' => 'required|date_format:H:i',
+
+                'checkpoints' => 'nullable|array',
+                'checkpoints.*' => 'date_format:H:i',
             ]);
 
             $start = Carbon::createFromFormat('H:i', $validated['time_start']);
@@ -354,15 +376,17 @@ class ShiftController extends Controller
                 $end = $end->copy()->addDay();
             }
             $totalHour = $end->diffInHours($start, true);
+            $checkpoints = $request->checkpoints ?? [];
 
             $shift = \App\Models\Shift::findOrFail($id);
             $shift->update([
                 'title' => $validated['title'],
-                'description' => $validated['description'] ?? $shift->description,
+                'description' => $validated['description'],
                 'time_start' => $validated['time_start'],
                 'time_end' => $validated['time_end'],
                 'total_hour' => $totalHour,
-                'updated_by' => auth()->id(),
+                'total_checkpoint' => count($checkpoints),
+                'checkpoint_times' => $checkpoints,
             ]);
 
             DB::commit();
