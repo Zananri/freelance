@@ -27,7 +27,13 @@ class RecruitmentController extends Controller
 
         $percentages = $this->buildPercentageComparisons($isSuper, $deptId);
 
-        return view('recruitment.recruitment', compact('percentages'));
+        $total_applicants = Candidate::whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        return view(
+            'recruitment.recruitment',
+            compact('percentages', 'total_applicants')
+        );
     }
 
     public function getRecruitmentData(Request $request): JsonResponse
@@ -47,13 +53,15 @@ class RecruitmentController extends Controller
 
     public function candidateIndex(Request $request): JsonResponse
     {
-        $query = Candidate::query();
+        $query = Candidate::with('job:id,job_name');
 
         if ($status = $request->query('status')) {
             $query->where('status', $status);
         }
 
-        return response()->json($query->orderByDesc('created_at')->get());
+        return response()->json(
+            $query->orderByDesc('created_at')->get()
+        );
     }
 
     public function candidateShow(Candidate $candidate): JsonResponse
@@ -88,7 +96,7 @@ class RecruitmentController extends Controller
 
     public function scheduleIndex(Request $request): JsonResponse
     {
-        $query = ScheduleRecruitment::with(['candidate:id,name', 'job:id,title']);
+        $query = ScheduleRecruitment::with(['candidate:id,candidates_name,job_id', 'candidate.job:id,job_name']);
 
         if ($candidateId = $request->query('candidate_id')) {
             $query->where('candidate_id', $candidateId);
@@ -99,7 +107,7 @@ class RecruitmentController extends Controller
 
     public function scheduleShow(ScheduleRecruitment $schedule): JsonResponse
     {
-        return response()->json($schedule->load(['candidate:id,name', 'job:id,title']));
+        return response()->json($schedule->load(['candidate:id,candidates_name,job_id', 'candidate.job:id,job_name']));
     }
 
     public function scheduleStore(Request $request): JsonResponse
@@ -135,7 +143,7 @@ class RecruitmentController extends Controller
         [$isSuper, $deptId] = $this->resolveAuthContext($request);
 
         $schedules = $this->scheduleQuery($isSuper, $deptId)
-            ->with(['candidate:id,name', 'job:id,title'])
+            ->with(['candidate:id,candidates_name,job_id', 'candidate.job:id,job_name'])
             ->whereYear('time_start', $year)
             ->whereMonth('time_start', $month)
             ->orderBy('time_start')
@@ -168,7 +176,7 @@ class RecruitmentController extends Controller
         $sheet->setCellValue('G1', 'Location');
 
         // Query candidate
-        $candidates = Candidate::with('scheduleRecruitments.job')->get();
+        $candidates = Candidate::with(['job', 'scheduleRecruitments'])->get();
 
         $row = 2;
         $no = 1;
@@ -178,12 +186,12 @@ class RecruitmentController extends Controller
             $schedule = $candidate->scheduleRecruitments->first();
 
             $sheet->setCellValue('A' . $row, $no);
-            $sheet->setCellValue('B' . $row, $candidate->name);
-            $sheet->setCellValue('C' . $row, optional($schedule->job)->job_name ?? '-');
+            $sheet->setCellValue('B' . $row, $candidate->candidates_name);
+            $sheet->setCellValue('C' . $row, optional($candidate->job)->job_name ?? '-');
             $sheet->setCellValue('D' . $row, $candidate->status);
-            $sheet->setCellValue('E' . $row, $schedule->schedule_type ?? '-');
-            $sheet->setCellValue('F' . $row, $schedule->time_start ?? '-');
-            $sheet->setCellValue('G' . $row, $schedule->location ?? '-');
+            $sheet->setCellValue('E' . $row, optional($schedule)->schedule_type ?? '-');
+            $sheet->setCellValue('F' . $row, optional($schedule)->time_start ?? '-');
+            $sheet->setCellValue('G' . $row, optional($schedule)->location ?? '-');
 
             $row++;
             $no++;
@@ -206,7 +214,7 @@ class RecruitmentController extends Controller
     private function validateCandidate(Request $request): array
     {
         return $request->validate([
-            'job_id' => 'required|exists:jobs,id',
+            'job_id' => 'required|exists:job_list,id',
 
             'candidates_name' => 'required|string|max:255',
             'candidates_email' => 'required|email|max:255',
@@ -233,7 +241,6 @@ class RecruitmentController extends Controller
     {
         return $request->validate([
             'candidate_id' => 'required|exists:candidates,id',
-            'job_id' => 'required|exists:jobs,id',
             'schedule_type' => 'required|string|max:100',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -277,7 +284,7 @@ class RecruitmentController extends Controller
 
     private function buildDashboardData(Carbon $startDate, Carbon $endDate, bool $isSuper, ?int $deptId): array
     {
-        $schedules = ScheduleRecruitment::with(['candidate:id,name', 'job:id,title'])
+        $schedules = ScheduleRecruitment::with(['candidate:id,candidates_name,job_id', 'candidate.job:id,job_name'])
             ->whereBetween('time_start', [$startDate, $endDate])
             ->orderBy('time_start')
             ->get();
@@ -320,22 +327,33 @@ class RecruitmentController extends Controller
                 ->whereBetween('created_at', [$startDate, $endDate]);
             $pipelineCounts[$status] = (clone $query)->count();
             $pipelineCandidates[$status] = (clone $query)
-                ->with(['scheduleRecruitments.job:id,title'])
+                ->with('job:id,job_name')
                 ->orderByDesc('created_at')
                 ->limit(50)
                 ->get()
                 ->map(fn($candidate) => [
                     'id' => $candidate->id,
-                    'name' => $candidate->name,
-                    'position' => optional($candidate->scheduleRecruitments->first())->job->title ?? '-',
+                    'candidate_name' => $candidate->candidates_name,
+                    'position' => optional($candidate->job)->job_name ?? '-',
                 ]);
         }
+
+        $totalApplicants = Candidate::whereBetween('created_at', [$startDate, $endDate]);
+
+        if (! $isSuper && $deptId) {
+            $this->scopeToDepartment($totalApplicants, $deptId);
+        }
+
+        $totalApplicants = $totalApplicants->count();
+        $totalNewApplicants = array_sum($overviewData);
 
         $percentages = $this->buildPercentageComparisons($isSuper, $deptId);
 
         return [
             'schedules' => $schedules,
             'totalEmployees' => $totalEmployees,
+            'total_applicants' => $totalApplicants,
+            'total_new_applicants' => $totalNewApplicants,
             'chart_employees' => $employeesByMonth,
             'chart_positions' => $hiredByMonth,
             'chart_applicants' => $applicantsByMonth,
@@ -416,9 +434,10 @@ class RecruitmentController extends Controller
         $data = [];
 
         for ($date = $startDate->copy()->startOfDay(); $date->lte($endDate->copy()->startOfDay()); $date->addDay()) {
+
             $labels[] = $date->format('d M');
 
-            $query = Candidate::whereDate('created_at', $date->toDateString());
+            $query = Candidate::whereDate('created_at', $date);
 
             if (! $isSuper && $deptId) {
                 $this->scopeToDepartment($query, $deptId);
@@ -446,7 +465,7 @@ class RecruitmentController extends Controller
         $query = ScheduleRecruitment::query();
 
         if (! $isSuper && $deptId) {
-            $query->whereHas('job', fn($q) => $q->where('department_id', $deptId));
+            $query->whereHas('candidate.job', fn($q) => $q->where('department_id', $deptId));
         }
 
         return $query;
@@ -470,23 +489,17 @@ class RecruitmentController extends Controller
 
     private function applicantQuery(bool $isSuper, ?int $deptId, int $year, int $month)
     {
-        if ($isSuper) {
-            return Candidate::whereYear('created_at', $year)->whereMonth('created_at', $month);
-        }
-
         $query = Candidate::whereYear('created_at', $year)->whereMonth('created_at', $month);
 
-        return $query->whereHas('scheduleRecruitments', function ($q) use ($deptId, $year, $month) {
-            $q->whereYear('time_start', $year)
-                ->whereMonth('time_start', $month)
-                ->whereHas('job', fn($q2) => $q2->where('department_id', $deptId));
-        });
+        if (! $isSuper && $deptId) {
+            $query->whereHas('job', fn($q) => $q->where('department_id', $deptId));
+        }
+
+        return $query;
     }
 
     private function scopeToDepartment($query, int $deptId): void
     {
-        $query->whereHas('scheduleRecruitments', function ($q) use ($deptId) {
-            $q->whereHas('job', fn($q2) => $q2->where('department_id', $deptId));
-        });
+        $query->whereHas('job', fn($q) => $q->where('department_id', $deptId));
     }
 }

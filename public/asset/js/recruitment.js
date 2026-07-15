@@ -10,11 +10,7 @@ $(function () {
 
     const today = new Date();
 
-    const start = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        1
-    );
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
 
     let selectedStart = formatDateID(start);
     let selectedEnd = formatDateID(today);
@@ -39,25 +35,39 @@ $(function () {
         },
     });
 
-    function showAlert(type, message) {
-        const alert = $(
-            `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>`,
-        );
-        $(".alert-delete-container").append(alert);
-        setTimeout(() => alert.alert("close"), 4000);
-    }
-
-    function extractErrorMessage(xhr) {
-        if (xhr.responseJSON && xhr.responseJSON.errors) {
-            return Object.values(xhr.responseJSON.errors).flat().join("<br>");
+    function showFloatingAlert(message, type = "success", delayMs = 2500) {
+        try {
+            if (typeof window.showAlertMsg === "function") {
+                window.showAlertMsg(message, "light", delayMs);
+                return;
+            }
+            const box = document.querySelector(
+                ".box-alert-messages .box-message",
+            );
+            if (box && box.parentElement) {
+                box.parentElement.style.display = "block";
+                box.classList.remove("success", "warning", "error", "light");
+                box.classList.add("light");
+                box.innerHTML = message;
+                setTimeout(() => {
+                    if (typeof window.hideAlertMsg === "function") {
+                        window.hideAlertMsg();
+                    } else {
+                        box.parentElement.style.display = "none";
+                    }
+                }, delayMs);
+                return;
+            }
+        } catch (e) {
+            /* no-op */
         }
-        if (xhr.responseJSON && xhr.responseJSON.message) {
-            return xhr.responseJSON.message;
-        }
-        return "Something went wrong. Please try again.";
+        try {
+            alert(
+                typeof message === "string"
+                    ? message.replace(/<[^>]+>/g, "")
+                    : String(message),
+            );
+        } catch (e) {}
     }
 
     function getCurrentDateParams() {
@@ -103,13 +113,39 @@ $(function () {
                             <div class="candidate-name">${candidate.candidate_name}</div>
                             <div class="candidate-position">${candidate.position}</div>
                         </div>
-                        <div class="candidate-move-actions">
-                            <button type="button" class="candidate-move-btn candidate-move-prev" data-id="${candidate.id}" data-target-status="${prevStatus || ""}" title="Move to ${prevStatus || "-"}" ${prevStatus ? "" : "disabled"}>
-                                <span class="material-symbols-outlined">chevron_left</span>
+                        <div class="candidate-card-menu dropdown">
+                            <button type="button" class="candidate-menu-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="material-symbols-outlined">more_vert</span>
                             </button>
-                            <button type="button" class="candidate-move-btn candidate-move-next" data-id="${candidate.id}" data-target-status="${nextStatus || ""}" title="Move to ${nextStatus || "-"}" ${nextStatus ? "" : "disabled"}>
-                                <span class="material-symbols-outlined">chevron_right</span>
-                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end candidate-dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item candidate-action-next ${nextStatus ? "" : "disabled"}" href="#" data-id="${candidate.id}" data-target-status="${nextStatus || ""}">
+                                        <span class="material-symbols-outlined">arrow_forward</span>
+                                        Next${nextStatus ? `: ${nextStatus}` : ""}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item candidate-action-prev ${prevStatus ? "" : "disabled"}" href="#" data-id="${candidate.id}" data-target-status="${prevStatus || ""}">
+                                        <span class="material-symbols-outlined">arrow_back</span>
+                                        Prev${prevStatus ? `: ${prevStatus}` : ""}
+                                    </a>
+                                </li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li>
+                                    <a class="dropdown-item candidate-action-edit" href="#" data-id="${candidate.id}">
+                                        <span class="material-symbols-outlined">edit</span>
+                                        Edit
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item text-danger candidate-action-delete" href="#" data-id="${candidate.id}">
+                                        <span class="material-symbols-outlined">delete</span>
+                                        Delete
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                     </div>`,
                 )
@@ -185,6 +221,18 @@ $(function () {
         return date.toTimeString().slice(0, 5);
     }
 
+    function toISODateStr(date) {
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    }
+
+    function switchModal(fromSelector, callback) {
+        $(fromSelector).one("hidden.bs.modal", function () {
+            callback();
+        });
+        $(fromSelector).modal("hide");
+    }
+
     function refreshDashboard(params) {
         return $.get(routes.data, params || getCurrentDateParams()).done(
             (data) => {
@@ -230,41 +278,42 @@ $(function () {
         );
     }
 
-    function loadJobOptions(selectedId = null) {
+    function loadJobOptions(targetSelector, selectedId = null) {
         return $.get(routes.jobs).done((jobs) => {
             const options = jobs
-                .map((job) => `<option value="${job.id}">${job.job_name}</option>`)
+                .map(
+                    (job) =>
+                        `<option value="${job.id}">${job.job_name}</option>`,
+                )
                 .join("");
 
-            $("#candidateJobId").html(
-                `<option value="">Select Position</option>${options}`
+            $(targetSelector).html(
+                `<option value="">Select Position</option>${options}`,
             );
 
             if (selectedId) {
-                $("#candidateJobId").val(selectedId);
+                $(targetSelector).val(selectedId);
             }
         });
     }
 
-    function loadCandidateOptions(selectedId) {
+    function loadCandidateOptions(selectedId = null) {
         return $.get(routes.candidates).done((candidates) => {
-            const options = candidates.map(c => `
-            <option value="${c.id}">
-                ${c.candidates_name} (${c.job.job_name})
-            </option>
-            `).join("");
-            $("#scheduleCandidateId").html(
-                `<option value="">Select Candidate</option>${options}`,
-            );
-            if (selectedId) $("#scheduleCandidateId").val(selectedId);
-        });
-    }
 
-    function resetCandidateForm() {
-        $("#candidateForm")[0].reset();
-        $("#candidateForm").data("mode", "create").data("id", null);
-        $("#candidateModalLabel").text("Add Candidate");
-        $("#deleteCandidateBtn").addClass("d-none");
+            const options = candidates.map(candidate => `
+                <option value="${candidate.id}">
+                    ${candidate.candidates_name} - ${candidate.job?.job_name ?? "-"}
+                </option>
+            `).join("");
+
+            $("#scheduleCandidateId").html(
+                `<option value="">Select Candidate</option>${options}`
+            );
+
+            if (selectedId) {
+                $("#scheduleCandidateId").val(selectedId);
+            }
+        });
     }
 
     function resetScheduleForm() {
@@ -274,41 +323,116 @@ $(function () {
         $("#deleteScheduleBtn").addClass("d-none");
     }
 
-    function openCandidateModal(id) {
-        resetCandidateForm();
-        loadJobOptions();
-
-        if (id) {
-            $.get(`${routes.candidates}/${id}`).done((candidate) => {
-                $("#candidateForm").data("mode", "edit").data("id", id);
-                $("#candidateModalLabel").text("Edit Candidate");
-                $("#deleteCandidateBtn").removeClass("d-none").data("id", id);
-                $("#candidateName").val(candidate.name);
-                $("#candidateEmail").val(candidate.email);
-                $("#candidatePhone").val(candidate.phone);
-                $("#candidateAddress").val(candidate.address);
-                $("#candidateResumeLink").val(candidate.resume_link);
-                $("#candidateStatus").val(candidate.status);
-            });
-        }
-
-
-        $("#candidateModal").modal("show");
+    function openAddCandidateModal() {
+        $("#candidateAddForm")[0].reset();
+        loadJobOptions("#addCandidateJobId");
+        $("#candidateAddModal").modal("show");
     }
 
-    function openScheduleModal(id) {
+    function openEditCandidateModal(id) {
+        if (!id) return;
+
+        $.get(`${routes.candidates}/${id}`)
+            .done((candidate) => {
+                loadJobOptions("#editCandidateJobId", candidate.job_id).done(
+                    () => {
+                        $("#candidateEditForm").data("id", id);
+                        $("#editCandidateName").val(candidate.candidates_name);
+                        $("#editCandidateEmail").val(
+                            candidate.candidates_email,
+                        );
+                        $("#editCandidatePhone").val(
+                            candidate.candidates_phone,
+                        );
+                        $("#editCandidateAddress").val(
+                            candidate.candidates_address,
+                        );
+                        $("#editCandidateGender").val(candidate.gender);
+                        $("#editCandidateBirthdate").val(
+                            candidate.candidates_birthdate
+                                ? candidate.candidates_birthdate.slice(0, 10)
+                                : "",
+                        );
+                        $("#editCandidateEducation").val(
+                            candidate.last_education,
+                        );
+                        $("#editCandidateExperience").val(
+                            candidate.experience_years,
+                        );
+                        $("#editCandidateSalary").val(
+                            candidate.expected_salary,
+                        );
+                        $("#editCandidateSource").val(candidate.source);
+                        $("#editCandidateStatus").val(candidate.status);
+
+                        $("#candidateEditModal").modal("show");
+                    },
+                );
+            })
+            .fail((xhr) =>
+                showFloatingAlert("Something went wrong, please try again"),
+            );
+    }
+
+    function openConfirmDeleteCandidate(id) {
+        $("#confirmDeleteCandidateBtn").data("id", id);
+        $("#confirmDeleteCandidateModal").modal("show");
+    }
+
+    function moveCandidateStatus(id, targetStatus) {
+        if (!id || !targetStatus) return;
+
+        $.get(`${routes.candidates}/${id}`)
+            .done((candidate) => {
+                const payload = {
+                    job_id: candidate.job_id,
+                    candidates_name: candidate.candidates_name,
+                    candidates_email: candidate.candidates_email,
+                    candidates_phone: candidate.candidates_phone,
+                    candidates_address: candidate.candidates_address,
+                    gender: candidate.gender,
+                    candidates_birthdate: candidate.candidates_birthdate,
+                    last_education: candidate.last_education,
+                    experience_years: candidate.experience_years,
+                    expected_salary: candidate.expected_salary,
+                    source: candidate.source,
+                    status: targetStatus,
+                };
+
+                $.ajax({
+                    url: `${routes.candidates}/${id}`,
+                    method: "PUT",
+                    data: payload,
+                })
+                    .done((response) => {
+                        showFloatingAlert(`Candidate moved to ${targetStatus}`);
+                        refreshDashboard();
+                    })
+                    .fail((xhr) =>
+                        showFloatingAlert(
+                            "Something went wrong please try again",
+                        ),
+                    );
+            })
+            .fail((xhr) =>
+                showFloatingAlert("Something went wrong please try again"),
+            );
+    }
+
+    function openScheduleModal(id, presetDate) {
         resetScheduleForm();
 
-        $.when(loadJobOptions(), loadCandidateOptions()).done(() => {
+        loadCandidateOptions().done(() => {
             if (id) {
                 $.get(`${routes.schedules}/${id}`).done((schedule) => {
                     $("#scheduleForm").data("mode", "edit").data("id", id);
                     $("#scheduleModalLabel").text("Edit Schedule");
+
                     $("#deleteScheduleBtn")
                         .removeClass("d-none")
                         .data("id", id);
+
                     $("#scheduleCandidateId").val(schedule.candidate_id);
-                    $("#scheduleJobId").val(schedule.job_id);
                     $("#scheduleType").val(schedule.schedule_type);
                     $("#scheduleTitle").val(schedule.title);
                     $("#scheduleDescription").val(schedule.description);
@@ -320,7 +444,16 @@ $(function () {
                         toDateTimeLocal(schedule.time_end),
                     );
                     $("#scheduleMeetingLink").val(schedule.meeting_link);
+
+                    $("#scheduleModal").modal("show");
                 });
+
+                return;
+            }
+
+            if (presetDate) {
+                $("#scheduleTimeStart").val(`${presetDate}T09:00`);
+                $("#scheduleTimeEnd").val(`${presetDate}T10:00`);
             }
 
             $("#scheduleModal").modal("show");
@@ -333,62 +466,277 @@ $(function () {
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     }
 
-    $("#addCandidateBtn").on("click", () => openCandidateModal());
-    $("#addScheduleBtn").on("click", () => openScheduleModal());
+    function loadCalendarMonth(date) {
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+
+        return $.get(routes.calendar, { year, month }).done((data) => {
+            calendarSchedules = data.schedules || [];
+            calendarCounts = data.counts || {};
+            renderCalendarGrid(date);
+        });
+    }
+
+    function renderCalendarGrid(date) {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const monthLabel = date.toLocaleDateString("en-GB", {
+            month: "long",
+            year: "numeric",
+        });
+        $("#calendarMonthLabel").text(monthLabel);
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const todayStr = toISODateStr(new Date());
+
+        const grid = $("#calendarGrid").empty();
+
+        for (let i = 0; i < firstDay; i++) {
+            grid.append('<div class="calendar-day calendar-day-empty"></div>');
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = toISODateStr(new Date(year, month, day));
+            const count = calendarCounts[dateStr] || 0;
+            const isToday = dateStr === todayStr;
+
+            grid.append(`
+                <div class="calendar-day ${isToday ? "calendar-day-today" : ""} ${count ? "has-schedule" : ""}" data-date="${dateStr}">
+                    <span class="calendar-day-number">${day}</span>
+                    ${count ? '<span class="calendar-day-dot"></span>' : ""}
+                </div>
+            `);
+        }
+    }
+
+    function renderScheduleListItems(targetSelector, schedules, showDate) {
+        const body = $(targetSelector).empty();
+
+        if (!schedules.length) {
+            body.append(
+                '<li class="list-group-item text-muted small border-0">No schedules found.</li>',
+            );
+            return;
+        }
+
+        schedules
+            .slice()
+            .sort((a, b) => new Date(a.time_start) - new Date(b.time_start))
+            .forEach((s) => {
+                const timeLabel = showDate
+                    ? formatDateTime(s.time_start)
+                    : `${formatTime(s.time_start)} - ${formatTime(s.time_end)}`;
+
+                body.append(`
+                    <li class="list-group-item schedule-list-card" data-id="${s.id}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold">${s.title}</div>
+                                <div class="text-muted small">${s.candidate ? s.candidate.candidates_name : "-"} • ${s.job ? s.job.job_name : "-"}</div>
+                            </div>
+                            <span class="schedule-type-badge">${s.schedule_type}</span>
+                        </div>
+                        <div class="text-muted small mt-1">${timeLabel}</div>
+                    </li>
+                `);
+            });
+    }
+
+    function openScheduleDayListModal(dateStr) {
+        selectedDayDate = dateStr;
+        const dateObj = new Date(`${dateStr}T00:00:00`);
+        const label = dateObj.toLocaleDateString("en-GB", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+        });
+        $("#scheduleDayListTitle").text(label);
+
+        const daySchedules = calendarSchedules.filter(
+            (s) => toISODateStr(new Date(s.time_start)) === dateStr,
+        );
+        renderScheduleListItems("#scheduleDayListBody", daySchedules, false);
+        $("#scheduleDayListModal").modal("show");
+    }
+
+    function openScheduleMonthListModal(date) {
+        const label = date.toLocaleDateString("en-GB", {
+            month: "long",
+            year: "numeric",
+        });
+        $("#scheduleMonthListTitle").text(`Schedule List - ${label}`);
+        $("#scheduleSearchModeGroup button").removeClass("active");
+        $('#scheduleSearchModeGroup button[data-mode="monthly"]').addClass(
+            "active",
+        );
+        $("#scheduleSearchDate").addClass("d-none").val("");
+        $("#scheduleSearchKeyword").val("");
+        applyMonthListFilter();
+        $("#scheduleMonthListModal").modal("show");
+    }
+
+    function applyMonthListFilter() {
+        const mode = $("#scheduleSearchModeGroup button.active").data("mode");
+        const keyword = ($("#scheduleSearchKeyword").val() || "")
+            .trim()
+            .toLowerCase();
+        const dateFilter = $("#scheduleSearchDate").val();
+
+        let filtered = calendarSchedules;
+
+        if (mode === "daily" && dateFilter) {
+            filtered = filtered.filter(
+                (s) => toISODateStr(new Date(s.time_start)) === dateFilter,
+            );
+        }
+
+        if (keyword) {
+            filtered = filtered.filter((s) => {
+                const title = (s.title || "").toLowerCase();
+                const candidateName = s.candidate
+                    ? (s.candidate.candidates_name || "").toLowerCase()
+                    : "";
+                const jobName = s.job
+                    ? (s.job.job_name || "").toLowerCase()
+                    : "";
+
+                return (
+                    title.includes(keyword) ||
+                    candidateName.includes(keyword) ||
+                    jobName.includes(keyword)
+                );
+            });
+        }
+
+        renderScheduleListItems("#scheduleMonthListBody", filtered, true);
+    }
+
+    $("#addCandidateBtn").on("click", () => openAddCandidateModal());
+
+    $(document).on("click", ".candidate-card-menu", function (e) {
+        e.stopPropagation();
+    });
 
     $(document).on("click", ".candidate-card", function () {
-        openCandidateModal($(this).data("candidate-id"));
+        openEditCandidateModal($(this).data("candidate-id"));
+    });
+
+    $(document).on(
+        "click",
+        ".candidate-action-next, .candidate-action-prev",
+        function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if ($(this).hasClass("disabled")) return;
+            moveCandidateStatus(
+                $(this).data("id"),
+                $(this).data("target-status"),
+            );
+        },
+    );
+
+    $(document).on("click", ".candidate-action-edit", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openEditCandidateModal($(this).data("id"));
+    });
+
+    $(document).on("click", ".candidate-action-delete", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openConfirmDeleteCandidate($(this).data("id"));
     });
 
     $(document).on("click", ".edit-schedule-btn", function () {
         openScheduleModal($(this).data("id"));
     });
 
-    $("#candidateForm").on("submit", function (event) {
+    $("#candidateAddForm").on("submit", function (event) {
         event.preventDefault();
 
-        const form = $(this);
-        const mode = form.data("mode");
-        const id = form.data("id");
         const payload = {
-            job_id: $("#candidateJobId").val(),
-
-            candidates_name: $("#candidateName").val(),
-            candidates_email: $("#candidateEmail").val(),
-            candidates_phone: $("#candidatePhone").val(),
-            candidates_address: $("#candidateAddress").val(),
-
-            gender: $("#candidateGender").val(),
-
-            candidates_birthdate: $("#candidateBirthdate").val(),
-
-            last_education: $("#candidateEducation").val(),
-
-            experience_years: $("#candidateExperience").val(),
-
-            expected_salary: $("#candidateSalary").val(),
-
-            source: $("#candidateSource").val(),
-
-            status: $("#candidateStatus").val(),
+            job_id: $("#addCandidateJobId").val(),
+            candidates_name: $("#addCandidateName").val(),
+            candidates_email: $("#addCandidateEmail").val(),
+            candidates_phone: $("#addCandidatePhone").val(),
+            candidates_address: $("#addCandidateAddress").val(),
+            gender: $("#addCandidateGender").val(),
+            candidates_birthdate: $("#addCandidateBirthdate").val(),
+            last_education: $("#addCandidateEducation").val(),
+            experience_years: $("#addCandidateExperience").val(),
+            expected_salary: $("#addCandidateSalary").val(),
+            source: $("#addCandidateSource").val(),
+            status: $("#addCandidateStatus").val(),
         };
 
-        const request =
-            mode === "edit"
-                ? $.ajax({
-                      url: `${routes.candidates}/${id}`,
-                      method: "PUT",
-                      data: payload,
-                  })
-                : $.post(routes.candidates, payload);
-
-        request
+        $.post(routes.candidates, payload)
             .done((response) => {
-                showAlert("success", response.message);
-                $("#candidateModal").modal("hide");
+                showFloatingAlert("success", response.message);
+                $("#candidateAddModal").modal("hide");
                 refreshDashboard();
             })
-            .fail((xhr) => showAlert("danger", extractErrorMessage(xhr)));
+            .fail((xhr) =>
+                showFloatingAlert("Something went wrong please try again"),
+            );
+    });
+
+    $("#candidateEditForm").on("submit", function (event) {
+        event.preventDefault();
+
+        const id = $(this).data("id");
+        const payload = {
+            job_id: $("#editCandidateJobId").val(),
+            candidates_name: $("#editCandidateName").val(),
+            candidates_email: $("#editCandidateEmail").val(),
+            candidates_phone: $("#editCandidatePhone").val(),
+            candidates_address: $("#editCandidateAddress").val(),
+            gender: $("#editCandidateGender").val(),
+            candidates_birthdate: $("#editCandidateBirthdate").val(),
+            last_education: $("#editCandidateEducation").val(),
+            experience_years: $("#editCandidateExperience").val(),
+            expected_salary: $("#editCandidateSalary").val(),
+            source: $("#editCandidateSource").val(),
+            status: $("#editCandidateStatus").val(),
+        };
+
+        $.ajax({
+            url: `${routes.candidates}/${id}`,
+            method: "PUT",
+            data: payload,
+        })
+            .done((response) => {
+                showFloatingAlert("success", response.message);
+                $("#candidateEditModal").modal("hide");
+                refreshDashboard();
+            })
+            .fail((xhr) =>
+                showFloatingAlert("Something went wrong please try again"),
+            );
+    });
+
+    $("#editCandidateDeleteBtn").on("click", function () {
+        const id = $("#candidateEditForm").data("id");
+        switchModal("#candidateEditModal", () =>
+            openConfirmDeleteCandidate(id),
+        );
+    });
+
+    $("#confirmDeleteCandidateBtn").on("click", function () {
+        const id = $(this).data("id");
+        if (!id) return;
+
+        $.ajax({ url: `${routes.candidates}/${id}`, method: "DELETE" })
+            .done((response) => {
+                showFloatingAlert("success", response.message);
+                $("#confirmDeleteCandidateModal").modal("hide");
+                refreshDashboard();
+            })
+            .fail((xhr) => {
+                $("#confirmDeleteCandidateModal").modal("hide");
+                showFloatingAlert("Something went wrong please try again");
+            });
     });
 
     $("#scheduleForm").on("submit", function (event) {
@@ -399,7 +747,6 @@ $(function () {
         const id = form.data("id");
         const payload = {
             candidate_id: $("#scheduleCandidateId").val(),
-            job_id: $("#scheduleJobId").val(),
             schedule_type: $("#scheduleType").val(),
             title: $("#scheduleTitle").val(),
             description: $("#scheduleDescription").val(),
@@ -420,24 +767,13 @@ $(function () {
 
         request
             .done((response) => {
-                showAlert("success", response.message);
+                showFloatingAlert("success", response.message);
                 $("#scheduleModal").modal("hide");
                 refreshDashboard();
             })
-            .fail((xhr) => showAlert("danger", extractErrorMessage(xhr)));
-    });
-
-    $("#deleteCandidateBtn").on("click", function () {
-        const id = $(this).data("id");
-        if (!id || !confirm("Delete this candidate?")) return;
-
-        $.ajax({ url: `${routes.candidates}/${id}`, method: "DELETE" })
-            .done((response) => {
-                showAlert("success", response.message);
-                $("#candidateModal").modal("hide");
-                refreshDashboard();
-            })
-            .fail((xhr) => showAlert("danger", extractErrorMessage(xhr)));
+            .fail((xhr) =>
+                showFloatingAlert("Something went wrong please try again"),
+            );
     });
 
     $("#deleteScheduleBtn").on("click", function () {
@@ -446,11 +782,13 @@ $(function () {
 
         $.ajax({ url: `${routes.schedules}/${id}`, method: "DELETE" })
             .done((response) => {
-                showAlert("success", response.message);
+                showFloatingAlert("success", response.message);
                 $("#scheduleModal").modal("hide");
                 refreshDashboard();
             })
-            .fail((xhr) => showAlert("danger", extractErrorMessage(xhr)));
+            .fail((xhr) =>
+                showFloatingAlert("Something went wrong please try again"),
+            );
     });
 
     $(document).on("click", ".delete-schedule-btn", function () {
@@ -459,11 +797,87 @@ $(function () {
 
         $.ajax({ url: `${routes.schedules}/${id}`, method: "DELETE" })
             .done((response) => {
-                showAlert("success", response.message);
+                showFloatingAlert("success", response.message);
                 refreshDashboard();
             })
-            .fail((xhr) => showAlert("danger", extractErrorMessage(xhr)));
+            .fail((xhr) =>
+                showFloatingAlert("Something went wrong please try again"),
+            );
     });
+
+    $("#openScheduleCalendarBtn").on("click", function () {
+        calendarViewDate = new Date();
+        loadCalendarMonth(calendarViewDate).done(() => {
+            $("#scheduleCalendarModal").modal("show");
+        });
+    });
+
+    $("#calendarPrevMonth").on("click", function () {
+        calendarViewDate = new Date(
+            calendarViewDate.getFullYear(),
+            calendarViewDate.getMonth() - 1,
+            1,
+        );
+        loadCalendarMonth(calendarViewDate);
+    });
+
+    $("#calendarNextMonth").on("click", function () {
+        calendarViewDate = new Date(
+            calendarViewDate.getFullYear(),
+            calendarViewDate.getMonth() + 1,
+            1,
+        );
+        loadCalendarMonth(calendarViewDate);
+    });
+
+    $(document).on(
+        "click",
+        "#calendarGrid .calendar-day:not(.calendar-day-empty)",
+        function () {
+            const dateStr = $(this).data("date");
+            switchModal("#scheduleCalendarModal", () =>
+                openScheduleDayListModal(dateStr),
+            );
+        },
+    );
+
+    $("#openMonthListBtn").on("click", function () {
+        const viewDate = calendarViewDate;
+        switchModal("#scheduleCalendarModal", () =>
+            openScheduleMonthListModal(viewDate),
+        );
+    });
+
+    $("#scheduleDayAddBtn").on("click", function () {
+        const presetDate = selectedDayDate;
+        switchModal("#scheduleDayListModal", () =>
+            openScheduleModal(null, presetDate),
+        );
+    });
+
+    $(document).on("click", ".schedule-list-card", function () {
+        const id = $(this).data("id");
+        const modalId = "#" + $(this).closest(".modal").attr("id");
+        switchModal(modalId, () => openScheduleModal(id));
+    });
+
+    $("#scheduleSearchModeGroup button").on("click", function () {
+        $("#scheduleSearchModeGroup button").removeClass("active");
+        $(this).addClass("active");
+
+        if ($(this).data("mode") === "daily") {
+            $("#scheduleSearchDate").removeClass("d-none");
+        } else {
+            $("#scheduleSearchDate").addClass("d-none");
+        }
+
+        applyMonthListFilter();
+    });
+
+    $("#scheduleSearchDate, #scheduleSearchKeyword").on(
+        "input change",
+        applyMonthListFilter,
+    );
 
     $("#dateFilterForm").on("click", function (e) {
         e.stopPropagation();
@@ -495,5 +909,4 @@ $(function () {
         );
     }
     refreshDashboard();
-    
 });

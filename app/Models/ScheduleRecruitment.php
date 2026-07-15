@@ -10,7 +10,6 @@ class ScheduleRecruitment extends Model
 
     protected $fillable = [
         'candidate_id',
-        'job_id',
         'schedule_type',
         'title',
         'description',

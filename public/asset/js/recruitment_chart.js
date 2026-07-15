@@ -87,7 +87,7 @@ const RecruitmentCharts = (function ($) {
                 labels: labels.length ? labels : ["No Data"],
                 datasets: [
                     {
-                        label: "Applicants",
+                        label: "New Candidates",
                         data: data.length ? data : [0],
                         borderColor: "#8A7BFF",
                         backgroundColor: "rgba(138,123,255,0.08)",

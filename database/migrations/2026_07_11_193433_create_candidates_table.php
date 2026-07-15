@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('candidates_phone', 20)->nullable();
             $table->string('candidates_address')->nullable();
             $table->foreignId('job_id')
-                ->constrained('jobs')
+                ->constrained('job_list')
                 ->cascadeOnDelete();
             $table->enum('gender', ['male', 'female'])->default('male');
             $table->date('candidates_birthdate')->nullable();

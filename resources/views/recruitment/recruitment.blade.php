@@ -43,11 +43,6 @@
                 <input type="text" id="dateRange"
                     style="position:absolute;opacity:0;pointer-events:none;width:0;height:0;">
             </div>
-
-            <button type="button" class="btn export-excel-btn d-flex align-items-center gap-2" id="exportExcelBtn">
-                <span class="material-symbols-outlined" style="font-size:18px;">download</span>
-                Export Excel
-            </button>
         </div>
     </div>
 
@@ -197,7 +192,7 @@
                         </div>
 
                         <div class="total-employees fw-bold display-4 mt-2">
-                            {{ array_sum($overview_data ?? []) }}
+                            {{ $total_applicants }}
                         </div>
                     </div>
 
@@ -307,7 +302,7 @@
 
     <div class="row g-3 mb-3">
         <div class="col-12">
-            <div class="body-content rounded-4 p-4">
+            <div class="body-content rounded-4 p-4 pipeline-section">
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0 fw-bold">Recruitment Pipeline</h5>
@@ -323,9 +318,10 @@
         <div class="col-lg-9">
             <div class="body-content rounded-4 p-4">
 
-                <h5 class="fw-semibold mb-3">
-                    Candidates Overview
-                </h5>
+                <h5 class="dashboard-card-title mb-1">New Candidate Trend</h5>
+                <p class="dashboard-card-subtitle text-muted fs-8 mb-0">
+                    Daily incoming candidates during the selected period.
+                </p>
 
                 <div style="height: 250px;">
                     <canvas id="candidateOverview"></canvas>
@@ -350,8 +346,8 @@
                             <small>Add Candidate</small>
                         </button>
 
-                        <button type="button" class="btn quick-btn-action w-100 d-flex align-items-center py-3"
-                            disabled>
+                        <button type="button" id="addJobBtn"
+                            class="btn quick-btn-action w-100 d-flex align-items-center py-3">
                             <span class="material-symbols-outlined me-2">
                                 groups
                             </span>
@@ -382,12 +378,12 @@
 
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>
 
-    <div class="modal fade" id="candidateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="candidateAddModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
-                <form id="candidateForm">
+                <form id="candidateAddForm">
                     <div class="modal-header">
-                        <h6 class="modal-title modal-title-custom mb-0" id="candidateModalLabel">Add Candidate</h6>
+                        <h6 class="modal-title modal-title-custom mb-0">Add Candidate</h6>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body modal-body-custom">
@@ -399,10 +395,7 @@
                                     Position <span class="text-danger">*</span>
                                 </label>
 
-                                <select
-                                    id="candidateJobId"
-                                    class="form-select border-0"
-                                    required>
+                                <select id="addCandidateJobId" class="form-select border-0" required>
 
                                     <option value="">Select Position</option>
 
@@ -413,7 +406,7 @@
                                 <label class="form-label small fw-semibold">
                                     Full Name <span class="text-danger">*</span>
                                 </label>
-                                <input type="text" id="candidateName" class="form-control border-0"
+                                <input type="text" id="addCandidateName" class="form-control border-0"
                                     placeholder="Enter full name" required>
                             </div>
 
@@ -421,7 +414,7 @@
                                 <label class="form-label small fw-semibold">
                                     Email <span class="text-danger">*</span>
                                 </label>
-                                <input type="email" id="candidateEmail" class="form-control border-0"
+                                <input type="email" id="addCandidateEmail" class="form-control border-0"
                                     placeholder="example@email.com" required>
                             </div>
 
@@ -429,7 +422,7 @@
                                 <label class="form-label small fw-semibold">
                                     Phone Number
                                 </label>
-                                <input type="text" id="candidatePhone" class="form-control border-0"
+                                <input type="text" id="addCandidatePhone" class="form-control border-0"
                                     placeholder="08xxxxxxxxxx">
                             </div>
 
@@ -438,11 +431,11 @@
                                     Gender
                                 </label>
 
-                                <select id="candidateGender" class="form-select border-0">
+                                <select id="addCandidateGender" class="form-select border-0">
 
                                     <option value="">Select Gender</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
 
                                 </select>
                             </div>
@@ -452,7 +445,7 @@
                                     Birthdate
                                 </label>
 
-                                <input type="date" id="candidateBirthdate" class="form-control border-0">
+                                <input type="date" id="addCandidateBirthdate" class="form-control border-0">
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -460,7 +453,7 @@
                                     Last Education
                                 </label>
 
-                                <input type="text" id="candidateEducation" class="form-control border-0"
+                                <input type="text" id="addCandidateEducation" class="form-control border-0"
                                     placeholder="Bachelor Degree">
                             </div>
 
@@ -469,7 +462,7 @@
                                     Experience (Years)
                                 </label>
 
-                                <input type="number" id="candidateExperience" class="form-control border-0"
+                                <input type="number" id="addCandidateExperience" class="form-control border-0"
                                     placeholder="0">
                             </div>
 
@@ -478,7 +471,7 @@
                                     Expected Salary
                                 </label>
 
-                                <input type="number" id="candidateSalary" class="form-control border-0"
+                                <input type="number" id="addCandidateSalary" class="form-control border-0"
                                     placeholder="5000000">
                             </div>
 
@@ -487,7 +480,7 @@
                                     Address
                                 </label>
 
-                                <textarea id="candidateAddress" rows="3" class="form-control border-0" placeholder="Candidate address"></textarea>
+                                <textarea id="addCandidateAddress" rows="3" class="form-control border-0" placeholder="Candidate address"></textarea>
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -495,7 +488,7 @@
                                     Recruitment Source
                                 </label>
 
-                                <input type="text" id="candidateSource" class="form-control border-0"
+                                <input type="text" id="addCandidateSource" class="form-control border-0"
                                     placeholder="LinkedIn, Jobstreet, Referral">
                             </div>
 
@@ -504,7 +497,7 @@
                                     Status
                                 </label>
 
-                                <select id="candidateStatus" class="form-select border-0">
+                                <select id="addCandidateStatus" class="form-select border-0">
 
                                     @foreach (\App\Models\Candidate::STATUSES as $status)
                                         <option value="{{ $status }}">
@@ -520,7 +513,7 @@
                                     CV
                                 </label>
 
-                                <input type="file" id="candidateCv" class="form-control border-0"
+                                <input type="file" id="addCandidateCv" class="form-control border-0"
                                     accept=".pdf,.doc,.docx">
                             </div>
 
@@ -529,7 +522,7 @@
                                     Photo
                                 </label>
 
-                                <input type="file" id="candidatePhoto" class="form-control border-0"
+                                <input type="file" id="addCandidatePhoto" class="form-control border-0"
                                     accept="image/*">
                             </div>
 
@@ -537,8 +530,6 @@
 
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        {{-- <button type="button" id="deleteCandidateBtn"
-                            class="btn btn-outline-danger rounded-pill px-3 d-none me-auto">Delete</button> --}}
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn submit-candidate-btn">Save</button>
                     </div>
@@ -547,28 +538,216 @@
         </div>
     </div>
 
+    <div class="modal fade" id="candidateEditModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <form id="candidateEditForm">
+                    <div class="modal-header">
+                        <h6 class="modal-title modal-title-custom mb-0">Edit Candidate</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body modal-body-custom">
+
+                        <div class="row">
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Position <span class="text-danger">*</span>
+                                </label>
+
+                                <select id="editCandidateJobId" class="form-select border-0" required>
+
+                                    <option value="">Select Position</option>
+
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Full Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" id="editCandidateName" class="form-control border-0"
+                                    placeholder="Enter full name" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Email <span class="text-danger">*</span>
+                                </label>
+                                <input type="email" id="editCandidateEmail" class="form-control border-0"
+                                    placeholder="example@email.com" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Phone Number
+                                </label>
+                                <input type="text" id="editCandidatePhone" class="form-control border-0"
+                                    placeholder="08xxxxxxxxxx">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Gender
+                                </label>
+
+                                <select id="editCandidateGender" class="form-select border-0">
+
+                                    <option value="">Select Gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Birthdate
+                                </label>
+
+                                <input type="date" id="editCandidateBirthdate" class="form-control border-0">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Last Education
+                                </label>
+
+                                <input type="text" id="editCandidateEducation" class="form-control border-0"
+                                    placeholder="Bachelor Degree">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Experience (Years)
+                                </label>
+
+                                <input type="number" id="editCandidateExperience" class="form-control border-0"
+                                    placeholder="0">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Expected Salary
+                                </label>
+
+                                <input type="number" id="editCandidateSalary" class="form-control border-0"
+                                    placeholder="5000000">
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Address
+                                </label>
+
+                                <textarea id="editCandidateAddress" rows="3" class="form-control border-0" placeholder="Candidate address"></textarea>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Recruitment Source
+                                </label>
+
+                                <input type="text" id="editCandidateSource" class="form-control border-0"
+                                    placeholder="LinkedIn, Jobstreet, Referral">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Status
+                                </label>
+
+                                <select id="editCandidateStatus" class="form-select border-0">
+
+                                    @foreach (\App\Models\Candidate::STATUSES as $status)
+                                        <option value="{{ $status }}">
+                                            {{ $status }}
+                                        </option>
+                                    @endforeach
+
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    CV
+                                </label>
+
+                                <input type="file" id="editCandidateCv" class="form-control border-0"
+                                    accept=".pdf,.doc,.docx">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Photo
+                                </label>
+
+                                <input type="file" id="editCandidatePhoto" class="form-control border-0"
+                                    accept="image/*">
+                            </div>
+
+                        </div>
+
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn submit-candidate-btn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmDeleteCandidateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-body confirm-modal-body">
+                    <div class="confirm-modal-icon">
+                        <span class="material-symbols-outlined">delete</span>
+                    </div>
+                    <h6>Delete Candidate?</h6>
+                    <p>This action cannot be undone. This candidate and related schedules info will be permanently
+                        removed.</p>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger text-white"
+                        id="confirmDeleteCandidateBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <div class="modal fade" id="scheduleCalendarModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content schedule-calendar-modal">
-                <div class="modal-header border-0 pb-0">
+            <div class="modal-content schedule-calendar-modal modal-content-custom">
+                <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-center">
+
                     <div class="calendar-nav d-flex align-items-center gap-2">
-                        <button type="button" class="btn btn-sm calendar-nav-btn" id="calendarPrevMonth">
+                        <button type="button" class="btn btn-sm calendar-nav-btn bg-0" id="calendarPrevMonth">
                             <span class="material-symbols-outlined">chevron_left</span>
                         </button>
+
                         <h6 class="mb-0 fw-bold" id="calendarMonthLabel">-</h6>
-                        <button type="button" class="btn btn-sm calendar-nav-btn" id="calendarNextMonth">
+
+                        <button type="button" class="btn btn-sm calendar-nav-btn bg-0" id="calendarNextMonth">
                             <span class="material-symbols-outlined">chevron_right</span>
                         </button>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <button type="button" class="btn btn-sm calendar-nav-btn" id="openMonthListBtn"
-                            title="Lihat semua jadwal bulan ini">
+
+                    <div class="d-flex align-items-center gap-2 ms-auto">
+                        <button type="button" class="btn btn-sm calendar-nav-btn bg-0" id="openMonthListBtn"
+                            title="View all schedules this month">
                             <span class="material-symbols-outlined">list</span>
                         </button>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        </button>
                     </div>
+
                 </div>
-                <div class="modal-body pt-2">
+                <div class="modal-body modal-body-custom pt-2">
                     <div class="calendar-weekdays">
                         <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
                     </div>
@@ -625,23 +804,17 @@
 
     <div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+            <div class="modal-content modal-content-custom">
                 <form id="scheduleForm">
-                    <div class="modal-header">
-                        <h6 class="modal-title fw-bold mb-0" id="scheduleModalLabel">Add Schedule</h6>
+                    <div class="modal-header modal-header-custom">
+                        <h6 class="modal-title modal-title-custom" id="scheduleModalLabel">Add Schedule</h6>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body modal-body-custom">
                         <div class="mb-3">
                             <label class="form-label small">Candidate</label>
                             <select id="scheduleCandidateId" class="form-select" required>
                                 <option value="">Select Candidate</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Position</label>
-                            <select id="scheduleJobId" class="form-select" required>
-                                <option value="">Select Position</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -676,7 +849,7 @@
                             <input type="text" id="scheduleMeetingLink" class="form-control">
                         </div>
                     </div>
-                    <div class="modal-footer border-0">
+                    <div class="modal-footer modal-footer-custom">
                         <button type="button" id="deleteScheduleBtn"
                             class="btn btn-outline-danger rounded-pill px-3 d-none me-auto">Delete</button>
                         <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
