@@ -13,19 +13,25 @@ return new class extends Migration
     {
         Schema::create('schedule_recruitments', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('candidate_id');
-            $table->unsignedBigInteger('job_id');
-            $table->enum('schedule_type', ['interview', 'tech_test', 'offering', 'other']);
+            $table->foreignId('candidate_id')
+                ->constrained('candidates')
+                ->cascadeOnDelete();
+            $table->enum('schedule_type', [
+                'interview',
+                'tech_test',
+                'offering',
+                'other'
+            ]);
             $table->string('title');
-            $table->string('description')->nullable();
-            $table->enum('location', ['online', 'onsite'])->default('online');
-            $table->datetime('time_start');
-            $table->datetime('time_end');
+            $table->text('description')->nullable();
+            $table->enum('location', [
+                'online',
+                'onsite'
+            ])->default('online');
+            $table->dateTime('time_start');
+            $table->dateTime('time_end');
             $table->string('meeting_link')->nullable();
             $table->timestamps();
-
-            $table->foreign('candidate_id')->references('id')->on('candidates')->onDelete('cascade');
-            $table->foreign('job_id')->references('id')->on('jobs')->onDelete('cascade');
         });
     }
 

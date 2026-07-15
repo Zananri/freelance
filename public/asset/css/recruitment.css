@@ -43,6 +43,36 @@
     font-size: 12px;
 }
 
+.tranding-flat-chart {
+    color: #8f8f8f;
+    font-size: 12px;
+}
+
+.tranding-text {
+    color: #8f8f8f;
+    font-size: 12px;
+}
+
+.date-filter-toggle,
+.date-filter-toggle:hover {
+    border: 1px solid #676f7a;
+    font-size: 12px;
+    color: #333;
+}
+
+.flatpickr-monthDropdown-months,
+.numInput.cur-year {
+    font-size: 16px !important;
+}
+
+.flatpickr-weekdays {
+    font-size: 14px !important;
+}
+
+.flatpickr-day {
+    font-size: 10px !important;
+}
+
 .tranding-chart .material-symbols-outlined {
     font-size: 18px;
     font-variation-settings:
@@ -149,8 +179,75 @@
 
 .quick-btn-action,
 .quick-btn-action:hover {
-    border: 1px solid #676F7A;
+    border: 1px solid #676f7a;
     border-radius: 5px;
     color: #333;
     font-size: 10px;
+}
+
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 20px;
+    background: #f0f1f8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+.modal-title-custom {
+    font-weight: 300;
+    font-size: 28px;
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    color: rgb(103, 111, 122);
+}
+
+.modal-body-custom {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+}
+
+.modal-body-custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-body-custom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body-custom::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.modal-footer-custom {
+    width: 100%;
+    border: none;
+    justify-content: center;
+    margin-top: 3rem;
+    padding: 5px;
+}
+
+.modal-footer-custom button {
+    height: 50px;
+    width: 48%;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.modal-footer-custom .submit-candidate-btn {
+    background: #444444;
+    color: #e3e4ee;
+}
+
+.modal-footer-custom .btn-light {
+    background: #e3e4ee;
+    color: #596069;
+    border: none;
+}
+
+.modal-footer-custom .btn-close-custom {
+    width: 100%;
 }

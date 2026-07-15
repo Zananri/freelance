@@ -12,20 +12,30 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('candidates', function (Blueprint $table) {
-            $table->unsignedBigInteger('id')->primary();
+            $table->id();
             $table->string('candidates_name');
             $table->string('candidates_email');
-            $table->string('candidates_phone', 20);
-            $table->string('candidates_address');
+            $table->string('candidates_phone', 20)->nullable();
+            $table->string('candidates_address')->nullable();
+            $table->foreignId('job_id')
+                ->constrained('jobs')
+                ->cascadeOnDelete();
             $table->enum('gender', ['male', 'female'])->default('male');
             $table->date('candidates_birthdate')->nullable();
-            $table->string('last_education');
-            $table->string('experience_years')->default('0');
-            $table->string('cv_file');
-            $table->string('expected_salary');
+            $table->string('last_education')->nullable();
+            $table->unsignedInteger('experience_years')->default(0);
+            $table->string('cv_file')->nullable();
+            $table->decimal('expected_salary', 15, 2)->nullable();
             $table->string('photo')->nullable();
-            $table->string('source');
-            $table->enum('status', ['applied', 'screening', 'interview', 'tech_test', 'hired', 'rejected'])->default('applied');
+            $table->string('source')->nullable();
+            $table->enum('status', [
+                'applied',
+                'screening',
+                'interview',
+                'tech_test',
+                'hired',
+                'rejected'
+            ])->default('applied');
             $table->timestamps();
         });
     }

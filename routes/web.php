@@ -260,7 +260,25 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/weekdays_off', [WeekdayOffController::class, 'showWeekdayOffPage'])->name('weekday_off');
     Route::post('/weekday_off/save-employee-weekday-off', [WeekdayOffController::class, 'saveEmployeeWeekdayoff'])->name('weekday_off.saveEmployeeWeekdayoff');
 
-    Route::get('recruitment', [RecruitmentController::class, 'showRecruitmentPage'])->name('recruitment');
+    Route::get('/recruitment', [RecruitmentController::class, 'showRecruitmentPage'])->name('recruitment');
+    Route::get('/recruitment/data', [RecruitmentController::class, 'getRecruitmentData'])->name('recruitment.data');
+    Route::get('/recruitment/jobs', [RecruitmentController::class, 'jobOptions'])->name('recruitment.jobs');
+    Route::get('/recruitment/schedule-calendar', [RecruitmentController::class, 'scheduleCalendar'])->name('recruitment.scheduleCalendar');
+ 
+    Route::get('/candidates', [RecruitmentController::class, 'candidateIndex'])->name('candidates.index');
+    Route::post('/candidates', [RecruitmentController::class, 'candidateStore'])->name('candidates.store');
+    Route::get('/candidates/{candidate}', [RecruitmentController::class, 'candidateShow'])->name('candidates.show');
+    Route::put('/candidates/{candidate}', [RecruitmentController::class, 'candidateUpdate'])->name('candidates.update');
+    Route::delete('/candidates/{candidate}', [RecruitmentController::class, 'candidateDestroy'])->name('candidates.destroy');
+ 
+    Route::get('/schedules', [RecruitmentController::class, 'scheduleIndex'])->name('schedules.index');
+    Route::post('/schedules', [RecruitmentController::class, 'scheduleStore'])->name('schedules.store');
+    Route::get('/schedules/{schedule}', [RecruitmentController::class, 'scheduleShow'])->name('schedules.show');
+    Route::put('/schedules/{schedule}', [RecruitmentController::class, 'scheduleUpdate'])->name('schedules.update');
+    Route::delete('/schedules/{schedule}', [RecruitmentController::class, 'scheduleDestroy'])->name('schedules.destroy');
+
+    Route::get('/recruitment/export', [RecruitmentController::class, 'exportRecruitment'])
+    ->name('recruitment.export');
 
     Route::get('/monitoring', [MonitoringController::class, 'showMonitoringPage'])->name('monitoring');
     Route::get('/monitoring/data', [MonitoringController::class, 'getMonitoringData'])->name('monitoring.data');
