@@ -20,11 +20,6 @@
                     <div>
                         <input type="text" class="input-search-query w-100">
                     </div>
-                    <div>
-                        <button class="btn btn-default" type="button" id="btn-download-xlsx">
-                            <span class="material-symbols-outlined icon download" type="button">download</span>
-                        </button>
-                    </div>
                 </div>
                 
             </div>
@@ -48,30 +43,48 @@
                                 <div class="d-flex"> 
 
                                     @php
-                                        $hideDeparment = ' ';
-                                        if(auth()->user()->employee->department_id != 1){
-                                            $hideDeparment = 'd-none';
-                                        }
+                                        $isSuperadmin = auth()->user()->user_type === 'SUPERADMIN';
+                                        $hideDepartment = $isSuperadmin ? '' : 'd-none';
                                     @endphp
 
-                                    <div class="col-dropdown-department {{ $hideDeparment }}" data-department-id="{{ auth()->user()->employee->department_id }}">
+                                    <div class="col-dropdown-department {{ $hideDepartment }}"
+                                        data-department-id="{{ $isSuperadmin ? 0 : auth()->user()->employee->department_id }}">
+
                                         <div class="dropdown dropdown-select">
 
-                                            <div class="dropdown-toggle btn btn-dropdown-table ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                
+                                            <div class="dropdown-toggle btn btn-dropdown-table ps-0"
+                                                type="button"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false">
+
                                                 <div class="d-inline-flex align-items-center">
-                                                    <span class="title-dropdown">All Department</span>
+                                                    <span class="title-dropdown">
+                                                        {{ $isSuperadmin ? 'All Department' : auth()->user()->employee->department->name_department }}
+                                                    </span>
                                                 </div>
 
                                             </div>
 
                                             <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                                                
+
+                                                @if($isSuperadmin)
+                                                    <li class="dropdown-item department-item"
+                                                        data-department-id="0"
+                                                        data-department-name="All Department">
+                                                        <div class="dropdown-item fs-14">All Department</div>
+                                                    </li>
+                                                @endif
+
                                                 @foreach ($department as $itemDepartment)
-                                                    <li data-department-id="{{ $itemDepartment->id }}" data-department-name="{{ $itemDepartment->name_department }}"  class="dropdown-item department-item fs-14">
-                                                        <div class="dropdown-item fs-14">{{ $itemDepartment->name_department }}</div>
-                                                    </li>     
+                                                    <li class="dropdown-item department-item fs-14"
+                                                        data-department-id="{{ $itemDepartment->id }}"
+                                                        data-department-name="{{ $itemDepartment->name_department }}">
+                                                        <div class="dropdown-item fs-14">
+                                                            {{ $itemDepartment->name_department }}
+                                                        </div>
+                                                    </li>
                                                 @endforeach
+
                                             </ul>
 
                                         </div>
@@ -169,29 +182,23 @@
                                         </th>
 
                                         <th>
-                                            <div class="white-space-nowrap">Uang Makan</div>
-                                        </th>
-
-                                        <th>
-                                            <div class="white-space-nowrap">Transportasi</div>
-                                        </th>
-
-                                        
-
-                                        <th>
-                                            <div class="white-space-nowrap">Pulsa &amp; Internet</div>
-                                        </th>
-
-                                        <th>
                                             <div class="white-space-nowrap">Jabatan</div>
                                         </th>
 
                                         <th>
-                                            <div>Bonus</div>
-                                        </th>                                       
+                                            <div class="white-space-nowrap">Tunj. BPJS Kesehatan</div>
+                                        </th>
 
                                         <th>
-                                            <div>Lembur</div>
+                                            <div class="white-space-nowrap">Tunj. BPJS Ketenagakerjaan</div>
+                                        </th>
+
+                                        <th>
+                                            <div class="white-space-nowrap">Tunj. Dana Pensiun</div>
+                                        </th>
+
+                                        <th>
+                                            <div class="white-space-nowrap">Kompensasi PKWT</div>
                                         </th>
 
                                         <th>
@@ -259,12 +266,11 @@
                                             <td class="hari-kerja p-1"></td>
                                             <td class="hari-um p-1"></td>
                                             <td class="gaji-pokok p-1"></td>
-                                            <td class="uang-makan p-1"></td>
-                                            <td class="transportasi p-1"></td>
-                                            <td class="pulsa-internet p-1"></td>
                                             <td class="jabatan p-1"></td>
-                                            <td class="bonus p-1">0</td>
-                                            <td class="lembur p-1">0</td>
+                                            <td class="bpjs-allowance p-1"></td>
+                                            <td class="bpjs-tenaga-kerja-allowance p-1"></td>
+                                            <td class="pension-allowance p-1"></td>
+                                            <td class="kompensasi-pkwt p-1">0</td>
                                             <td class="thr p-1">0</td>
                                             <td class="potongan p-1">0</td>
                                         </tr>
@@ -316,12 +322,11 @@
                                                 </div>
                                             </td>
                                             <td class="gaji-pokok p-1"></td>
-                                            <td class="uang-makan p-1"></td>
-                                            <td class="transportasi p-1"></td>
-                                            <td class="pulsa-internet p-1"></td>
                                             <td class="jabatan p-1"></td>
-                                            <td class="bonus p-1">0</td>
-                                            <td class="lembur p-1">0</td>
+                                            <td class="bpjs-allowance p-1"></td>
+                                            <td class="bpjs-tenaga-kerja-allowance p-1"></td>
+                                            <td class="pension-allowance p-1"></td>
+                                            <td class="kompensasi-pkwt p-1">0</td>
                                             <td class="thr p-1">0</td>
                                             <td class="potongan p-1">0</td>
                                         </tr>
@@ -463,7 +468,7 @@
                                                 <i class="bi bi-info-circle"></i>
                                             </span>
                                             
-                                            <input type="number" class="form-control border-0 fs-14" name="basic_salary" id="basic_salary">
+                                            <input type="text" class="form-control border-0 fs-14" name="basic_salary" id="basic_salary">
                                         </div>
                                         
                                         <div class="col-6">
@@ -498,19 +503,19 @@
                                                 <i class="bi bi-info-circle"></i>
                                             </span>
 
-                                            <input type="number" class="form-control border-0 fs-14" name="positional_allowance" id="positional_allowance">
+                                            <input type="text" class="form-control border-0 fs-14" name="positional_allowance" id="positional_allowance">
                                         </div>
 
                                         <div class="col-6">
-                                            <label for="meal_allowance" class="fs-14 text-secondary fw-normal">
-                                                Uang Makan
+                                            <label for="bpjs_allowance" class="fs-14 text-secondary fw-normal">
+                                                Tunjangan BPJS Kesehatan
                                             </label>
 
-                                            <span class="fs-12 ms-2 info_meal_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                            <span class="fs-12 ms-2 info_bpjs_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
                                                 <i class="bi bi-info-circle"></i>
                                             </span>
 
-                                            <input type="number" class="form-control border-0 fs-14" name="meal_allowance" id="meal_allowance">
+                                            <input type="text" class="form-control border-0 fs-14" name="bpjs_allowance" id="bpjs_allowance">
                                         </div>
                                         
                                     </div>
@@ -522,23 +527,23 @@
                                     <div class="row">
                                         
                                         <div class="col-6">
-                                            <label for="transportation_allowance" class="fs-14 text-secondary fw-normal">
-                                                Transportasi
+                                            <label for="bpjs_tenaga_kerja_allowance" class="fs-14 text-secondary fw-normal">
+                                                Tunjangan BPJS Ketenagakerjaan
                                             </label>
-                                            <span class="fs-12 ms-2 info_transportation_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                            <span class="fs-12 ms-2 info_bpjs_tenaga_kerja_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
                                                 <i class="bi bi-info-circle"></i>
                                             </span>
-                                            <input type="number" class="form-control border-0 fs-14" name="transportation_allowance" id="transportation_allowance">
+                                            <input type="text" class="form-control border-0 fs-14" name="bpjs_tenaga_kerja_allowance" id="bpjs_tenaga_kerja_allowance">
                                         </div>
 
                                         <div class="col-6">
-                                            <label for="internet_phone_allowance" class="fs-14 text-secondary fw-normal">
-                                                Pulsa dan Internet
+                                            <label for="pension_allowance" class="fs-14 text-secondary fw-normal">
+                                                Tunjangan BPJS Dana Pensiun
                                             </label>
-                                            <span class="fs-12 ms-2 info_internet_phone_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                            <span class="fs-12 ms-2 info_pension_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
                                                 <i class="bi bi-info-circle"></i>
                                             </span>
-                                            <input type="number" class="form-control border-0 fs-14" name="internet_phone_allowance" id="internet_phone_allowance">
+                                            <input type="text" class="form-control border-0 fs-14" name="pension_allowance" id="pension_allowance">
                                         </div>
                                         
                                     </div>
@@ -549,34 +554,82 @@
 
                                     <div class="row mb-3">
                                         <div class="col-6">
-                                            <label for="bonus" class="fs-14 text-secondary fw-normal">
-                                                Bonus
+                                            <label for="kompensasi_pkwt" class="fs-14 text-secondary fw-normal">
+                                                Kompensasi PKWT
                                             </label>
-                                            <input type="number" class="form-control border-0 fs-14" name="bonus" id="bonus" value="0">
+                                            <input type="text" class="form-control border-0 fs-14" name="kompensasi_pkwt" id="kompensasi_pkwt" value="0">
                                         </div>
-                                        
+
                                         <div class="col-6">
-                                            <label for="overtime" class="fs-14 text-secondary fw-normal">
-                                                Lembur
+                                            <label for="thr" class="fs-14 text-secondary fw-normal">
+                                                THR
                                             </label>
-                                            <input type="number" class="form-control border-0 fs-14" name="overtime" id="overtime" value="0">
+                                            <input type="text" class="form-control border-0 fs-14" name="thr" id="thr" value="0">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <div class="fs-14 text-secondary fw-normal">Rincian Potongan</div>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <label for="deduction_absent" class="fs-12 text-secondary fw-normal">
+                                                Potongan Absen
+                                            </label>
+                                            <input type="text" class="form-control border-0 fs-14" name="deduction_absent" id="deduction_absent" value="0">
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="deduction_late" class="fs-12 text-secondary fw-normal">
+                                                Potongan Terlambat
+                                            </label>
+                                            <input type="text" class="form-control border-0 fs-14" name="deduction_late" id="deduction_late" value="0">
                                         </div>
                                     </div>
 
                                     <div class="row mb-3">
                                         <div class="col-6">
-                                            <label for="thr" class="fs-14 text-secondary fw-normal">
-                                                THR
+                                            <label for="deduction_bpjs_kesehatan" class="fs-12 text-secondary fw-normal">
+                                                Potongan BPJS Kesehatan
                                             </label>
-                                            <input type="number" class="form-control border-0 fs-14" name="thr" id="thr" value="0">
+                                            <input type="text" class="form-control border-0 fs-14" name="deduction_bpjs_kesehatan" id="deduction_bpjs_kesehatan" value="0">
                                         </div>
                                         <div class="col-6">
-                                            <label for="deduction" class="fs-14 text-secondary fw-normal">
-                                                Potongan
+                                            <label for="deduction_bpjs_tenaga_kerja" class="fs-12 text-secondary fw-normal">
+                                                Potongan BPJS Ketenagakerjaan
                                             </label>
-                                            <input type="number" class="form-control border-0 fs-14" name="deduction" id="deduction" value="0">
+                                            <input type="text" class="form-control border-0 fs-14" name="deduction_bpjs_tenaga_kerja" id="deduction_bpjs_tenaga_kerja" value="0">
                                         </div>
-                                        
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <label for="deduction_bpjs_dana_pensiun" class="fs-12 text-secondary fw-normal">
+                                                Potongan BPJS TK Dana Pensiun
+                                            </label>
+                                            <input type="text" class="form-control border-0 fs-14" name="deduction_bpjs_dana_pensiun" id="deduction_bpjs_dana_pensiun" value="0">
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="deduction_pph21" class="fs-12 text-secondary fw-normal">
+                                                Potongan Pajak PPh21
+                                            </label>
+                                            <input type="text" class="form-control border-0 fs-14" name="deduction_pph21" id="deduction_pph21" value="0">
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <label for="deduction_cooperative" class="fs-12 text-secondary fw-normal">
+                                                Potongan Koperasi
+                                            </label>
+                                            <input type="text" class="form-control border-0 fs-14" name="deduction_cooperative" id="deduction_cooperative" value="0">
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="deduction_other" class="fs-12 text-secondary fw-normal">
+                                                Potongan Lainnya
+                                            </label>
+                                            <input type="text" class="form-control border-0 fs-14" name="deduction_other" id="deduction_other" value="0">
+                                        </div>
                                     </div>
 
                                     <div class="row">

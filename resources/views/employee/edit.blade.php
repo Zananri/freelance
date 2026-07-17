@@ -104,6 +104,23 @@
                                     Please enter the birth date.
                                 </div>
                             </div>
+
+                            <div>
+                                <div class="title-label-image-ktp" style="font-size: 14px; color: #555;">
+                                    <span>Upload KTP</span>
+                                </div>
+                                <label for="ktp"
+                                    class="custom-image-upload-ktp position-relative ktp-upload {{ $employee->ktp ? 'has-image' : '' }}"
+                                    style="background-image: url('{{ $employee->ktp ? asset($employee->ktp) : '' }}'); opacity: {{ $employee->ktp ? '1' : '0.5' }};">
+                                    <input type="file" id="ktp" name="ktp" accept="image/*"
+                                        class="ktp-input" hidden />
+                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
+                                        Please upload a photo.
+                                    </div>
+                                    <span class="image-clear-btn {{ $employee->ktp ? '' : 'd-none' }}"
+                                        id="ktpClearBtn" title="Remove image">&times;</span>
+                                </label>
+                            </div>
                             
                             <div class="mb-3">
                                 <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
@@ -121,22 +138,7 @@
                                         id="photoClearBtn" title="Remove image">&times;</span>
                                 </label>
                             </div>
-                            <div>
-                                <div class="title-label-image-ktp" style="font-size: 14px; color: #555;">
-                                    <span>Upload KTP</span>
-                                </div>
-                                <label for="ktp"
-                                    class="custom-image-upload-ktp position-relative ktp-upload {{ $employee->ktp ? 'has-image' : '' }}"
-                                    style="background-image: url('{{ $employee->ktp ? asset($employee->ktp) : '' }}'); opacity: {{ $employee->ktp ? '1' : '0.5' }};">
-                                    <input type="file" id="ktp" name="ktp" accept="image/*"
-                                        class="ktp-input" hidden />
-                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
-                                        Please upload a photo.
-                                    </div>
-                                    <span class="image-clear-btn {{ $employee->ktp ? '' : 'd-none' }}"
-                                        id="ktpClearBtn" title="Remove image">&times;</span>
-                                </label>
-                            </div>
+
 
                         </div>
 
@@ -271,9 +273,10 @@
 
                         <!-- Right Section -->
                         <div class="col-md-3">
-                            <div class="custom-form-employee" style="margin-bottom: 40px;">
+
+                            <div class="custom-form-employee mb-3">
                                 @php
-                                    $thp = $employeeSalaries->basic_salary + $employeeSalaries->positional_allowance + $employeeSalaries->transportation_allowance+ $employeeSalaries->meal_allowance + $employeeSalaries->internet_phone_allowance;                               
+                                    $thp = $employeeSalaries->basic_salary + $employeeSalaries->positional_allowance + $employeeSalaries->bpjs_allowance+ $employeeSalaries->bpjs_tenaga_kerja_allowance + $employeeSalaries->pension_allowance;                               
                                 @endphp
                                 <div class="form-label">Take Home Pay THP</div>
                                 <div class="fs-14 text-thp">{{$thp}}</div>
@@ -300,35 +303,36 @@
                             </div>
 
                             <div class="custom-form-employee mb-3"> 
-                                <label for="transportation_allowance" class="form-label">Transportation allowance</label>
-                                <input type="text" id="transportation_allowance" class="form-control input-text" value="{{ $employeeSalaries->transportation_allowance }}" required />
-                                <input type="number" name="transportation_allowance" class="d-none" value="{{ $employeeSalaries->transportation_allowance }}" required />
+                                <label for="bpjs_allowance" class="form-label">BPJS allowance</label>
+                                <input type="text" id="bpjs_allowance" class="form-control input-text" value="{{ $employeeSalaries->bpjs_allowance }}" required />
+                                <input type="number" name="bpjs_allowance" class="d-none" value="{{ $employeeSalaries->bpjs_allowance }}" required />
                                 <div class="invalid-feedback">
-                                    Please enter the Transportation allowance
+                                    Please enter the BPJS allowance
                                 </div>
                             </div>
 
                             <div class="custom-form-employee mb-3">
-                                <label for="meal_allowance" class="form-label">Meal allowance</label>
-                                <input type="text" id="meal_allowance" class="form-control input-text" value="{{ $employeeSalaries->meal_allowance }}" required />
-                                <input type="number" name="meal_allowance" class="d-none" value="{{ $employeeSalaries->meal_allowance }}" required />
+                                <label for="bpjs_tenaga_kerja_allowance" class="form-label">BPJS Tenaga Kerja Allowance</label>
+                                <input type="text" id="bpjs_tenaga_kerja_allowance" class="form-control input-text" value="{{ $employeeSalaries->bpjs_tenaga_kerja_allowance }}" required />
+                                <input type="number" name="bpjs_tenaga_kerja_allowance" class="d-none" value="{{ $employeeSalaries->bpjs_tenaga_kerja_allowance }}" required />
                                 <div class="invalid-feedback">
-                                    Please enter the Meal allowance
+                                    Please enter the BPJS Tenaga Kerja Allowance
                                 </div>
                             </div>
 
-                            <div class="custom-form-employee mb-5">
-                                <label for="internet_phone_allowance" class="form-label">Internet phone allowance</label>
-                                <input type="text" id="internet_phone_allowance" class="form-control input-text" value="{{ $employeeSalaries->internet_phone_allowance }}" required />
-                                <input type="number" name="internet_phone_allowance" class="d-none" value="{{ $employeeSalaries->internet_phone_allowance }}" required />
+                            <div class="custom-form-employee mb-3">
+                                <label for="pension_allowance" class="form-label">Pension Allowance</label>
+                                <input type="text" id="pension_allowance" class="form-control input-text" value="{{ $employeeSalaries->pension_allowance }}" required />
+                                <input type="number" name="pension_allowance" class="d-none" value="{{ $employeeSalaries->pension_allowance }}" required />
                                 <div class="invalid-feedback">
-                                    Please enter the Internet phone allowance
+                                    Please enter the Pension allowance
                                 </div>
                             </div>
 
                             <div class="custom-form-employee mb-3">
                                 <label for="bank_name" class="form-label">Bank Name</label>
                                 <select name="bank_name" id="bank_name" class="form-select input-text">
+
                                     <option value="BCA" {{ $employeeSalaries->bank_name === 'BCA' ? 'selected' : ''}} >BCA</option>
                                     <option value="BNI" {{ $employeeSalaries->bank_name === 'BNI' ? 'selected' : ''}} >BNI</option>
                                     <option value="BRI" {{ $employeeSalaries->bank_name === 'BRI' ? 'selected' : ''}} >BRI</option>
@@ -339,7 +343,7 @@
                                 </div>
                             </div>
 
-                            <div class="custom-form-employee mb-5">
+                            <div class="custom-form-employee mb-3">
                                 <label for="bank_account_number" class="form-label">Bank Account Number</label>
                                 <input type="text" id="bank_account_number" name="bank_account_number" value="{{ $employeeSalaries->bank_account_number }}" class="form-control input-text" required />
                                 <div class="invalid-feedback">
@@ -347,6 +351,39 @@
                                 </div>
                             </div>
 
+                            <div class="custom-form-employee mb-3">
+                                <label for="cv" class="form-label">CV</label>
+
+                                <input type="file" id="cv" name="cv"
+                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" hidden>
+
+                                <div class="input-group">
+                                    <input type="text" id="cvFileName" class="form-control input-text"
+                                        placeholder="No file selected" readonly>
+
+                                    <button type="button" class="btn btn-submit-black"
+                                        onclick="document.getElementById('cv').click()">
+                                        Upload
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="custom-form-employee mb-5">
+                                <label for="pkwt" class="form-label">PKWT</label>
+
+                                <input type="file" id="pkwt" name="pkwt"
+                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" hidden>
+
+                                <div class="input-group">
+                                    <input type="text" id="pkwtFileName" class="form-control input-text"
+                                        placeholder="No file selected" readonly>
+
+                                    <button type="button" class="btn btn-submit-black"
+                                        onclick="document.getElementById('pkwt').click()">
+                                        Upload
+                                    </button>
+                                </div>
+                            </div>
                             
                         </div>
                     </div>

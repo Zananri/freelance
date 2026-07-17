@@ -5,9 +5,9 @@
         <meta name="app-url" content="{{ url('/') }}">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>ACER</title>
+        <title>SGS</title>
     
-        <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
+        <link rel="icon" href="{{ asset('asset/img/logo/logo.png') }}" type="image/x-icon">
         <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
         
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
@@ -188,20 +188,20 @@
 
                     <tr>
                         <td>Tunjangan Makan</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->meal_allowance, 0, '', '.')}}</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->prorate_meal_allowance, 0, '', '.')}}</td>
+                        <td style="text-align: right">{{number_format($employeePayslip->bpjs_allowance, 0, '', '.')}}</td>
+                        <td style="text-align: right">{{number_format($employeePayslip->prorate_bpjs_allowance, 0, '', '.')}}</td>
                     </tr>
 
                     <tr>
                         <td>Tunjangan Transportasi</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->transportation_allowance, 0, '', '.')}}</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->prorate_transportation_allowance, 0, '', '.')}}</td>
+                        <td style="text-align: right">{{number_format($employeePayslip->bpjs_tenaga_kerja_allowance, 0, '', '.')}}</td>
+                        <td style="text-align: right">{{number_format($employeePayslip->prorate_bpjs_tenaga_kerja_allowance, 0, '', '.')}}</td>
                     </tr>
 
                     <tr>
                         <td>Tunjangan Pulsa & Internet</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->internet_phone_allowance, 0, '', '.')}}</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->prorate_internet_phone_allowance, 0, '', '.')}}</td>
+                        <td style="text-align: right">{{number_format($employeePayslip->pension_allowance, 0, '', '.')}}</td>
+                        <td style="text-align: right">{{number_format($employeePayslip->prorate_pension_allowance, 0, '', '.')}}</td>
                     </tr>
                     
                     <tr>
@@ -211,9 +211,9 @@
                     </tr>
                     
                     <tr>
-                        <td>Bonus</td>
+                        <td>Kompensasi PKWT</td>
                         <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->bonus, 0, '', '.')}}</td>
+                        <td style="text-align: right">{{number_format($employeePayslip->pkwt, 0, '', '.')}}</td>
                     </tr>
 
                     <tr>
@@ -221,17 +221,11 @@
                         <td style="text-align: right">0</td>
                         <td style="text-align: right">{{number_format($employeePayslip->thr, 0, '', '.')}}</td>
                     </tr>
-
-                    <tr>
-                        <td>Lembur</td>
-                        <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->overtime, 0, '', '.')}}</td>
-                    </tr>
                     
                     @php
-                        $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->meal_allowance + $employeePayslip->transportation_allowance + $employeePayslip->internet_phone_allowance + $employeePayslip->positional_allowance;
-                        $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->bonus + $employeePayslip->thr + $employeePayslip->overtime;
-                        $totalPendapatan2excBonusOvertime = $totalPendapatan1 - ($employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance);
+                        $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->positional_allowance;
+                        $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->bonus + $employeePayslip->thr + $employeePayslip->overtime;
+                        $totalPendapatan2excBonusOvertime = $totalPendapatan1 - ($employeePayslip->prorate_basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->prorate_positional_allowance);
                         $totalPengurangan = (($employeeAttendanceNotComplete[0] ?? 0)*50000) + $employeePayslip->deduction  + $totalPendapatan2excBonusOvertime;
                     @endphp
 
@@ -254,11 +248,11 @@
 
                     <tr></tr>
                     <tr style="background-color: #d8dde2; color:#000; text-align: center; font-weight: bold">
-                        <td>Deduction A</td>
+                        <td>Deduction</td>
                         <td>Jumlah</td>
-                        <td>Jumlah salary yang tidak diperoleh (B)</td>
+                        <td>Jumlah salary yang tidak diperoleh</td>
                     </tr>
-
+{{-- 
                     <tr>
                         <td>Sakit</td>
                         <td style="text-align: right">{{$employeeLeaveSick}}</td>
@@ -273,7 +267,7 @@
                         <td>Cuti</td>
                         <td style="text-align: right">{{$employeeAnnualLeave}}</td>
                         <td style="text-align: right">0</td>
-                    </tr>
+                    </tr> --}}
 
                     <tr>
                         <td>Absensi Tidak Lengkap</td>
@@ -283,11 +277,82 @@
 
                     @if ($employeePayslip->deduction > 0)
                     
-                    <tr>
-                        <td>Potongan</td>
-                        <td style="text-align: right">1</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->deduction, 0, '', '.')}}</td>
-                    </tr>
+                    {{-- Potongan/Detail Deduction --}}
+                    @php
+                        $deductionAbsent = $employeePayslip->deduction_absent ?? 0;
+                        $deductionLate = $employeePayslip->deduction_late ?? 0;
+                        $deductionBpjsKesehatan = $employeePayslip->deduction_bpjs_kesehatan ?? 0;
+                        $deductionBpjsTenagaKerja = $employeePayslip->deduction_bpjs_tenaga_kerja ?? 0;
+                        $deductionBpjsDanaPensiun = $employeePayslip->deduction_bpjs_dana_pensiun ?? 0;
+                        $deductionPph21 = $employeePayslip->deduction_pph21 ?? 0;
+                        $deductionCooperative = $employeePayslip->deduction_cooperative ?? 0;
+                        $deductionOther = $employeePayslip->deduction_other ?? 0;
+                    @endphp
+
+                    @if($deductionLate > 0)
+                        <tr>
+                            <td>Potongan Terlambat</td>
+                            <td style="text-align: right">1</td>
+                            <td style="text-align: right">{{ number_format($deductionLate, 0, '', '.') }}</td>
+                        </tr>
+                    @endif
+
+                    @if($deductionBpjsKesehatan > 0)
+                        <tr>
+                            <td>Potongan BPJS Kesehatan</td>
+                            <td style="text-align: right">1</td>
+                            <td style="text-align: right">{{ number_format($deductionBpjsKesehatan, 0, '', '.') }}</td>
+                        </tr>
+                    @endif
+
+                    @if($deductionBpjsTenagaKerja > 0)
+                        <tr>
+                            <td>Potongan BPJS Ketenagakerjaan</td>
+                            <td style="text-align: right">1</td>
+                            <td style="text-align: right">{{ number_format($deductionBpjsTenagaKerja, 0, '', '.') }}</td>
+                        </tr>
+                    @endif
+
+                    @if($deductionBpjsDanaPensiun > 0)
+                        <tr>
+                            <td>Potongan BPJS Dana Pensiun</td>
+                            <td style="text-align: right">1</td>
+                            <td style="text-align: right">{{ number_format($deductionBpjsDanaPensiun, 0, '', '.') }}</td>
+                        </tr>
+                    @endif
+
+                    @if($deductionPph21 > 0)
+                        <tr>
+                            <td>Potongan Pajak (PPh 21)</td>
+                            <td style="text-align: right">1</td>
+                            <td style="text-align: right">{{ number_format($deductionPph21, 0, '', '.') }}</td>
+                        </tr>
+                    @endif
+
+                    @if($deductionCooperative > 0)
+                        <tr>
+                            <td>Potongan Koperasi</td>
+                            <td style="text-align: right">1</td>
+                            <td style="text-align: right">{{ number_format($deductionCooperative, 0, '', '.') }}</td>
+                        </tr>
+                    @endif
+
+                    @if($deductionOther > 0)
+                        <tr>
+                            <td>Potongan Lainnya</td>
+                            <td style="text-align: right">1</td>
+                            <td style="text-align: right">{{ number_format($deductionOther, 0, '', '.') }}</td>
+                        </tr>
+                    @endif
+
+                    {{-- total deduction --}}
+                    @if($employeePayslip->deduction > 0)
+                        <tr>
+                            <td>Potongan</td>
+                            <td style="text-align: right">1</td>
+                            <td style="text-align: right">{{ number_format($employeePayslip->deduction, 0, '', '.') }}</td>
+                        </tr>
+                    @endif
 
                     @endif
                     
@@ -303,36 +368,6 @@
                     </tr>
 
                     <tr></tr>
-                    
-                    <tr style="background-color: #d8dde2; color:#000; text-align: center; font-weight: bold">
-                        <td>Deduction B</td>
-                        <td>Jumlah</td>
-                        <td>Jumlah salary yang tidak diperoleh (C)</td>
-                    </tr>
-                    <tr>
-                        <td>Pph 21</td>
-                        <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                    </tr>
-                    <tr>
-                        <td>BPJS Kesehatan</td>
-                        <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                    </tr>
-                    <tr>
-                        <td>BPJS Tenaga Kerja</td>
-                        <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                    </tr>
-                    <tr>
-                        <td>Asuransi Kesehatan</td>
-                        <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                    </tr>
-                    <tr style="font-weight: bold;">
-                        <td colspan="2">Total Pengurangan</td>
-                        <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                    </tr>
 
                     <tr style="background-color: #ffffff; border: 0px #fff;">
                         <td colspan="3" style="background-color: #ffffff; border: 0px #fff;">
@@ -431,20 +466,19 @@
                             <td style="vertical-align: top; width: 90px;">
                                 @php
                                     if($downloadPayslip ==  1){
-                                        $logoPath = public_path('asset\img\logo.png');
+                                        $logoPath = public_path('asset/img/logo/logo.png');
                                     }else{
-                                        $logoPath = asset('asset/img/logo.png');
+                                        $logoPath = asset('asset/img/logo/logo.png');
                                     }
                                 @endphp
                                 <img src="{{ $logoPath }}" class="align-middle" width="70" alt="LOGO">
                             </td>
                             <td style="text-align: left;">
-                                <div style="margin: 0px 10px 5px 10px; font-size: 18px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">PT. ACER</div>
-                                <div style="margin: 0px 10px 7px 10px; font-size: 18px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">ACER</div>
+                                <div style="margin: 0px 10px 5px 10px; font-size: 18px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">PT. SGS</div>
                                 <div style="font-size: 12px; margin: 5px 10px;">
-                                    Jl. Petojo Bar. VI No.4, RT.11/RW.1, Duri Pulo, Gambir, Jakarta Pusat, 
+                                    (Location) 
                                     <br>
-                                    Daerah Khusus Jakarta 10140
+                                    (province)
                                 </div>
                             </td>
                         </tr>
@@ -551,7 +585,7 @@
                         <tr style="background-color: #d8dde2; color:#000; text-align: center; font-weight: bold">
                             <td>Pendapatan Gaji</td>
                             <td>Gaji Original</td>
-                            <td>Pendapatan prorate bulan ini (A)</td>
+                            <td>Pendapatan prorate bulan ini</td>
                         </tr>
 
                         <tr>
@@ -562,32 +596,32 @@
 
                         <tr>
                             <td>Tunjangan Makan</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->meal_allowance, 0, '', '.')}}</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->prorate_meal_allowance, 0, '', '.')}}</td>
+                            <td style="text-align: right">{{number_format($employeePayslip->bpjs_allowance, 0, '', '.')}}</td>
+                            <td style="text-align: right">{{number_format($employeePayslip->prorate_bpjs_allowance, 0, '', '.')}}</td>
                         </tr>
 
                         <tr>
                             <td>Tunjangan Transportasi</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->transportation_allowance, 0, '', '.')}}</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->prorate_transportation_allowance, 0, '', '.')}}</td>
+                            <td style="text-align: right">{{number_format($employeePayslip->bpjs_tenaga_kerja_allowance, 0, '', '.')}}</td>
+                            <td style="text-align: right">{{number_format($employeePayslip->prorate_bpjs_tenaga_kerja_allowance, 0, '', '.')}}</td>
                         </tr>
 
-                        <tr>
-                            <td>Tunjangan Pulsa & Internet</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->internet_phone_allowance, 0, '', '.')}}</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->prorate_internet_phone_allowance, 0, '', '.')}}</td>
-                        </tr>
-                        
                         <tr>
                             <td>Tunjangan Jabatan</td>
                             <td style="text-align: right">{{number_format($employeePayslip->positional_allowance, 0, '', '.')}}</td>
                             <td style="text-align: right">{{number_format($employeePayslip->prorate_positional_allowance, 0, '', '.')}}</td>
                         </tr>
+
+                        <tr>
+                            <td>Tunjangan BPJSTK Dana Pensiun</td>
+                            <td style="text-align: right">{{number_format($employeePayslip->pension_allowance, 0, '', '.')}}</td>
+                            <td style="text-align: right">{{number_format($employeePayslip->prorate_pension_allowance, 0, '', '.')}}</td>
+                        </tr>
                         
                         <tr>
-                            <td>Bonus</td>
+                            <td>Kompensasi PKWT</td>
                             <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->bonus, 0, '', '.')}}</td>
+                            <td style="text-align: right">{{number_format($employeePayslip->pkwt, 0, '', '.')}}</td>
                         </tr>
 
                         <tr>
@@ -595,17 +629,11 @@
                             <td style="text-align: right">0</td>
                             <td style="text-align: right">{{number_format($employeePayslip->thr, 0, '', '.')}}</td>
                         </tr>
-
-                        <tr>
-                            <td>Lembur</td>
-                            <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->overtime, 0, '', '.')}}</td>
-                        </tr>
                         
                         @php
-                            $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->meal_allowance + $employeePayslip->transportation_allowance + $employeePayslip->internet_phone_allowance + $employeePayslip->positional_allowance;
-                            $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->bonus + $employeePayslip->thr + $employeePayslip->overtime;
-                            $totalPendapatan2excBonusOvertime = $totalPendapatan1 - $employeePayslip->prorate_basic_salary + $employeePayslip->prorate_meal_allowance + $employeePayslip->prorate_transportation_allowance + $employeePayslip->prorate_internet_phone_allowance + $employeePayslip->prorate_positional_allowance;
+                            $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->positional_allowance;
+                            $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->pkwt + $employeePayslip->thr;
+                            $totalPendapatan2excBonusOvertime = $totalPendapatan1 - $employeePayslip->prorate_basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->prorate_positional_allowance;
                             $totalPengurangan = (($employeeAttendanceNotComplete[0] ?? 0)*50000) + $employeePayslip->deduction  + $totalPendapatan2excBonusOvertime;
                         @endphp
 
@@ -628,12 +656,12 @@
 
                         <tr></tr>
                         <tr style="background-color: #d8dde2; color:#000; text-align: center; font-weight: bold">
-                            <td>Deduction A</td>
+                            <td>Deduction</td>
                             <td>Jumlah</td>
-                            <td>Jumlah salary yang tidak diperoleh (B)</td>
+                            <td>Jumlah salary yang tidak diperoleh</td>
                         </tr>
 
-                        <tr>
+                        {{-- <tr>
                             <td>Sakit</td>
                             <td style="text-align: right">{{$employeeLeaveSick}}</td>
                             <td style="text-align: right">0</td>
@@ -647,19 +675,97 @@
                             <td>Cuti</td>
                             <td style="text-align: right">{{$employeeAnnualLeave}}</td>
                             <td style="text-align: right">0</td>
-                        </tr>
+                        </tr> --}}
                         <tr>
                             <td>Absensi Tidak Lengkap</td>
-                            <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
+                            <td style="text-align: right">{{ $employeeAttendanceNotComplete[0] ?? 0 }}</td>
+                            <td style="text-align: right">{{number_format((($employeeAttendanceNotComplete[0] ?? 0)*50000), 0, '', '.')}}</td>
                         </tr>
                         @if ($employeePayslip->deduction > 0)
                     
-                        <tr>
-                            <td>Potongan</td>
-                            <td style="text-align: right">1</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->deduction, 0, '', '.')}}</td>
-                        </tr>
+                        @php
+                            $deductionAbsent = $employeePayslip->deduction_absent ?? 0;
+                            $deductionLate = $employeePayslip->deduction_late ?? 0;
+                            $deductionBpjsKesehatan = $employeePayslip->deduction_bpjs_kesehatan ?? 0;
+                            $deductionBpjsTenagaKerja = $employeePayslip->deduction_bpjs_tenaga_kerja ?? 0;
+                            $deductionBpjsDanaPensiun = $employeePayslip->deduction_bpjs_dana_pensiun ?? 0;
+                            $deductionPph21 = $employeePayslip->deduction_pph21 ?? 0;
+                            $deductionCooperative = $employeePayslip->deduction_cooperative ?? 0;
+                            $deductionOther = $employeePayslip->deduction_other ?? 0;
+                        @endphp
+
+                        @if($deductionAbsent > 0)
+                            <tr>
+                                <td>Potongan Absen</td>
+                                <td style="text-align: right">{{ $employeeAttendanceNotComplete[0] ?? 0 }}</td>
+                                <td style="text-align: right">{{ number_format($deductionAbsent, 0, '', '.') }}</td>
+                            </tr>
+                        @endif
+
+                        @if($deductionLate > 0)
+                            <tr>
+                                <td>Potongan Terlambat</td>
+                                <td style="text-align: right">1</td>
+                                <td style="text-align: right">{{ number_format($deductionLate, 0, '', '.') }}</td>
+                            </tr>
+                        @endif
+
+                        @if($deductionBpjsKesehatan > 0)
+                            <tr>
+                                <td>Potongan BPJS Kesehatan</td>
+                                <td style="text-align: right">1</td>
+                                <td style="text-align: right">{{ number_format($deductionBpjsKesehatan, 0, '', '.') }}</td>
+                            </tr>
+                        @endif
+
+                        @if($deductionBpjsTenagaKerja > 0)
+                            <tr>
+                                <td>Potongan BPJS Ketenagakerjaan</td>
+                                <td style="text-align: right">1</td>
+                                <td style="text-align: right">{{ number_format($deductionBpjsTenagaKerja, 0, '', '.') }}</td>
+                            </tr>
+                        @endif
+
+                        @if($deductionBpjsDanaPensiun > 0)
+                            <tr>
+                                <td>Potongan BPJS Dana Pensiun</td>
+                                <td style="text-align: right">1</td>
+                                <td style="text-align: right">{{ number_format($deductionBpjsDanaPensiun, 0, '', '.') }}</td>
+                            </tr>
+                        @endif
+
+                        @if($deductionPph21 > 0)
+                            <tr>
+                                <td>Potongan Pajak (PPh 21)</td>
+                                <td style="text-align: right">1</td>
+                                <td style="text-align: right">{{ number_format($deductionPph21, 0, '', '.') }}</td>
+                            </tr>
+                        @endif
+
+                        @if($deductionCooperative > 0)
+                            <tr>
+                                <td>Potongan Koperasi</td>
+                                <td style="text-align: right">1</td>
+                                <td style="text-align: right">{{ number_format($deductionCooperative, 0, '', '.') }}</td>
+                            </tr>
+                        @endif
+
+                        @if($deductionOther > 0)
+                            <tr>
+                                <td>Potongan Lainnya</td>
+                                <td style="text-align: right">1</td>
+                                <td style="text-align: right">{{ number_format($deductionOther, 0, '', '.') }}</td>
+                            </tr>
+                        @endif
+
+                        {{-- total deduction --}}
+                        @if($employeePayslip->deduction > 0)
+                            <tr>
+                                <td>Potongan</td>
+                                <td style="text-align: right">1</td>
+                                <td style="text-align: right">{{ number_format($employeePayslip->deduction, 0, '', '.') }}</td>
+                            </tr>
+                        @endif
 
                         @endif
                         <tr style="font-weight: bold;">
@@ -674,36 +780,6 @@
                         </tr>
 
                         <tr></tr>
-                        
-                        <tr style="background-color: #d8dde2; color:#000; text-align: center; font-weight: bold">
-                            <td>Deduction B</td>
-                            <td>Jumlah</td>
-                            <td>Jumlah salary yang tidak diperoleh (C)</td>
-                        </tr>
-                        <tr>
-                            <td>Pph 21</td>
-                            <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                        </tr>
-                        <tr>
-                            <td>BPJS Kesehatan</td>
-                            <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                        </tr>
-                        <tr>
-                            <td>BPJS Tenaga Kerja</td>
-                            <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                        </tr>
-                        <tr>
-                            <td>Asuransi Kesehatan</td>
-                            <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                        </tr>
-                        <tr style="font-weight: bold;">
-                            <td colspan="2">Total Pengurangan</td>
-                            <td style="text-align: right">{{number_format(0, 0, '', '.')}}</td>
-                        </tr>
 
                         <tr style="background-color: #ffffff; border: 0px #fff;">
                             <td colspan="3" style="background-color: #ffffff; border: 0px #fff;">

@@ -564,7 +564,25 @@ function loadJobs(divisionId, selectedId, departmentId) {
     });
     setupImageInput(inputKtp, ktpLabel, ktpClearBtn);
 
-    // Add input/change event listeners for validation classes
+    const cvInput = document.getElementById('cv');
+    const cvFileName = document.getElementById('cvFileName');
+    if (cvInput && cvFileName) {
+        cvInput.addEventListener('change', function () {
+            const file = this.files && this.files[0] ? this.files[0] : null;
+            cvFileName.value = file ? file.name : '';
+        });
+    }
+
+    const pkwtInput = document.getElementById('pkwt');
+    const pkwtFileName = document.getElementById('pkwtFileName');
+    if (pkwtInput && pkwtFileName) {
+        pkwtInput.addEventListener('change', function () {
+            const file = this.files && this.files[0] ? this.files[0] : null;
+            pkwtFileName.value = file ? file.name : '';
+        });
+    }
+
+
     const inputs = form.querySelectorAll("input, select, textarea");
     inputs.forEach((input) => {
         input.addEventListener("input", () => {
@@ -627,7 +645,7 @@ function loadJobs(divisionId, selectedId, departmentId) {
 });
 
 
-$('#basic_salary,#positional_allowance,#transportation_allowance,#meal_allowance,#internet_phone_allowance').mask('000.000.000', {reverse: true});
+$('#basic_salary,#positional_allowance,#pension_allowance,#bpjs_allowance,#bpjs_tenaga_kerja_allowance').mask('000.000.000', {reverse: true});
 
 $('[name="hid_thp"]').mask('000.000.000', {reverse: true});
 
@@ -641,29 +659,29 @@ $('#positional_allowance').on('keyup',function(){
     $('[name="positional_allowance"]').val($('#positional_allowance').cleanVal());
 });
 
-$('#transportation_allowance').on('keyup',function(){
-    $('[name="transportation_allowance"]').val($('#transportation_allowance').cleanVal());
+$('#pension_allowance').on('keyup',function(){
+    $('[name="pension_allowance"]').val($('#pension_allowance').cleanVal());
 });
 
-$('#meal_allowance').on('keyup',function(){
-    $('[name="meal_allowance"]').val($('#meal_allowance').cleanVal());
+$('#bpjs_allowance').on('keyup',function(){
+    $('[name="bpjs_allowance"]').val($('#bpjs_allowance').cleanVal());
 });
 
-$('#internet_phone_allowance').on('keyup',function(){
-    $('[name="internet_phone_allowance"]').val($('#internet_phone_allowance').cleanVal());
+$('#bpjs_tenaga_kerja_allowance').on('keyup',function(){
+    $('[name="bpjs_tenaga_kerja_allowance"]').val($('#bpjs_tenaga_kerja_allowance').cleanVal());
 });
 
 
-$('#basic_salary,#positional_allowance,#transportation_allowance,#meal_allowance,#internet_phone_allowance').on('keyup',function(){
+$('#basic_salary,#positional_allowance,#pension_allowance,#bpjs_allowance,#bpjs_tenaga_kerja_allowance').on('keyup',function(){
     setTHP();
 });
 
 function setTHP(){
     let basicSalary = $('[name="basic_salary"]').val();
     let positionalAllowance = $('[name="positional_allowance"]').val();
-    let transportationAllowance = $('[name="transportation_allowance"]').val();
-    let mealAllowance = $('[name="meal_allowance"]').val();
-    let internetPhoneAllowance = $('[name="internet_phone_allowance"]').val();
+    let transportationAllowance = $('[name="pension_allowance"]').val();
+    let mealAllowance = $('[name="bpjs_allowance"]').val();
+    let internetPhoneAllowance = $('[name="bpjs_tenaga_kerja_allowance"]').val();
     let thp = parseInt(basicSalary) + parseInt(positionalAllowance) + parseInt(transportationAllowance) + parseInt(mealAllowance) + parseInt(internetPhoneAllowance);
     
     $('[name="hid_thp"]').val(thp).unmask().mask('000.000.000', {reverse: true});

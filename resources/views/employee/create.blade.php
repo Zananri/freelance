@@ -30,6 +30,7 @@
                     <div class="row">
                         <!-- Left Section -->
                         <div class="col-md-4 d-flex flex-column gap-3">
+
                             <div class="custom-form-employee">
                                 <label for="employee_name" class="form-label">Employee Name</label>
                                 <input type="text" id="employee_name" name="employee_name"
@@ -38,14 +39,16 @@
                                     Please enter the employee name.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
                                 <label for="employee_niks" class="form-label">Employee ID</label>
                                 <input type="text" id="employee_niks" name="employee_niks"
                                     class="form-control input-text" />
                                 <div class="invalid-feedback">
-                                    Please enter the employee NIKS.
+                                    Please enter the employee ID.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
                                 <label for="employee_email" class="form-label">Email</label>
                                 <input type="email" id="employee_email" name="employee_email"
@@ -54,14 +57,16 @@
                                     Please enter a valid email.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
                                 <label for="employee_email_work" class="form-label">Email Work</label>
                                 <input type="email" id="employee_email_work" name="employee_email_work"
                                     class="form-control input-text" required />
                                 <div class="invalid-feedback">
-                                    Please enter a valid email work.
+                                    Please enter a valid work email.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
                                 <label for="employee_phone" class="form-label">Phone</label>
                                 <input type="number" id="employee_phone" name="employee_phone"
@@ -70,6 +75,7 @@
                                     Please enter the employee phone.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
                                 <label for="address" class="form-label">Address</label>
                                 <textarea id="address" name="address" class="form-control input-text" required></textarea>
@@ -77,6 +83,7 @@
                                     Please enter the address.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
                                 <label for="birth_date" class="form-label">Birth Date</label>
                                 <input type="date" id="birth_date" name="birth_date" class="form-control input-text"
@@ -85,33 +92,42 @@
                                     Please enter the birth date.
                                 </div>
                             </div>
-                            <div class="mb-3">
-                                <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
-                                    <span>Upload Photo</span>
-                                </div>
-                                <label for="photo"
-                                    class="custom-image-upload-photo position-relative photo-upload">
-                                    <input type="file" id="photo" name="photo" accept="image/*"
-                                        class="photo-input" hidden required />
-                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
-                                        Please upload a photo.
-                                    </div>
-                                    <span class="image-clear-btn d-none" id="photoClearBtn"
-                                        title="Remove image">&times;</span>
-                                </label>
-                            </div>
+
                             <div>
-                                <div class="title-label-image-ktp" style="font-size: 14px; color: #555;">
+                                <div class="title-label-image-ktp" style="font-size:14px;color:#555;">
                                     <span>Upload KTP</span>
                                 </div>
+
                                 <label for="ktp" class="custom-image-upload-ktp position-relative ktp-upload">
-                                    <input type="file" id="ktp" name="ktp" accept="image/*"
+                                    <input type="file" id="ktp" name="ktp" accept="image/*,.pdf"
                                         class="ktp-input" hidden required />
-                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
-                                        Please upload a KTP.
+
+                                    <div class="invalid-feedback" style="position:absolute;bottom:-20px;left:0;">
+                                        Please upload KTP.
                                     </div>
-                                    <span class="image-clear-btn d-none" id="ktpClearBtn"
-                                        title="Remove image">&times;</span>
+
+                                    <span class="image-clear-btn d-none" id="ktpClearBtn" title="Remove image">
+                                        &times;
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div>
+                                <div class="title-label-image-photo" style="font-size:14px;color:#555;">
+                                    <span>Upload Photo</span>
+                                </div>
+
+                                <label for="photo" class="custom-image-upload-photo position-relative photo-upload">
+                                    <input type="file" id="photo" name="photo" accept="image/*"
+                                        class="photo-input" hidden required />
+
+                                    <div class="invalid-feedback" style="position:absolute;bottom:-20px;left:0;">
+                                        Please upload a photo.
+                                    </div>
+
+                                    <span class="image-clear-btn d-none" id="photoClearBtn" title="Remove image">
+                                        &times;
+                                    </span>
                                 </label>
                             </div>
 
@@ -122,23 +138,21 @@
 
                             <div class="custom-form-employee">
                                 <label for="hire_date" class="form-label">Join Date</label>
-                                <input type="date" id="hire_date" name="hire_date" class="form-control input-text"
-                                    required />
+                                <input type="date" id="hire_date" name="hire_date"
+                                    class="form-control input-text" required />
                                 <div class="invalid-feedback">
                                     Please enter the join date.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
                                 <label for="contract_end_date" class="form-label">Contract End Date</label>
-                                <input type="date" id="contract_end_date" name="contract_end_date" class="form-control input-text"
-                                    required />
-                                <div class="invalid-feedback">
-                                    Please enter the contract end date.
-                                </div>
+                                <input type="date" id="contract_end_date" name="contract_end_date"
+                                    class="form-control input-text" />
                             </div>
 
                             <div class="custom-form-employee">
-                                <label for="department_id" class="form-label">Department Name</label>
+                                <label for="department_id" class="form-label">Department</label>
                                 <select id="department_id" name="department_id" class="form-select input-select"
                                     required>
                                     <option value="" disabled selected>Select Department</option>
@@ -147,17 +161,20 @@
                                     Please select a department.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
-                                <label for="division_id" class="form-label">Division Name</label>
-                                <select id="division_id" name="division_id" class="form-select input-select" required>
+                                <label for="division_id" class="form-label">Division</label>
+                                <select id="division_id" name="division_id" class="form-select input-select"
+                                    required>
                                     <option value="" disabled selected>Select Division</option>
                                 </select>
                                 <div class="invalid-feedback">
                                     Please select a division.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
-                                <label for="job_id" class="form-label">Job Name</label>
+                                <label for="job_id" class="form-label">Job</label>
                                 <select id="job_id" name="job_id" class="form-select input-select" required>
                                     <option value="" disabled selected>Select Job</option>
                                 </select>
@@ -165,53 +182,75 @@
                                     Please select a job.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
                                 <label for="grade_id" class="form-label">Grade</label>
                                 <select id="grade_id" name="grade_id" class="form-select input-select" required>
+
                                     <option value="" disabled selected>Select Grade</option>
-                                    @foreach ($grades ?? [] as $g)
-                                        <option value="{{ $g->id }}">{{ $g->title }}</option>
+
+                                    @foreach ($grades ?? [] as $grade)
+                                        <option value="{{ $grade->id }}">
+                                            {{ $grade->title }}
+                                        </option>
                                     @endforeach
+
                                 </select>
+
                                 <div class="invalid-feedback">
                                     Please select a grade.
                                 </div>
                             </div>
+
                             <div class="custom-form-employee">
                                 <label for="office" class="form-label">Office</label>
                                 <select id="office" name="office" class="form-select input-select" required>
+
                                     <option value="" disabled selected>Select Office</option>
-                                    @foreach ($offices ?? [] as $o)
-                                        <option value="{{ $o->id }}">{{ $o->name }}</option>
+
+                                    @foreach ($offices ?? [] as $office)
+                                        <option value="{{ $office->id }}">
+                                            {{ $office->name }}
+                                        </option>
                                     @endforeach
+
                                 </select>
+
                                 <div class="invalid-feedback">
                                     Please select an office.
                                 </div>
                             </div>
 
-                            <!-- Shift selection (from shifts table) -->
                             <div class="custom-form-employee">
                                 <label for="shift_id" class="form-label">Shift</label>
-                                <select id="shift_id" name="shift_id" class="form-select input-select" required
-                                    data-fetch-url="{{ route('shift.list') }}">
-                                    <option value="" disabled selected>Select Shift</option>
+
+                                <select id="shift_id" name="shift_id" class="form-select input-select"
+                                    data-fetch-url="{{ route('shift.list') }}" required>
+
+                                    <option value="" disabled selected>
+                                        Select Shift
+                                    </option>
+
                                 </select>
+
                                 <div class="invalid-feedback">
                                     Please select a shift.
                                 </div>
                             </div>
+
                         </div>
 
                         <!-- Right Section -->
-                        <div class="col-md-3">
+                        <div class="col-md-4 d-flex flex-column gap-3">
 
-                            <div class="custom-form-employee" style="margin-bottom: 40px;">
-                                
+                            <div class="custom-form-employee mb-3">
+                                @php
+                                    $thp = $employeeSalaries->basic_salary + $employeeSalaries->positional_allowance + $employeeSalaries->bpjs_allowance+ $employeeSalaries->bpjs_tenaga_kerja_allowance + $employeeSalaries->pension_allowance;                               
+                                @endphp
                                 <div class="form-label">Take Home Pay THP</div>
-                                <div class="fs-14 text-thp">0</div>
+                                <div class="fs-14 text-thp">{{$thp}}</div>
 
-                                <input type="text" value="0" name="hid_thp" class="d-none" >
+                                <input type="text" value="{{ $thp }}" name="hid_thp" class="d-none" >
                             </div>
 
                             <div class="custom-form-employee mb-3">
@@ -232,31 +271,23 @@
                                 </div>
                             </div>
 
-                            <div class="custom-form-employee mb-3"> 
-                                <label for="transportation_allowance" class="form-label">Transportation allowance</label>
-                                <input type="text" id="transportation_allowance" class="form-control input-text" value="0" required />
-                                <input type="number" name="transportation_allowance" class="d-none" value="0" required />
-                                <div class="invalid-feedback">
-                                    Please enter the Transportation allowance
-                                </div>
+                            <div class="custom-form-employee mb-3">
+                                <label for="bpjs_allowance" class="form-label">BPJS Allowance</label>
+                                <input type="text" id="bpjs_allowance" class="form-control input-text" value="0" required />
+                                <input type="number" name="bpjs_allowance" class="d-none" value="0" required />
                             </div>
 
                             <div class="custom-form-employee mb-3">
-                                <label for="meal_allowance" class="form-label">Meal allowance</label>
-                                <input type="text" id="meal_allowance" class="form-control input-text" value="0" required />
-                                <input type="number" name="meal_allowance" class="d-none" value="0" required />
-                                <div class="invalid-feedback">
-                                    Please enter the Meal allowance
-                                </div>
+                                <label for="bpjs_tenaga_kerja_allowance" class="form-label">BPJS Tenaga Kerja
+                                    Allowance</label>
+                                <input type="text" id="bpjs_tenaga_kerja_allowance" class="form-control input-text" value="0" required />
+                                <input type="number" name="bpjs_tenaga_kerja_allowance" class="d-none" value="0" />
                             </div>
 
                             <div class="custom-form-employee mb-3">
-                                <label for="internet_phone_allowance" class="form-label">Internet phone allowance</label>
-                                <input type="text" id="internet_phone_allowance" class="form-control input-text" value="0" required />
-                                <input type="number" name="internet_phone_allowance" class="d-none" value="0" required />
-                                <div class="invalid-feedback">
-                                    Please enter the Internet phone allowance
-                                </div>
+                                <label for="pension_allowance" class="form-label">Pension Allowance</label>
+                                <input type="text" id="pension_allowance" class="form-control input-text" value="0" required />
+                                <input type="number" name="pension_allowance" class="d-none" value="0" required />
                             </div>
 
                             <div class="custom-form-employee mb-3">
@@ -272,7 +303,7 @@
                                 </div>
                             </div>
 
-                            <div class="custom-form-employee mb-5">
+                            <div class="custom-form-employee mb-3">
                                 <label for="bank_account_number" class="form-label">Bank Account Number</label>
                                 <input type="text" id="bank_account_number" name="bank_account_number" class="form-control input-text" required />
                                 <div class="invalid-feedback">
@@ -280,9 +311,39 @@
                                 </div>
                             </div>
 
+                            <div class="custom-form-employee">
+                                <label for="cv" class="form-label">CV</label>
 
-                            
+                                <input type="file" id="cv" name="cv"
+                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" hidden>
 
+                                <div class="input-group">
+                                    <input type="text" id="cvFileName" class="form-control input-text"
+                                        placeholder="No file selected" readonly>
+
+                                    <button type="button" class="btn btn-submit-black"
+                                        onclick="document.getElementById('cv').click()">
+                                        Upload
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="custom-form-employee">
+                                <label for="pkwt" class="form-label">PKWT</label>
+
+                                <input type="file" id="pkwt" name="pkwt"
+                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" hidden>
+
+                                <div class="input-group">
+                                    <input type="text" id="pkwtFileName" class="form-control input-text"
+                                        placeholder="No file selected" readonly>
+
+                                    <button type="button" class="btn btn-submit-black"
+                                        onclick="document.getElementById('pkwt').click()">
+                                        Upload
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

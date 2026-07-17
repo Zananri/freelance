@@ -225,63 +225,6 @@ class SalaryPayslipController extends Controller
             'employeeAnnualLeave' => $employeeAnnualLeave
         ];
 
-        // $totalPendapatan1 =
-        //     $employeePayslip->basic_salary +
-        //     $employeePayslip->meal_allowance +
-        //     $employeePayslip->transportation_allowance +
-        //     $employeePayslip->internet_phone_allowance +
-        //     $employeePayslip->positional_allowance;
-
-        // $totalPendapatan2 =
-        //     $employeePayslip->prorate_basic_salary +
-        //     $employeePayslip->prorate_meal_allowance +
-        //     $employeePayslip->prorate_transportation_allowance +
-        //     $employeePayslip->prorate_internet_phone_allowance +
-        //     $employeePayslip->prorate_positional_allowance +
-        //     $employeePayslip->bonus +
-        //     $employeePayslip->thr +
-        //     $employeePayslip->overtime;
-
-        // $totalPendapatan2excBonusOvertime =
-        //     $totalPendapatan1 -
-        //     $employeePayslip->prorate_basic_salary -
-        //     $employeePayslip->prorate_meal_allowance -
-        //     $employeePayslip->prorate_transportation_allowance -
-        //     $employeePayslip->prorate_internet_phone_allowance -
-        //     $employeePayslip->prorate_positional_allowance;
-
-        // $totalPengurangan =
-        //     (($employeeAttendanceNotComplete[0] ?? 0) * 50000) +
-        //     $employeePayslip->deduction +
-        //     $totalPendapatan2excBonusOvertime;
-
-        // dd([
-        //     'attendance_not_complete' => $employeeAttendanceNotComplete,
-
-        //     'basic_salary' => $employeePayslip->basic_salary,
-        //     'meal_allowance' => $employeePayslip->meal_allowance,
-        //     'transportation_allowance' => $employeePayslip->transportation_allowance,
-        //     'internet_phone_allowance' => $employeePayslip->internet_phone_allowance,
-        //     'positional_allowance' => $employeePayslip->positional_allowance,
-
-        //     'prorate_basic_salary' => $employeePayslip->prorate_basic_salary,
-        //     'prorate_meal_allowance' => $employeePayslip->prorate_meal_allowance,
-        //     'prorate_transportation_allowance' => $employeePayslip->prorate_transportation_allowance,
-        //     'prorate_internet_phone_allowance' => $employeePayslip->prorate_internet_phone_allowance,
-        //     'prorate_positional_allowance' => $employeePayslip->prorate_positional_allowance,
-
-        //     'bonus' => $employeePayslip->bonus,
-        //     'thr' => $employeePayslip->thr,
-        //     'overtime' => $employeePayslip->overtime,
-
-        //     'deduction' => $employeePayslip->deduction,
-
-        //     'totalPendapatan1' => $totalPendapatan1,
-        //     'totalPendapatan2' => $totalPendapatan2,
-        //     'totalPendapatan2excBonusOvertime' => $totalPendapatan2excBonusOvertime,
-        //     'totalPengurangan' => $totalPengurangan,
-        // ]);
-
         $pdf = PDF::loadView('employee.view_payslip', $data)->setPaper('A4', 'portrait');
         
         return $pdf->stream('payslipEmployee.pdf');            
@@ -315,64 +258,75 @@ class SalaryPayslipController extends Controller
         ]);
     }
 
-    public function getEmployeeSalaryData(Request $request){
-
-        $user = auth()->user();
-        $userId = auth()->user()->id;
-        
+    public function getEmployeeSalaryData(Request $request)
+    {
         $month = Carbon::today()->format('n');
         $year = Carbon::today()->format('Y');
 
-        if(isset($request->MONTH)){
+        if ($request->filled('MONTH')) {
             $month = $request->MONTH;
         }
 
-        if(isset($request->YEAR)){
+        if ($request->filled('YEAR')) {
             $year = $request->YEAR;
         }
 
         $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
         $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
 
-        $employeeActiveIds = EmployeeHelper::EmployeeActiveIds();
+        $employeeActiveIds = EmployeeHelper::EmployeeActiveIds();   
 
-        $employeeSalary = EmployeeSalary::with('employee')->whereIn('employee_id',$employeeActiveIds)->get();
+        $employeeSalary = EmployeeSalary::with('employee')
+            ->whereIn('employee_id', $employeeActiveIds)
+            ->get();
+
         $employeePayslip = EmployeePayslip::with('employee')
-            ->where('date_salary','>=',$firstDayOfMonth)
-            ->where('date_salary','<=',$lastDayOfMonth)
-            ->where('status','<>','DELETED')
-        ->whereIn('employee_id',$employeeActiveIds)->get();
+            ->whereBetween('date_salary', [$firstDayOfMonth, $lastDayOfMonth])
+            ->where('status', '<>', 'DELETED')
+            ->whereIn('employee_id', $employeeActiveIds)
+            ->get();
 
-        $employeeAttendance = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
-            ->where('date_attendance', '<=', $lastDayOfMonth)
-            ->where('date_attendance', '>=', $firstDayOfMonth)
-            ->where('status','<>', 'ABSENT')
+        $employeeAttendance = Attendance::select(
+                'employee_id',
+                DB::raw('count(*) as total_attendance')
+            )
+            ->whereBetween('date_attendance', [$firstDayOfMonth, $lastDayOfMonth])
+            ->where('status', '<>', 'ABSENT')
+            ->whereIn('employee_id', $employeeActiveIds)
             ->groupBy('employee_id')
-        ->get();
+            ->get();
 
-        $employeeAttendanceAbsent = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
-            ->where('date_attendance', '<=', $lastDayOfMonth)
-            ->where('date_attendance', '>=', $firstDayOfMonth)
-            ->where('status','ABSENT')
+        $employeeAttendanceAbsent = Attendance::select(
+                'employee_id',
+                DB::raw('count(*) as total_attendance')
+            )
+            ->whereBetween('date_attendance', [$firstDayOfMonth, $lastDayOfMonth])
+            ->where('status', 'ABSENT')
+            ->whereIn('employee_id', $employeeActiveIds)
             ->groupBy('employee_id')
-        ->get();
+            ->get();
 
+        $totalActiveDay = $this->getActiveDay($firstDayOfMonth, $lastDayOfMonth);
 
-
-        $totalActiveDay = $this->getActiveDay($firstDayOfMonth,$lastDayOfMonth);
+        // dd($employeeSalary->first());
+        // dd(
+        //     DB::table('employee_salaries')
+        //         ->select('bpjs_tenaga_kerja_allowance')
+        //         ->first()
+        // );
 
         return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'data' => [
-                    'totalActiveDay'    => $totalActiveDay,
-                    'employeeSalary'    => $employeeSalary,
-                    'employeePayslip'   => $employeePayslip,
-                    'employeeAttendance'=> $employeeAttendance
-                ],
-                'message' => 'Get employee salary data successfully'
+            'code' => 200,
+            'status' => 'success',
+            'data' => [
+                'totalActiveDay' => $totalActiveDay,
+                'employeeSalary' => $employeeSalary,
+                'employeePayslip' => $employeePayslip,
+                'employeeAttendance' => $employeeAttendance,
+                'employeeAttendanceAbsent' => $employeeAttendanceAbsent,
+            ],
+            'message' => 'Get employee salary data successfully'
         ]);
-
     }
 
     public function getEmployeeSalaryDetail(Request $request){
@@ -479,14 +433,21 @@ class SalaryPayslipController extends Controller
 
                 'basic_salary' => 'required|integer',
                 'positional_allowance' => 'required|integer',
-                'meal_allowance' => 'required|integer',
-                'transportation_allowance' => 'required|integer',
-                'internet_phone_allowance' => 'required|integer',
+                'bpjs_allowance' => 'required|integer',
+                'bpjs_tenaga_kerja_allowance' => 'required|integer',
+                'pension_allowance' => 'required|integer',
 
-                'bonus' => 'required|integer',
-                'overtime' => 'required|integer',
+                'kompensasi_pkwt' => 'required|integer',
                 'thr' => 'required|integer',
-                'deduction' => 'required|integer',
+
+                'deduction_absent' => 'required|integer',
+                'deduction_late' => 'required|integer',
+                'deduction_bpjs_kesehatan' => 'required|integer',
+                'deduction_bpjs_tenaga_kerja' => 'required|integer',
+                'deduction_bpjs_dana_pensiun' => 'required|integer',
+                'deduction_pph21' => 'required|integer',
+                'deduction_cooperative' => 'required|integer',
+                'deduction_other' => 'nullable|integer',
 
                 'active_day' => 'required|integer',
                 'working_day' => 'required|integer',
@@ -541,21 +502,48 @@ class SalaryPayslipController extends Controller
 
             $salaryData['basic_salary'] = $employeeSalary->basic_salary;
             $salaryData['positional_allowance'] = $employeeSalary->positional_allowance;
-            $salaryData['internet_phone_allowance'] = $employeeSalary->internet_phone_allowance;
-            $salaryData['meal_allowance'] = $employeeSalary->meal_allowance;
-            $salaryData['transportation_allowance'] = $employeeSalary->transportation_allowance;
+            $salaryData['bpjs_allowance'] = $employeeSalary->bpjs_allowance;
+            $salaryData['bpjs_tenaga_kerja_allowance'] = $employeeSalary->bpjs_tenaga_kerja_allowance;
+            $salaryData['pension_allowance'] = $employeeSalary->pension_allowance;
 
             $salaryData['thr'] = $request->thr;
-            $salaryData['bonus'] = $request->bonus;
-            $salaryData['overtime'] = $request->overtime;
-            $salaryData['deduction'] = $request->deduction;
+            $salaryData['kompensasi_pkwt'] = $request->kompensasi_pkwt;
 
-            $salaryData['take_home_pay'] = $request->basic_salary - (intVal($employeeAttendanceNotComplete) * 50000) - (intVal($request->deduction))  + $request->positional_allowance + $request->meal_allowance + $request->transportation_allowance + $request->internet_phone_allowance + $request->bonus + $request->overtime + $request->thr;
+            $salaryData['deduction_absent'] = $request->deduction_absent;
+            $salaryData['deduction_late'] = $request->deduction_late;
+            $salaryData['deduction_bpjs_kesehatan'] = $request->deduction_bpjs_kesehatan;
+            $salaryData['deduction_bpjs_tenaga_kerja'] = $request->deduction_bpjs_tenaga_kerja;
+            $salaryData['deduction_bpjs_dana_pensiun'] = $request->deduction_bpjs_dana_pensiun;
+            $salaryData['deduction_pph21'] = $request->deduction_pph21;
+            $salaryData['deduction_cooperative'] = $request->deduction_cooperative;
+            $salaryData['deduction_other'] = $request->deduction_other;
+
+            $totalDeduction = intVal($request->deduction_absent)
+                + intVal($request->deduction_late)
+                + intVal($request->deduction_bpjs_kesehatan)
+                + intVal($request->deduction_bpjs_tenaga_kerja)
+                + intVal($request->deduction_bpjs_dana_pensiun)
+                + intVal($request->deduction_pph21)
+                + intVal($request->deduction_cooperative)
+                + intVal($request->deduction_other);
+
+            $salaryData['deduction'] = $totalDeduction;
+
+            $salaryData['take_home_pay'] = $request->basic_salary
+                - (intVal($employeeAttendanceNotComplete) * 50000)
+                - $totalDeduction
+                + $request->positional_allowance
+                + $request->bpjs_allowance
+                + $request->bpjs_tenaga_kerja_allowance
+                + $request->pension_allowance
+                + $request->kompensasi_pkwt
+                + $request->thr;
+
             $salaryData['prorate_basic_salary'] = $request->basic_salary;
             $salaryData['prorate_positional_allowance'] = $request->positional_allowance;
-            $salaryData['prorate_internet_phone_allowance'] = $request->internet_phone_allowance;
-            $salaryData['prorate_meal_allowance'] = $request->meal_allowance;
-            $salaryData['prorate_transportation_allowance'] = $request->transportation_allowance;
+            $salaryData['prorate_bpjs_allowance'] = $request->bpjs_allowance;
+            $salaryData['prorate_bpjs_tenaga_kerja_allowance'] = $request->bpjs_tenaga_kerja_allowance;
+            $salaryData['prorate_pension_allowance'] = $request->pension_allowance;
            
             $salaryData['note'] = $request->note;
 
@@ -615,7 +603,7 @@ class SalaryPayslipController extends Controller
             $employeeSalary = EmployeeSalary::with('employee')->where('employee_id',$employee->id)->first();
 
             if(!$employeeSalary){
-                throw new \Exception('Employee salary not setup');
+                throw new \Exception('Employee sala ry not setup');
             }          
         
             
@@ -787,35 +775,28 @@ class SalaryPayslipController extends Controller
     }
     
     public function getActiveDay(string $startDateString, string $endDateString): int {
-        // 1. Inisialisasi objek Carbon
         $startDate = Carbon::parse($startDateString);
         $endDate = Carbon::parse($endDateString);
 
-        // Pastikan tanggal awal sebelum tanggal akhir, tukar jika terbalik
         if ($startDate->greaterThan($endDate)) {
             [$startDate, $endDate] = [$endDate, $startDate];
         }
 
         $count = 0;
 
-        // 2. Kloning tanggal awal untuk iterasi (agar tanggal asli tidak berubah)
         $currentDate = $startDate->copy();
 
-        // 3. Loop dari tanggal awal hingga tanggal akhir (inklusif)
-        // Metode isSameDay() membuat loop inklusif terhadap tanggal akhir
         while ($currentDate->lessThanOrEqualTo($endDate)) {
             
-            // Carbon memiliki metode yang sangat spesifik untuk mengecek hari kerja
-            // isWeekday() akan mengembalikan TRUE jika hari Senin-Jumat
             if ($currentDate->isWeekday()) {
                 $count++;
             }
 
-            // 4. Maju ke hari berikutnya
             $currentDate->addDay();
         }
 
         return $count;
         
     }
+    
 }

@@ -64,9 +64,9 @@ class EmployeeController extends Controller
     {
         $user = auth()->user();
         $userId = auth()->user()->id;
-        
+
         $currentEmployee = Employee::where('user_id', $userId)->first();
-        
+
         $userType = strtoupper((string) ($user->user_type ?? ''));
         $userRole = strtoupper((string) ($user->user_role ?? ''));
 
@@ -80,28 +80,28 @@ class EmployeeController extends Controller
 
             $employees = Employee::with(['department', 'division', 'job', 'user', 'grade', 'officeModel'])
                 ->where('status', '!=', 'DELETED');
-            
-            if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+
+            if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
                 //show all
-            }else{
-                $employees = $employees->where('department_id',$currentEmployee->department_id);
+            } else {
+                $employees = $employees->where('department_id', $currentEmployee->department_id);
             }
 
             $employees = $employees->when($query, function ($q) use ($query) {
-                    $q->where(function ($q2) use ($query) {
-                        $q2->where('name', 'like', '%' . $query . '%')
-                            ->orWhere('email', 'like', '%' . $query . '%')
-                            ->orWhereHas('officeModel', function ($qOffice) use ($query) {
-                                $qOffice->where('name', 'like', '%' . $query . '%');
-                            })
-                            ->orWhereHas('department', function ($q3) use ($query) {
-                                $q3->where('name_department', 'like', '%' . $query . '%');
-                            })
-                            ->orWhereHas('division', function ($q4) use ($query) {
-                                $q4->where('name_division', 'like', '%' . $query . '%');
-                            });
-                    });
-                })
+                $q->where(function ($q2) use ($query) {
+                    $q2->where('name', 'like', '%' . $query . '%')
+                        ->orWhere('email', 'like', '%' . $query . '%')
+                        ->orWhereHas('officeModel', function ($qOffice) use ($query) {
+                            $qOffice->where('name', 'like', '%' . $query . '%');
+                        })
+                        ->orWhereHas('department', function ($q3) use ($query) {
+                            $q3->where('name_department', 'like', '%' . $query . '%');
+                        })
+                        ->orWhereHas('division', function ($q4) use ($query) {
+                            $q4->where('name_division', 'like', '%' . $query . '%');
+                        });
+                });
+            })
                 ->when(!empty($departmentIds), function ($q) use ($departmentIds, $divisionIds, $jobIds) {
                     $q->whereIn('department_id', $departmentIds);
 
@@ -118,7 +118,7 @@ class EmployeeController extends Controller
                 })
                 ->whereHas('user', function ($q) {
                     $q->where('user_type', '!=', 'ADMINISTRATOR')
-                    ->whereNotIn('user_role', ['ADMINISTRATOR']);
+                        ->whereNotIn('user_role', ['ADMINISTRATOR']);
                 })
                 ->get();
 
@@ -129,19 +129,19 @@ class EmployeeController extends Controller
                 $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
                 $employee->first_name = $employee->first_name;
                 $employee->last_name = $employee->last_name;
-                
+
                 // Extract values before unsetting relations
                 $officeName = $employee->officeModel ? $employee->officeModel->name : null;
                 $gradeTitle = $employee->grade ? $employee->grade->title : null;
-                
+
                 // Unset the relations to prevent nested objects in JSON
                 unset($employee->officeModel);
                 unset($employee->grade);
-                
+
                 // Set as flat properties
                 $employee->office = $officeName;
                 $employee->grade = $gradeTitle;
-                
+
                 $status = strtoupper((string)($employee->status ?? ''));
                 if ($status === 'INACTIVE') {
                     $status = 'RESIGN';
@@ -156,18 +156,18 @@ class EmployeeController extends Controller
 
         $employees = Employee::with(['department', 'division', 'job'])
             ->where('status', '!=', 'DELETED');
-        
-        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+
+        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
             //show all
-        }else{
-            $employees = $employees->where('department_id',$currentEmployee->department_id);
+        } else {
+            $employees = $employees->where('department_id', $currentEmployee->department_id);
         }
 
         $employees = $employees->whereHas('user', function ($q) {
-                $q->where('user_type', '!=', 'ADMINISTRATOR')
+            $q->where('user_type', '!=', 'ADMINISTRATOR')
                 ->whereNotIn('user_role', ['ADMINISTRATOR']);
-            })
-        ->get();
+        })
+            ->get();
     }
 
     public function show($id)
@@ -177,15 +177,15 @@ class EmployeeController extends Controller
         if (!$employee) {
             return response()->json(['message' => 'Employee not found'], 404);
         }
-        
+
         // Extract grade title before unsetting the relation
         $gradeTitle = $employee->grade ? $employee->grade->title : null;
         $officeName = $employee->officeModel ? $employee->officeModel->name : null;
-        
+
         // Unset the relations to prevent them from being serialized as nested objects
         unset($employee->grade);
         unset($employee->officeModel);
-        
+
         // Map office and grade to display values for UI compatibility
         $employee->office = $officeName;
         $employee->grade = $gradeTitle;
@@ -193,22 +193,30 @@ class EmployeeController extends Controller
         $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
         // Normalize status for response (uppercase, map legacy INACTIVE to RESIGN)
         $status = strtoupper((string)($employee->status ?? ''));
-        if ($status === 'INACTIVE') { $status = 'RESIGN'; }
+        if ($status === 'INACTIVE') {
+            $status = 'RESIGN';
+        }
         $employee->status = $status ?: null;
         return response()->json($employee);
     }
 
     public function create()
     {
-        // Order grades per business-defined sequence, not alphabetically
         $grades = Grade::orderByRaw(
             "FIELD(title, 'Manager','Analyst','Senior Analyst','Associate','Junior Manager','Junior Analyst','Junior Associate')"
         )->get();
-        // Ensure ACER comes first, then others by name
+
         $offices = Office::orderByRaw(
             "FIELD(name, 'Office 1', 'Office 2')"
         )->orderBy('name')->get();
-        return view('employee.create', compact('grades', 'offices'));
+
+        $employeeSalaries = new EmployeeSalary();
+
+        return view('employee.create', compact(
+            'grades',
+            'offices',
+            'employeeSalaries'
+        ));
     }
 
     public function store(Request $request)
@@ -218,7 +226,7 @@ class EmployeeController extends Controller
 
             $userRole = auth()->user()->user_role;
 
-            if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER'])){
+            if (!in_array($userRole, ['ADMINISTRATOR', 'HR_MANAGER'])) {
                 throw new \Exception('Only HR Manager can add employee');
             }
 
@@ -233,17 +241,18 @@ class EmployeeController extends Controller
                 'employee_niks' => 'nullable|string|max:255',
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:employees,email',
-                // email_work must be unique in employees and users
                 'email_work' => [
-                    'nullable', 'email',
+                    'nullable',
+                    'email',
                     Rule::unique('employees', 'email_work'),
                     Rule::unique('users', 'email'),
                 ],
                 'phone' => 'required|string|max:14|regex:/^[0-9]+$/|unique:employees,phone',
                 'address' => 'required|string',
-                // 10 MB max for images
                 'photo' => 'nullable|file|image|max:10240',
                 'ktp' => 'nullable|file|image|max:10240',
+                'cv' => 'nullable|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+                'pkwt' => 'nullable|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
                 'birth_date' => 'required|date',
                 'hire_date' => 'required|date',
                 'contract_end_date' => 'required|date',
@@ -279,6 +288,8 @@ class EmployeeController extends Controller
 
             $photoPath = null;
             $ktpPath = null;
+            $cvPath = null;
+            $pkwtPath = null;
             $profilePicturePath = null;
 
             if ($request->hasFile('photo')) {
@@ -306,6 +317,26 @@ class EmployeeController extends Controller
                 $ktpPath = 'file/ktp/' . $filename;
             }
 
+            if ($request->hasFile('cv')) {
+                $file = $request->file('cv');
+                $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name);
+                $filename = 'CV_' . $employeeName . '.' . $file->getClientOriginalExtension();
+                $destination = public_path('file/cv');
+                if (!file_exists($destination)) mkdir($destination, 0777, true);
+                $file->move($destination, $filename);
+                $cvPath = 'file/cv/' . $filename;
+            }
+
+            if ($request->hasFile('pkwt')) {
+                $file = $request->file('pkwt');
+                $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name);
+                $filename = 'PKWT_' . $employeeName . '.' . $file->getClientOriginalExtension();
+                $destination = public_path('file/pkwt');
+                if (!file_exists($destination)) mkdir($destination, 0777, true);
+                $file->move($destination, $filename);
+                $pkwtPath = 'file/pkwt/' . $filename;
+            }
+
             $user = new User();
             $user->user_type = 'REGULAR';
             $user->user_role = 'EMPLOYEE';
@@ -331,12 +362,14 @@ class EmployeeController extends Controller
                 'status' => 'ACTIVE',
                 'basic_salary' => $request->basic_salary,
                 'positional_allowance' => $request->positional_allowance,
-                'transportation_allowance' => $request->transportation_allowance,
-                'meal_allowance' => $request->meal_allowance,
-                'internet_phone_allowance' => $request->internet_phone_allowance,
+                'bpjs_allowance' => $request->bpjs_allowance,
+                'bpjs_tenaga_kerja_allowance' => $request->bpjs_tenaga_kerja_allowance,
+                'pension_allowance' => $request->pension_allowance,
                 'address' => $request->address,
                 'photo' => $photoPath,
                 'ktp' => $ktpPath,
+                'cv' => $cvPath,
+                'pkwt' => $pkwtPath,
                 'birth_date' => $request->birth_date,
                 'hire_date' => $request->hire_date,
                 'contract_end_date' => $request->contract_end_date,
@@ -348,12 +381,12 @@ class EmployeeController extends Controller
                 'deleted_by' => null,
             ]);
 
-            $salaryData['take_home_pay'] = $request->basic_salary + $request->positional_allowance + $request->transportation_allowance + $request->meal_allowance + $request->internet_phone_allowance;
+            $salaryData['take_home_pay'] = $request->basic_salary + $request->positional_allowance + $request->bpjs_allowance + $request->bpjs_tenaga_kerja_allowance + $request->pension_allowance;
             $salaryData['basic_salary'] = $request->basic_salary;
             $salaryData['positional_allowance'] = $request->positional_allowance;
-            $salaryData['transportation_allowance'] = $request->transportation_allowance;
-            $salaryData['meal_allowance'] = $request->meal_allowance;
-            $salaryData['internet_phone_allowance'] = $request->internet_phone_allowance;
+            $salaryData['bpjs_allowance'] = $request->bpjs_allowance;
+            $salaryData['bpjs_tenaga_kerja_allowance'] = $request->bpjs_tenaga_kerja_allowance;
+            $salaryData['pension_allowance'] = $request->pension_allowance;
             $salaryData['updated_by'] = auth()->id();
 
             $salaryData['bank_name'] = $request->bank_name;
@@ -375,7 +408,6 @@ class EmployeeController extends Controller
                 'message' => 'Employee created successfully',
                 'redirect_url' => route('employee')
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             $status = $this->deriveHttpStatusFromException($e);
@@ -394,7 +426,7 @@ class EmployeeController extends Controller
             DB::beginTransaction();
             $userRole = auth()->user()->user_role;
 
-            if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER'])){
+            if (!in_array($userRole, ['ADMINISTRATOR', 'HR_MANAGER'])) {
                 throw new \Exception('Only HR Manager can update employee');
             }
 
@@ -406,7 +438,9 @@ class EmployeeController extends Controller
             // Normalize and map status before validation (accept mixed case, map legacy INACTIVE->RESIGN)
             if ($request->has('status')) {
                 $incomingStatus = strtoupper((string)$request->input('status'));
-                if ($incomingStatus === 'INACTIVE') { $incomingStatus = 'RESIGN'; }
+                if ($incomingStatus === 'INACTIVE') {
+                    $incomingStatus = 'RESIGN';
+                }
                 $request->merge(['status' => $incomingStatus]);
             }
 
@@ -420,23 +454,28 @@ class EmployeeController extends Controller
                 // 10 MB max for images
                 'profile_picture' => 'nullable|file|image|max:10240',
                 'name' => 'sometimes|string|max:255',
-                'email' => ['sometimes','email', Rule::unique('employees','email')->ignore($id)],
+                'email' => ['sometimes', 'email', Rule::unique('employees', 'email')->ignore($id)],
                 'email_work' => [
-                    'nullable','email',
-                    Rule::unique('employees','email_work')->ignore($id),
-                    Rule::unique('users','email')->ignore($employee->user_id)
+                    'nullable',
+                    'email',
+                    Rule::unique('employees', 'email_work')->ignore($id),
+                    Rule::unique('users', 'email')->ignore($employee->user_id)
                 ],
                 'phone' => [
-                    'sometimes','regex:/^[0-9]+$/','max:14',
-                    Rule::unique('employees','phone')->ignore($id)
+                    'sometimes',
+                    'regex:/^[0-9]+$/',
+                    'max:14',
+                    Rule::unique('employees', 'phone')->ignore($id)
                 ],
                 'status' => [
                     'sometimes',
-                    Rule::in(['ACTIVE','RESIGN','CANDIDATE','DELETED'])
+                    Rule::in(['ACTIVE', 'RESIGN', 'CANDIDATE', 'DELETED'])
                 ],
                 'address' => 'sometimes|string',
                 'photo' => 'nullable|file|image|max:10240',
                 'ktp' => 'nullable|file|image|max:10240',
+                'cv' => 'nullable|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+                'pkwt' => 'nullable|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
                 'birth_date' => 'sometimes|date',
                 'hire_date' => 'sometimes|date',
                 'contract_end_date' => 'sometimes|date',
@@ -455,14 +494,32 @@ class EmployeeController extends Controller
             }
 
             $updateData = $request->only([
-                'department_id', 'division_id', 'job_id', 'shift_id', 'name', 'employee_niks', 'email', 'email_work', 'phone', 'status', 'address',
-                'address', 'birth_date', 'hire_date','contract_end_date', 'resign_date', 'grade_id', 'office'
+                'department_id',
+                'division_id',
+                'job_id',
+                'shift_id',
+                'name',
+                'employee_niks',
+                'email',
+                'email_work',
+                'phone',
+                'status',
+                'address',
+                'address',
+                'birth_date',
+                'hire_date',
+                'contract_end_date',
+                'resign_date',
+                'grade_id',
+                'office'
             ]);
 
             // Ensure status remains uppercase in DB and map legacy value just in case
             if (isset($updateData['status']) && $updateData['status']) {
                 $updateData['status'] = strtoupper($updateData['status']);
-                if ($updateData['status'] === 'INACTIVE') { $updateData['status'] = 'RESIGN'; }
+                if ($updateData['status'] === 'INACTIVE') {
+                    $updateData['status'] = 'RESIGN';
+                }
             }
 
             if ($request->hasFile('photo')) {
@@ -483,7 +540,9 @@ class EmployeeController extends Controller
                 // Delete old profile_picture file if exists
                 if ($employee->profile_picture && !$this->isDefaultAvatarPath($employee->profile_picture)) {
                     $old = public_path(ltrim($employee->profile_picture, '/'));
-                    if (file_exists($old)) { @unlink($old); }
+                    if (file_exists($old)) {
+                        @unlink($old);
+                    }
                 }
                 $pf->move($profileDest, $profileFilename);
                 $updateData['profile_picture'] = 'file/profile_picture/' . $profileFilename;
@@ -502,7 +561,33 @@ class EmployeeController extends Controller
                 $file->move($destination, $filename);
                 $updateData['ktp'] = 'file/ktp/' . $filename;
             }
-            
+
+            if ($request->hasFile('cv')) {
+                if ($employee->cv && file_exists(public_path($employee->cv))) {
+                    unlink(public_path($employee->cv));
+                }
+                $file = $request->file('cv');
+                $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name ?? $employee->name);
+                $filename = 'CV_' . $employeeName . '.' . $file->getClientOriginalExtension();
+                $destination = public_path('file/cv');
+                if (!file_exists($destination)) mkdir($destination, 0777, true);
+                $file->move($destination, $filename);
+                $updateData['cv'] = 'file/cv/' . $filename;
+            }
+
+            if ($request->hasFile('pkwt')) {
+                if ($employee->pkwt && file_exists(public_path($employee->pkwt))) {
+                    unlink(public_path($employee->pkwt));
+                }
+                $file = $request->file('pkwt');
+                $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name ?? $employee->name);
+                $filename = 'PKWT_' . $employeeName . '.' . $file->getClientOriginalExtension();
+                $destination = public_path('file/pkwt');
+                if (!file_exists($destination)) mkdir($destination, 0777, true);
+                $file->move($destination, $filename);
+                $updateData['pkwt'] = 'file/pkwt/' . $filename;
+            }
+
             $updateData['updated_by'] = auth()->id();
 
             // Track old shift_id to detect changes
@@ -564,13 +649,13 @@ class EmployeeController extends Controller
             }
 
 
-            $salaryData['take_home_pay'] = $request->basic_salary + $request->positional_allowance + $request->transportation_allowance + $request->meal_allowance + $request->internet_phone_allowance;
+            $salaryData['take_home_pay'] = $request->basic_salary + $request->positional_allowance + $request->bpjs_allowance + $request->bpjs_tenaga_kerja_allowance + $request->pension_allowance;
             $salaryData['basic_salary'] = $request->basic_salary;
             $salaryData['positional_allowance'] = $request->positional_allowance;
-            $salaryData['transportation_allowance'] = $request->transportation_allowance;
-            $salaryData['meal_allowance'] = $request->meal_allowance;
-            $salaryData['internet_phone_allowance'] = $request->internet_phone_allowance;
-            
+            $salaryData['bpjs_allowance'] = $request->bpjs_allowance;
+            $salaryData['bpjs_tenaga_kerja_allowance'] = $request->bpjs_tenaga_kerja_allowance;
+            $salaryData['pension_allowance'] = $request->pension_allowance;
+
             $salaryData['bank_name'] = $request->bank_name;
             $salaryData['bank_account_number'] = $request->bank_account_number;
 
@@ -605,7 +690,6 @@ class EmployeeController extends Controller
                 'employeeId' => $employee->id,
                 'redirect_url' => route('employee')
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             $status = $this->deriveHttpStatusFromException($e);
@@ -625,7 +709,7 @@ class EmployeeController extends Controller
 
             $userRole = auth()->user()->user_role;
 
-            if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER'])){
+            if (!in_array($userRole, ['ADMINISTRATOR', 'HR_MANAGER'])) {
                 throw new \Exception('Only HR Manager can delete employee');
             }
 
@@ -646,7 +730,6 @@ class EmployeeController extends Controller
                 'data' => [],
                 'message' => 'Employee deleted successfully'
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             $status = $this->deriveHttpStatusFromException($e);
@@ -663,19 +746,18 @@ class EmployeeController extends Controller
     {
         $user = auth()->user();
         $userId = auth()->user()->id;
-        
+
         $currentEmployee = Employee::where('user_id', $userId)->first();
-        
+
         $userType = strtoupper((string) ($user->user_type ?? ''));
         $userRole = strtoupper((string) ($user->user_role ?? ''));
-        
+
         $employee = Employee::find($id);
 
-        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-            //show all
-        }else{
-            $employee = Employee::where('department_id',$currentEmployee->department_id)->find($id);
-        }        
+        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
+        } else {
+            $employee = Employee::where('department_id', $currentEmployee->department_id)->find($id);
+        }
 
         if (!$employee) {
             abort(404, 'Employee not found');
@@ -686,7 +768,6 @@ class EmployeeController extends Controller
         $departments = Department::all();
         $divisions = Division::all();
 
-        // Load jobs filtered by employee's current department and division
         $jobs = Job::where('status', '!=', 'DELETED');
         if ($employee->department_id) {
             $jobs = $jobs->where('department_id', $employee->department_id);
@@ -696,7 +777,6 @@ class EmployeeController extends Controller
         }
         $jobs = $jobs->get();
 
-        // Order grades and offices with the same rules as in create()
         $grades = Grade::orderByRaw(
             "FIELD(title, 'Manager','Analyst','Senior Analyst','Associate','Junior Manager','Junior Analyst','Junior Associate')"
         )->get();
@@ -704,7 +784,7 @@ class EmployeeController extends Controller
             "FIELD(name, 'Office 1', 'Office 2')"
         )->orderBy('name')->get();
 
-        return view('employee.edit', compact('employee','employeeSalaries', 'departments', 'divisions', 'jobs', 'grades', 'offices'));
+        return view('employee.edit', compact('employee', 'employeeSalaries', 'departments', 'divisions', 'jobs', 'grades', 'offices'));
     }
 
     /**
@@ -728,7 +808,7 @@ class EmployeeController extends Controller
                 ->when($query, function ($q) use ($query) {
                     $q->where(function ($q2) use ($query) {
                         $q2->where('name', 'like', '%' . $query . '%')
-                        ->orWhere('email', 'like', '%' . $query . '%');
+                            ->orWhere('email', 'like', '%' . $query . '%');
                     });
                 })
                 ->when($excludeEmployeeId, function ($q) use ($excludeEmployeeId) {
@@ -781,14 +861,15 @@ class EmployeeController extends Controller
     }
 
 
-    public function exportEmployeeActive(){
-        
+    public function exportEmployeeActive()
+    {
+
 
         $user = auth()->user();
         $userId = auth()->user()->id;
-        
+
         $currentEmployee = Employee::where('user_id', $userId)->first();
-        
+
         $userType = strtoupper((string) ($user->user_type ?? ''));
         $userRole = strtoupper((string) ($user->user_role ?? ''));
 
@@ -800,49 +881,49 @@ class EmployeeController extends Controller
         // }
 
         $employee = Employee::select('employees.id')
-            ->join('users','employees.user_id','=','users.id')
-            ->where('employees.status',"ACTIVE");
+            ->join('users', 'employees.user_id', '=', 'users.id')
+            ->where('employees.status', "ACTIVE");
 
-        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
             //show all
-        }else{
+        } else {
 
-            if($currentEmployee->department_id == 1){
+            if ($currentEmployee->department_id == 1) {
                 return redirect('/employee');
             }
-            
-            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
+
+            $employee = $employee->where('employees.department_id', $currentEmployee->department_id);
         }
 
-        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
-        ->get();
+        $employee = $employee->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO"])
+            ->whereNotIn('users.user_type', ["ADMINISTRATOR"])
+            ->get();
 
         $employeeIds = $employee->pluck('id');
 
-        $allEmployeeActive = Employee::with('department','division','job','grade','shift')
-            ->whereIn('employees.id',$employeeIds)
-            ->orderBy('employees.division_id','asc')
-        ->get();
+        $allEmployeeActive = Employee::with('department', 'division', 'job', 'grade', 'shift')
+            ->whereIn('employees.id', $employeeIds)
+            ->orderBy('employees.division_id', 'asc')
+            ->get();
 
         $spreadsheet = new Spreadsheet();
         $activeWorksheet = $spreadsheet->getActiveSheet();
-    
+
         // Get current month and year
         $currentDate = Carbon::now();
         $monthName = $currentDate->translatedFormat('F'); // Full month name in Indonesian if locale set
         $year = $currentDate->year;
         $title = "Data Karyawan {$monthName} {$year}";
-    
+
         $activeWorksheet->mergeCells('A1:T1');
-        
+
         $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(34);
         $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $activeWorksheet->setCellValue('A1', $title);
 
         //No	PHOTO	NAMA KARYAWAN	EMAIL	NSAID	Department	Division	Job Position	Grade/Rank	Join Date	Selesai Kontrak	Status	Alamat	THP Take Home Pay	Gaji Pokok	Tunjangan Jabatan	Tunjangan Transportasi	Tunjangan Makan	Tunjangan Internet
-        
+
         $activeWorksheet->setCellValue('A2', 'No');
         $activeWorksheet->setCellValue('B2', 'PHOTO');
         $activeWorksheet->setCellValue('C2', 'NAMA KARYAWAN');
@@ -863,7 +944,7 @@ class EmployeeController extends Controller
         $activeWorksheet->setCellValue('R2', 'Tunjangan Transportasi');
         $activeWorksheet->setCellValue('S2', 'Tunjangan Makan');
         $activeWorksheet->setCellValue('T2', 'Tunjangan Internet');
-        
+
 
         // add border 
         $headerStyle = [
@@ -873,7 +954,7 @@ class EmployeeController extends Controller
                 ],
             ],
         ];
-        
+
 
         $activeWorksheet->getStyle('A2:T2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
 
@@ -881,12 +962,12 @@ class EmployeeController extends Controller
             ->getAlignment()
             ->setWrapText(true)
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)
-        ->setVertical(Alignment::VERTICAL_CENTER);
-        
+            ->setVertical(Alignment::VERTICAL_CENTER);
+
         // Set column width for photo column
         $activeWorksheet->getColumnDimension('B')->setWidth(20);
-        
-        
+
+
 
         // Menulis data dari database ke sheet
         $row = 3; // Mulai dari baris ketiga
@@ -896,7 +977,7 @@ class EmployeeController extends Controller
 
             $employeeSalary = EmployeeSalary::where('employee_id', $employeeItem->id)->first();
 
-            
+
             $thp = 0;
             $basicSalary = 0;
             $positionalAllowance = 0;
@@ -904,56 +985,55 @@ class EmployeeController extends Controller
             $mealAllowance = 0;
             $internetPhoneAllowance = 0;
 
-            if($employeeSalary){
+            if ($employeeSalary) {
 
                 $basicSalary = $employeeSalary->basic_salary;
                 $positionalAllowance = $employeeSalary->positional_allowance;
-                $transportationAllowance = $employeeSalary->transportation_allowance;
-                $mealAllowance = $employeeSalary->meal_allowance;
-                $internetPhoneAllowance = $employeeSalary->internet_phone_allowance;
-
+                $transportationAllowance = $employeeSalary->bpjs_allowance;
+                $mealAllowance = $employeeSalary->bpjs_tenaga_kerja_allowance;
+                $internetPhoneAllowance = $employeeSalary->pension_allowance;
             }
             $thp = $basicSalary + $positionalAllowance + $transportationAllowance + $mealAllowance + $internetPhoneAllowance;
-            
+
             // Set row height for photo (200px ≈ 150 points in Excel)
             $activeWorksheet->getRowDimension($row)->setRowHeight(150);
 
-            $activeWorksheet->setCellValue('A'.$row, $no);
-            
+            $activeWorksheet->setCellValue('A' . $row, $no);
+
             // Insert photo in column B
             if ($employeeItem->photo) {
                 $photoPath = public_path($employeeItem->photo);
-                
+
                 // Check if photo file exists
                 if (file_exists($photoPath)) {
                     $drawing = new Drawing();
                     $drawing->setName('Employee Photo');
                     $drawing->setDescription('Photo of ' . $employeeItem->name);
                     $drawing->setPath($photoPath);
-                    $drawing->setCoordinates('B'.$row);
-                    
+                    $drawing->setCoordinates('B' . $row);
+
                     // Set image size: width 150px (≈ 113 points), height 200px (≈ 150 points)
                     $drawing->setWidth(113);
                     $drawing->setHeight(150);
-                    
+
                     // Offset to center the image in the cell
                     $drawing->setOffsetX(10);
                     $drawing->setOffsetY(5);
-                    
+
                     $drawing->setWorksheet($activeWorksheet);
                 }
             }
-            
-            $activeWorksheet->setCellValue('C'.$row, $employeeItem->name);
-            $activeWorksheet->setCellValue('D'.$row, $employeeItem->email_work);
-            $activeWorksheet->setCellValue('E'.$row, $employeeItem->employee_niks);
-            $activeWorksheet->setCellValue('F'.$row, $employeeItem->department->name_department);//'Department'
-            $activeWorksheet->setCellValue('G'.$row, $employeeItem->division->name_division);//'Division'
-            $activeWorksheet->setCellValue('H'.$row, $employeeItem->job->job_name);//'Job Position'
-            $activeWorksheet->setCellValue('I'.$row, $employeeItem->grade->title);//'Grade/Rank'
-            $activeWorksheet->setCellValue('J'.$row, $employeeItem->hire_date);//'Join Date'
-            $activeWorksheet->setCellValue('K'.$row, $employeeItem->contract_end_date);//'Kontrak'
-            
+
+            $activeWorksheet->setCellValue('C' . $row, $employeeItem->name);
+            $activeWorksheet->setCellValue('D' . $row, $employeeItem->email_work);
+            $activeWorksheet->setCellValue('E' . $row, $employeeItem->employee_niks);
+            $activeWorksheet->setCellValue('F' . $row, $employeeItem->department->name_department); //'Department'
+            $activeWorksheet->setCellValue('G' . $row, $employeeItem->division->name_division); //'Division'
+            $activeWorksheet->setCellValue('H' . $row, $employeeItem->job->job_name); //'Job Position'
+            $activeWorksheet->setCellValue('I' . $row, $employeeItem->grade->title); //'Grade/Rank'
+            $activeWorksheet->setCellValue('J' . $row, $employeeItem->hire_date); //'Join Date'
+            $activeWorksheet->setCellValue('K' . $row, $employeeItem->contract_end_date); //'Kontrak'
+
             // Calculate work period
             $workPeriod = '-';
             if ($employeeItem->hire_date) {
@@ -968,19 +1048,19 @@ class EmployeeController extends Controller
                     $workPeriod = '-';
                 }
             }
-            $activeWorksheet->setCellValue('L'.$row, $workPeriod);//'Periode Kerja'
-            
-            $activeWorksheet->setCellValue('M'.$row, $employeeItem->status);//'Status'
-            $activeWorksheet->setCellValue('N'.$row, $employeeItem->address);//'Alamat'
-            $activeWorksheet->setCellValue('O'.$row, $thp);//'Take Home Pay'
-            $activeWorksheet->setCellValue('P'.$row, $basicSalary);//'Gaji Pokok'
-            $activeWorksheet->setCellValue('Q'.$row, $positionalAllowance);//'Tunjangan Jabatan'
-            $activeWorksheet->setCellValue('R'.$row, $transportationAllowance);//'Tunjangan Transportasi'
-            $activeWorksheet->setCellValue('S'.$row, $mealAllowance);//'Tunjangan Makan'
-            $activeWorksheet->setCellValue('T'.$row, $internetPhoneAllowance);//'Tunjangan Internet'
-            
-            
-            
+            $activeWorksheet->setCellValue('L' . $row, $workPeriod); //'Periode Kerja'
+
+            $activeWorksheet->setCellValue('M' . $row, $employeeItem->status); //'Status'
+            $activeWorksheet->setCellValue('N' . $row, $employeeItem->address); //'Alamat'
+            $activeWorksheet->setCellValue('O' . $row, $thp); //'Take Home Pay'
+            $activeWorksheet->setCellValue('P' . $row, $basicSalary); //'Gaji Pokok'
+            $activeWorksheet->setCellValue('Q' . $row, $positionalAllowance); //'Tunjangan Jabatan'
+            $activeWorksheet->setCellValue('R' . $row, $transportationAllowance); //'Tunjangan Transportasi'
+            $activeWorksheet->setCellValue('S' . $row, $mealAllowance); //'Tunjangan Makan'
+            $activeWorksheet->setCellValue('T' . $row, $internetPhoneAllowance); //'Tunjangan Internet'
+
+
+
             $row++;
             $no++;
         }
@@ -993,19 +1073,19 @@ class EmployeeController extends Controller
             ],
         ];
 
-        $activeWorksheet->getStyle('A2:T'.($row-1))->applyFromArray($dataStyle);
+        $activeWorksheet->getStyle('A2:T' . ($row - 1))->applyFromArray($dataStyle);
 
-        $activeWorksheet->getStyle('A2:T'.($row-1))
+        $activeWorksheet->getStyle('A2:T' . ($row - 1))
             ->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)
-        ->setVertical(Alignment::VERTICAL_CENTER);
+            ->setVertical(Alignment::VERTICAL_CENTER);
 
-        $activeWorksheet->getStyle('C3:D'.($row-1))
+        $activeWorksheet->getStyle('C3:D' . ($row - 1))
             ->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_LEFT)
-        ->setVertical(Alignment::VERTICAL_CENTER);
+            ->setVertical(Alignment::VERTICAL_CENTER);
 
-        
+
         // $activeWorksheet->getStyle('W4:'.$lastColumn.($row-1))
         //     ->getAlignment()
         //     ->setWrapText(true)
@@ -1016,7 +1096,7 @@ class EmployeeController extends Controller
         foreach (range('A', 'A') as $column) {
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
-        
+
         foreach (range('C', 'M') as $column) {
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
@@ -1024,14 +1104,13 @@ class EmployeeController extends Controller
         foreach (range('O', 'T') as $column) {
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
- 
+
         $fileName = "Data Karyawan {$monthName} {$year}.xlsx";
         $tempFileName = tempnam(sys_get_temp_dir(), $fileName);
 
         $writer = new Xlsx($spreadsheet);
         $writer->save($tempFileName);
 
-        return response()->download($tempFileName,$fileName)->deleteFileAfterSend(true);
-
+        return response()->download($tempFileName, $fileName)->deleteFileAfterSend(true);
     }
 }

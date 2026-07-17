@@ -6,9 +6,8 @@
     background-color: #F0F1F8;
     border-radius: 20px;
     padding: 0px;
+    min-height: 300px;
 }
-
-
 
 .title-content{
     margin-bottom: 30px;
@@ -181,7 +180,6 @@
     margin-left: 10px;
 }
 
-
 .data-container.fullscreen{
     position: fixed;
     top: 85px;
@@ -297,6 +295,7 @@
     position: relative;
     margin: auto;
     padding-bottom: 5px;
+    min-height: 200px;
 }
 
 /* Gaya untuk scrollbar yang transparan dan muncul saat hover */

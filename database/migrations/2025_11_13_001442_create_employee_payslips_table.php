@@ -34,9 +34,9 @@ return new class extends Migration
 
             $table->double('prorate_basic_salary')->default(0);
             $table->double('prorate_positional_allowance')->default(0);
-            $table->double('prorate_internet_phone_allowance')->default(0);
-            $table->double('prorate_meal_allowance')->default(0);
-            $table->double('prorate_transportation_allowance')->default(0);
+            $table->double('prorate_bpjs_allowance')->default(0);
+            $table->double('prorate_bpjs_tenaga_kerja_allowance')->default(0);
+            $table->double('prorate_pension_allowance')->default(0);
 
             $table->double('thr')->default(0);
             $table->double('kompensasi_pkwt')->default(0);
@@ -50,7 +50,7 @@ return new class extends Migration
             $table->double('deduction_bpjs_dana_pensiun')->default(0);
             $table->double('deduction_pph21')->default(0);
             $table->double('deduction_cooperative')->default(0);
-            $table->double('deduction_other')->default(0);
+            $table->double('deduction_other')->default(0)->nullable();
             
             $table->string('bank_name')->nullable();
             $table->string('bank_account_number')->nullable();

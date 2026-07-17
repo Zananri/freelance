@@ -6,35 +6,40 @@ use App\Models\Employee;
 
 class EmployeeHelper
 {
-    public static function EmployeeActiveIds(){
+    public static function EmployeeActiveIds()
+    {
         $user = auth()->user();
-        $userId = auth()->user()->id;
+        if (!$user) {
+            return collect();
+        }
         
+        $userId = $user->id;
         $currentEmployee = Employee::where('user_id', $userId)->first();
         
         $userType = strtoupper((string) ($user->user_type ?? ''));
         $userRole = strtoupper((string) ($user->user_role ?? ''));
 
-        
-        $employee = Employee::select('employees.id')
-            ->join('users','employees.user_id','=','users.id')
-        ->where('employees.status',"ACTIVE");
+        $employeeQuery = Employee::select('employees.id')
+            ->join('users', 'employees.user_id', '=', 'users.id')
+            ->where('employees.status', "ACTIVE")
+            ->where('employees.user_id', '!=', $userId);
 
-        if(in_array($userType, ['ADMINISTRATOR'])){
-            //show all departments
-        }
-        elseif (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-            //show all departments
-        }else{
-            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
+        if ($userType === 'SUPERADMIN') {
+            return $employeeQuery->get()->pluck('id');
         }
 
-        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
-        ->get();
+        $hasGlobalAccess = in_array($userType, ['ADMINISTRATOR']) || 
+                           in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER']);
 
-        return $employee->pluck('id');
-    
+        if (!$hasGlobalAccess) {
+            if ($currentEmployee) {
+                $employeeQuery->where('employees.department_id', $currentEmployee->department_id);
+            }
+        }
+
+        $employeeQuery->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO"])
+                      ->whereNotIn('users.user_type', ["ADMINISTRATOR"]);
+
+        return $employeeQuery->get()->pluck('id');
     }
-    
 }
