@@ -334,37 +334,19 @@
                         </div>
                     </div>
 
-                    <!-- Document List -->
-                    <div class="grid-wrapper mt-2">
-
-                        <div class="folder-wrapper">
-                            <div class="folder-shadow-tab"></div>
-                            <div class="folder-shadow"></div>
-                            <div class="folder-tab"></div>
-                            <div class="folder-body">
-                                <p class="folder-name">John Doe</p>
-                                <p class="folder-role">Data Analyst</p>
-                                <hr class="folder-divider">
-                                <div class="folder-footer">
-                                    <div class="folder-avatar"></div>
-                                    <span class="folder-items">4 Items</span>
-                                </div>
-                            </div>
+                    <div class="d-flex align-items-center justify-content-between mb-3" id="mydocBreadcrumbRow">
+                        <div class="mydoc-breadcrumb" style="min-height: 24px;">
+                            <span class="text-body-secondary fs-12" id="mydocBreadcrumbText">Documents</span>
                         </div>
 
-                        <div class="folder-wrapper">
-                            <div class="folder-shadow-tab"></div>
-                            <div class="folder-shadow"></div>
-                            <div class="folder-tab"></div>
-                            <div class="folder-body">
-                                <p class="folder-name">Jane Smith</p>
-                                <p class="folder-role">UI Designer</p>
-                                <hr class="folder-divider">
-                                <div class="folder-footer">
-                                    <div class="folder-avatar"></div>
-                                    <span class="folder-items">7 Items</span>
-                                </div>
-                            </div>
+                    </div>
+
+                    <!-- Document List -->
+                    <div class="grid-wrapper mt-2" id="mydocGridWrapper">
+                        {{-- Rendered by AJAX --}}
+                        <div class="text-body text-opacity-50 fs-12 text-center py-4" id="mydocLoading">Loading...</div>
+                        <div class="d-none" id="mydocEmptyState">
+                            <div class="text-body text-opacity-50 fs-12 text-center py-4">No documents</div>
                         </div>
                     </div>
                 </div>
@@ -986,9 +968,6 @@
         <script src="{{ asset('asset/js/dashboard_announcement.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/attendance_dashboard_new.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
-        <script>
-            window.APP_URL = "{{ url('/') }}";
-        </script>
     </x-slot>
 
 </x-office-layout>
