@@ -82,7 +82,8 @@ Route::middleware('auth')->group(function () {
 
 
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
-
+    Route::get('/dashboard/monitoring-widget', [DashboardController::class, 'dashboardMonitoringWidget'])
+        ->name('dashboard.monitoringWidget');
 
     Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
     Route::post('/profile/edit-password', [ProfileController::class, 'editPassword'])->name('profile.editPassword');

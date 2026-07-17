@@ -243,7 +243,7 @@ class OfficeBasicSeeder extends Seeder
                 [
                     'user_id' => $user->id,
                     'department_id' => 2,
-                    'division_id' => 1,
+                    'division_id' => 2,
                     'job_id' => $job2->id,
                     'profile_picture' => 'asset/img/logo/logo.png',
                     'name' => 'Admin SGS',

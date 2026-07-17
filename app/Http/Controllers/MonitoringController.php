@@ -11,7 +11,8 @@ use App\Models\Employee;
 
 class MonitoringController extends Controller
 {
-    public function showMonitoringPage() {
+    public function showMonitoringPage()
+    {
         return view('monitoring.monitoring');
     }
 
@@ -21,6 +22,10 @@ class MonitoringController extends Controller
         $currentEmployee = Employee::where('user_id', $user->id)->first();
         $userType = strtoupper((string) ($user->user_type ?? ''));
 
+        if (!in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR'])) {
+            abort(403);
+        }
+
         $employeeQuery = Employee::with(['division', 'job'])
             ->where('status', 'ACTIVE')
             ->whereHas('user', function ($query) {
@@ -28,14 +33,25 @@ class MonitoringController extends Controller
                     ->whereNotIn('user_type', ['ADMINISTRATOR']);
             });
 
-        if ($currentEmployee) {
-            if ($userType !== 'SUPERADMIN') {
-                $employeeQuery->where('department_id', $currentEmployee->department_id);
+        if ($userType === 'ADMINISTRATOR') {
+            if (!$currentEmployee) {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => [
+                        'divisions' => [],
+                        'employees' => [],
+                        'checkins' => [],
+                    ],
+                ]);
             }
 
+            $employeeQuery->where('department_id', $currentEmployee->department_id)
+                ->where('id', '!=', $currentEmployee->id);
+        }
+
+        if ($userType === 'SUPERADMIN' && $currentEmployee) {
             $employeeQuery->where('id', '!=', $currentEmployee->id);
-        } else {
-            $employeeQuery->whereRaw('0 = 1');
         }
 
         $employees = $employeeQuery->get()->map(function ($employee) {
@@ -50,6 +66,7 @@ class MonitoringController extends Controller
         });
 
         $divisionIds = $employees->pluck('division_id')->filter()->unique()->values();
+
         $divisions = Division::with('department')
             ->whereIn('id', $divisionIds)
             ->get(['id', 'name_division', 'department_id'])
@@ -57,14 +74,31 @@ class MonitoringController extends Controller
                 return [
                     'id' => $division->id,
                     'name' => $division->name_division,
-                    'department' => $division->department?->name_department,
+                    'department' => optional($division->department)->name_department,
                 ];
             });
 
         $employeeIds = $employees->pluck('id')->toArray();
+
+        if (empty($employeeIds)) {
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [
+                    'divisions' => $divisions,
+                    'employees' => $employees,
+                    'checkins' => [],
+                ],
+            ]);
+        }
+
         $today = Carbon::today();
 
-        $checkins = AttendanceTracking::select('attendance_trackings.location', 'attendance_trackings.date_time', 'attendances.employee_id')
+        $checkins = AttendanceTracking::select(
+            'attendance_trackings.location',
+            'attendance_trackings.date_time',
+            'attendances.employee_id'
+        )
             ->join('attendances', 'attendance_trackings.attendance_id', '=', 'attendances.id')
             ->where('attendance_trackings.type', 'check_in')
             ->whereDate('attendance_trackings.date_time', $today)
@@ -74,6 +108,7 @@ class MonitoringController extends Controller
             ->groupBy('employee_id')
             ->map(function ($records, $employeeId) {
                 $record = $records->first();
+
                 [$lat, $lng] = array_map('trim', explode(',', $record->location));
 
                 if (!is_numeric($lat) || !is_numeric($lng)) {

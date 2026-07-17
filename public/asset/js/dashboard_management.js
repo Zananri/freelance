@@ -1,457 +1,580 @@
-const appUrl = $('meta[name=app-url]').attr("content");
+const appUrl = $("meta[name=app-url]").attr("content");
+const currentUserType = (
+    $('meta[name="current-user-type"]').attr("content") || ""
+).toUpperCase();
 
-const calendarDayModal = new bootstrap.Modal('#calendarDayModal', {
-  keyboard: false
-});
-
-const calendarAllModal = new bootstrap.Modal('#calendarAllModal', {
-  keyboard: false
-});
-
-const eventDetailModal = new bootstrap.Modal('#eventDetailModal', {
-  keyboard: false
-});
-
-
-
-let currentDate = new Date();
-
-async function renderCalendar(year, month) {
-    
-    const calendarBody = $('.table-calendar tbody');
-    calendarBody.empty();
-
-    const firstDay = new Date(year, month, 1).getDay();
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const monthNames = new Date(year,month);
-
-
-    $('.calendar-month').text(`${currentDate.toLocaleString('default', { month: 'long' })}`);
-    $('.calendar-year').text(`${year}`);
-
-    let day = 1;
-    let row = $('<tr>');
-    const pad = (n, len = 2) => String(n).padStart(len, '0');
-
-    for (let i = 0; i < firstDay; i++) {
-        row.append('<td class="empty-cell"></td>');
-    }
-
-    for (let i = 0; i < totalDays; i++) {
-        if ((firstDay + i) % 7 === 0 && i !== 0) {
-            calendarBody.append(row);
-            row = $('<tr>');
-        }
-        const today = new Date();
-        const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
-
-        const dayNumPad = pad(day);
-        const monthNumPad = pad(month + 1);
-
-        row.append(`<td class="calendar-day  ${isToday ? 'today' : ''}" data-calendar-date="${year}-${monthNumPad}-${dayNumPad}"><div class="day">${day}</div><div class="box-event"></div></td>`);
-
-        day++;
-    }
-
-
-    calendarBody.append(row);
-
-    return 'done-rendering';
+function escapeHtml(text) {
+    return String(text ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
-async function renderEventCalendar(year, month){
-    try {
-        const calendaerResponse = await renderCalendar(year, month);
-        const getAllEventResponse = await getAllEventEmployeeCalendarByMonth(year,month+1);
-        
+let widgetMonitoringMap = null;
+let widgetMarkerLayer = null;
+let widgetUserLocationMarker = null;
+let widgetDefaultCenter = [-6.2, 106.816666];
+let widgetUserLocation = null;
 
-        return getAllEventResponse;
-        
-        
-        //console.log(data);
-    } catch (error) {
-        console.error("Error fetching or processing data:", error);
-        return 'error-rendering';
-    }
+const departmentColorPalette = [
+    "#0d6efd",
+    "#e74c3c",
+    "#2ecc71",
+    "#f39c12",
+    "#9b59b6",
+    "#1abc9c",
+    "#e67e22",
+    "#3498db",
+    "#e84393",
+    "#34495e",
+];
+
+let departmentColorMap = {};
+
+function departmentColorKey(employee) {
+    return employee.department_id != null
+        ? String(employee.department_id)
+        : employee.department_name || "unknown";
 }
 
-renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
+function buildDepartmentColorMap(employees) {
+    departmentColorMap = {};
 
-$('.calendar-prev-month').click(function() {
-    currentDate.setMonth(currentDate.getMonth() - 1);
-    renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
-});
+    const seen = {};
+    const uniqueDepartments = [];
 
-$('.calendar-next-month').click(function() {
-    currentDate.setMonth(currentDate.getMonth() + 1);
-    renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
-});
-
-$(document).on('click','.dropdown-month .month-item',function(){
-    let monthNum = $(this).attr('data-month');
-    
-    currentDate.setMonth(parseInt(monthNum));
-
-    renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
-
-    //$('.dropdown-month.show').removeClass('show');
-});
-
-let ARR_DATA_CALENDAR = [];
-
-async function getAllEventEmployeeCalendarByMonth(year,month){
-
-    return getAllEven = await $.ajax({
-        url: appUrl + "/calendar/all-event-employee-calendar-by-month",
-        type: "GET",
-        data:{
-            'YEAR' : year,
-            'MONTH' : month
-        },
-        beforeSend:function(){
-            //$('.col-user-management .loader').fadeIn('fast');
-        },
-        error:function(res){
-          //$('.col-user-management .loader').fadeOut('fast');
-          return 'error-get-data';
-        },
-        success: function(response) {
-            
-            ARR_DATA_CALENDAR = [];
-
-            var resData = response.data;
-            var employeeCalendar = resData.employeeCalendar;
-
-            ARR_DATA_CALENDAR = employeeCalendar;
-
-            for (let i = 0; i < ARR_DATA_CALENDAR.length; i++) {
-                const calendar = ARR_DATA_CALENDAR[i];
-                appendEventCalendar(calendar);
-
-                $('#calendarAllModal .box-data-event').append(htmlItemEventAll(calendar));
-            }
-
-            if(ARR_DATA_CALENDAR.length == 0){
-                $('#calendarAllModal .box-data-event').html(' ');
-            }
-
-            return 'done-get-data';
+    employees.forEach(function (employee) {
+        const key = departmentColorKey(employee);
+        if (!seen[key]) {
+            seen[key] = true;
+            uniqueDepartments.push({
+                key: key,
+                name: employee.department_name || "Unknown Department",
+            });
         }
-         
     });
 
+    uniqueDepartments.sort(function (a, b) {
+        return a.name.localeCompare(b.name);
+    });
+
+    uniqueDepartments.forEach(function (dept, index) {
+        departmentColorMap[dept.key] =
+            departmentColorPalette[index % departmentColorPalette.length];
+    });
 }
 
-$('#search-event-all').on('keyup',function(){
-    let searchQuery = $(this).val();
+function getDepartmentColor(employee) {
+    return departmentColorMap[departmentColorKey(employee)] || "#6c757d";
+}
 
-    if(searchQuery == ''){
-        $('#calendarAllModal .box-data-event .item-event').removeClass('d-none');
+function createPinIcon(color) {
+    return L.divIcon({
+        className: "custom-pin-marker",
+        html: `
+            <svg width="28" height="38" viewBox="0 0 28 38" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 24 14 24s14-13.5 14-24c0-7.7-6.3-14-14-14z"
+                      fill="${color}" stroke="#fff" stroke-width="1.5"/>
+                <circle cx="14" cy="14" r="5.5" fill="#fff"/>
+            </svg>
+        `,
+        iconSize: [28, 38],
+        iconAnchor: [14, 38],
+        popupAnchor: [0, -34],
+    });
+}
+
+function initWidgetMonitoringMap() {
+    const mapElement = document.getElementById("widgetMonitoringMap");
+
+    if (!mapElement || widgetMonitoringMap) {
         return;
     }
 
-    $('#calendarAllModal .box-data-event .item-event').addClass('d-none');
-    
-    $('#calendarAllModal .box-data-event .item-event').each(function(){
-        let titleEvent = $(this).find('.text-title-event').text();
-        let descriptionEvent = $(this).find('.text-description-event').text();
+    if (mapElement.offsetHeight === 0) {
+        mapElement.style.height = "260px";
+    }
 
-        if(titleEvent.toLowerCase().includes(searchQuery.toLowerCase())){
-            $(this).closest('.item-event').removeClass('d-none');
-        }
+    widgetMonitoringMap = L.map(mapElement, {
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        zoomControl: false,
+    }).setView(widgetDefaultCenter, 5);
 
-        if(descriptionEvent.toLowerCase().includes(searchQuery.toLowerCase())){
-            $(this).closest('.item-event').removeClass('d-none');
+    L.control.zoom({ position: "topright" }).addTo(widgetMonitoringMap);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: 19,
+    }).addTo(widgetMonitoringMap);
+
+    widgetMarkerLayer = L.layerGroup().addTo(widgetMonitoringMap);
+
+    [100, 400, 1000].forEach(function (delay) {
+        setTimeout(function () {
+            if (widgetMonitoringMap) {
+                widgetMonitoringMap.invalidateSize();
+            }
+        }, delay);
+    });
+
+    $(window).on("resize", function () {
+        if (widgetMonitoringMap) {
+            widgetMonitoringMap.invalidateSize();
         }
     });
-    
-    
-});
 
+    centerMapOnUserLocation();
+}
 
-function htmlItemEvent(dataRow){
-
-    let description = '';
-
-    if(dataRow.description != null && dataRow.description != '' && dataRow.description != 'null'){
-
-        description = `<div class="fs-12 text-body text-opacity-75">
-                        ${dataRow.description}
-                    </div>`;
+function centerMapOnUserLocation() {
+    if (!widgetMonitoringMap || !navigator.geolocation) {
+        return;
     }
 
-    let photoProfile = '';
-    let currentEmployee = $('[name="current_employee"]').val();
+    navigator.geolocation.getCurrentPosition(
+        function (position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
 
-    
-    if(currentEmployee != dataRow.employee_id){
+            widgetUserLocation = [lat, lng];
+            widgetMonitoringMap.setView(widgetUserLocation, 13);
 
-        let imgSrc = 'asset/img/avatar.png';
+            if (widgetUserLocationMarker) {
+                widgetMonitoringMap.removeLayer(widgetUserLocationMarker);
+            }
 
-        if(dataRow.employee.profile_picture != null && dataRow.employee.profile_picture != '' && dataRow.employee.profile_picture != 'null'){
-            imgSrc = dataRow.employee.profile_picture;
-        }
+            widgetUserLocationMarker = L.marker(widgetUserLocation, {
+                icon: createPinIcon("#28a745"),
+            })
+                .addTo(widgetMonitoringMap)
+                .bindPopup("Your current location");
 
-        let htmlTooltip = `<div>Created by <strong>${dataRow.employee.name}</strong></div>
-                            <small>Created at : ${formatDatePHP('D, j M Y',dataRow.created_at)}</small>`;
-    
+            setTimeout(function () {
+                widgetMonitoringMap.invalidateSize();
+            }, 200);
+        },
+        function (error) {
+            console.warn("Unable to get user location:", error.message);
+        },
+        { enableHighAccuracy: true, timeout: 8000 },
+    );
+}
 
-        photoProfile = `<img src="${appUrl}/${imgSrc}" alt="${dataRow.employee.name}" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${htmlTooltip}" class="rounded-circle" style="position:absolute; right:8px; top:10px; width: 24px; height: 24px; object-fit: cover; cursor: pointer;" >`;
-
+function formatWidgetCheckinTime(dateTimeString) {
+    if (!dateTimeString) {
+        return "-";
     }
-    
-    
-    
-    //
-    let htmlRow = `
-        <div class="item-event mb-3" data-event-id="${dataRow.id}" data-employee="${dataRow.employee_id}" data-status="${dataRow.status}">
-            <div class="d-flex align-items-start">
-                <div class="col-time pt-2">
-                    <div class="d-flex-inline text-time me-3" >
-                        ${formatTimeDisplay(dataRow.start_time)}
+    const date = new Date(dateTimeString);
+    return date.toLocaleString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function renderWidgetEmployeeList(employees) {
+    const container = $("#widgetEmployeeList");
+
+    if (!container.length) {
+        return;
+    }
+
+    if (!employees.length) {
+        container.html(
+            '<div class="text-body text-opacity-50 fs-12 text-center py-4">No employee found</div>',
+        );
+        return;
+    }
+
+    let html = "";
+
+    employees.forEach(function (employee) {
+        const statusClass = employee.checked_in ? "is-online" : "";
+        const statusText = employee.checked_in
+            ? "Checked in " + (employee.checkin_time || "")
+            : "No check-in";
+        const deptColor = getDepartmentColor(employee);
+
+        html += `
+            <div class="widget-employee-item">
+                <div class="widget-employee-avatar" style="border-color:${deptColor}"></div>
+                <div class="widget-employee-info">
+                    <div class="widget-employee-name">${escapeHtml(employee.name)}</div>
+                    <div class="widget-employee-meta">
+                        <span class="legend-dot legend-dot-sm" style="background-color:${deptColor}"></span>
+                        ${escapeHtml(employee.division_name || "-")} • ${escapeHtml(employee.department_name || "-")}
                     </div>
                 </div>
-                <div class="col-event-title w-100">
-                    <div class="position-relative rounded-3 fs-14" style="background-color:${dataRow.color_event};">
-                        <div class="p-2 pb-3 pe-4 bg-white bg-opacity-20  rounded-3">
-                            <span class="text-title-event text-body fw-medium">
-                                ${dataRow.title_event}
-                            </span>
-                            ${photoProfile}
-                            <div class="fs-12 text-body text-description-event">
-                                ${description}
-                            </div>
-                        </div>
-                    </div>
+                <div class="widget-employee-status ${statusClass}">
+                    <span class="status-dot"></span>
+                    <span class="status-text">${escapeHtml(statusText)}</span>
                 </div>
             </div>
-        </div>
-    `;
-    
+        `;
+    });
 
-    return htmlRow;
-
+    container.html(html);
 }
 
-function htmlItemEventAll(dataRow){
-
-    let description = '';
-
-    if(dataRow.description != null && dataRow.description != '' && dataRow.description != 'null'){
-
-        description = `<div class="fs-12 text-body mt-3">
-                        ${dataRow.description}
-                    </div>`;
+function renderMonitoringLegend(employees) {
+    const legendContainer = document.getElementById("widgetMonitoringLegend");
+    if (!legendContainer) {
+        return;
     }
 
-    //
-    let htmlRow = `
-        <div class="item-event mb-3" data-event-id="${dataRow.id}" data-employee="${dataRow.employee_id}" data-status="${dataRow.status}">
-            <div class="d-flex align-items-start">
-                <div class="col-event-title w-100">
-                    <div class="p-2 rounded-3 fs-14" style="background-color:${dataRow.color_event};">
-                        <span class="text-title-event text-body fw-medium">
-                            ${dataRow.title_event}
-                        </span>
-                        <div >
-                            <div class="d-flex gap-2 align-items-center justify-content-between w-100">
-                               <div>
-                                    <span class="fs-12">${formatDateENMediumWithDay(dataRow.date_event)} </span>
-                               </div>
-                               <div>
-                                    <span  class="fs-12" >${formatTimeDisplay(dataRow.start_time)} - ${formatTimeDisplay(dataRow.end_time)}</span>
-                               </div>
-                            </div>
-                        </div>
-                        <div class="fs-12 text-body text-description-event">
-                            ${description}
-                        </div>
-                    </div>
-                </div>
+    const entries = Object.keys(departmentColorMap);
+    if (!entries.length) {
+        legendContainer.innerHTML = "";
+        return;
+    }
+
+    const nameByKey = {};
+    employees.forEach(function (employee) {
+        nameByKey[departmentColorKey(employee)] = employee.department_name || "-";
+    });
+
+    let html = "";
+    entries.forEach(function (key) {
+        const color = departmentColorMap[key];
+        const name = nameByKey[key] || "Unknown Department";
+        html += `
+            <div class="legend-item d-inline-flex align-items-center me-3 mb-1">
+                <span class="legend-dot" style="background-color:${color}"></span>
+                <span class="legend-label fs-11">${escapeHtml(name)}</span>
             </div>
-        </div>
-    `;
-
-    return htmlRow;
-
-}
-
-$('.calendar-event-list').on('click',function(){
-    calendarAllModal.show();
-});
-
-$('#calendarAllModal .btn-close-modal').click(function(){
-    calendarAllModal.hide();
-});
-
-
-$(document).on('click','.calendar-day',function(){
-    let dateCalendar = $(this).attr('data-calendar-date');
-    
-    $('#calendarDayModal .calendar-date').text(formatDateENMediumWithDay(dateCalendar));
-
-    let itemEvent = '';
-    for (let i = 0; i < ARR_DATA_CALENDAR.length; i++) {
-        
-        //console.log(ARR_DATA_CALENDAR[i].date_event + ' '+dateCalendar);
-        
-        if(ARR_DATA_CALENDAR[i].date_event == dateCalendar){
-            //console.log(ARR_DATA_CALENDAR[i]);
-            itemEvent += htmlItemEvent(ARR_DATA_CALENDAR[i]);
-        }
-        
-    }
-
-
-    $('#calendarDayModal .box-data-event').html(itemEvent);
-    
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-
-
-    calendarDayModal.show();
-});
-
-
-function appendEventCalendar(eventRow){
-
-    //calendar.date_event,calendar.color_event,calendar.title_event
-    
-
-    let photoProfile = '';
-    let currentEmployee = $('[name="current_employee"]').val();
-
-    if(currentEmployee != eventRow.employee_id){
-
-        let imgSrc = 'asset/img/avatar.png';
-
-        if(eventRow.employee.profile_picture){
-            imgSrc = eventRow.employee.profile_picture;
-        }
-
-        let htmlTooltip = `<div>Created by <strong>${eventRow.employee.name}</strong></div>
-                            <small>Created at : ${formatDatePHP('D, j M Y',eventRow.created_at)}</small>`;
-    
-
-        photoProfile = `<img src="${appUrl}/${imgSrc}" alt="${eventRow.employee.name}" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${htmlTooltip}" class="rounded-circle employee-photo" >`;
-
-    }
-    
-    let boxEvent = `<div class="text-event position-relative" style="background-color:${eventRow.color_event};">    
-        ${eventRow.title_event}
-        ${photoProfile}
-    </div>`;
-
-    $(document).find('[data-calendar-date="'+eventRow.date_event+'"] .box-event').append(boxEvent);
-
-    if(currentEmployee != eventRow.employee_id){
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-    }
-    
-    
-
-}
-
-
-
-$('#search-event-day').on('keyup',function(){
-    let searchQuery = $(this).val();
-
-    $('#calendarDayModal .box-data-event .item-event').addClass('d-none');
-
-    $('#calendarDayModal .box-data-event .item-event').each(function(){
-        let titleEvent = $(this).find('.text-title-event').text();
-        let descriptionEvent = $(this).find('.text-description-event').text();
-
-        if(titleEvent.toLowerCase().includes(searchQuery.toLowerCase())){
-            $(this).closest('.item-event').removeClass('d-none');
-        }
-
-        if(descriptionEvent.toLowerCase().includes(searchQuery.toLowerCase())){
-            $(this).closest('.item-event').removeClass('d-none');
-        }
+        `;
     });
 
-});
-
-
-
-
-$('#calendarDayModal .btn-new-event').on('click',function(){
-    calendarDayModal.hide();
-});
-
-
-
-
-$(document).on('click','#calendarDayModal .item-event, #calendarAllModal .item-event',function(){
-
-    let itemEvenId = $(this).attr('data-event-id');
-    let employeeId = $(this).attr('data-employee');
-    let status = $(this).attr('data-status');
-
-    $('#calendarDayModal .box-loader,#calendarAllModal .box-loader').fadeIn();
-    
-    getEventDetail(itemEvenId,employeeId).then(res=>{
-        eventDetailModal.show();
-        calendarDayModal.hide();
-        calendarAllModal.hide();
-        $('#calendarDayModal .box-loader,#calendarAllModal .box-loader').fadeOut();
-    });
-    
-    $('#calendarDayModal .box-loader,#calendarAllModal .box-loader').fadeOut();
-
-    // calendarDayModal.hide();
-});
-
-function setEventDetail(employeeCalendar,employeeCalendarShare){
-
-    //showAlertMsg(rowItem.title_event,'success',5000);
-
-    // text-event-title text-event-date text-event-time text-event-description
-
-    $('#eventDetailModal .text-event-title').text(employeeCalendar.title_event);
-    $('#eventDetailModal .text-event-date').text(formatDateENMediumWithDay(employeeCalendar.date_event));
-    $('#eventDetailModal .text-event-time').text(formatTimeDisplay(employeeCalendar.start_time) + ' - ' + formatTimeDisplay(employeeCalendar.end_time));
-    $('#eventDetailModal .text-event-description').text(employeeCalendar.description);
-    $('#eventDetailModal .box-header-event').css('background-color',employeeCalendar.color_event);
-
-    $('#eventDetailModal .event-log .event-by').html(`Created By ${employeeCalendar.employee.name}`);
-    $('#eventDetailModal .event-log .event-at').html(` at ${formatDatePHP('D, j M Y',employeeCalendar.created_at)}`);
-
+    legendContainer.innerHTML = html;
 }
 
-async function getEventDetail(itemEvenId,employeeId){
-    let ajaxGetDetail = await $.ajax({
-        url: appUrl + "/calendar/event-employee-detail",
+function renderWidgetMonitoringMap(employees, checkins) {
+    if (!widgetMonitoringMap || !widgetMarkerLayer) {
+        return;
+    }
+
+    widgetMarkerLayer.clearLayers();
+
+    const employeeById = {};
+    employees.forEach(function (employee) {
+        employeeById[employee.id] = employee;
+    });
+
+    const bounds = [];
+
+    (checkins || []).forEach(function (checkin) {
+        const employee = employeeById[checkin.employee_id];
+
+        if (
+            !employee ||
+            typeof checkin.lat !== "number" ||
+            typeof checkin.lng !== "number"
+        ) {
+            return;
+        }
+
+        const marker = L.marker([checkin.lat, checkin.lng], {
+            icon: createPinIcon(getDepartmentColor(employee)),
+        });
+
+        marker.bindPopup(
+            "<strong>" +
+                escapeHtml(employee.name) +
+                "</strong><br/>" +
+                escapeHtml(employee.department_name || "-") +
+                "<br/>" +
+                escapeHtml(employee.job_name || "-") +
+                "<br/>" +
+                "Checked-in: " +
+                escapeHtml(checkin.checkin_time || "-"),
+        );
+
+        widgetMarkerLayer.addLayer(marker);
+        bounds.push([checkin.lat, checkin.lng]);
+    });
+
+    if (bounds.length) {
+        widgetMonitoringMap.fitBounds(bounds, {
+            padding: [30, 30],
+            maxZoom: 14,
+        });
+    } else if (widgetUserLocation) {
+        widgetMonitoringMap.setView(widgetUserLocation, 13);
+    } else {
+        widgetMonitoringMap.setView(widgetDefaultCenter, 5);
+    }
+
+    setTimeout(function () {
+        widgetMonitoringMap.invalidateSize();
+    }, 200);
+}
+
+function loadDashboardMonitoringWidget() {
+    const departmentFilter = $("#widgetDepartmentFilter");
+    const departmentId = departmentFilter.length
+        ? departmentFilter.val() || "all"
+        : "all";
+    const divisionId = $("#widgetDivisionFilter").val() || "all";
+    const jobId = $("#widgetJobFilter").val() || "all";
+
+    $.ajax({
+        url: appUrl + "/dashboard/monitoring-widget",
         type: "GET",
-        data:{
-            'EVENT_ID' : itemEvenId,
-            'EMPLOYEE_ID' : employeeId
+        data: {
+            department_id: departmentId,
+            division_id: divisionId,
+            job_id: jobId,
         },
-        beforeSend:function(){
-            //$('.col-user-management .loader').fadeIn('fast');
-        },
-        error:function(res){
-            var resJson = res.responseJSON;
-            showAlertMsg(resJson.message,'error',5000);
-        },
-        success: function(response) {
-            
-            var employeeCalendar = response.data.employeeCalendar;
-            var employeeCalendarShare = response.data.employeeCalendarShare;
+        success: function (response) {
+            const employees = (response.data && response.data.employees) || [];
+            const checkins = (response.data && response.data.checkins) || [];
 
-            setEventDetail(employeeCalendar,employeeCalendarShare);
-        }
-         
+            buildDepartmentColorMap(employees);
+            renderWidgetEmployeeList(employees);
+            renderWidgetMonitoringMap(employees, checkins);
+            renderMonitoringLegend(employees);
+        },
+        error: function () {
+            $("#widgetEmployeeList").html(
+                '<div class="text-danger fs-12 text-center py-4">Failed to load data</div>',
+            );
+        },
     });
-
-    return ajaxGetDetail;
 }
 
+$(document).on("change", "#widgetDepartmentFilter", function () {
+    const departmentId = $(this).val();
 
-$('#eventDetailModal .btn-close-modal').click(function(){
-    eventDetailModal.hide();
-    //calendarDayModal.show();
+    $("#widgetDivisionFilter option, #widgetJobFilter option").each(
+        function () {
+            if ($(this).val() === "all") {
+                $(this).show();
+                return;
+            }
+
+            const optionDepartmentId = $(this).data("department-id");
+            const visible =
+                departmentId === "all" ||
+                String(optionDepartmentId) === String(departmentId);
+            $(this).toggle(visible);
+        },
+    );
+
+    $("#widgetDivisionFilter").val("all");
+    $("#widgetJobFilter").val("all");
+    loadDashboardMonitoringWidget();
 });
+
+$(document).on("change", "#widgetDivisionFilter", function () {
+    loadDashboardMonitoringWidget();
+});
+
+$(document).on("change", "#widgetJobFilter", function () {
+    loadDashboardMonitoringWidget();
+});
+
+function applyAdminFilterScope() {
+    if (currentUserType !== "ADMINISTRATOR") {
+        return;
+    }
+
+    const departmentFilter = $("#widgetDepartmentFilter");
+    if (!departmentFilter.length) {
+        return;
+    }
+
+    const ownDepartmentOption = departmentFilter
+        .find('option:not([value="all"])')
+        .first();
+
+    if (ownDepartmentOption.length) {
+        departmentFilter.val(ownDepartmentOption.val());
+    }
+
+    const wrapper = departmentFilter.closest(
+        ".widget-filter-item, .col, .form-group",
+    );
+    if (wrapper.length) {
+        wrapper.hide();
+    } else {
+        departmentFilter.hide();
+    }
+
+    departmentFilter.trigger("change");
+}
+
+let widgetDocumentRequestToken = 0;
+
+function renderWidgetDocumentGrid(folders, files) {
+    const container = $("#widgetDocumentGrid");
+
+    const items = folders
+        .map((folder) => Object.assign({}, folder, { __type: "folder" }))
+        .concat(
+            files.map((file) => Object.assign({}, file, { __type: "file" })),
+        )
+        .slice(0, 9);
+
+    if (!items.length) {
+        container.html(
+            '<div class="widget-empty-state text-body text-opacity-50 fs-12 text-center py-4">No documents found</div>',
+        );
+        return;
+    }
+
+    let html = "";
+
+    items.forEach(function (item) {
+        if (item.__type === "folder") {
+            html += `
+                <div class="widget-folder-card" data-id="${item.id}" title="${escapeHtml(item.folder_name)}">
+                    <div class="widget-folder-shadow-tab"></div>
+                    <div class="widget-folder-shadow"></div>
+                    <div class="widget-folder-tab"></div>
+                    <div class="widget-folder-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <p class="widget-folder-name fs-8 mb-1">${escapeHtml(item.folder_name)}</p>
+                                <p class="widget-folder-role fs-8 mb-0">${item.creator?.name || "Unknown"}</p>
+                            </div>
+                        </div>
+                        <hr class="widget-folder-divider">
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        const href = (item.file_path || "").startsWith("/")
+            ? item.file_path
+            : "/" + item.file_path;
+        const fileExt = (item.file_name || item.file_type || "").toLowerCase();
+        const isImage =
+            fileExt.match(/\.(png|jpe?g|gif|webp)$/) ||
+            (item.file_type || "").startsWith("image/");
+        const preview = isImage
+            ? `<img src="${href}" alt="${escapeHtml(item.file_name)}">`
+            : `<span class="material-symbols-outlined">insert_drive_file</span>`;
+
+        html += `
+            <a href="${href}" target="_blank" class="widget-file-card" title="${escapeHtml(item.file_name)}">
+                <div class="widget-file-preview">${preview}</div>
+                <div class="widget-file-title">${escapeHtml(item.file_name)}</div>
+            </a>
+        `;
+    });
+
+    container.html(html);
+}
+
+function updateWidgetDocumentBackButton() {
+    const backButton = $("#widgetDocumentBack");
+    if (!backButton.length) {
+        return;
+    }
+    const shouldShow = currentDocumentFolderId !== null && currentDocumentFolderId !== undefined;
+    backButton.toggleClass("d-none", !shouldShow);
+}
+
+function loadDashboardDocumentWidget(search, folderId) {
+    const resolvedFolderId =
+        folderId === undefined || folderId === "" ? null : folderId;
+
+    currentDocumentSearch = search || "";
+    currentDocumentFolderId = resolvedFolderId;
+
+    updateWidgetDocumentBackButton();
+
+    const requestToken = ++widgetDocumentRequestToken;
+
+    const url = new URL(appUrl + "/document/get-all-folder");
+    url.searchParams.set("sort_by", "updated_at");
+    url.searchParams.set("sort_direction", "desc");
+
+    if (resolvedFolderId !== null) {
+        url.searchParams.set("parent_id", resolvedFolderId);
+    }
+
+    if (currentDocumentSearch) {
+        url.searchParams.set("search", currentDocumentSearch);
+    }
+
+    fetch(url.toString(), {
+        method: "GET",
+        credentials: "same-origin",
+    })
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (res) {
+            if (requestToken !== widgetDocumentRequestToken) {
+                return;
+            }
+
+            currentDocumentParentId =
+                res.current_folder && res.current_folder.parent_folder_id
+                    ? res.current_folder.parent_folder_id
+                    : null;
+
+            renderWidgetDocumentGrid(res.folders || [], res.files || []);
+            updateWidgetDocumentBackButton();
+        })
+        .catch(function () {
+            if (requestToken !== widgetDocumentRequestToken) {
+                return;
+            }
+            $("#widgetDocumentGrid").html(
+                '<div class="widget-error-state text-danger fs-12 text-center py-4">Failed to load documents</div>',
+            );
+        });
+}
+
+$(document).on("click", "#widgetDocumentGrid .widget-folder-card", function () {
+    const folderId = $(this).data("id");
+
+    if (folderId === undefined || folderId === null || folderId === "") {
+        return;
+    }
+
+    loadDashboardDocumentWidget(currentDocumentSearch, folderId);
+});
+
+$(document).on("click", "#widgetDocumentBack", function () {
+    loadDashboardDocumentWidget(currentDocumentSearch, currentDocumentParentId);
+});
+
+$(document).on("keyup", "#widgetDocumentSearch", function () {
+    const value = $(this).val();
+
+    clearTimeout(widgetDocumentSearchTimeout);
+    widgetDocumentSearchTimeout = setTimeout(function () {
+        loadDashboardDocumentWidget(value, currentDocumentFolderId);
+    }, 350);
+});
+
+initWidgetMonitoringMap();
+applyAdminFilterScope();
+
+if ($("#widgetDocumentGrid").length) {
+    loadDashboardDocumentWidget("", null);
+}
+
+let widgetDocumentSearchTimeout = null;
+
+$(document).on("keyup", "#widgetDocumentSearch", function () {
+    const value = $(this).val();
+
+    clearTimeout(widgetDocumentSearchTimeout);
+    widgetDocumentSearchTimeout = setTimeout(function () {
+        loadDashboardDocumentWidget(value);
+    }, 350);
+});
+
+initWidgetMonitoringMap();
+applyAdminFilterScope();
+
+if ($("#widgetDocumentGrid").length) {
+    loadDashboardDocumentWidget("");
+}

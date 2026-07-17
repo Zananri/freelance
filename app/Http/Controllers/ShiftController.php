@@ -23,12 +23,12 @@ class ShiftController extends Controller
     {
         $user = auth()->user();
         $userId = auth()->user()->id;
-        
+
         $currentEmployee = Employee::where('user_id', $userId)->first();
-        
+
         $userType = strtoupper((string) ($user->user_type ?? ''));
         $userRole = strtoupper((string) ($user->user_role ?? ''));
-        
+
         $month = $request->input('month', date('m'));
         $year = $request->input('year', date('Y'));
         $search = $request->input('search', '');
@@ -40,35 +40,35 @@ class ShiftController extends Controller
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
         $query = Employee::select(
-                'employees.id',
-                'employees.name',
-                'employees.email',
-                'employees.photo',
-                'employees.profile_picture',
-                'employees.department_id',
-                'employees.division_id',
-                // base shift fields
-                'employees.shift_id as base_shift_id',
-                'base_shifts.title as base_title',
-                'base_shifts.description as base_description',
-                'base_shifts.time_start as base_time_start',
-                'base_shifts.time_end as base_time_end',
-                // per-date shift fields
-                'employee_shifts.shift_id as shift_id',
-                'employee_shifts.date_shift',
-                'shifts.title as title',
-                'shifts.description as description',
-                'shifts.time_start',
-                'shifts.time_end',
-                'shifts.total_hour',
-                'shifts.total_checkpoint',
-                'shifts.checkpoint_times',
-                'shifts.created_by as shift_created_by',
-                'shifts.updated_by as shift_updated_by',
-                'shifts.deleted_by as shift_deleted_by',
-                'shifts.created_at as shift_created_at',
-                'shifts.updated_at as shift_updated_at'
-            )
+            'employees.id',
+            'employees.name',
+            'employees.email',
+            'employees.photo',
+            'employees.profile_picture',
+            'employees.department_id',
+            'employees.division_id',
+            // base shift fields
+            'employees.shift_id as base_shift_id',
+            'base_shifts.title as base_title',
+            'base_shifts.description as base_description',
+            'base_shifts.time_start as base_time_start',
+            'base_shifts.time_end as base_time_end',
+            // per-date shift fields
+            'employee_shifts.shift_id as shift_id',
+            'employee_shifts.date_shift',
+            'shifts.title as title',
+            'shifts.description as description',
+            'shifts.time_start',
+            'shifts.time_end',
+            'shifts.total_hour',
+            'shifts.total_checkpoint',
+            'shifts.checkpoint_times',
+            'shifts.created_by as shift_created_by',
+            'shifts.updated_by as shift_updated_by',
+            'shifts.deleted_by as shift_deleted_by',
+            'shifts.created_at as shift_created_at',
+            'shifts.updated_at as shift_updated_at'
+        )
             ->leftJoin('employee_shifts', function ($join) use ($startDate, $endDate) {
                 $join->on('employees.id', '=', 'employee_shifts.employee_id')
                     ->whereBetween('employee_shifts.date_shift', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
@@ -83,21 +83,29 @@ class ShiftController extends Controller
             });
 
 
-            if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-                //show all
-            }else{
-                $query = $query->where('employees.department_id', $currentEmployee->department_id);
-            }
-            
-            $query = $query->where('employees.status', 'active')
-            ->whereNull('employees.deleted_by')
-            // Exclude employees whose related user has user_type = 'ADMINISTRATOR'
-            ->where(function($q) {
+        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
+        } else {
+            $query->where('employees.department_id', $currentEmployee->department_id);
+        }
+
+        $query->where('employees.status', 'active')
+            ->whereNull('employees.deleted_by');
+
+        if ($currentEmployee) {
+            $query->where('employees.id', '!=', $currentEmployee->id);
+        }
+
+        if ($userType === 'ADMINISTRATOR') {
+            $query->where(function ($q) {
                 $q->whereDoesntHave('user')
-                  ->orWhereHas('user', function($uq) {
-                      $uq->where('user_type', '!=', 'ADMINISTRATOR');
-                  });
+                    ->orWhereHas('user', function ($uq) {
+                        $uq->whereNotIn('user_type', [
+                            'SUPERADMIN',
+                            'ADMINISTRATOR',
+                        ]);
+                    });
             });
+        }
 
         // Add search filter if provided
         if (!empty($search)) {
@@ -116,9 +124,9 @@ class ShiftController extends Controller
 
         // Add shift filter if provided - check both base shift and specific shift assignments
         if (!empty($shiftFilter)) {
-            $query->where(function($q) use ($shiftFilter) {
+            $query->where(function ($q) use ($shiftFilter) {
                 $q->where('employees.shift_id', $shiftFilter)
-                  ->orWhere('employee_shifts.shift_id', $shiftFilter);
+                    ->orWhere('employee_shifts.shift_id', $shiftFilter);
             });
         }
 
@@ -181,15 +189,15 @@ class ShiftController extends Controller
     {
         try {
             $shifts = \App\Models\Shift::select(
-                    'id',
-                    'title',
-                    'description',
-                    'time_start',
-                    'time_end',
-                    'total_checkpoint',
-                    'checkpoint_times',
-                    'total_hour'
-                )
+                'id',
+                'title',
+                'description',
+                'time_start',
+                'time_end',
+                'total_checkpoint',
+                'checkpoint_times',
+                'total_hour'
+            )
                 ->whereNull('deleted_by')
                 ->orderBy('title')
                 ->get();
@@ -243,7 +251,10 @@ class ShiftController extends Controller
 
             $totalHour = $end->diffInHours($start, true); // true for absolute value
 
-            $checkpoints = $request->checkpoints ?? [];
+            $checkpoints = $request->input('checkpoints', []);
+            if (empty($checkpoints)) {
+                $checkpoints = [$request->time_start];
+            }
 
             $shift = \App\Models\Shift::create([
                 'title' => $validated['title'],
@@ -262,7 +273,6 @@ class ShiftController extends Controller
                 'message' => 'Shift created successfully',
                 'data' => $shift
             ]);
-
         } catch (ValidationException $e) {
             DB::rollBack();
             return response()->json([
@@ -328,7 +338,6 @@ class ShiftController extends Controller
                 'success' => true,
                 'message' => 'Shift updated successfully'
             ]);
-
         } catch (ValidationException $e) {
             DB::rollBack();
             return response()->json([
@@ -371,12 +380,14 @@ class ShiftController extends Controller
             $start = Carbon::createFromFormat('H:i', $validated['time_start']);
             $end = Carbon::createFromFormat('H:i', $validated['time_end']);
 
-            // Allow overnight shift: if end <= start, consider next day for total_hour calculation
             if ($end->lessThanOrEqualTo($start)) {
                 $end = $end->copy()->addDay();
             }
             $totalHour = $end->diffInHours($start, true);
-            $checkpoints = $request->checkpoints ?? [];
+            $checkpoints = $request->input('checkpoints', []);
+            if (empty($checkpoints)) {
+                $checkpoints = [$request->time_start];
+            }
 
             $shift = \App\Models\Shift::findOrFail($id);
             $shift->update([
@@ -433,5 +444,4 @@ class ShiftController extends Controller
 
         return response()->json(['success' => true]);
     }
-
 }
