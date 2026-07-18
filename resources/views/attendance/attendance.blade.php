@@ -240,28 +240,25 @@
                         <h5 class="modal-title modal-title-custom text-center w-100" id="checkInDetailModalLabel">Check In</h5>
                         <button type="button" class="btn-close me-2" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body px-5 border-0 ">
+                    <div class="modal-body px-5 border-0">
 
-                        @if ($atendanceTrackingCheckin)
-                            
+                        @php
+                            $firstCheckin = $atendanceTrackingCheckin->first();
+                        @endphp
+
+                        @if ($firstCheckin)
+
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div class="fs-14 text-secondary">Date :</div>
-                                    <div class="fs-14">{{ date('l, j F Y',strtotime($atendanceTrackingCheckin->date_time)) }}</div>
+                                    <div class="fs-14">{{ date('l, j F Y', strtotime($firstCheckin->date_time)) }}</div>
                                 </div>
                             </div>
 
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div class="fs-14 text-secondary">Time In :</div>
-                                    <div class="fs-14">{{ date('H:i',strtotime($atendanceTrackingCheckin->date_time)) }}</div>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="fs-14 text-secondary">Work Outside :</div>
-                                    <div class="fs-14">{{ $atendanceTrackingCheckin->is_work_outside ? 'Yes' : 'No' }}</div>
+                                    <div class="fs-14">{{ date('H:i', strtotime($firstCheckin->date_time)) }}</div>
                                 </div>
                             </div>
 
@@ -272,58 +269,69 @@
                                 </div>
                             </div>
 
-
-
-
                             <div class="mb-5 mt-5">
                                 <div class="row">
+
                                     @php
                                         $checkinImageSrc = '';
                                         $colMap = 'col-12';
-                                        if($atendanceTrackingCheckin->image){
-                                            $checkinImageSrc = asset($atendanceTrackingCheckin->image[0]);
+
+                                        if (!empty($firstCheckin->image) && isset($firstCheckin->image[0])) {
+                                            $checkinImageSrc = asset($firstCheckin->image[0]);
                                             $colMap = 'col-6';
                                         }
                                     @endphp
 
-                                    <div class="col-6 {{ $checkinImageSrc ? ' ' : 'd-none' }}">
+                                    <div class="col-6 {{ $checkinImageSrc ? '' : 'd-none' }}">
                                         <div class="position-relative">
                                             <div class="ratio ratio-1x1">
-
                                                 <div class="rounded-2">
-
                                                     <div class="d-flex w-100 h-100 justify-content-center align-items-center">
-                                                        <img src="{{ $checkinImageSrc }}" class="object-fit-cover w-100 h-100 position-absolute top-0 start-0 rounded-2"  alt="">
+                                                        <img
+                                                            src="{{ $checkinImageSrc }}"
+                                                            class="object-fit-cover w-100 h-100 position-absolute top-0 start-0 rounded-2"
+                                                            alt="">
                                                     </div>
-
                                                 </div>
-
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div class="{{ $colMap }} ">
+                                    <div class="{{ $colMap }}">
                                         <div class="position-relative">
-                                            <div class="ratio {{ $checkinImageSrc ? 'ratio-1x1' : 'ratio-16x9' }} ">
-                                                <div id="detailMapCheckIn" data-location="{{ $atendanceTrackingCheckin->location }}"  class="rounded-3"></div>
+                                            <div class="ratio {{ $checkinImageSrc ? 'ratio-1x1' : 'ratio-16x9' }}">
+                                                <div
+                                                    id="detailMapCheckIn"
+                                                    class="rounded-3"
+                                                    data-location='@json(
+                                                        $atendanceTrackingCheckin->map(function ($item) {
+                                                            return [
+                                                                "location" => $item->location,
+                                                                "date_time" => $item->date_time,
+                                                            ];
+                                                        })->values()
+                                                    )'>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                 </div>
-                                
                             </div>
-                            
+
                         @else
+
                             <div class="p-5 text-center fs-14 text-secondary">
                                 No Data Check In
                             </div>
+
                         @endif
 
                         <div class="mt-5 mb-3">
-                            <button type="button" class="btn btn-close-custom w-100" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-close-custom w-100" data-bs-dismiss="modal">
+                                Close
+                            </button>
                         </div>
-
 
                     </div>
                 </div>
@@ -358,20 +366,10 @@
 
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="fs-14 text-secondary">Work Outside :</div>
-                                    <div class="fs-14">{{ $atendanceTrackingCheckout->is_work_outside ? 'Yes' : 'No' }}</div>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div class="fs-14 text-secondary">Shift :</div>
                                     <div class="fs-14">{{ $shiftTime }}</div>
                                 </div>
                             </div>
-
-
-
 
                             <div class="mb-5 mt-5">
                                 <div class="row">

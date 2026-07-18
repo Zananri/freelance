@@ -244,39 +244,80 @@
                         <div class="rounded-4 p-4 body-card">
                             <div class="header-card d-flex justify-content-between mb-3">
                                 <h5 class="mb-3 fw-normal" style="color: #454545;">Attendance Summary</h5>
-                                <div class="btn dropdown dropdown-toggle-split d-flex align-items-center justify-content-center dropdown-attendance"
-                                    data-bs-toggle="dropdown" aria-expanded="false">
-                                    June 2026
-                                    <span class="material-symbols-outlined mx-2">arrow_drop_down</span>
+
+                                <div class="dropdown dropdown-attendance">
+                                    <button class="btn attendance-month-btn dropdown-toggle" type="button"
+                                        id="attendanceMonthDropdown" data-bs-toggle="dropdown" aria-expanded="false"
+                                        data-selected-month="{{ now()->format('n') }}"
+                                        data-selected-year="{{ now()->format('Y') }}">
+                                        <span
+                                            class="material-symbols-outlined attendance-month-icon">calendar_month</span>
+                                        <span id="attendanceMonthDropdownLabel">{{ now()->format('F Y') }}</span>
+                                    </button>
+                                    <ul class="dropdown-menu attendance-month-menu"
+                                        aria-labelledby="attendanceMonthDropdown">
+                                        @php
+                                            $currentMonth = (int) now()->format('n');
+                                            $currentYear = (int) now()->format('Y');
+                                            $months = [];
+                                            for ($i = 0; $i < 12; $i++) {
+                                                $d = now()->copy()->subMonths($i);
+                                                $months[] = [
+                                                    'month' => (int) $d->format('n'),
+                                                    'year' => (int) $d->format('Y'),
+                                                    'label' => $d->format('F Y'),
+                                                ];
+                                            }
+                                        @endphp
+                                        @foreach ($months as $index => $m)
+                                            <li>
+                                                <button type="button"
+                                                    class="dropdown-item attendance-month-item {{ $index === 0 ? 'active' : '' }}"
+                                                    data-month="{{ $m['month'] }}"
+                                                    data-year="{{ $m['year'] }}">
+                                                    <span
+                                                        class="attendance-month-item-label">{{ $m['label'] }}</span>
+                                                    <span
+                                                        class="material-symbols-outlined attendance-month-item-check">check</span>
+                                                </button>
+                                            </li>
+                                        @endforeach
+                                    </ul>
                                 </div>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#">Action</a></li>
-                                    <li><a class="dropdown-item" href="#">Another action</a></li>
-                                    <li><a class="dropdown-item" href="#">Something else here</a></li>
-                                </ul>
                             </div>
+
 
                             <div class="d-flex align-items-center justify-content-between">
                                 <div class="legend-container">
                                     <div class="present-container rounded">
                                         <p class="attendance-status">Present</p>
-                                        <p class="attendance-status-day">20 Days</p>
+                                        <p class="attendance-status-day" id="attendancePresentDay">0 Days</p>
                                     </div>
                                     <div class="sick-container rounded">
                                         <p class="attendance-status">Sick</p>
-                                        <p class="attendance-status-day">3 Days</p>
+                                        <p class="attendance-status-day" id="attendanceSickDay">0 Days</p>
                                     </div>
                                     <div class="leave-container rounded">
                                         <p class="attendance-status">Annual Leave</p>
-                                        <p class="attendance-status-day">5 Days</p>
+                                        <p class="attendance-status-day" id="attendanceLeaveDay">0 Days</p>
                                     </div>
                                     <div class="absent-container rounded">
                                         <p class="attendance-status">Absent</p>
-                                        <p class="attendance-status-day">2 Days</p>
+                                        <p class="attendance-status-day" id="attendanceAbsentDay">0 Days</p>
                                     </div>
                                 </div>
-                                <div class="chart-container" style="height: 250px;">
+                                <div class="chart-container position-relative" style="height: 250px; width: 250px;">
                                     <canvas id="attendanceChart"></canvas>
+                                    <div id="attendanceChartCenter" class="attendance-chart-center">
+                                        <div class="attendance-chart-center-value">0</div>
+                                        <div class="attendance-chart-center-label">Total Days</div>
+                                    </div>
+                                    <div id="attendanceChartLoading" class="attendance-chart-loading d-none">
+                                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                                    </div>
+                                    <div id="attendanceChartEmpty" class="attendance-chart-empty d-none">
+                                        No attendance data
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -344,7 +385,8 @@
                     <!-- Document List -->
                     <div class="grid-wrapper mt-2" id="mydocGridWrapper">
                         {{-- Rendered by AJAX --}}
-                        <div class="text-body text-opacity-50 fs-12 text-center py-4" id="mydocLoading">Loading...</div>
+                        <div class="text-body text-opacity-50 fs-12 text-center py-4" id="mydocLoading">Loading...
+                        </div>
                         <div class="d-none" id="mydocEmptyState">
                             <div class="text-body text-opacity-50 fs-12 text-center py-4">No documents</div>
                         </div>
@@ -552,35 +594,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Work Outside -->
-                                <div class="mb-3">
-
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <div class="fs-14 text-secondary">Work Outside</div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_yes_checkout" value="1">
-                                            <label class="form-check-label w-100 text-center"
-                                                for="work_outside_yes_checkout">Yes</label>
-                                        </div>
-                                        <div class="col-6">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_no_checkout" value="0" checked>
-                                            <label class="form-check-label w-100 text-center"
-                                                for="work_outside_no_checkout">No</label>
-                                        </div>
-                                    </div>
-
-                                </div>
+                                <input type="hidden" name="is_work_outside" value="0">
 
                                 <div class="mb-3">
+
                                     <div class="row">
 
-                                        <div class="col-6 col-photo d-none">
+                                        <div class="col-6 col-photo">
                                             <div class="position-realtive">
 
                                                 <div class="d-none">
@@ -615,9 +635,9 @@
 
                                             </div>
                                         </div>
-                                        <div class="col-12 col-map">
+                                        <div class="col-6 col-map">
                                             <div class="">
-                                                <div class="ratio ratio-21x9">
+                                                <div class="ratio ratio-1x1">
                                                     <div id="mapCheckOut" class="rounded-2 border"></div>
                                                 </div>
 
@@ -685,93 +705,79 @@
         <!-- Modal for Check In Detail -->
         <div class="modal fade" id="checkInDetailModal" tabindex="-1" role="dialog"
             aria-labelledby="checkInDetailModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content rounded-4 border-0">
-                    <div class="modal-header border-0 py-4">
-                        <h5 class="modal-title modal-title-custom text-center w-100" id="checkInDetailModalLabel">
+            <div class="modal-dialog modal-dialog-centered checkin-detail-dialog" role="document">
+                <div class="modal-content checkin-detail-content border-0">
+                    <div class="modal-header checkin-detail-header border-0">
+                        <h5 class="modal-title checkin-detail-title text-center w-100" id="checkInDetailModalLabel">
                             Check In</h5>
-                        <button type="button" class="btn-close me-2" data-bs-dismiss="modal"
+                        <button type="button" class="btn-close checkin-detail-close" data-bs-dismiss="modal"
                             aria-label="Close"></button>
                     </div>
-                    <div class="modal-body px-5 border-0 ">
+                    <div class="modal-body checkin-detail-body">
 
-                        @if ($atendanceTrackingCheckin)
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="fs-14 text-secondary">Date :</div>
-                                    <div class="fs-14">
-                                        {{ date('l, j F Y', strtotime($atendanceTrackingCheckin->date_time)) }}</div>
-                                </div>
-                            </div>
+                        @if ($attendanceTrackingCheckins->count())
+                            @php
+                                $firstCheckin = $attendanceTrackingCheckins->first();
+                            @endphp
 
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="fs-14 text-secondary">Time In :</div>
-                                    <div class="fs-14">
-                                        {{ date('H:i', strtotime($atendanceTrackingCheckin->date_time)) }}</div>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="fs-14 text-secondary">Work Outside :</div>
-                                    <div class="fs-14">
-                                        {{ $atendanceTrackingCheckin->is_work_outside ? 'Yes' : 'No' }}</div>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="fs-14 text-secondary">Shift :</div>
-                                    <div class="fs-14">{{ $shiftTime }}</div>
-                                </div>
-                            </div>
-
-
-
-
-                            <div class="mb-5 mt-5">
-                                <div class="row">
-                                    @php
-                                        $checkinImageSrc = '';
-                                        $colMap = 'col-12';
-                                        if ($atendanceTrackingCheckin->image) {
-                                            $checkinImageSrc = asset($atendanceTrackingCheckin->image[0]);
-                                            $colMap = 'col-6';
-                                        }
-                                    @endphp
-
-                                    <div class="col-6 {{ $checkinImageSrc ? ' ' : 'd-none' }}">
-                                        <div class="position-relative">
-                                            <div class="ratio ratio-1x1">
-
-                                                <div class="rounded-2">
-
-                                                    <div
-                                                        class="d-flex w-100 h-100 justify-content-center align-items-center">
-                                                        <img src="{{ $checkinImageSrc }}"
-                                                            class="object-fit-cover w-100 h-100 position-absolute top-0 start-0 rounded-2"
-                                                            alt="">
-                                                    </div>
-
-                                                </div>
-
-                                            </div>
-                                        </div>
+                            <div class="checkin-detail-info mb-4">
+                                <div class="checkin-detail-row">
+                                    <div class="checkin-detail-label">Date</div>
+                                    <div class="checkin-detail-value">
+                                        {{ date('l, j F Y', strtotime($firstCheckin->date_time)) }}
                                     </div>
-
-                                    <div class="{{ $colMap }} ">
-                                        <div class="position-relative">
-                                            <div class="ratio {{ $checkinImageSrc ? 'ratio-1x1' : 'ratio-16x9' }} ">
-                                                <div id="detailMapCheckIn"
-                                                    data-location="{{ $atendanceTrackingCheckin->location }}"
-                                                    class="rounded-3"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
                                 </div>
 
+                                <div class="checkin-detail-row">
+                                    <div class="checkin-detail-label">Time In</div>
+                                    <div class="checkin-detail-value">
+                                        {{ date('H:i', strtotime($firstCheckin->date_time)) }}
+                                    </div>
+                                </div>
+
+                                <div class="checkin-detail-row">
+                                    <div class="checkin-detail-label">Shift</div>
+                                    <div class="checkin-detail-value">
+                                        {{ $shiftTime }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            @php
+                                $checkinImageSrc = '';
+
+                                if ($firstCheckin->image) {
+                                    $images = is_array($firstCheckin->image)
+                                        ? $firstCheckin->image
+                                        : json_decode($firstCheckin->image, true);
+
+                                    $checkinImageSrc = !empty($images) ? asset($images[0]) : '';
+                                }
+                            @endphp
+
+                            <div class="checkin-detail-panels mb-4">
+                                <div class="checkin-detail-panel checkin-detail-panel-photo">
+                                    @if ($checkinImageSrc)
+                                        <img src="{{ $checkinImageSrc }}" class="checkin-detail-photo-img"
+                                            alt="">
+                                    @else
+                                        <span class="material-symbols-outlined checkin-detail-photo-icon">
+                                            photo_camera
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div class="checkin-detail-panel checkin-detail-panel-map">
+                                    <div id="detailMapCheckIn" data-location='@json(
+                                        $attendanceTrackingCheckins->map(function ($item) {
+                                            return [
+                                                'location' => $item->location,
+                                                'date_time' => $item->date_time,
+                                            ];
+                                        }))'
+                                        class="checkin-detail-map">
+                                    </div>
+                                </div>
                             </div>
                         @else
                             <div class="p-5 text-center fs-14 text-secondary">
@@ -779,11 +785,12 @@
                             </div>
                         @endif
 
-                        <div class="mt-5 mb-3">
-                            <button type="button" class="btn btn-close-custom w-100"
-                                data-bs-dismiss="modal">Close</button>
+                        <div class="checkin-detail-footer">
+                            <button type="button" class="btn btn-submit-black checkin-detail-close-btn w-100"
+                                data-bs-dismiss="modal">
+                                Close
+                            </button>
                         </div>
-
 
                     </div>
                 </div>
@@ -817,14 +824,6 @@
                                     <div class="fs-14 text-secondary">Time Out :</div>
                                     <div class="fs-14">
                                         {{ date('H:i', strtotime($atendanceTrackingCheckout->date_time)) }}</div>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="fs-14 text-secondary">Work Outside :</div>
-                                    <div class="fs-14">
-                                        {{ $atendanceTrackingCheckout->is_work_outside ? 'Yes' : 'No' }}</div>
                                 </div>
                             </div>
 
@@ -888,7 +887,7 @@
                         @endif
 
                         <div class="mt-5 mb-3">
-                            <button type="button" class="btn btn-close-custom w-100"
+                            <button type="button" class="btn btn-submit-black w-100"
                                 data-bs-dismiss="modal">Close</button>
                         </div>
 
@@ -967,7 +966,9 @@
         <script src="{{ asset('asset/js/dashboard.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/dashboard_announcement.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/attendance_dashboard_new.js') }}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/dashboard_announcement.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
+
     </x-slot>
 
 </x-office-layout>

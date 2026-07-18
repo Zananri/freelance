@@ -123,8 +123,7 @@ class AttendanceController extends Controller
 
         $atendanceTrackingCheckin = '';
         $atendanceTrackingCheckout = '';
-
-
+        
         $timeIn = '';
         $timeOut = '';
 
@@ -149,11 +148,14 @@ class AttendanceController extends Controller
 
             $atendanceTrackingCheckin = AttendanceTracking::where('attendance_id', $attendance->id)
                 ->where('type', 'check_in')
-                ->first();
+                ->orderBy('date_time', 'asc')
+                ->get();
 
             $atendanceTrackingCheckout = AttendanceTracking::where('attendance_id', $attendance->id)
                 ->where('type', 'check_out')
                 ->first();
+
+
 
 
             if ($attendance->time_in) {
@@ -171,10 +173,6 @@ class AttendanceController extends Controller
 
         $timeStart = $timeStart->format('H:i');
         $timeEnd = $timeEnd->format('H:i');
-
-
-
-
 
         $overtimeTotalDays = EmployeeOvertime::where('employee_id', $employee->id)
             ->where('status', 'APPROVED')
@@ -208,7 +206,26 @@ class AttendanceController extends Controller
         } catch (\Throwable $_) {
         }
 
-        return view('attendance.attendance', compact('employee', 'employeeLeave', 'overtimeTotalDays', 'overtimeTotalHours', 'office', 'timeStart', 'timeEnd', 'attendance', 'employeeShift', 'todayDate', 'isLate', 'timeIn', 'timeOut', 'atendanceTrackingCheckin', 'atendanceTrackingCheckout'));
+        return view(
+            'attendance.attendance',
+            compact(
+                'employee',
+                'employeeLeave',
+                'overtimeTotalDays',
+                'overtimeTotalHours',
+                'office',
+                'timeStart',
+                'timeEnd',
+                'attendance',
+                'employeeShift',
+                'todayDate',
+                'isLate',
+                'timeIn',
+                'timeOut',
+                'atendanceTrackingCheckin',
+                'atendanceTrackingCheckout'
+            )
+        );
     }
 
     // Record page view activity for attendance page (safe, non-blocking)
@@ -261,6 +278,76 @@ class AttendanceController extends Controller
                 'status' => 'error',
                 'data' => [],
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getAttendanceSummaryByMonth(Request $request)
+    {
+        try {
+            $userId = Auth::user()->id;
+
+            $month = $request->MONTH ?? '';
+            $year = $request->YEAR ?? '';
+
+            if (!$month || !$year) {
+                throw new \Exception('Month and year is required');
+            }
+
+            $employee = Employee::where('user_id', $userId)->first();
+
+            if (!$employee) {
+                throw new \Exception('Employee not found');
+            }
+
+            $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
+            $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+
+            $totalPresent = Attendance::where('date_attendance', '>=', $firstDayOfMonth)
+                ->where('date_attendance', '<=', $lastDayOfMonth)
+                ->where('employee_id', $employee->id)
+                ->where('status', '<>', 'ABSENT')
+                ->count();
+
+            $totalAbsent = Attendance::where('date_attendance', '>=', $firstDayOfMonth)
+                ->where('date_attendance', '<=', $lastDayOfMonth)
+                ->where('employee_id', $employee->id)
+                ->where('status', 'ABSENT')
+                ->count();
+
+            $totalSick = EmployeeLeaveRequest::where('start_date', '>=', $firstDayOfMonth)
+                ->where('start_date', '<=', $lastDayOfMonth)
+                ->where('employee_id', $employee->id)
+                ->where('leave_type', 'SICK')
+                ->where('status', 'APPROVED')
+                ->sum('day_amount');
+
+            $totalAnnualLeave = EmployeeLeaveRequest::where('start_date', '>=', $firstDayOfMonth)
+                ->where('start_date', '<=', $lastDayOfMonth)
+                ->where('employee_id', $employee->id)
+                ->where('leave_type', 'ANNUAL_LEAVE')
+                ->where('status', 'APPROVED')
+                ->sum('day_amount');
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [
+                    'summary' => [
+                        'present'      => (int) $totalPresent,
+                        'absent'       => (int) $totalAbsent,
+                        'sick'         => (int) $totalSick,
+                        'annual_leave' => (int) $totalAnnualLeave,
+                    ],
+                ],
+                'message' => 'Get attendance summary successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -492,6 +579,7 @@ class AttendanceController extends Controller
             DB::beginTransaction();
 
             $request->validate([
+
                 'latitudeCheckOut' => 'required',
                 'longitudeCheckOut' => 'required',
                 'photo_checkout' => 'required|image|mimes:jpeg,png,jpg|max:10048',
@@ -520,13 +608,16 @@ class AttendanceController extends Controller
 
             $employee = Employee::with('shift')->where('user_id', $userId)->first();
 
-            $employeeShiftToday = EmployeeShift::with('shift')->where('employee_id', $employee->id)
+            $employeeShiftToday = EmployeeShift::with('shift')
+                ->where('employee_id', $employee->id)
                 ->where('date_shift', $today)
                 ->first();
 
-            $employeeShiftYesterday = EmployeeShift::with('shift')->where('employee_id', $employee->id)
+            $employeeShiftYesterday = EmployeeShift::with('shift')
+                ->where('employee_id', $employee->id)
                 ->where('date_shift', $yesterday)
                 ->first();
+
 
             $rangeStart = Carbon::parse($today . ' ' . $employee->shift->time_start)->subHours(2);
             $rangeEnd = Carbon::parse($today . ' ' . $employee->shift->time_end)->addHours(6);
@@ -624,17 +715,36 @@ class AttendanceController extends Controller
 
                 $attendanceId = $attendance->id;
 
-
                 $attendanceTrackingCheckIn = AttendanceTracking::where('attendance_id', $attendanceId)
                     ->where('type', 'check_in')
                     ->first();
+
 
                 if (!$attendanceTrackingCheckIn) {
                     throw new \Exception('Check in first');
                 }
 
+                $employeeShiftForCheckout = null;
+                if ($employeeShiftToday) {
+                    $employeeShiftForCheckout = $employeeShiftToday;
+                } elseif ($employeeShiftYesterday) {
+                    $employeeShiftForCheckout = $employeeShiftYesterday;
+                }
+
+                if (!$employeeShiftForCheckout) {
+                    throw new \Exception('Shift not found');
+                }
+
+                $totalCheckIn = AttendanceTracking::where('attendance_id', $attendanceId)
+                    ->where('type', 'check_in')
+                    ->count();
+
+                if ($totalCheckIn < (int) $employeeShiftForCheckout->shift->total_checkpoint) {
+                    throw new \Exception('You can only check out after reaching the required number of check-ins.');
+                }
 
                 $attendance->update([
+
                     'time_out' => $now->format('H:i'),
                     'updated_by' => $userId
                 ]);

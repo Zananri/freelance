@@ -74,27 +74,85 @@ function setDefaultLocation(){
     }
 }
 
-function initialiseMapsCheckIn(){
-    
-    if($('#detailMapCheckIn').attr('data-location')){
+function initialiseMapsCheckIn() {
 
-        MAP_CHECKIN_DETAIL_LOCATION = $('#detailMapCheckIn').attr('data-location').split(',');
+    const mapEl = document.getElementById('detailMapCheckIn');
 
-        MAP_CHECKIN_DETAIL = L.map('detailMapCheckIn', {
-                    center: MAP_CHECKIN_DETAIL_LOCATION,
-                    zoom: 16
-                });
+    if (!mapEl) return;
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: 'ACER',
-            maxZoom: 19
+    const raw = mapEl.dataset.location;
+
+    if (!raw) return;
+
+    const trackings = JSON.parse(raw);
+
+    if (!trackings.length) return;
+
+    const firstLocation = trackings[0].location.split(',');
+
+    MAP_CHECKIN_DETAIL_LOCATION = [
+        parseFloat(firstLocation[0]),
+        parseFloat(firstLocation[1])
+    ];
+
+    MAP_CHECKIN_DETAIL = L.map('detailMapCheckIn', {
+        center: MAP_CHECKIN_DETAIL_LOCATION,
+        zoom: 10
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'ACER',
+        maxZoom: 19
+    }).addTo(MAP_CHECKIN_DETAIL);
+
+    const latlngs = [];
+
+    trackings.forEach((item, index) => {
+
+        const loc = item.location.split(',');
+
+        const latlng = [
+            parseFloat(loc[0]),
+            parseFloat(loc[1])
+        ];
+
+        latlngs.push(latlng);
+
+        const time = item.date_time
+            ? new Date(item.date_time).toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+            })
+            : "--:--";
+
+        L.marker(latlng)
+            .addTo(MAP_CHECKIN_DETAIL)
+            .bindTooltip(
+                `Checkpoint ${index + 1}<br>Jam Check In: ${time}`,
+                {
+                    permanent: true,
+                    direction: "top",
+                    offset: [0, -10]
+                }
+            );
+
+    });
+
+    if (latlngs.length > 1) {
+        L.polyline(latlngs, {
+            color: '#0d6efd',
+            weight: 4,
+            opacity: 0.8
         }).addTo(MAP_CHECKIN_DETAIL);
 
-        MAP_CHECKIN_DETAIL_MARKER = L.marker(MAP_CHECKIN_DETAIL_LOCATION).addTo(MAP_CHECKIN_DETAIL);
-        MAP_CHECKIN_DETAIL_MARKER.bindTooltip("Check In Location", { permanent: true, direction: 'top', offset: [0, 0] });
-
-
+        MAP_CHECKIN_DETAIL.fitBounds(latlngs, {
+            padding: [40, 40]
+        });
+    } else {
+        MAP_CHECKIN_DETAIL.setView(latlngs[0], 16);
     }
+
 }
 
 let LOC_LATITUDE = 0;
@@ -127,20 +185,21 @@ $('.time-log.time-in').on('click', function(){
 });
 
 
-function showCheckinDetail(){
-    checkInDetailModal.show();
-        
-    setTimeout(() => {
-        MAP_CHECKIN_DETAIL.invalidateSize();
-        MAP_CHECKIN_DETAIL.setView(MAP_CHECKIN_DETAIL_LOCATION, 16);
-        MAP_CHECKIN_DETAIL.panTo(MAP_CHECKIN_DETAIL_LOCATION);
+function showCheckinDetail() {
 
-        if(MAP_CHECKIN_DETAIL_MARKER){
-            MAP_CHECKIN_DETAIL_MARKER.setLatLng(MAP_CHECKIN_DETAIL_LOCATION);
-            MAP_CHECKIN_DETAIL_MARKER.update();
-        }
-        
+    checkInDetailModal.show();
+
+    setTimeout(() => {
+
+        MAP_CHECKIN_DETAIL.invalidateSize();
+
+        MAP_CHECKIN_DETAIL.setView(
+            MAP_CHECKIN_DETAIL_LOCATION,
+            13
+        );
+
     }, 700);
+
 }
  
 function isMobileDevice() {

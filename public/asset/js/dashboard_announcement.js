@@ -1,77 +1,29 @@
 $(document).ready(function() {
-    const attendanceData = {
-        annual_leave: 5,
-        sick: 3,
-        present: 20,
-        absent: 2
+    const mydocGridWrapper = document.getElementById('mydocGridWrapper');
+    const mydocLoading = document.getElementById('mydocLoading');
+    const mydocEmptyState = document.getElementById('mydocEmptyState');
+    const mydocBreadcrumbText = document.getElementById('mydocBreadcrumbText');
+
+    const state = {
+        parentId: null, // null = root
     };
 
-    const ctx = document.getElementById('attendanceChart');
-
-    new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: ['Annual Leave', 'Sick', 'Present', 'Absent'],
-            datasets: [{
-                data: [
-                    attendanceData.annual_leave,
-                    attendanceData.sick,
-                    attendanceData.present,
-                    attendanceData.absent
-                ],
-                backgroundColor: [
-                    '#FFAE4C',
-                    '#8979FF',
-                    '#3CC3DF',
-                    '#FF928A',
-                ],
-                borderwidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: false, 
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `${context.label} : ${context.raw} Days`;
-                        }
-                    }
-                }
-            }
-        }
-    })
-})
-
-(function () {
-    function qs(id) {
-        return document.getElementById(id);
+    function setMyDocLoading(isLoading) {
+        if (mydocLoading) mydocLoading.classList.toggle('d-none', !isLoading);
     }
 
-    const elBreadcrumbText = qs('mydocBreadcrumbText');
-    const elGridWrapper = qs('mydocGridWrapper');
-    const elLoading = qs('mydocLoading');
-    const elEmptyState = qs('mydocEmptyState');
-
-    if (!elBreadcrumbText || !elGridWrapper) return;
-
-    let lastBreadcrumb = [];
-    let state = { parentId: null };
+    function setMyDocEmpty(isEmpty) {
+        if (mydocEmptyState) mydocEmptyState.classList.toggle('d-none', !isEmpty);
+    }
 
     function renderBreadcrumb(breadcrumb) {
-        const text = breadcrumb && breadcrumb.length
-            ? breadcrumb.map(x => x.folder_name).join(' / ')
-            : 'Documents';
-        elBreadcrumbText.textContent = text;
-
+        if (!mydocBreadcrumbText) return;
+        const parts = (breadcrumb || []).map(b => b.folder_name).filter(Boolean);
+        mydocBreadcrumbText.textContent = parts.length ? parts.join(' / ') : 'Documents';
     }
 
     function escapeHtml(str) {
-        return String(str || '')
+        return String(str ?? '')
             .replaceAll('&', '&amp;')
             .replaceAll('<', '<')
             .replaceAll('>', '>')
@@ -79,94 +31,278 @@ $(document).ready(function() {
             .replaceAll("'", '&#039;');
     }
 
-    function renderFolderCard(folder, totalItems) {
-        const name = escapeHtml(folder.folder_name);
-        const owner = escapeHtml(folder.creator ? (folder.creator.name ?? '') : '');
+    function renderMyDocsGrid({ folders, files, breadcrumb }) {
+        if (!mydocGridWrapper) return;
 
-        return `
-            <div class="folder-wrapper" role="button" tabindex="0" data-folder-id="${folder.id}">
-                <div class="folder-shadow-tab"></div>
-                <div class="folder-shadow"></div>
-                <div class="folder-tab"></div>
-                <div class="folder-body" onclick="void(0)">
-                    <p class="folder-name">${name}</p>
-                    <p class="folder-role">${owner}</p>
-                    <hr class="folder-divider">
-                    <div class="folder-footer">
-                        <div class="folder-avatar"></div>
-                        <span class="folder-items">${totalItems} Items</span>
-                    </div>
+        renderBreadcrumb(breadcrumb);
+        const foldersArr = folders || [];
+        const filesArr = files || [];
+
+        // Simple drill-down like dashboard_management widget (grid of folders)
+        const folderCardsHtml = foldersArr.length
+            ? foldersArr
+                .map(f => {
+                    const folderId = f.id;
+                    const folderName = escapeHtml(f.folder_name);
+                    return `
+                        <div class="folder-wrapper" style="cursor:pointer;" data-parent-id="${folderId}">
+                            <div class="folder-shadow-tab"></div>
+                            <div class="folder-shadow"></div>
+                            <div class="folder-tab"></div>
+                            <div class="folder-body">
+                                <p class="folder-name">${folderName}</p>
+                                <p class="folder-role">Folder</p>
+                                <hr class="folder-divider">
+                                <div class="folder-footer">
+                                    <div class="folder-avatar"></div>
+                                    <span class="folder-items">&nbsp;Items</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join('')
+            : '';
+
+        const filesHtml = (!foldersArr.length && filesArr.length)
+            ? `
+                <div class="document-files">
+                    ${filesArr
+                        .slice(0, 6)
+                        .map(d => {
+                            const name = escapeHtml(d.file_name);
+                            return `<div class="fs-12 text-body mb-2">📄 ${name}</div>`;
+                        })
+                        .join('')}
+                    ${filesArr.length > 6 ? `<div class="fs-12 text-body text-opacity-50">+${filesArr.length - 6} more...</div>` : ''}
                 </div>
-            </div>
+            `
+            : '';
+
+        mydocGridWrapper.querySelectorAll('.folder-wrapper[data-parent-id]').forEach(el => el.remove());
+
+        mydocGridWrapper.innerHTML = `
+            ${folderCardsHtml}
+            ${filesHtml}
         `;
+
+        const existingBack = mydocGridWrapper.querySelector('#mydocWidgetDocumentBack');
+        if (existingBack) existingBack.remove();
+
+        if (state.parentId !== null) {
+            const backBtn = document.createElement('button');
+            backBtn.id = 'mydocWidgetDocumentBack';
+            backBtn.type = 'button';
+            backBtn.className = 'widget-back-btn mb-3';
+            backBtn.innerHTML = `<span class="material-symbols-outlined">arrow_back</span> Back`;
+            backBtn.style.marginTop = '8px';
+            backBtn.addEventListener('click', () => {
+                const parts = (state.lastBreadcrumb || []);
+                if (parts.length >= 2) {
+                    const parent = parts[parts.length - 2];
+                    state.parentId = parent && parent.id ? parent.id : null;
+                } else {
+                    state.parentId = null;
+                }
+                loadMyDocs();
+            });
+            mydocGridWrapper.prepend(backBtn);
+        }
+
+        mydocGridWrapper.querySelectorAll('.folder-wrapper[data-parent-id]').forEach(card => {
+            card.addEventListener('click', () => {
+                const nextId = card.getAttribute('data-parent-id');
+                state.parentId = nextId ? Number(nextId) : null;
+                loadMyDocs();
+            });
+        });
     }
 
-    function loadWithBreadcrumb(parentId) {
-        state.parentId = parentId;
+    function loadMyDocs() {
+        if (!mydocGridWrapper) return;
 
-        if (elLoading) elLoading.classList.remove('d-none');
-        if (elEmptyState) elEmptyState.classList.add('d-none');
+        state.lastBreadcrumb = state.lastBreadcrumb || [];
+        setMyDocLoading(true);
+        setMyDocEmpty(false);
 
         const baseUrl = window.APP_URL ? `${window.APP_URL}/document/get-all-folder` : '/document/get-all-folder';
         const url = new URL(baseUrl, window.location.origin);
 
-        if (parentId) url.searchParams.set('parent_id', parentId);
+        if (state.parentId !== null && state.parentId !== undefined) {
+            url.searchParams.set('parent_id', state.parentId);
+        }
 
         fetch(url.toString(), {
             method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            headers: { 'Accept': 'application/json' }
         })
             .then(r => r.json())
-            .then(data => {
-                if (!data) return;
+            .then(res => {
+                const folders = res.folders || [];
+                const files = res.files || [];
+                const breadcrumb = res.breadcrumb || [];
 
-                const folders = data.folders || [];
-                const files = data.files || [];
-                lastBreadcrumb = data.breadcrumb || [];
+                state.lastBreadcrumb = breadcrumb;
 
-                renderBreadcrumb(lastBreadcrumb);
-
-                [...elGridWrapper.querySelectorAll('.folder-wrapper')].forEach(n => n.remove());
-
-                if (elLoading) elLoading.classList.add('d-none');
-
-                if ((!folders || folders.length === 0) && (!files || files.length === 0)) {
-                    if (elEmptyState) elEmptyState.classList.remove('d-none');
+                if (!folders.length && !files.length) {
+                    setMyDocEmpty(true);
+                    if (mydocGridWrapper) mydocGridWrapper.innerHTML = '';
                     return;
                 }
 
-                const filesByFolderId = new Map();
-                (files || []).forEach(f => {
-                    const fid = f.folder_id || null;
-                    const key = fid ? String(fid) : 'null';
-                    filesByFolderId.set(key, (filesByFolderId.get(key) || 0) + 1);
-                });
-
-                folders.forEach(folder => {
-                    const folderKey = String(folder.id);
-                    const fileCount = filesByFolderId.get(folderKey) || 0;
-                    const totalItems = fileCount;
-
-                    const cardHtml = renderFolderCard(folder, totalItems);
-                    const temp = document.createElement('div');
-                    temp.innerHTML = cardHtml.trim();
-                    const card = temp.firstElementChild;
-
-                    card.addEventListener('click', () => {
-                        loadWithBreadcrumb(folder.id);
-                    });
-
-                    elGridWrapper.appendChild(card);
-                });
+                setMyDocEmpty(false);
+                renderMyDocsGrid({ folders, files, breadcrumb });
             })
             .catch(() => {
-                if (elLoading) elLoading.classList.add('d-none');
-                if (elEmptyState) elEmptyState.classList.remove('d-none');
-            });
+                setMyDocEmpty(true);
+                if (mydocGridWrapper) mydocGridWrapper.innerHTML = '';
+            })
+            .finally(() => setMyDocLoading(false));
     }
 
-    loadWithBreadcrumb(null);
-})();
+    if (mydocGridWrapper) {
+        loadMyDocs();
+    }
 
+    const ctx = document.getElementById('attendanceChart');
+    if (!ctx) return;
+
+    const now = new Date();
+    const month = String(now.getMonth() + 1);
+    const year = String(now.getFullYear());
+
+    const centerValueEl = document.querySelector('#attendanceChartCenter .attendance-chart-center-value');
+    const loadingEl = document.getElementById('attendanceChartLoading');
+    const emptyEl = document.getElementById('attendanceChartEmpty');
+
+    const dayEls = {
+        present: document.getElementById('attendancePresentDay'),
+        sick: document.getElementById('attendanceSickDay'),
+        annual_leave: document.getElementById('attendanceLeaveDay'),
+        absent: document.getElementById('attendanceAbsentDay'),
+    };
+
+    let attendanceChartInstance = null;
+
+    function setLoading(isLoading) {
+        if (loadingEl) loadingEl.classList.toggle('d-none', !isLoading);
+    }
+
+    function setEmpty(isEmpty) {
+        if (emptyEl) emptyEl.classList.toggle('d-none', !isEmpty);
+    }
+
+    function updateLegend(summary) {
+        if (dayEls.present) dayEls.present.textContent = summary.present + ' Days';
+        if (dayEls.sick) dayEls.sick.textContent = summary.sick + ' Days';
+        if (dayEls.annual_leave) dayEls.annual_leave.textContent = summary.annual_leave + ' Days';
+        if (dayEls.absent) dayEls.absent.textContent = summary.absent + ' Days';
+    }
+
+    function renderAttendanceChart(selectedMonth, selectedYear) {
+        setLoading(true);
+        setEmpty(false);
+
+        $.ajax({
+            url: '/attendance/get-attendance-summary-by-month',
+            type: 'GET',
+            data: { MONTH: selectedMonth, YEAR: selectedYear }
+        })
+        .done(function(res) {
+            const summary = (res && res.data && res.data.summary) || {
+                present: 0, sick: 0, annual_leave: 0, absent: 0
+            };
+
+            const total = summary.present + summary.sick + summary.annual_leave + summary.absent;
+
+            updateLegend(summary);
+
+            if (centerValueEl) centerValueEl.textContent = total;
+
+            setEmpty(total === 0);
+
+            const chartData = [
+                summary.annual_leave,
+                summary.sick,
+                summary.present,
+                summary.absent
+            ];
+
+            if (attendanceChartInstance) {
+                attendanceChartInstance.data.datasets[0].data = chartData;
+                attendanceChartInstance.update();
+            } else {
+                attendanceChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Annual Leave', 'Sick', 'Present', 'Absent'],
+                        datasets: [{
+                            data: chartData,
+                            backgroundColor: [
+                                '#FFAE4C',
+                                '#8979FF',
+                                '#3CC3DF',
+                                '#FF928A'
+                            ],
+                            borderWidth: 0,
+                            hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        animation: {
+                            duration: 400
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label} : ${context.raw} Days`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        })
+        .fail(function() {
+            setEmpty(true);
+        })
+        .always(function() {
+            setLoading(false);
+        });
+    }
+
+    // Initial render
+    renderAttendanceChart(month, year);
+
+    // Month dropdown
+    const dropdown = document.getElementById('attendanceMonthDropdown');
+    if (dropdown) {
+        const dropdownMenu = dropdown.closest('.dropdown')?.querySelector('.dropdown-menu');
+
+        dropdownMenu?.querySelectorAll('button[data-month][data-year]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const m = btn.getAttribute('data-month');
+                const y = btn.getAttribute('data-year');
+
+                const label = btn.textContent.trim();
+                const labelEl = document.getElementById('attendanceMonthDropdownLabel');
+                if (labelEl) labelEl.textContent = label;
+
+                dropdownMenu.querySelectorAll('button[data-month][data-year]').forEach(b => {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+
+                renderAttendanceChart(m, y);
+            });
+        });
+    }
+});

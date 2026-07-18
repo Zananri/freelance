@@ -225,20 +225,124 @@ $('.time-log.time-in').on('click', function(){
     showCheckinDetail();
 });
 
-function showCheckinDetail(){
+function showCheckinDetail() {
     checkInDetailModal.show();
-        
-    setTimeout(() => {
-        MAP_CHECKIN_DETAIL.invalidateSize();
-        MAP_CHECKIN_DETAIL.setView(MAP_CHECKIN_DETAIL_LOCATION, 16);
-        MAP_CHECKIN_DETAIL.panTo(MAP_CHECKIN_DETAIL_LOCATION);
 
-        if(MAP_CHECKIN_DETAIL_MARKER){
-            MAP_CHECKIN_DETAIL_MARKER.setLatLng(MAP_CHECKIN_DETAIL_LOCATION);
-            MAP_CHECKIN_DETAIL_MARKER.update();
+    setTimeout(() => {
+        try {
+            if (window.MAP_CHECKIN_DETAIL_INSTANCE) {
+                window.MAP_CHECKIN_DETAIL_INSTANCE.remove();
+                window.MAP_CHECKIN_DETAIL_INSTANCE = null;
+            }
+
+            const mapEl = document.getElementById("detailMapCheckIn");
+            if (!mapEl) return;
+
+            let effectiveTrackings = [];
+
+            try {
+                effectiveTrackings = JSON.parse(mapEl.dataset.location || "[]");
+            } catch (err) {
+                console.error("Invalid tracking JSON", err);
+                effectiveTrackings = [];
+            }
+
+            if (!effectiveTrackings.length) {
+                mapEl.innerHTML =
+                    '<div class="alert alert-warning text-center">Location data not available</div>';
+                return;
+            }
+
+            const first = effectiveTrackings[0];
+            const firstParts = String(first.location)
+                .split(",")
+                .map((s) => s.trim());
+
+            if (firstParts.length < 2) return;
+
+            const center = [
+                parseFloat(firstParts[0]),
+                parseFloat(firstParts[1]),
+            ];
+
+            const detailMap = L.map("detailMapCheckIn", {
+                center: center,
+                zoom: 16,
+            });
+
+            window.MAP_CHECKIN_DETAIL_INSTANCE = detailMap;
+
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+            }).addTo(detailMap);
+
+            const latlngs = [];
+            let checkpoint = 1;
+
+            effectiveTrackings.forEach((tracking) => {
+                if (!tracking.location) return;
+
+                console.log(tracking);
+
+                const parts = tracking.location
+                    .split(",")
+                    .map((s) => s.trim());
+
+                if (parts.length < 2) return;
+
+                const lat = parseFloat(parts[0]);
+                const lng = parseFloat(parts[1]);
+
+                if (isNaN(lat) || isNaN(lng)) return;
+
+                const latlng = [lat, lng];
+
+                const time = tracking.date_time
+                    ? new Date(tracking.date_time).toLocaleTimeString("id-ID", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                      })
+                    : "--:--";
+
+                L.marker(latlng)
+                    .addTo(detailMap)
+                    .bindTooltip(
+                        `Checkpoint ${checkpoint}<br>Jam Checkin: ${time}`,
+                        {
+                            permanent: true,
+                            direction: "top",
+                            offset: [0, -10],
+                        }
+                    );
+
+                latlngs.push(latlng);
+                checkpoint++;
+            });
+
+            if (latlngs.length > 1) {
+
+                L.polyline(latlngs, {
+                    color: "#0d6efd",
+                    weight: 4,
+                    opacity: 0.8
+                }).addTo(detailMap);
+
+                detailMap.fitBounds(latlngs, {
+                    padding: [20, 20],
+                });
+
+            } else {
+                detailMap.setView(latlngs[0], 16);
+            }
+
+            setTimeout(() => {
+                detailMap.invalidateSize();
+            }, 200);
+        } catch (e) {
+            console.error("Multi-checkpoint map error:", e);
         }
-        
-    }, 700);
+    }, 200);
 }
 
 const $video = $('#videoElement');
@@ -503,7 +607,7 @@ function initialiseMapsCheckOut(){
         }).addTo(MAP_CHECKOUT_DETAIL);
 
         MAP_CHECKOUT_DETAIL_MARKER = L.marker(MAP_CHECKOUT_DETAIL_LOCATION).addTo(MAP_CHECKOUT_DETAIL);
-        MAP_CHECKOUT_DETAIL_MARKER.bindTooltip("Check In Location", { permanent: true, direction: 'top', offset: [0, 0] });
+        MAP_CHECKOUT_DETAIL_MARKER.bindTooltip("Check Out Location", { permanent: true, direction: 'top', offset: [0, 0] });
 
     }
 }

@@ -1655,8 +1655,312 @@ input[type="file"]::file-selector-button {
 
 .dropdown-attendance,
 .dropdown-attendance:hover {
-    border: 1px solid #333333;
+    border: none;
     color: #333333;
     border-radius: 10px;
     font-size: 12px;
+}
+
+.attendance-chart-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+}
+
+.attendance-chart-center-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: #2A3542;
+    line-height: 1.1;
+}
+
+.attendance-chart-center-label {
+    font-size: 11px;
+    color: #8f8f8f;
+}
+
+.attendance-chart-loading,
+.attendance-chart-empty {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    font-size: 12px;
+    color: #8f8f8f;
+    text-align: center;
+}
+
+.legend-container .rounded {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.legend-container .rounded:hover {
+    transform: translateY(-2px);
+}
+
+.dropdown-attendance .dropdown-item.active,
+.dropdown-attendance .dropdown-item:active {
+    background-color: #E9EEF4;
+    color: #2A3542;
+    font-weight: 500;
+}
+
+.dropdown-attendance {
+    position: relative;
+}
+
+.attendance-month-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #F5F6FC;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
+    padding: 7px 14px 7px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #2A3542;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.attendance-month-btn:hover {
+    background-color: #E9EEF4;
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.attendance-month-btn:focus,
+.attendance-month-btn:active {
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12) !important;
+    background-color: #E9EEF4 !important;
+    color: #2A3542 !important;
+}
+
+.attendance-month-btn::after {
+    margin-left: 2px;
+    vertical-align: 1px;
+    opacity: 0.6;
+    transition: transform 0.2s ease;
+}
+
+.attendance-month-btn[aria-expanded="true"]::after {
+    transform: rotate(180deg);
+}
+
+.attendance-month-icon {
+    font-size: 17px;
+    color: #6b7280;
+}
+
+.attendance-month-menu {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(20, 20, 43, 0.12);
+    padding: 6px;
+    min-width: 190px;
+    max-height: 280px;
+    overflow-y: auto;
+    margin-top: 8px !important;
+    animation: attendanceMenuFadeIn 0.15s ease;
+}
+
+.attendance-month-menu::-webkit-scrollbar {
+    width: 5px;
+}
+
+.attendance-month-menu::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+}
+
+@keyframes attendanceMenuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.attendance-month-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    color: #3C404B;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 2px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.attendance-month-item:last-child {
+    margin-bottom: 0;
+}
+
+.attendance-month-item:hover,
+.attendance-month-item:focus {
+    background-color: #F0F1F8;
+    color: #2A3542;
+}
+
+.attendance-month-item-check {
+    font-size: 16px;
+    color: #0d6efd;
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.attendance-month-item.active {
+    background-color: #EEF3FF;
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+.attendance-month-item.active .attendance-month-item-check {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.checkin-detail-dialog {
+    max-width: 480px;
+}
+
+.checkin-detail-content {
+    background-color: #DCE6F0;
+    border-radius: 28px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.checkin-detail-header {
+    padding: 28px 28px 8px 28px;
+    background: transparent;
+    position: relative;
+}
+
+.checkin-detail-title {
+    font-weight: 400;
+    font-size: 26px;
+    color: #2A3542;
+}
+
+.checkin-detail-close {
+    position: absolute;
+    right: 20px;
+    top: 24px;
+}
+
+.checkin-detail-body {
+    padding: 8px 28px 28px 28px;
+}
+
+.checkin-detail-info {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.checkin-detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.checkin-detail-label {
+    font-size: 14px;
+    color: #4A5568;
+    font-weight: 400;
+}
+
+.checkin-detail-value {
+    font-size: 14px;
+    color: #2A3542;
+    font-weight: 500;
+    text-align: right;
+}
+
+.checkin-detail-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.checkin-detail-panel {
+    border-radius: 18px;
+    overflow: hidden;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #EAF0F7;
+}
+
+.checkin-detail-panel-photo {
+    background-color: #EAF0F7;
+}
+
+.checkin-detail-photo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.checkin-detail-photo-icon {
+    font-size: 42px;
+    color: #2A3542;
+    opacity: 0.85;
+}
+
+.checkin-detail-panel-map {
+    padding: 0;
+}
+
+.checkin-detail-map {
+    width: 100%;
+    height: 100%;
+    border-radius: 18px;
+}
+
+.checkin-detail-footer {
+    padding-top: 4px;
+}
+
+.checkin-detail-close-btn {
+    background-color: #E3E4EE;
+    color: #444444;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 400;
+    transition: background-color 0.2s ease;
+}
+
+.checkin-detail-close-btn:hover,
+.checkin-detail-close-btn:active {
+    background-color: #d5d6e2 !important;
+    color: #2A3542 !important;
+}
+
+@media (max-width: 480px) {
+    .checkin-detail-panels {
+        grid-template-columns: 1fr;
+    }
+
+    .checkin-detail-panel {
+        height: 200px;
+    }
 }
