@@ -1,6 +1,7 @@
 .shift-container {
     background-color: rgb(240, 241, 248);
     max-height: calc(100vh - 210px);
+    min-height: 300px;
 }
 
 .shift-container .input-soft {

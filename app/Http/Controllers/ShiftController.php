@@ -94,6 +94,15 @@ class ShiftController extends Controller
         if ($currentEmployee) {
             $query->where('employees.id', '!=', $currentEmployee->id);
         }
+        
+        if ($userType === 'SUPERADMIN') {
+            $query->where(function ($q) {
+                $q->whereDoesntHave('user')
+                    ->orWhereHas('user', function ($uq) {
+                        $uq->where('user_type', '!=', 'ADMINISTRATOR');
+                    });
+            });
+        }
 
         if ($userType === 'ADMINISTRATOR') {
             $query->where(function ($q) {
