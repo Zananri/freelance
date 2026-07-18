@@ -174,49 +174,57 @@ function formatWidgetCheckinTime(dateTimeString) {
     });
 }
 
-function renderWidgetEmployeeList(employees) {
-    const container = $("#widgetEmployeeList");
+// function renderWidgetEmployeeList(employees) {
+//     const container = $("#widgetEmployeeList");
 
-    if (!container.length) {
-        return;
-    }
+//     if (!container.length) {
+//         return;
+//     }
 
-    if (!employees.length) {
-        container.html(
-            '<div class="text-body text-opacity-50 fs-12 text-center py-4">No employee found</div>',
-        );
-        return;
-    }
+//     if (!employees.length) {
+//         container.html(
+//             '<div class="text-body text-opacity-50 fs-12 text-center py-4">No employee found</div>',
+//         );
+//         return;
+//     }
 
-    let html = "";
+//     let html = "";
 
-    employees.forEach(function (employee) {
-        const statusClass = employee.checked_in ? "is-online" : "";
-        const statusText = employee.checked_in
-            ? "Checked in " + (employee.checkin_time || "")
-            : "No check-in";
-        const deptColor = getDepartmentColor(employee);
+//     employees.forEach(function (employee) {
+//         const statusClass = employee.checked_in ? "is-online" : "";
+//         const statusText = (() => {
+//             if (employee.checked_in) {
+//                 return "Checked in " + (employee.checkin_time || "");
+//             }
 
-        html += `
-            <div class="widget-employee-item">
-                <div class="widget-employee-avatar" style="border-color:${deptColor}"></div>
-                <div class="widget-employee-info">
-                    <div class="widget-employee-name">${escapeHtml(employee.name)}</div>
-                    <div class="widget-employee-meta">
-                        <span class="legend-dot legend-dot-sm" style="background-color:${deptColor}"></span>
-                        ${escapeHtml(employee.division_name || "-")} • ${escapeHtml(employee.department_name || "-")}
-                    </div>
-                </div>
-                <div class="widget-employee-status ${statusClass}">
-                    <span class="status-dot"></span>
-                    <span class="status-text">${escapeHtml(statusText)}</span>
-                </div>
-            </div>
-        `;
-    });
+//             if (employee.checkout_time) {
+//                 return "Checked out " + (employee.checkout_time || "");
+//             }
 
-    container.html(html);
-}
+//             return "No attendance";
+//         })();
+//         const deptColor = getDepartmentColor(employee);
+
+//         html += `
+//             <div class="widget-employee-item">
+//                 <div class="widget-employee-avatar" style="border-color:${deptColor}"></div>
+//                 <div class="widget-employee-info">
+//                     <div class="widget-employee-name">${escapeHtml(employee.name)}</div>
+//                     <div class="widget-employee-meta">
+//                         <span class="legend-dot legend-dot-sm" style="background-color:${deptColor}"></span>
+//                         ${escapeHtml(employee.division_name || "-")} • ${escapeHtml(employee.department_name || "-")}
+//                     </div>
+//                 </div>
+//                 <div class="widget-employee-status ${statusClass}">
+//                     <span class="status-dot"></span>
+//                     <span class="status-text">${escapeHtml(statusText)}</span>
+//                 </div>
+//             </div>
+//         `;
+//     });
+
+//     container.html(html);
+// }
 
 function renderMonitoringLegend(employees) {
     const legendContainer = document.getElementById("widgetMonitoringLegend");
@@ -275,8 +283,13 @@ function renderWidgetMonitoringMap(employees, checkins) {
             return;
         }
 
+        const markerColor =
+            checkin.type === "check_out"
+                ? "#dc3545" 
+                : "#0d6efd"; 
+
         const marker = L.marker([checkin.lat, checkin.lng], {
-            icon: createPinIcon(getDepartmentColor(employee)),
+            icon: createPinIcon(markerColor),
         });
 
         marker.bindPopup(
@@ -287,8 +300,11 @@ function renderWidgetMonitoringMap(employees, checkins) {
                 "<br/>" +
                 escapeHtml(employee.job_name || "-") +
                 "<br/>" +
-                "Checked-in: " +
-                escapeHtml(checkin.checkin_time || "-"),
+
+                (checkin.type === "check_out"
+                    ? '<span class="badge bg-danger me-1">Checked-out</span>'
+                    : '<span class="badge bg-primary me-1">Checked-in</span>'
+            ) + escapeHtml(checkin.time || "-")
         );
 
         widgetMarkerLayer.addLayer(marker);
@@ -332,7 +348,7 @@ function loadDashboardMonitoringWidget() {
             const checkins = (response.data && response.data.checkins) || [];
 
             buildDepartmentColorMap(employees);
-            renderWidgetEmployeeList(employees);
+            // renderWidgetEmployeeList(employees);
             renderWidgetMonitoringMap(employees, checkins);
             renderMonitoringLegend(employees);
         },

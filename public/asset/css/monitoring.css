@@ -171,3 +171,18 @@
         height: 500px;
     }
 }
+
+.employee-map-label{
+    background: rgba(255,255,255,.95);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    color: #333;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+
+.employee-map-label::before{
+    border-top-color: #fff !important;
+}

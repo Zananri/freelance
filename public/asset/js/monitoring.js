@@ -30,6 +30,15 @@ document.addEventListener('DOMContentLoaded', function () {
     var employeeSearch = document.querySelector('.employee-search');
     var divisionFilter = document.querySelector('.division-filter');
 
+    function escapeHtml(text) {
+        return String(text ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '<')
+            .replace(/>/g, '>')
+            .replace(/"/g, '"')
+            .replace(/'/g, '&#039;');
+    }
+
     function formatDateTime(dateTimeString) {
         if (!dateTimeString) {
             return '-';
@@ -50,21 +59,36 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function createMarker(checkin, employeeName) {
-        var selected = selectedEmployeeId === checkin.employee_id;
-        var style = {
-            radius: selected ? 10 : 7,
-            color: selected ? '#e74c3c' : '#0d6efd',
-            fillColor: selected ? '#e74c3c' : '#0d6efd',
-            fillOpacity: 0.9,
-            weight: selected ? 3 : 2,
-        };
+    function createMarker(checkin, employeeName, showLabel = false) {
 
-        var marker = L.circleMarker([checkin.lat, checkin.lng], style);
+        var marker = L.marker(
+            [checkin.lat, checkin.lng],
+            {
+                icon: createPinIcon(checkin.type)
+            }
+        );
+
+        var label = checkin.type === 'check_out'
+            ? 'Checked-out'
+            : 'Checked-in';
+
         marker.bindPopup(
             '<strong>' + employeeName + '</strong><br/>' +
-            'Checked-in: ' + formatDateTime(checkin.date_time)
+            label + ': ' + escapeHtml(formatDateTime(checkin.date_time))
         );
+
+        if (showLabel) {
+            marker.bindTooltip(
+                employeeName + '<br>' + label + ': ' + escapeHtml(formatDateTime(checkin.date_time)),
+                {
+                    permanent: true,
+                    direction: 'top',
+                    offset: [0, -12],
+                    className: 'employee-map-label'
+                }
+            );
+        }
+
         marker.on('click', function () {
             setSelectedEmployee(checkin.employee_id, true);
         });
@@ -72,33 +96,70 @@ document.addEventListener('DOMContentLoaded', function () {
         return marker;
     }
 
-    function renderMarkers() {
-        markerLayer.clearLayers();
+    function createPinIcon(type) {
 
-        if (!checkins.length) {
-            return;
+        let color = "#0d6efd";
+
+        if (type === "check_out") {
+            color = "#dc3545";
         }
 
-        var bounds = [];
-        checkins.forEach(function (checkin) {
-            var employee = employees.find(function (item) {
-                return item.id === checkin.employee_id;
-            });
-            if (!employee) {
-                return;
-            }
+        return L.divIcon({
+            className: "",
+            html: `
+                <div style="
+                    width:18px;
+                    height:18px;
+                    border-radius:50%;
+                    background:${color};
+                    border:3px solid white;
+                    box-shadow:0 0 6px rgba(0,0,0,.3);
+                "></div>
+            `,
+            iconSize: [18,18],
+            iconAnchor: [9,9]
+        });
 
-            var marker = createMarker(checkin, employee.name);
+    }
+
+    function renderMarkers() {
+
+        markerLayer.clearLayers();
+
+        if (!checkins.length) return;
+
+        let visibleCheckins = checkins;
+
+        if (selectedEmployeeId) {
+            visibleCheckins = checkins.filter(c => c.employee_id === selectedEmployeeId);
+        }
+
+        const bounds = [];
+
+        visibleCheckins.forEach(function (checkin) {
+
+            const employee = employees.find(e => e.id === checkin.employee_id);
+
+            if (!employee) return;
+
+            const marker = createMarker(
+                checkin,
+                employee.name,
+                selectedEmployeeId === checkin.employee_id
+            );
+
             markerLayer.addLayer(marker);
+
             bounds.push([checkin.lat, checkin.lng]);
         });
 
         if (bounds.length) {
             monitoringMap.fitBounds(bounds, {
-                padding: [40, 40],
-                maxZoom: 14,
+                padding: [40,40],
+                maxZoom:14
             });
         }
+
     }
 
     function renderDivisionOptions() {
@@ -190,12 +251,27 @@ document.addEventListener('DOMContentLoaded', function () {
             var checkin = getCheckinByEmployee(employeeId);
             if (checkin) {
                 monitoringMap.setView([checkin.lat, checkin.lng], 14);
-                markerLayer.eachLayer(function (layer) {
-                    if (layer.getLatLng && layer.getLatLng().lat === checkin.lat && layer.getLatLng().lng === checkin.lng) {
-                        layer.openPopup();
-                    }
-                });
             }
+
+            markerLayer.eachLayer(function (layer) {
+                if (!layer || !layer.getLatLng) return;
+
+                var ll = layer.getLatLng();
+                var matched = checkins.some(function (c) {
+                    return (
+                        c.employee_id === employeeId &&
+                        typeof c.lat === 'number' &&
+                        typeof c.lng === 'number' &&
+                        c.lat === ll.lat &&
+                        c.lng === ll.lng
+                    );
+                });
+
+                if (matched) {
+                    layer.bindPopup(layer.getPopup());
+                    layer.openPopup();
+                }
+            });
         }
     }
 

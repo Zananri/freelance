@@ -127,18 +127,16 @@ class DashboardController extends Controller
             $checkins = AttendanceTracking::select(
                 'attendance_trackings.location',
                 'attendance_trackings.date_time',
+                'attendance_trackings.type',
                 'attendances.employee_id'
             )
                 ->join('attendances', 'attendance_trackings.attendance_id', '=', 'attendances.id')
-                ->where('attendance_trackings.type', 'check_in')
+                ->whereIn('attendance_trackings.type', ['check_in', 'check_out'])
                 ->whereDate('attendance_trackings.date_time', $today)
                 ->whereIn('attendances.employee_id', $employeeIds)
                 ->orderBy('attendance_trackings.date_time', 'desc')
                 ->get()
-                ->groupBy('employee_id')
-                ->map(function ($records) {
-                    $record = $records->first();
-
+                ->map(function ($record) {
                     // Guard against empty/malformed location values (e.g. missing GPS data)
                     if (empty($record->location) || strpos($record->location, ',') === false) {
                         return null;
@@ -154,7 +152,8 @@ class DashboardController extends Controller
                         'employee_id' => (int) $record->employee_id,
                         'lat' => (float) $lat,
                         'lng' => (float) $lng,
-                        'checkin_time' => optional($record->date_time)->format('H:i'),
+                        'type' => $record->type,
+                        'time' => optional($record->date_time)->format('H:i'),
                         'date_time' => optional($record->date_time)->toDateTimeString(),
                     ];
                 })
@@ -162,10 +161,21 @@ class DashboardController extends Controller
                 ->values();
         }
 
-        $checkedInEmployeeIds = $checkins->pluck('employee_id')->toArray();
+        $checkedInEmployeeIds = $checkins
+            ->where('type_attendance', 'check_in')
+            ->pluck('employee_id')
+            ->toArray();
 
         $employees = $employees->map(function ($employee) use ($checkins, $checkedInEmployeeIds) {
-            $checkin = $checkins->firstWhere('employee_id', $employee->id);
+            $lastCheckin = $checkins
+                ->where('employee_id', $employee->id)
+                ->where('type_attendance', 'check_in')
+                ->first();
+
+            $lastCheckout = $checkins
+                ->where('employee_id', $employee->id)
+                ->where('type_attendance', 'check_out')
+                ->first();
 
             return [
                 'id' => $employee->id,
@@ -177,7 +187,8 @@ class DashboardController extends Controller
                 'job_id' => $employee->job_id,
                 'job_name' => optional($employee->job)->job_name,
                 'checked_in' => in_array($employee->id, $checkedInEmployeeIds),
-                'checkin_time' => $checkin['checkin_time'] ?? null,
+                'checkin_time' => $lastCheckin['time'] ?? null,
+                'checkout_time' => $lastCheckout['time'] ?? null,
             ];
         })->values();
 

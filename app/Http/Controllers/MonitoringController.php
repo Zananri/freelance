@@ -97,17 +97,20 @@ class MonitoringController extends Controller
         $checkins = AttendanceTracking::select(
             'attendance_trackings.location',
             'attendance_trackings.date_time',
+            'attendance_trackings.type',
             'attendances.employee_id'
         )
             ->join('attendances', 'attendance_trackings.attendance_id', '=', 'attendances.id')
-            ->where('attendance_trackings.type', 'check_in')
+            ->whereIn('attendance_trackings.type', ['check_in', 'check_out'])
             ->whereDate('attendance_trackings.date_time', $today)
             ->whereIn('attendances.employee_id', $employeeIds)
-            ->orderBy('attendance_trackings.date_time', 'desc')
+            ->orderBy('attendance_trackings.date_time')
             ->get()
-            ->groupBy('employee_id')
-            ->map(function ($records, $employeeId) {
-                $record = $records->first();
+            ->map(function ($record) {
+
+                if (!$record->location || strpos($record->location, ',') === false) {
+                    return null;
+                }
 
                 [$lat, $lng] = array_map('trim', explode(',', $record->location));
 
@@ -116,9 +119,11 @@ class MonitoringController extends Controller
                 }
 
                 return [
-                    'employee_id' => (int) $employeeId,
+                    'employee_id' => (int) $record->employee_id,
                     'lat' => (float) $lat,
                     'lng' => (float) $lng,
+                    'type' => $record->type,
+                    'time' => optional($record->date_time)->format('H:i'),
                     'date_time' => optional($record->date_time)->toDateTimeString(),
                 ];
             })
