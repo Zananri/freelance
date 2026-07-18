@@ -14,6 +14,8 @@ use App\Models\EmployeeLeave;
 use App\Models\EmployeeLeaveRequest;
 use App\Helpers\ActivityHelper;
 
+use App\Models\Notification;
+use App\Http\Controllers\NotificationController;
 
 class EmployeeTimeOffController extends Controller
 {
@@ -126,9 +128,63 @@ class EmployeeTimeOffController extends Controller
 
             $leaveRequest->save();
 
+            $departmentId = $employee->department_id;
 
+            $type = match ($leaveRequest->leave_type) {
+                'ANNUAL_LEAVE' => 'Annual Leave',
+                'SICK' => 'Sick Leave',
+                'PERMISSION' => 'Permission',
+                default => $leaveRequest->leave_type,
+            };
 
-            //leave_type start_date end_date description file_pdf file_photo
+            $recipients = Employee::query()
+                ->join('users', 'employees.user_id', '=', 'users.id')
+                ->select('employees.*')
+                ->where('employees.status', 'ACTIVE')
+                ->where(function ($q) use ($departmentId) {
+
+                    $q->where(function ($qq) use ($departmentId) {
+
+                        $qq->where('users.user_type', 'ADMINISTRATOR')
+                            ->where('employees.department_id', $departmentId);
+
+                    })
+                    ->orWhere('users.user_type', 'SUPERADMIN');
+
+                })
+                ->get();
+
+            foreach ($recipients as $recipient) {
+
+                $alreadySent = Notification::where('employee_id', $recipient->id)
+                    ->where('type', 'leave_request')
+                    ->whereDate('sent_at', today())
+                    ->where('message', 'LIKE', '%' . $employee->name . '%')
+                    ->where('message', 'LIKE', '%' . $leaveRequest->start_date . '%')
+                    ->exists();
+
+                if ($alreadySent) {
+                    continue;
+                }
+
+                NotificationController::createUserNotification(
+
+                    $recipient->id,
+
+                    'leave_request',
+
+                    'New Leave Request',
+
+                    "Employee : {$employee->name}\n" .
+                    "Department : {$employee->department?->name_department}\n" .
+                    "Division : {$employee->division?->name_division}\n" .
+                    "Type : {$type}\n" .
+                    "Date : {$leaveRequest->start_date} - {$leaveRequest->end_date}\n" .
+                    "Status : Waiting Approval",
+
+                    $user->id
+                );
+            }
 
             DB::commit();
 

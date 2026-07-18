@@ -88,6 +88,8 @@ class CheckAbsentEmployee extends Command
             ->whereDate('end_date', '>=', $today)
             ->first();
 
+        dd($leave);
+
         if ($leave) {
 
             $this->sendLeaveNotification($employee, $leave, $today);

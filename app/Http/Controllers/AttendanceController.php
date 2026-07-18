@@ -123,8 +123,8 @@ class AttendanceController extends Controller
 
         $isLate = '';
 
-        $atendanceTrackingCheckin = '';
-        $atendanceTrackingCheckout = '';
+        $atendanceTrackingCheckin = collect();
+        $atendanceTrackingCheckout = null;
         
         $timeIn = '';
         $timeOut = '';
