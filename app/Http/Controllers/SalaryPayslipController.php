@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 use App\Helpers\EmployeeHelper;
+use App\Http\Controllers\NotificationController;
+
 
 use App\Models\Attendance;
 use App\Models\Department;
@@ -692,6 +694,19 @@ class SalaryPayslipController extends Controller
             $employeePayslip->status = 'PAYSLIP_SENT';
             $employeePayslip->updated_by = $userId;
             $employeePayslip->save();
+
+            // Notify employee that payslip has been sent
+            try {
+                NotificationController::createUserNotification(
+                    employeeId: $employee->id,
+                    type: 'payslip_sent',
+                    title: 'Salary Payslip',
+                    message: 'Your salary payslip for ' . $dateSalary . ' is now available for review.',
+                    createdBy: $userId
+                );
+            } catch (\Throwable $e) {
+                // Do not block sending payslip if notification fails
+            }
 
             DB::commit();
 

@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
+use App\Models\Notification;
 use App\Models\Office;
 use App\Models\Employee;
 use App\Models\EmployeeShift;
@@ -21,6 +22,7 @@ use App\Helpers\ActivityHelper;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
+
 {
 
 
@@ -551,6 +553,67 @@ class AttendanceController extends Controller
                     'description' => ($employee?->name ?? 'Unknown') . ' performed check in',
                     'date_time_activity' => $now,
                 ]);
+            } catch (\Throwable $_) {
+            }
+
+            try {
+                if ($attendance->time_late >= '00:15:00') {
+
+                    $employeeFull = Employee::with(['division', 'department'])
+                        ->find($employee->id);
+
+                    $divisionName = $employeeFull?->division?->name_division ?? '-';
+                    $departmentName = $employeeFull?->department?->name_department ?? '-';
+
+                    $attendanceDate = $dateAttendance;
+                    $notificationType = 'attendance_late_checkin';
+                    $notificationTitle = 'Late Attendance Alert';
+
+                    $lateMinutes = Carbon::createFromFormat('H:i:s', $attendance->time_late)
+                        ->diffInMinutes(Carbon::createFromTime(0, 0, 0));
+
+                    $notificationMessage =
+                        "Employee: {$employeeFull->name}\n" .
+                        "Department: {$departmentName}\n" .
+                        "Division: {$divisionName}\n" .
+                        "Late: {$lateMinutes} minutes";
+
+                    $departmentId = $employeeFull->department_id;
+
+                    $recipientEmployees = Employee::query()
+                        ->join('users', 'employees.user_id', '=', 'users.id')
+                        ->select('employees.*')
+                        ->where('employees.status', 'ACTIVE')
+                        ->where(function ($q) use ($departmentId) {
+                            $q->where(function ($qq) use ($departmentId) {
+                                $qq->where('users.user_type', 'ADMINISTRATOR')
+                                    ->where('employees.department_id', $departmentId);
+                            })
+                            ->orWhere('users.user_type', 'SUPERADMIN');
+                        })
+                        ->get();
+
+                    foreach ($recipientEmployees as $recipient) {
+
+                        $alreadySent = \App\Models\Notification::where('employee_id', $recipient->id)
+                            ->where('type', $notificationType)
+                            ->whereDate('sent_at', $attendanceDate)
+                            ->where('message', 'LIKE', '%' . $employeeFull->name . '%')
+                            ->exists();
+
+                        if ($alreadySent) {
+                            continue;
+                        }
+
+                        \App\Http\Controllers\NotificationController::createUserNotification(
+                            $recipient->id,
+                            $notificationType,
+                            $notificationTitle,
+                            $notificationMessage,
+                            $userId
+                        );
+                    }
+                }
             } catch (\Throwable $_) {
             }
 
