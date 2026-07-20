@@ -67,10 +67,20 @@
     padding: 10px 10px;
 }
 
+.calendar-event-list {
+    font-size: 20px;
+    color: #474c59;
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 10px 10px;
+}
+
 .calendar-next-month:hover,
 .calendar-prev-month:hover,
 .calendar-next-month:active,
 .calendar-prev-month:active,
+.calendar-event-list:hover,
+.calendar-event-list:active,
 .dropdown-month .btn-dropdown-month:hover,
 .dropdown-month .btn-dropdown-month:active{
     color: #313642 !important;
@@ -98,6 +108,13 @@
     /* .table-calendar {
         height: calc(100vw - 130px);
     } */
+
+    .box-view-control {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
 }
 
 
@@ -141,28 +158,25 @@
     
 }
 
-/* Style the entire scrollbar */
 .table-calendar tbody ::-webkit-scrollbar {
-  width: 4px; /* Adjust width as needed */
-  background-color: transparent; /* Initially transparent */
+  width: 4px;
+  height: 1px;
+  background-color: transparent;
 }
 
-/* Style the scrollbar thumb (draggable part) */
 .table-calendar tbody ::-webkit-scrollbar-thumb {
-  background-color: #46505b2c; /* Default thumb color */
+  background-color: #46505b2c;
   border-radius: 4px;
 }
 
-/* Style the scrollbar track (background) */
 .table-calendar tbody ::-webkit-scrollbar-track {
-  background-color: transparent; /* Initially transparent */
+  background-color: transparent;
 }
 
-/* Hide the scrollbar by default */
 .table-calendar tbody ::-webkit-scrollbar-thumb,
 .table-calendar tbody ::-webkit-scrollbar-track {
   opacity: 0;
-  transition: opacity 0.3s ease-in-out; /* Smooth transition */
+  transition: opacity 0.3s ease-in-out;
 }
 
 .table-calendar tbody td .box-event:hover ::-webkit-scrollbar-thumb,
@@ -171,7 +185,7 @@
 }
 
 
-.table-calendar tbody td .text-event{
+.table-calendar tbody td .text-event {
     font-size: 10px;
     color: #46505B;
     font-weight: 500;
@@ -179,10 +193,86 @@
     padding: 2px 8px;
     margin-bottom: 5px;
     border-radius: 15px;
+    white-space: nowrap;
+    overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 1; /* Number of lines to show */
-    -webkit-box-orient: vertical;
+}
+
+.calendar-attendance .loader {
+    background-color: rgba(240, 241, 248, 0.6);
+    border-radius: 16px;
+}
+
+.dashboard-calendar-event-list {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.dashboard-calendar-event-item {
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.dashboard-calendar-event-time {
+    font-size: 12px;
+    color: #3b4653;
+    font-weight: 500;
+}
+
+.dashboard-calendar-event-title {
+    font-size: 14px;
+    color: #2a3440;
+    font-weight: 500;
+}
+
+.dashboard-calendar-event-description {
+    font-size: 12px;
+    color: #3f4958;
+    margin-top: 6px;
+}
+
+.dashboard-calendar-event-empty {
+    font-size: 13px;
+    color: #6b7686;
+    text-align: center;
+    padding: 20px 0;
+}
+
+.dashboard-calendar-month-event-list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.dashboard-calendar-month-event-item {
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.dashboard-calendar-month-event-item-date {
+    font-size: 12px;
+    color: #2d3744;
+    font-weight: 500;
+}
+
+.dashboard-calendar-month-event-item-time {
+    font-size: 12px;
+    color: #3f4958;
+}
+
+.dashboard-calendar-month-event-item-title {
+    font-size: 14px;
+    color: #2a3440;
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.dashboard-calendar-month-event-item-description {
+    font-size: 12px;
+    color: #465160;
+    margin-top: 4px;
 }
 
 .table-calendar tbody td.today .day{

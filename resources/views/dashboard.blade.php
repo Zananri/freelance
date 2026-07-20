@@ -24,13 +24,6 @@
                     {{-- Profile --}}
                     <div class="col-md-6 profile-calendar-card mb-5">
                         <div class="rounded-4 p-4 body-card h-100 position-relative">
-                            <div class="position-absolute top-0 end-0 p-3 d-flex align-items-center">
-                                <button class="btn btn-sm toggle-calendar calendar-toggle-btn">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size: 18px; color: #858CA0;">calendar_month</span>
-                                </button>
-                            </div>
-
                             <div class="profile-image-container">
 
                                 <input type="hidden" name="employee_id" value="{{ $employee->id }}">
@@ -200,6 +193,8 @@
                                                     class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
                                                 <span
                                                     class="material-symbols-outlined calendar-next-month">chevron_right</span>
+                                                <span
+                                                    class="material-symbols-outlined calendar-event-list ms-1">lists</span>
                                             </div>
                                         </div>
                                     </div>
@@ -231,6 +226,13 @@
                                                 @endfor
                                             </tbody>
                                         </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="loader position-absolute top-0 start-0 w-100 h-100 d-none">
+                                <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                                    <div class="spinner-border text-secondary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
                                     </div>
                                 </div>
                             </div>
@@ -398,6 +400,48 @@
 
 
     <x-slot name="body_end_slot">
+
+        <div class="modal fade" id="dashboardCalendarMonthModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 pb-1">
+                        <h5 class="modal-title fs-18 fw-light">
+                            <span class="dashboard-calendar-month"></span>
+                            <span class="dashboard-calendar-year"></span>
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-0">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="dashboardSearchMonthEvent" placeholder="Search events">
+                        </div>
+                        <div class="dashboard-calendar-month-event-list"></div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom border-0">
+                        <button type="button" class="btn btn-close-custom px-3" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="dashboardCalendarEventModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 pb-1">
+                        <h5 class="modal-title fs-18 fw-light">Events</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-0">
+                        <div class="dashboard-calendar-date fs-14 text-secondary mb-3"></div>
+                        <input type="hidden" id="dashboardCalendarDate">
+                        <div class="dashboard-calendar-event-list"></div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom border-0">
+                        <button type="button" class="btn btn-close-custom px-3" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Modal for Check In -->
         <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel"
@@ -966,7 +1010,6 @@
         <script src="{{ asset('asset/js/dashboard.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/dashboard_announcement.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/attendance_dashboard_new.js') }}?v={{ time() }}"></script>
-        <script src="{{ asset('asset/js/dashboard_announcement.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
 
     </x-slot>

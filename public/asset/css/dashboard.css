@@ -591,26 +591,13 @@
 
 @media (max-width: 768px) {
     .calendar-card-mobile {
-        display: none;
-        position: fixed;
-        inset: 0;
-        margin: auto;
-        top: 10%;
-        width: 90%;
-        background: #f0f1f8;
-        border-radius: 16px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-        /* transform: scale(0.8); */
-        opacity: 0;
-        transition: all 0.3s ease;
-        z-index: 1051;
-        overflow-y: auto;
-    }
-
-    .calendar-card-mobile.active {
-        display: block !important;
-        transform: scale(1);
+        display: block;
+        position: static;
+        width: 100%;
+        margin-bottom: 16px;
         opacity: 1;
+        z-index: 1;
+        overflow: visible;
     }
 
     .calendar-container {
@@ -624,24 +611,7 @@
     }
 
     .calendar-toggle-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .calendar-overlay {
         display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.4);
-        z-index: 1050;
-    }
-
-    .calendar-overlay.active {
-        display: block;
     }
 }
 
@@ -666,7 +636,7 @@
 
     .profile-calendar-card,
     .calendar-card-mobile {
-        margin-bottom: -20px;
+        margin-bottom: 12px;
     }
 
     .chevron-icon-attendance button {
@@ -674,9 +644,8 @@
     }
 
     .calendar-card-mobile {
-        bottom: 20%;
-        height: 60%;
-        max-height: 500px;
+        height: auto;
+        max-height: none;
     }
 }
 

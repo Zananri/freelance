@@ -1,4 +1,9 @@
 $(document).ready(function() {
+    if (window.__dashboardAnnouncementInitialized) {
+        return;
+    }
+    window.__dashboardAnnouncementInitialized = true;
+
     const mydocGridWrapper = document.getElementById('mydocGridWrapper');
     const mydocLoading = document.getElementById('mydocLoading');
     const mydocEmptyState = document.getElementById('mydocEmptyState');
@@ -38,7 +43,6 @@ $(document).ready(function() {
         const foldersArr = folders || [];
         const filesArr = files || [];
 
-        // Simple drill-down like dashboard_management widget (grid of folders)
         const folderCardsHtml = foldersArr.length
             ? foldersArr
                 .map(f => {
@@ -232,6 +236,10 @@ $(document).ready(function() {
                 attendanceChartInstance.data.datasets[0].data = chartData;
                 attendanceChartInstance.update();
             } else {
+                const existingChart = Chart.getChart(ctx);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
                 attendanceChartInstance = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
