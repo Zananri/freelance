@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Document;
 use App\Models\DocumentFolders;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class DocumentController extends Controller
 {
@@ -44,10 +45,13 @@ class DocumentController extends Controller
 
     public function getAllFolder(Request $request)
     {
-        $authUser = auth()->user();
+        $authUser = Auth::user();
         $employeeId = $authUser->employee->id;
         $currentEmployee = $authUser->employee;
         $userType = strtoupper((string) ($authUser->user_type ?? ''));
+        $departmentFilter = $request->input('filter_department');
+        $divisionFilter = $request->input('filter_division');
+        $jobFilter = $request->input('filter_job');
 
         $currentFolder = null;
 
@@ -55,28 +59,43 @@ class DocumentController extends Controller
             $currentFolder = DocumentFolders::find($request->parent_id);
         }
 
-        $query = DocumentFolders::query()->with('creator')->where('document_folders.parent_folder_id', $request->parent_id);
+        $query = DocumentFolders::query()
+            ->with('creator')
+            ->select('document_folders.*')
+            ->leftJoin('employees as doc_employees', 'doc_employees.id', '=', 'document_folders.employee_id')
+            ->where('document_folders.parent_folder_id', $request->parent_id);
 
-        $fileQuery = Document::query()->with('employee')->where('documents.folder_id', $request->parent_id);
+        $fileQuery = Document::query()
+            ->with('employee')
+            ->select('documents.*')
+            ->leftJoin('employees as doc_employees', 'doc_employees.id', '=', 'documents.employee_id')
+            ->where('documents.folder_id', $request->parent_id);
 
         // Access rules:
         // - SUPERADMIN: see all folders/files
         // - ADMINISTRATOR: see folders/files owned by employees in same department
         // - REGULAR: only own folders/files
         if ($userType === 'SUPERADMIN') {
-            // no extra where
+            if ($departmentFilter && $departmentFilter !== 'all') {
+                $query->where('doc_employees.department_id', $departmentFilter);
+                $fileQuery->where('doc_employees.department_id', $departmentFilter);
+            }
         } elseif ($userType === 'ADMINISTRATOR') {
-            // restrict by department
-            $query->leftJoin('employees', 'employees.id', '=', 'document_folders.employee_id')
-                ->select('document_folders.*')
-                ->where('employees.department_id', $currentEmployee->department_id);
-
-            $fileQuery->leftJoin('employees', 'employees.id', '=', 'documents.employee_id')
-                ->select('documents.*')
-                ->where('employees.department_id', $currentEmployee->department_id);
+            $query->where('doc_employees.department_id', $currentEmployee->department_id);
+            $fileQuery->where('doc_employees.department_id', $currentEmployee->department_id);
         } else {
             $query->where('document_folders.employee_id', $employeeId);
             $fileQuery->where('documents.employee_id', $employeeId);
+        }
+
+        if ($divisionFilter && $divisionFilter !== 'all') {
+            $query->where('doc_employees.division_id', $divisionFilter);
+            $fileQuery->where('doc_employees.division_id', $divisionFilter);
+        }
+
+        if ($jobFilter && $jobFilter !== 'all') {
+            $query->where('doc_employees.job_id', $jobFilter);
+            $fileQuery->where('doc_employees.job_id', $jobFilter);
         }
 
         if ($request->search) {
@@ -113,12 +132,11 @@ class DocumentController extends Controller
 
             case 'owner':
                 $query->leftJoin('users', 'users.id', '=', 'document_folders.created_by')
-                    ->leftJoin('employees', 'employees.id', '=', 'users.employee_id')
-                    ->select('document_folders.*')
-                    ->orderBy('employees.name', $direction);
-                $fileQuery->leftJoin('employees', 'employees.id', '=', 'documents.employee_id')
-                    ->select('documents.*')
-                    ->orderBy('employees.name', $direction);
+                    ->leftJoin('employees as owner_employees', 'owner_employees.id', '=', 'users.employee_id')
+                    ->orderBy('owner_employees.name', $direction);
+                $fileQuery->leftJoin('users', 'users.id', '=', 'documents.created_by')
+                    ->leftJoin('employees as owner_employees', 'owner_employees.id', '=', 'users.employee_id')
+                    ->orderBy('owner_employees.name', $direction);
                 break;
 
             case 'updated_at':
@@ -151,8 +169,8 @@ class DocumentController extends Controller
             'parent_folder_id' => 'nullable|exists:document_folders,id'
         ]);
 
-        $employeeId = auth()->user()->employee->id;
-        $userId = auth()->id();
+        $employeeId = Auth::user()->employee->id;
+        $userId = Auth::id();
 
         $folder = DocumentFolders::create([
             'employee_id'      => $employeeId,
@@ -176,8 +194,8 @@ class DocumentController extends Controller
             'files.*' => 'file|max:1048576',
         ]);
 
-        $employeeId = auth()->user()->employee->id;
-        $userId = auth()->id();
+        $employeeId = Auth::user()->employee->id;
+        $userId = Auth::id();
         $savedFiles = [];
         $uploadFolder = $request->folder_id ?? 'root';
         $destination = public_path("file/documents/{$uploadFolder}");
@@ -220,14 +238,14 @@ class DocumentController extends Controller
             'file_name' => 'required|max:255',
         ]);
 
-        $employeeId = auth()->user()->employee->id;
+        $userId = Auth::id();
 
         $document = Document::where('id', $request->file_id)
-            ->where('employee_id', $employeeId)
+            ->where('created_by', $userId)
             ->firstOrFail();
 
         $document->file_name = $request->file_name;
-        $document->updated_by = auth()->id();
+        $document->updated_by = Auth::id();
         $document->save();
 
         return response()->json([
@@ -239,10 +257,10 @@ class DocumentController extends Controller
 
     public function deleteFile($id)
     {
-        $employeeId = auth()->user()->employee->id;
+        $userId = Auth::id();
 
         $document = Document::where('id', $id)
-            ->where('employee_id', $employeeId)
+            ->where('created_by', $userId)
             ->firstOrFail();
 
         $filePath = public_path($document->file_path);
@@ -265,14 +283,14 @@ class DocumentController extends Controller
             'folder_name' => 'required|max:255',
         ]);
 
-        $employeeId = auth()->user()->employee->id;
+        $userId = Auth::id();
 
         $folder = DocumentFolders::where('id', $request->folder_id)
-            ->where('employee_id', $employeeId)
+            ->where('created_by', $userId)
             ->firstOrFail();
 
         $folder->folder_name = $request->folder_name;
-        $folder->updated_by = auth()->id();
+        $folder->updated_by = Auth::id();
         $folder->save();
 
         return response()->json([
@@ -284,10 +302,10 @@ class DocumentController extends Controller
 
     public function deleteFolder($id)
     {
-        $employeeId = auth()->user()->employee->id;
+        $userId = Auth::id();
 
         $folder = DocumentFolders::where('id', $id)
-            ->where('employee_id', $employeeId)
+            ->where('created_by', $userId)
             ->firstOrFail();
 
         $deleteIds = [$folder->id];
@@ -295,7 +313,7 @@ class DocumentController extends Controller
 
         while (!empty($currentIds)) {
             $children = DocumentFolders::whereIn('parent_folder_id', $currentIds)
-                ->where('employee_id', $employeeId)
+                ->where('created_by', $userId)
                 ->pluck('id')
                 ->toArray();
 

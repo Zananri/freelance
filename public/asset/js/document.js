@@ -21,12 +21,19 @@ const searchInput = document.getElementById("search_filter");
 const filterTypeSelect = document.getElementById("filter_type");
 const filterExtensionSelect = document.getElementById("filter_extension");
 const filterUpdatedSelect = document.getElementById("filter_updated");
+const filterDepartmentSelect = document.getElementById("filter_department");
+const filterSiteSelect = document.getElementById("filter_site");
+const filterJobSelect = document.getElementById("filter_job");
+const resetDocumentFiltersButton = document.getElementById("btnResetDocumentFilters");
 let currentFolder = null;
 let selectedFiles = [];
 let currentSearch = "";
 let currentFilterType = "all";
 let currentFilterExtension = "all";
 let currentFilterUpdated = "all";
+let currentFilterDepartment = "all";
+let currentFilterSite = "all";
+let currentFilterJob = "all";
 const currentSort = {
     field: "folder_name",
     direction: "asc",
@@ -34,6 +41,9 @@ const currentSort = {
 
 const currentUserEmployeeId = Number(document.querySelector('meta[name="current-employee-id"]')?.content || 0);
 const currentUserType = (document.querySelector('meta[name="current-user-type"]')?.content || '').toUpperCase();
+const currentUserRole = (document.querySelector('meta[name="current-user-role"]')?.content || '').toUpperCase();
+const currentUserDepartmentId = Number(document.querySelector('meta[name="current-employee-department-id"]')?.content || 0);
+const currentUserDepartmentName = document.querySelector('meta[name="current-employee-department-name"]')?.content || '';
 
 function formatBytes(bytes) {
     if (bytes === 0) {
@@ -53,8 +63,162 @@ function escapeHtml(text) {
         .replace(/'/g, "&#039;");
 }
 
-function renderTable(folders, files = []) {
+function canManageDocument(item) {
+    return Number(item?.created_by || 0) === Number(document.querySelector('meta[name="current-user-id"]')?.content || 0);
+}
+
+function populateSelectOptions($select, placeholder, items, labelResolver) {
+    if (!$select || !$select.length) {
+        return;
+    }
+
+    const options = [`<option value="all">${placeholder}</option>`];
+    (items || []).forEach((item) => {
+        options.push(`<option value="${item.id}">${escapeHtml(labelResolver(item))}</option>`);
+    });
+
+    $select.html(options.join(""));
+}
+
+function loadDepartmentFilters(selectedId = "all") {
+    if (!filterDepartmentSelect || currentUserType !== "SUPERADMIN") {
+        return $.Deferred().resolve().promise();
+    }
+
+    const $select = $(filterDepartmentSelect);
+    $select.html('<option value="all">Loading partners...</option>');
+
+    return $.ajax({
+        url: "/department/index",
+        type: "GET",
+        dataType: "json",
+    }).done(function (response) {
+        populateSelectOptions($select, "All Partners", response.data || [], (item) => item.name_department || item.name || "Untitled");
+        $select.val(selectedId);
+    }).fail(function () {
+        populateSelectOptions($select, "All Partners", [], () => "");
+    });
+}
+
+function loadSiteFilters(departmentId = "all", selectedId = "all") {
+    if (!filterSiteSelect) {
+        return $.Deferred().resolve().promise();
+    }
+
+    const $select = $(filterSiteSelect);
+    const $jobSelect = $(filterJobSelect);
+
+    $select.html('<option value="all">Loading sites...</option>');
+    $jobSelect.html('<option value="all">Select Job</option>');
+
+    if (!departmentId || departmentId === "all") {
+        populateSelectOptions($select, "All Sites", [], () => "");
+        populateSelectOptions($jobSelect, "All Jobs", [], () => "");
+        return $.Deferred().resolve().promise();
+    }
+
+    return $.ajax({
+        url: "/division/index",
+        type: "GET",
+        dataType: "json",
+        data: { department_id: departmentId },
+    }).done(function (response) {
+        populateSelectOptions($select, "All Sites", response.data || [], (item) => item.name_division || item.name || "Untitled");
+        $select.val(selectedId);
+    }).fail(function () {
+        populateSelectOptions($select, "All Sites", [], () => "");
+        populateSelectOptions($jobSelect, "All Jobs", [], () => "");
+    });
+}
+
+function loadJobFilters(divisionId = "all", selectedId = "all") {
+    if (!filterJobSelect) {
+        return $.Deferred().resolve().promise();
+    }
+
+    const $select = $(filterJobSelect);
+    $select.html('<option value="all">Loading jobs...</option>');
+
+    if (!divisionId || divisionId === "all") {
+        populateSelectOptions($select, "All Jobs", [], () => "");
+        return $.Deferred().resolve().promise();
+    }
+
+    return $.ajax({
+        url: "/job/index",
+        type: "GET",
+        dataType: "json",
+        data: { division_id: divisionId },
+    }).done(function (response) {
+        populateSelectOptions($select, "All Jobs", response.data || [], (item) => item.job_name || item.name || "Untitled");
+        $select.val(selectedId);
+    }).fail(function () {
+        populateSelectOptions($select, "All Jobs", [], () => "");
+    });
+}
+
+function renderCurrentFolderRow(folder) {
+    if (!folder) {
+        return "";
+    }
+
+    return `
+        <tr class="folder-row current-folder-row" data-id="${folder.id}" data-folder-name="${escapeHtml(folder.folder_name)}">
+            <td>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined me-1">folder_open</span>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span>${escapeHtml(folder.folder_name)}</span>
+                        <span class="current-folder-badge">Current Folder</span>
+                    </div>
+                </div>
+            </td>
+            <td>${folder.creator?.name || "Unknown"}</td>
+            <td>-</td>
+            <td>${formatDateWithSlash(folder.updated_at)}</td>
+            <td></td>
+        </tr>
+    `;
+}
+
+function renderCurrentFolderCard(folder) {
+    if (!folder) {
+        return "";
+    }
+
+    return `
+        <div class="grid-section current-folder-section">
+            <div class="section-title">Current Folder</div>
+            <div class="grid-items current-folder-items">
+                <div class="folder-wrapper folder-card current-folder-card" data-id="${folder.id}">
+                    <div class="folder-shadow-tab"></div>
+                    <div class="folder-shadow"></div>
+                    <div class="folder-tab"></div>
+                    <div class="folder-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <p class="folder-name mb-0">${escapeHtml(folder.folder_name)}</p>
+                                    <span class="current-folder-badge">Current Folder</span>
+                                </div>
+                                <p class="folder-role mb-0">${folder.creator?.name || "Unknown"}</p>
+                            </div>
+                        </div>
+                        <hr class="folder-divider">
+                        <div class="folder-footer">
+                            <div class="folder-avatar"></div>
+                            <span class="folder-items">Open to view children</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderTable(folders, files = [], currentFolderData = null) {
     let html = "";
+    html += renderCurrentFolderRow(currentFolderData);
     if (folders.length === 0 && files.length === 0) {
         tableBody.innerHTML = `
         <tr>
@@ -78,15 +242,15 @@ function renderTable(folders, files = []) {
                 <td>-</td>
                 <td>${formatDateWithSlash(folder.updated_at)}</td>
                 <td>
-                    <div class="dropdown">
+                    ${canManageDocument(folder) ? `<div class="dropdown">
                         <button class="btn btn-menu-folder px-3 py-2 dropdown-toggle no-caret" data-bs-toggle="dropdown">
                             <span class="material-symbols-outlined">more_vert</span>
                         </button>
                         <div class="dropdown-menu">
-                            ${Number(folder.employee_id) === currentUserEmployeeId ? `<div class="dropdown-item add-doc edit-folder"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
-                            <div class="dropdown-item add-doc delete-folder"><span class="material-symbols-outlined me-2">delete</span>Delete</div>` : ''}
+                            <div class="dropdown-item add-doc edit-folder"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
+                            <div class="dropdown-item add-doc delete-folder"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
                         </div>
-                    </div>
+                    </div>` : ''}
                 </td>
             </tr>
         `;
@@ -107,16 +271,16 @@ function renderTable(folders, files = []) {
                 <td>${formatBytes(file.file_size)}</td>
                 <td>${formatDateWithSlash(file.updated_at)}</td>
                 <td>
-                    <div class="dropdown">
+                    ${canManageDocument(file) ? `<div class="dropdown">
                         <button class="btn btn-menu-folder px-3 py-2 dropdown-toggle no-caret" data-bs-toggle="dropdown">
                             <span class="material-symbols-outlined">more_vert</span>
                         </button>
                         <div class="dropdown-menu">
-                            ${Number(file.employee?.id || file.employee_id) === currentUserEmployeeId ? `<div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
-                            <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>` : ''}
+                            <div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
+                            <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
                             <div class="dropdown-item add-doc download-file"><span class="material-symbols-outlined me-2">download</span>Download</div>
                         </div>
-                    </div>
+                    </div>` : ''}
                 </td>
             </tr>
         `;
@@ -124,9 +288,9 @@ function renderTable(folders, files = []) {
     tableBody.innerHTML = html;
 }
 
-function renderGrid(folders, files = []) {
+function renderGrid(folders, files = [], currentFolderData = null) {
     if (folders.length === 0 && files.length === 0) {
-        gridBody.innerHTML = `
+        gridBody.innerHTML = `${renderCurrentFolderCard(currentFolderData)}
             <div class="empty-folder">
                 <p>Nothing documents found</p>
             </div>
@@ -134,7 +298,7 @@ function renderGrid(folders, files = []) {
         return;
     }
 
-    let html = '';
+    let html = renderCurrentFolderCard(currentFolderData);
 
     if (folders.length > 0) {
         html += `
@@ -155,7 +319,7 @@ function renderGrid(folders, files = []) {
                                 <p class="folder-name mb-1">${folder.folder_name}</p>
                                 <p class="folder-role mb-0">${folder.creator?.name || "Unknown"}</p>
                             </div>
-                            <div class="folder-card-actions dropdown">
+                            ${canManageDocument(folder) ? `<div class="folder-card-actions dropdown">
                                 <button class="btn btn-menu-folder p-0 dropdown-toggle no-caret" data-bs-toggle="dropdown">
                                     <span class="material-symbols-outlined">more_vert</span>
                                 </button>
@@ -163,7 +327,7 @@ function renderGrid(folders, files = []) {
                                     <div class="dropdown-item add-doc edit-folder"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
                                     <div class="dropdown-item add-doc delete-folder"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
                                 </div>
-                            </div>
+                            </div>` : ''}
                         </div>
                         <hr class="folder-divider">
                         <div class="folder-footer">
@@ -213,16 +377,16 @@ function renderGrid(folders, files = []) {
                 <div class="file-card" data-file-id="${file.id}" data-file-name="${escapeHtml(file.file_name)}" data-file-url="${href}" data-file-type="${escapeHtml(file.file_type)}" data-file-updated="${file.updated_at}">
                     <div class="file-card-header d-flex justify-content-between align-items-start">
                         <span class="file-type-badge">${escapeHtml(file.file_type.split("/").pop() || fileExt.split('.').pop() || 'FILE').toUpperCase()}</span>
-                        <div class="dropdown">
+                        ${canManageDocument(file) ? `<div class="dropdown">
                             <button class="btn btn-menu-folder dropdown-toggle no-caret" data-bs-toggle="dropdown">
                                 <span class="material-symbols-outlined">more_vert</span>
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
-                                ${Number(file.employee?.id || file.employee_id) === currentUserEmployeeId ? `<div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
-                                <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>` : ''}
+                                <div class="dropdown-item add-doc edit-file"><span class="material-symbols-outlined me-2">border_color</span>Change Name</div>
+                                <div class="dropdown-item add-doc delete-file"><span class="material-symbols-outlined me-2">delete</span>Delete</div>
                                 <div class="dropdown-item add-doc download-file"><span class="material-symbols-outlined me-2">download</span>Download</div>
                             </div>
-                        </div>
+                        </div>` : ''}
                     </div>
                     <div class="file-preview">
                         <a href="${href}" target="_blank" class="file-preview-link">
@@ -336,8 +500,8 @@ function loadFolder(folderId = null) {
         .then((response) => response.json())
         .then((res) => {
             renderBreadcrumb(res.breadcrumb);
-            renderTable(res.folders, res.files);
-            renderGrid(res.folders, res.files);
+            renderTable(res.folders, res.files, res.current_folder);
+            renderGrid(res.folders, res.files, res.current_folder);
         })
         .catch(() => {
             showAlertMsg("Failed to load documents");
@@ -759,6 +923,43 @@ if (typeof jQuery !== "undefined") {
             }, 250),
         );
 
+        if (currentUserType === "SUPERADMIN") {
+            loadDepartmentFilters("all").then(function () {
+                loadSiteFilters("all", "all");
+                loadJobFilters("all", "all");
+            });
+        } else if (currentUserType === "ADMINISTRATOR") {
+            if (currentUserDepartmentId) {
+                loadSiteFilters(currentUserDepartmentId, "all").then(function () {
+                    loadJobFilters("all", "all");
+                });
+            }
+        }
+
+        $(filterDepartmentSelect).on("change", function () {
+            currentFilterDepartment = $(this).val() || "all";
+            currentFilterSite = "all";
+            currentFilterJob = "all";
+            loadSiteFilters(currentFilterDepartment, "all").then(function () {
+                loadJobFilters("all", "all").then(function () {
+                    loadFolder(currentFolder);
+                });
+            });
+        });
+
+        $(filterSiteSelect).on("change", function () {
+            currentFilterSite = $(this).val() || "all";
+            currentFilterJob = "all";
+            loadJobFilters(currentFilterSite, "all").then(function () {
+                loadFolder(currentFolder);
+            });
+        });
+
+        $(filterJobSelect).on("change", function () {
+            currentFilterJob = $(this).val() || "all";
+            loadFolder(currentFolder);
+        });
+
         $("#filter_type, #filter_extension, #filter_updated").on(
             "change",
             function () {
@@ -768,6 +969,43 @@ if (typeof jQuery !== "undefined") {
                 loadFolder(currentFolder);
             },
         );
+
+        if (resetDocumentFiltersButton) {
+            $(resetDocumentFiltersButton).on("click", function () {
+                currentFilterType = "all";
+                currentFilterExtension = "all";
+                currentFilterUpdated = "all";
+                currentFilterDepartment = "all";
+                currentFilterSite = "all";
+                currentFilterJob = "all";
+
+                $("#filter_type").val("all");
+                $("#filter_extension").val("all");
+                $("#filter_updated").val("all");
+
+                if (currentUserType === "SUPERADMIN") {
+                    loadDepartmentFilters("all").then(function () {
+                        loadSiteFilters("all", "all").then(function () {
+                            loadJobFilters("all", "all").then(function () {
+                                loadFolder(currentFolder);
+                            });
+                        });
+                    });
+                } else if (currentUserType === "ADMINISTRATOR") {
+                    if (currentUserDepartmentId) {
+                        loadSiteFilters(currentUserDepartmentId, "all").then(function () {
+                            loadJobFilters("all", "all").then(function () {
+                                loadFolder(currentFolder);
+                            });
+                        });
+                    } else {
+                        loadFolder(currentFolder);
+                    }
+                } else {
+                    loadFolder(currentFolder);
+                }
+            });
+        }
     });
 }
 
@@ -783,6 +1021,9 @@ window.addEventListener("DOMContentLoaded", function () {
     }
     if (filterUpdatedSelect) {
         currentFilterUpdated = filterUpdatedSelect.value || "all";
+    }
+    if (currentUserType === "ADMINISTRATOR") {
+        currentFilterDepartment = currentUserDepartmentId ? String(currentUserDepartmentId) : "all";
     }
     loadFolder();
     updateSortIcon();

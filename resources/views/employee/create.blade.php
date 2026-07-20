@@ -152,24 +152,24 @@
                             </div>
 
                             <div class="custom-form-employee">
-                                <label for="department_id" class="form-label">Department</label>
+                                <label for="department_id" class="form-label">Partner</label>
                                 <select id="department_id" name="department_id" class="form-select input-select"
                                     required>
-                                    <option value="" disabled selected>Select Department</option>
+                                    <option value="" disabled selected>Select Partner</option>
                                 </select>
                                 <div class="invalid-feedback">
-                                    Please select a department.
+                                    Please select a partner.
                                 </div>
                             </div>
 
                             <div class="custom-form-employee">
-                                <label for="division_id" class="form-label">Division</label>
+                                <label for="division_id" class="form-label">Site</label>
                                 <select id="division_id" name="division_id" class="form-select input-select"
                                     required>
-                                    <option value="" disabled selected>Select Division</option>
+                                    <option value="" disabled selected>Select Site</option>
                                 </select>
                                 <div class="invalid-feedback">
-                                    Please select a division.
+                                    Please select a site.
                                 </div>
                             </div>
 
@@ -189,7 +189,12 @@
 
                                     <option value="" disabled selected>Select Grade</option>
 
-                                    @foreach ($grades ?? [] as $grade)
+                                    @php
+                                        $gradeOptions = $grades ?? [];
+                                    @endphp
+
+                                    @foreach ($gradeOptions as $grade)
+                                        @php $grade = (object) $grade; @endphp
                                         <option value="{{ $grade->id }}">
                                             {{ $grade->title }}
                                         </option>
@@ -208,7 +213,12 @@
 
                                     <option value="" disabled selected>Select Office</option>
 
-                                    @foreach ($offices ?? [] as $office)
+                                    @php
+                                        $officeOptions = $offices ?? [];
+                                    @endphp
+
+                                    @foreach ($officeOptions as $office)
+                                        @php $office = (object) $office; @endphp
                                         <option value="{{ $office->id }}">
                                             {{ $office->name }}
                                         </option>

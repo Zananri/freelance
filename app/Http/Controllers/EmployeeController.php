@@ -14,6 +14,8 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
 use App\Models\Employee;
+use App\Models\Document;
+use App\Models\DocumentFolders;
 use App\Models\EmployeeSalary;
 use App\Models\User;
 use App\Models\Department;
@@ -54,6 +56,101 @@ class EmployeeController extends Controller
         $norm = str_replace('\\', '/', trim($path));
         $norm = ltrim($norm, '/');
         return $norm === 'asset/img/avatar.png';
+    }
+
+    private function normalizeDocumentFolderName(string $name): string
+    {
+        $normalized = preg_replace('/[^A-Za-z0-9_\-]/', '_', trim($name));
+        return $normalized ?: 'employee';
+    }
+
+    private function ensureDirectoryExists(string $path): void
+    {
+        if (!is_dir($path)) {
+            mkdir($path, 0777, true);
+        }
+    }
+
+    private function createEmployeeDocumentStructure(Employee $employee, array $documentSources): void
+    {
+        $userId = auth()->id();
+        $employeeFolderName = $this->normalizeDocumentFolderName($employee->name);
+        $employeeDirectory = public_path('file/documents/employee_' . $employee->id . '_' . $employeeFolderName);
+
+        $this->ensureDirectoryExists($employeeDirectory);
+
+        $rootFolder = DocumentFolders::create([
+            'employee_id' => $employee->id,
+            'parent_folder_id' => null,
+            'folder_name' => $employee->name,
+            'created_by' => $userId,
+            'updated_by' => $userId,
+        ]);
+
+        $folders = [
+            'pkwt' => DocumentFolders::create([
+                'employee_id' => $employee->id,
+                'parent_folder_id' => $rootFolder->id,
+                'folder_name' => 'PKWT',
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]),
+            'cv' => DocumentFolders::create([
+                'employee_id' => $employee->id,
+                'parent_folder_id' => $rootFolder->id,
+                'folder_name' => 'CV',
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]),
+            'others' => DocumentFolders::create([
+                'employee_id' => $employee->id,
+                'parent_folder_id' => $rootFolder->id,
+                'folder_name' => 'Dan Lainnya',
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]),
+        ];
+
+        foreach ([
+            'PKWT' => 'pkwt',
+            'CV' => 'cv',
+            'Dan_Lainnya' => 'others',
+        ] as $directoryName => $folderKey) {
+            $this->ensureDirectoryExists($employeeDirectory . DIRECTORY_SEPARATOR . $directoryName);
+        }
+
+        $folderMap = [
+            'photo' => ['folder' => $folders['others'], 'directory' => 'Dan_Lainnya'],
+            'ktp' => ['folder' => $folders['others'], 'directory' => 'Dan_Lainnya'],
+            'cv' => ['folder' => $folders['cv'], 'directory' => 'CV'],
+            'pkwt' => ['folder' => $folders['pkwt'], 'directory' => 'PKWT'],
+        ];
+
+        foreach ($documentSources as $key => $documentSource) {
+            if (empty($documentSource['source_path']) || !file_exists($documentSource['source_path'])) {
+                continue;
+            }
+
+            $mapping = $folderMap[$key] ?? $folderMap['ktp'];
+            $storedFilename = basename($documentSource['source_path']);
+            $relativePath = 'file/documents/employee_' . $employee->id . '_' . $employeeFolderName . '/' . $mapping['directory'] . '/' . $storedFilename;
+            $destinationPath = public_path($relativePath);
+
+            if (!file_exists($destinationPath)) {
+                copy($documentSource['source_path'], $destinationPath);
+            }
+
+            Document::create([
+                'employee_id' => $employee->id,
+                'folder_id' => $mapping['folder']->id,
+                'file_name' => $documentSource['original_name'] ?? $storedFilename,
+                'file_path' => $relativePath,
+                'file_type' => $documentSource['mime_type'] ?? 'application/octet-stream',
+                'file_size' => $documentSource['file_size'] ?? filesize($documentSource['source_path']),
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]);
+        }
     }
 
     public function showEmployeePage()
@@ -291,9 +388,13 @@ class EmployeeController extends Controller
             $cvPath = null;
             $pkwtPath = null;
             $profilePicturePath = null;
+            $documentSources = [];
 
             if ($request->hasFile('photo')) {
                 $file = $request->file('photo');
+                $photoOriginalName = $file->getClientOriginalName();
+                $photoMimeType = $file->getClientMimeType();
+                $photoFileSize = $file->getSize();
                 $photoFilename = 'PHOTO_' . time() . '.' . $file->getClientOriginalExtension();
                 $profilePictureFilename = 'PROFILE_PICTURE_' . time() . '.' . $file->getClientOriginalExtension();
                 $photoDestination = public_path('file/photo');
@@ -305,36 +406,69 @@ class EmployeeController extends Controller
                 // Copy photo file to profile_picture with different name
                 copy($photoDestination . '/' . $photoFilename, $profilePictureDestination . '/' . $profilePictureFilename);
                 $profilePicturePath = 'file/profile_picture/' . $profilePictureFilename;
+                $documentSources['photo'] = [
+                    'source_path' => $photoDestination . '/' . $photoFilename,
+                    'original_name' => $photoOriginalName,
+                    'mime_type' => $photoMimeType,
+                    'file_size' => $photoFileSize,
+                ];
             }
 
             if ($request->hasFile('ktp')) {
                 $file = $request->file('ktp');
+                $ktpOriginalName = $file->getClientOriginalName();
+                $ktpMimeType = $file->getClientMimeType();
+                $ktpFileSize = $file->getSize();
                 $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name);
                 $filename = 'KTP_' . $employeeName . '.' . $file->getClientOriginalExtension();
                 $destination = public_path('file/ktp');
                 if (!file_exists($destination)) mkdir($destination, 0777, true);
                 $file->move($destination, $filename);
                 $ktpPath = 'file/ktp/' . $filename;
+                $documentSources['ktp'] = [
+                    'source_path' => $destination . '/' . $filename,
+                    'original_name' => $ktpOriginalName,
+                    'mime_type' => $ktpMimeType,
+                    'file_size' => $ktpFileSize,
+                ];
             }
 
             if ($request->hasFile('cv')) {
                 $file = $request->file('cv');
+                $cvOriginalName = $file->getClientOriginalName();
+                $cvMimeType = $file->getClientMimeType();
+                $cvFileSize = $file->getSize();
                 $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name);
                 $filename = 'CV_' . $employeeName . '.' . $file->getClientOriginalExtension();
                 $destination = public_path('file/cv');
                 if (!file_exists($destination)) mkdir($destination, 0777, true);
                 $file->move($destination, $filename);
                 $cvPath = 'file/cv/' . $filename;
+                $documentSources['cv'] = [
+                    'source_path' => $destination . '/' . $filename,
+                    'original_name' => $cvOriginalName,
+                    'mime_type' => $cvMimeType,
+                    'file_size' => $cvFileSize,
+                ];
             }
 
             if ($request->hasFile('pkwt')) {
                 $file = $request->file('pkwt');
+                $pkwtOriginalName = $file->getClientOriginalName();
+                $pkwtMimeType = $file->getClientMimeType();
+                $pkwtFileSize = $file->getSize();
                 $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name);
                 $filename = 'PKWT_' . $employeeName . '.' . $file->getClientOriginalExtension();
                 $destination = public_path('file/pkwt');
                 if (!file_exists($destination)) mkdir($destination, 0777, true);
                 $file->move($destination, $filename);
                 $pkwtPath = 'file/pkwt/' . $filename;
+                $documentSources['pkwt'] = [
+                    'source_path' => $destination . '/' . $filename,
+                    'original_name' => $pkwtOriginalName,
+                    'mime_type' => $pkwtMimeType,
+                    'file_size' => $pkwtFileSize,
+                ];
             }
 
             $user = new User();
@@ -398,6 +532,8 @@ class EmployeeController extends Controller
                 ],
                 $salaryData
             );
+
+            $this->createEmployeeDocumentStructure($employee, $documentSources);
 
             DB::commit();
 

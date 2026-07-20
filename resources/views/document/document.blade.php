@@ -4,9 +4,18 @@
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/document.css') }}?v={{ date('YmdHi') }}" rel="stylesheet">
+        @php
+            $currentUser = auth()->user();
+            $currentEmployee = $currentUser?->employee;
+            $currentUserType = strtoupper($currentUser->user_type ?? '');
+            $currentUserRole = strtoupper($currentUser->user_role ?? '');
+        @endphp
         <meta name="current-user-id" content="{{ auth()->id() }}">
-        <meta name="current-user-type" content="{{ strtoupper(auth()->user()->user_type ?? '') }}">
-        <meta name="current-employee-id" content="{{ auth()->user()->employee->id ?? '' }}">
+        <meta name="current-user-type" content="{{ $currentUserType }}">
+        <meta name="current-user-role" content="{{ $currentUserRole }}">
+        <meta name="current-employee-id" content="{{ $currentEmployee?->id ?? '' }}">
+        <meta name="current-employee-department-id" content="{{ $currentEmployee?->department_id ?? '' }}">
+        <meta name="current-employee-department-name" content="{{ $currentEmployee?->department?->name_department ?? '' }}">
     </x-slot>
 
     <!-- SVG Symbols -->
@@ -51,42 +60,70 @@
                     <span class="material-symbols-outlined">filter_list</span>
                     <span class="ms-2">Filter</span>
                 </button>
-                <div class="dropdown-menu filter-dropdown p-3" style="min-width: 260px;">
-                    <div class="mb-3">
-                    
-                        <label class="form-label label-custom mb-1" for="filter_type">Item Type</label>
-                        <select id="filter_type" class="form-select form-select-sm border-0">
-                            <option value="all">All</option>
-                            <option value="folder">Folder</option>
-                            <option value="file">File</option>
-                        </select>
+                <div class="dropdown-menu filter-dropdown filter-dropdown-panel p-3">
+                    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                        <div>
+                            <div class="filter-panel-title">Quick Filters</div>
+                            <div class="filter-panel-subtitle">Refine documents without leaving the page</div>
+                        </div>
+                        <button type="button" class="btn btn-link p-0 filter-reset-btn" id="btnResetDocumentFilters">Reset</button>
                     </div>
-                    <div class="mb-3">
-                    
-                        <label class="form-label label-custom mb-1" for="filter_extension">File Type</label>
-                        <select id="filter_extension" class="form-select form-select-sm border-0">
-                            <option value="all">All</option>
-                            <option value="pdf">PDF</option>
-                            <option value="doc">DOC</option>
-                            <option value="docx">DOCX</option>
-                            <option value="xls">XLS</option>
-                            <option value="xlsx">XLSX</option>
-                            <option value="mp3">MP3</option>
-                            <option value="mp4">MP4</option>
-                            <option value="png">PNG</option>
-                            <option value="jpg">JPG</option>
-                            <option value="jpeg">JPEG</option>
-                        </select>
+                    <div class="filter-section mb-3">
+                        <div class="filter-section-title">Access</div>
+                        @if ($currentUserType === 'SUPERADMIN')
+                            <div class="mb-2">
+                                <label class="form-label label-custom mb-1" for="filter_department">Partner</label>
+                                <select id="filter_department" class="form-select form-select-sm border-0"></select>
+                            </div>
+                        @elseif ($currentUserType === 'ADMINISTRATOR')
+                            <div class="filter-fixed-chip mb-2">
+                                Partner: {{ $currentEmployee?->department?->name_department ?? 'No Partner' }}
+                            </div>
+                        @endif
+                        <div class="mb-2">
+                            <label class="form-label label-custom mb-1" for="filter_site">Site</label>
+                            <select id="filter_site" class="form-select form-select-sm border-0"></select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label label-custom mb-1" for="filter_job">Job</label>
+                            <select id="filter_job" class="form-select form-select-sm border-0"></select>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                    
-                        <label class="form-label label-custom label-custom mb-1" for="filter_updated">Last Update</label>
-                        <select id="filter_updated" class="form-select form-select-sm border-0">
-                            <option value="all">All</option>
-                            <option value="7">Last 7 days</option>
-                            <option value="30">Last 30 days</option>
-                            <option value="365">Last year</option>
-                        </select>
+                    <div class="filter-section">
+                        <div class="filter-section-title">Content</div>
+                        <div class="mb-2">
+                            <label class="form-label label-custom mb-1" for="filter_type">Item Type</label>
+                            <select id="filter_type" class="form-select form-select-sm border-0">
+                                <option value="all">All</option>
+                                <option value="folder">Folder</option>
+                                <option value="file">File</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label label-custom mb-1" for="filter_extension">File Type</label>
+                            <select id="filter_extension" class="form-select form-select-sm border-0">
+                                <option value="all">All</option>
+                                <option value="pdf">PDF</option>
+                                <option value="doc">DOC</option>
+                                <option value="docx">DOCX</option>
+                                <option value="xls">XLS</option>
+                                <option value="xlsx">XLSX</option>
+                                <option value="mp3">MP3</option>
+                                <option value="mp4">MP4</option>
+                                <option value="png">PNG</option>
+                                <option value="jpg">JPG</option>
+                                <option value="jpeg">JPEG</option>
+                            </select>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label label-custom mb-1" for="filter_updated">Last Update</label>
+                            <select id="filter_updated" class="form-select form-select-sm border-0">
+                                <option value="all">All</option>
+                                <option value="7">Last 7 days</option>
+                                <option value="30">Last 30 days</option>
+                                <option value="365">Last year</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>

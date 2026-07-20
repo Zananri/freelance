@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function () {
             dataType: "json",
             success: function (data) {
                 let options =
-                    '<option value="" disabled selected>Select Department</option>';
+                    '<option value="" disabled selected>Select Partner</option>';
                 (data.data || []).forEach((dept) => {
                     options += `<option value="${dept.id}">${
                         dept.name_department || dept.name
@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 departmentSelect.innerHTML = options;
             },
             error: function () {
-                showFloatingAlert("Failed to load departments.", "warning", 3000);
+                showFloatingAlert("Failed to load partners.", "warning", 3000);
             },
         });
     }
@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", function () {
             dataType: "json",
             success: function (data) {
                 let options =
-                    '<option value="" disabled selected>Select Division</option>';
+                    '<option value="" disabled selected>Select Site</option>';
                 (data.data || []).forEach((div) => {
                     options += `<option value="${div.id}">${
                         div.name_division || div.name
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<option value="" disabled selected>Select Job</option>';
             },
             error: function () {
-                showFloatingAlert("Failed to load divisions.", "warning", 3000);
+                showFloatingAlert("Failed to load sites.", "warning", 3000);
             },
         });
     }
@@ -120,7 +120,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 loadDivisions(deptId);
             } else {
                 divisionSelect.innerHTML =
-                    '<option value="" disabled selected>Select Division</option>';
+                    '<option value="" disabled selected>Select Site</option>';
                 jobSelect.innerHTML =
                     '<option value="" disabled selected>Select Job</option>';
             }
