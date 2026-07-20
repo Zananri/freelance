@@ -39,8 +39,8 @@
                                 aria-label="Select filter type">
                                 <option value="" disabled selected>Select Filter Option</option>
                                 <option value="status">Filter by Status</option>
-                                <option value="department">Filter by Department</option>
-                                <option value="division">Filter by Division</option>
+                                <option value="department">Filter by Partner</option>
+                                <option value="division">Filter by Site</option>
                             </select>
                         </li>
                         <li id="statusFilterOptions" class="d-none">
@@ -49,10 +49,10 @@
                             <a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a>
                         </li>
                         <li id="departmentFilterOptions" class="d-none">
-                            <span class="dropdown-item text-muted">Loading departments...</span>
+                            <span class="dropdown-item text-muted">Loading partners...</span>
                         </li>
                         <li id="divisionFilterOptions" class="d-none">
-                            <span class="dropdown-item text-muted">Loading divisions...</span>
+                            <span class="dropdown-item text-muted">Loading sites...</span>
                         </li>
                     </ul>
                 </div>
@@ -70,8 +70,8 @@
                     <thead>
                         <tr>
                             <th>Job Name</th>
-                            <th>Department</th>
-                            <th>Division</th>
+                            <th>Partner</th>
+                            <th>Site</th>
                             <th>Status</th>
                             <th style="text-align: right;"></th>
                         </tr>
@@ -98,12 +98,12 @@
                 </div>
                 <form id="addJobForm" class="form-custom needs-validation" novalidate>
                     <div class="mb-3 mt-4 custom-input">
-                        <label for="department_id" class="form-label label-custom">Department</label>
+                        <label for="department_id" class="form-label label-custom">Partner</label>
                         <select id="department_id" name="department_id" class="form-select input-select"
                             required></select>
                     </div>
                     <div class="mb-3 custom-input">
-                        <label for="division_id" class="form-label label-custom">Division</label>
+                        <label for="division_id" class="form-label label-custom">Site</label>
                         <select id="division_id" name="division_id" class="form-select input-select"
                             required></select>
                     </div>
@@ -148,12 +148,12 @@
                 <form id="editJobForm" class="form-custom needs-validation" novalidate>
                     <input type="hidden" id="edit_job_id" name="edit_job_id">
                     <div class="mb-3 mt-4 custom-input">
-                        <label for="edit_department_id" class="form-label label-custom">Department</label>
+                        <label for="edit_department_id" class="form-label label-custom">Partner</label>
                         <select id="edit_department_id" name="edit_department_id" class="form-select input-select"
                             required></select>
                     </div>
                     <div class="mb-3 custom-input">
-                        <label for="edit_division_id" class="form-label label-custom">Division</label>
+                        <label for="edit_division_id" class="form-label label-custom">Site</label>
                         <select id="edit_division_id" name="edit_division_id" class="form-select input-select"
                             required></select>
                     </div>

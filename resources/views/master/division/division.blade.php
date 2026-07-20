@@ -16,12 +16,12 @@
                 </a>
             </div>
         </div>
-        <h2 class="m-0">Division</h2>
+        <h2 class="m-0">Site</h2>
     </div>
 
     <div class="body-content scrollable-container rounded-4 px-3 py-3" style="margin-top: 20px; width: 100%;">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="mb-0 table-title">List Division</h5>
+            <h5 class="mb-0 table-title">List Site</h5>
 
             <div class="d-flex gap-1" style="margin-left: -5px;">
                 <div class="input-group search-input-container">
@@ -38,7 +38,7 @@
                                 aria-label="Select filter type">
                                 <option value="" disabled selected>Select Filter Option</option>
                                 <option value="status">Filter by Status</option>
-                                <option value="department">Filter by Department</option>
+                                <option value="department">Filter by Partner</option>
                             </select>
                         </li>
                         <li id="statusFilterOptions" class="d-none">
@@ -47,7 +47,7 @@
                             <a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a>
                         </li>
                         <li id="departmentFilterOptions" class="d-none">
-                            <span class="dropdown-item text-muted">Loading departments...</span>
+                            <span class="dropdown-item text-muted">Loading partners...</span>
                         </li>
                     </ul>
                 </div>
@@ -66,8 +66,8 @@
                     <thead>
                         <tr>
                             <th scope="col"></th>
-                            <th scope="col">Division Name</th>
-                            <th scope="col">Department Name</th>
+                            <th scope="col">Site Name</th>
+                            <th scope="col">Partner Name</th>
                             <th scope="col">Status</th>
                             <th scope="col"></th>
                         </tr>
@@ -90,28 +90,28 @@
                     <div class="loader-spinner"></div>
                 </div>
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="addDivisionModalLabel">Add Division</h5>
+                    <h5 class="modal-title modal-title-custom" id="addDivisionModalLabel">Add Site</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="addDivisionForm" class="form-custom needs-validation" novalidate
                     enctype="multipart/form-data">
                     <div class="modal-body modal-body-custom">
                         <div class="mb-3 mt-4 custom-input">
-                            <label for="department_id" class="form-label label-custom">Department</label>
+                            <label for="department_id" class="form-label label-custom">Partner</label>
                             <select class="form-select input-select" id="department_id" name="department_id"
                                 required>
-                                <option value="" disabled selected>Select Department</option>
+                                <option value="" disabled selected>Select Partner</option>
                             </select>
                             <div class="invalid-feedback">
-                                Please select a department.
+                                Please select a partner.
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="name_division" class="form-label label-custom">Division Name</label>
+                            <label for="name_division" class="form-label label-custom">Site Name</label>
                             <input type="text" class="form-control input-text" id="name_division"
-                                name="name_division" placeholder="Input Division Name" required>
+                                name="name_division" placeholder="Input Site Name" required>
                             <div class="invalid-feedback">
-                                Please enter the division name.
+                                Please enter the site name.
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
@@ -166,7 +166,7 @@
                     <div class="loader-spinner"></div>
                 </div>
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="editDivisionModalLabel">Edit Division</h5>
+                    <h5 class="modal-title modal-title-custom" id="editDivisionModalLabel">Edit Site</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="editDivisionForm" class="form-custom needs-validation" novalidate
@@ -174,21 +174,21 @@
                     <div class="modal-body modal-body-custom">
                         <input type="hidden" id="edit_division_id" name="division_id">
                         <div class="mb-3 mt-4 custom-input">
-                            <label for="edit_department_id" class="form-label label-custom">Department</label>
+                            <label for="edit_department_id" class="form-label label-custom">Partner</label>
                             <select class="form-select input-select" id="edit_department_id" name="department_id"
                                 required>
-                                <option value="" disabled selected>Select Department</option>
+                                <option value="" disabled selected>Select Partner</option>
                             </select>
                             <div class="invalid-feedback">
-                                Please select a department.
+                                Please select a partner.
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="edit_name_division" class="form-label label-custom">Division Name</label>
+                            <label for="edit_name_division" class="form-label label-custom">Site Name</label>
                             <input type="text" class="form-control input-text" id="edit_name_division"
-                                name="name_division" placeholder="Input Division Name" required>
+                                name="name_division" placeholder="Input Site Name" required>
                             <div class="invalid-feedback">
-                                Please enter the division name.
+                                Please enter the site name.
                             </div>
                         </div>
                         <div class="mb-3 custom-input">

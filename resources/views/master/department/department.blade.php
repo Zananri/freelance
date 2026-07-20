@@ -16,12 +16,12 @@
                 </a>
             </div>
         </div>
-        <h2 class="m-0">Department</h2>
+        <h2 class="m-0">Partner</h2>
     </div>
 
     <div class="body-content scrollable-container rounded-4 px-3 py-3" style="margin-top: 20px; width: 100%;">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="mb-0 table-title">List Department</h5>
+            <h5 class="mb-0 table-title">List Partner</h5>
 
             <div class="d-flex gap-1">
                 <div class="input-group search-input-container">
@@ -53,7 +53,7 @@
                     <thead>
                         <tr>
                             <th scope="col"></th>
-                            <th scope="col">Department Name</th>
+                            <th scope="col">Partner Name</th>
                             <th scope="col">Status</th>
                             <th scope="col"></th>
                         </tr>
@@ -67,7 +67,7 @@
     </div>
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>
 
-    <!-- Add Department Modal -->
+    <!-- Add Partner Modal -->
     <div class="modal fade" id="addDepartmentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
         aria-labelledby="addDepartmentModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -76,7 +76,7 @@
                     <div class="loader-spinner"></div>
                 </div>
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="addDepartmentModalLabel">Add Department</h5>
+                    <h5 class="modal-title modal-title-custom" id="addDepartmentModalLabel">Add Partner</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="addDepartmentForm" class="form-custom needs-validation" novalidate
@@ -85,9 +85,9 @@
                         <div class="mb-3 mt-4 custom-input">
                             <label for="name_department" class="form-label label-custom">Name</label>
                             <input type="text" class="form-control input-text" id="name_department"
-                                name="name_department" placeholder="Input Department Name" required>
+                                name="name_department" placeholder="Input Partner Name" required>
                             <div class="invalid-feedback">
-                                Please enter the department name.
+                                Please enter the partner name.
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
@@ -133,7 +133,7 @@
         </div>
     </div>
 
-    <!-- Edit Department Modal -->
+    <!-- Edit Partner Modal -->
     <div class="modal fade" id="editDepartmentModal" data-bs-backdrop="static" data-bs-keyboard="false"
         tabindex="-1" aria-labelledby="editDepartmentModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -142,7 +142,7 @@
                     <div class="loader-spinner"></div>
                 </div>
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="editDepartmentModalLabel">Edit Department</h5>
+                    <h5 class="modal-title modal-title-custom" id="editDepartmentModalLabel">Edit Partner</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="editDepartmentForm" class="form-custom needs-validation" novalidate
@@ -151,9 +151,9 @@
                         <div class="mb-3 mt-4 custom-input">
                             <label for="edit_name_department" class="form-label label-custom">Name</label>
                             <input type="text" class="form-control input-text" id="edit_name_department"
-                                name="name_department" placeholder="Input Department Name" required>
+                                name="name_department" placeholder="Input Partner Name" required>
                             <div class="invalid-feedback">
-                                Please enter the department name.
+                                Please enter the partner name.
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
@@ -202,7 +202,7 @@
         </div>
     </div>
 
-    <!-- Delete Department Modal -->
+    <!-- Delete Partner Modal -->
     <div class="modal fade" id="deleteDepartmentModal" data-bs-backdrop="static" data-bs-keyboard="false"
         tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -211,7 +211,7 @@
                     <div class="loader-spinner"></div>
                 </div>
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom mb-3" id="deleteDepartmentModalLabel">Delete Department
+                    <h5 class="modal-title modal-title-custom mb-3" id="deleteDepartmentModalLabel">Delete Partner
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>

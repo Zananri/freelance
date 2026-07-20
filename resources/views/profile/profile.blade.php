@@ -168,18 +168,18 @@
                                 <span class="material-symbols-outlined">work</span>
                             </div>
                             <div>
-                                <p class="label">Department & Division</p>
+                                <p class="label">Partner & Site</p>
                                 <div class="value">
                                     @if ($employee && $employee->department)
                                         {{ $employee->department->name_department }}
                                     @else
-                                        <span style="color:red;">Department not assigned</span>
+                                        <span style="color:red;">Partner not assigned</span>
                                     @endif
                                     <span>/</span>
                                     @if ($employee && $employee->division)
                                         {{ $employee->division->name_division }}
                                     @else
-                                        <span style="color:red;">Division not assigned</span>
+                                        <span style="color:red;">Site not assigned</span>
                                     @endif
                                 </div>
 

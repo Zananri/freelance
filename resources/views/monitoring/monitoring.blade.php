@@ -39,16 +39,16 @@
         <!-- LEFT PANEL -->
         <div class="monitoring-sidebar">
 
-            <!-- Division -->
+            <!-- Site -->
             <div class="card monitoring-card">
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="mb-0 fw-semibold">
-                        Division List
+                        Site List
                     </h6>
 
                     <select class="form-select form-select-sm division-filter">
-                        <option value="all">All Division</option>
+                        <option value="all">All Site</option>
                     </select>
                 </div>
 

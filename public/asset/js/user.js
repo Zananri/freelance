@@ -122,7 +122,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (user.employee && user.employee.division) {
                     $("#detailEmployeeDivision").text(user.employee.division.name_division);
                 } else {
-                    $("#detailEmployeeDivision").text("No Division");
+                    $("#detailEmployeeDivision").text("No Site");
                 }
 
                 userDetailModal.show();

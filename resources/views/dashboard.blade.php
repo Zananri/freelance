@@ -364,9 +364,9 @@
                                     </div>
                                 </div>
                                 <div class="mb-2 input-custom">
-                                    <label class="form-label label-custom">Division</label>
+                                    <label class="form-label label-custom">Site</label>
                                     <select class="form-select input-text border-0">
-                                        <option value="">All Divisions</option>
+                                        <option value="">All Sites</option>
                                     </select>
                                 </div>
                                 <div class="modal-footer modal-footer-custom">
