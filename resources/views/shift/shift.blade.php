@@ -494,10 +494,10 @@
 
                                 <div class="d-flex gap-2 mb-3">
 
-                                    <input type="text" class="form-control border-0" placeholder="Add checkpoint"
+                                    <input type="text" class="form-control border-0 addCheckpointInput" placeholder="Add checkpoint"
                                         readonly>
 
-                                    <button type="button" class="btn btn-light px-3" id="addCheckpointBtn">
+                                    <button type="button" class="btn btn-light px-3 addCheckpointBtn">
 
                                         <span class="material-symbols-outlined">
                                             add
@@ -595,10 +595,10 @@
 
                                 <div class="d-flex gap-2 mb-3">
 
-                                    <input type="text" class="form-control border-0" placeholder="Add checkpoint"
+                                    <input type="text" class="form-control border-0 addCheckpointInput" placeholder="Add checkpoint"
                                         readonly>
 
-                                    <button type="button" class="btn btn-light px-3" id="addCheckpointBtn">
+                                    <button type="button" class="btn btn-light px-3 addCheckpointBtn">
 
                                         <span class="material-symbols-outlined">
                                             add

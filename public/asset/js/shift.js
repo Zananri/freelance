@@ -1383,11 +1383,10 @@ async function saveNewShift(formId = "addShiftForm") {
 
 let checkpointIndex = 0;
 
-$("#addCheckpointBtn").on("click", function () {
-
+function addCheckpoint($modalBody) {
     checkpointIndex++;
 
-    $("#checkpointContainer").append(`
+    $modalBody.find(".checkpoint-wrapper").append(`
         <div class="row align-items-center mb-2 checkpoint-item">
 
             <div class="col-3">
@@ -1417,7 +1416,15 @@ $("#addCheckpointBtn").on("click", function () {
 
         </div>
     `);
+}
 
+$(document).on("click", ".modal-body input[placeholder='Add checkpoint'], .modal-body button:has(.material-symbols-outlined:contains('add'))", function () {
+    const $modalBody = $(this).closest(".modal-body");
+    addCheckpoint($modalBody);
+});
+
+$(document).on("click", ".removeCheckpoint", function () {
+    $(this).closest(".checkpoint-item").remove();
 });
 
 $(document).on("click", ".removeCheckpoint", function () {
