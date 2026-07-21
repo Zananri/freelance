@@ -163,10 +163,10 @@
                             </div>
 
                             <div class="custom-form-employee">
-                                <label for="department_id" class="form-label">Department Name</label>
+                                <label for="department_id" class="form-label">Partner Name</label>
                                 <select id="department_id" name="department_id" class="form-select input-select"
                                     required data-current="{{ $employee->department_id }}" data-current-dept="{{ $employee->department_id }}">
-                                    <option value="" disabled>Select Department</option>
+                                    <option value="" disabled>Select Partner</option>
                                     @foreach ($departments as $department)
                                         <option value="{{ $department->id }}"
                                             {{ $employee->department_id == $department->id ? 'selected' : '' }}>
@@ -175,14 +175,14 @@
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback">
-                                    Please select a department.
+                                    Please select a partner.
                                 </div>
                             </div>
                             <div class="custom-form-employee">
-                                <label for="division_id" class="form-label">Division Name</label>
+                                <label for="division_id" class="form-label">Site Name</label>
                                 <select id="division_id" name="division_id" class="form-select input-select" required
                                     data-current="{{ $employee->division_id }}">
-                                    <option value="" disabled>Select Division</option>
+                                    <option value="" disabled>Select Site</option>
                                     @foreach ($divisions as $division)
                                         <option value="{{ $division->id }}"
                                             {{ $employee->division_id == $division->id ? 'selected' : '' }}>
@@ -191,7 +191,7 @@
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback">
-                                    Please select a division.
+                                    Please select a site.
                                 </div>
                             </div>
                             <div class="custom-form-employee">

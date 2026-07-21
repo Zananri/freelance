@@ -37,7 +37,7 @@
                         </select>
 
                         <select class="form-select form-select-sm widget-filter border-0" id="widgetDivisionFilter">
-                            <option value="all">All Division</option>
+                            <option value="all">All Site</option>
                             @foreach ($widget_divisions as $division)
                                 <option value="{{ $division->id }}" data-department-id="{{ $division->department_id }}">
                                     {{ $division->name_division }}

@@ -71,7 +71,7 @@
                                                     <li class="dropdown-item department-item"
                                                         data-department-id="0"
                                                         data-department-name="All Department">
-                                                        <div class="dropdown-item fs-14">All Department</div>
+                                                        <div class="dropdown-item fs-14">All Partner</div>
                                                     </li>
                                                 @endif
 
@@ -94,14 +94,14 @@
                                             <div class="dropdown-toggle btn btn-dropdown-table ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                 
                                                 <div class="d-inline-flex align-items-center">
-                                                    <span class="title-dropdown">All Division</span>
+                                                    <span class="title-dropdown">All Site</span>
                                                 </div>
 
                                             </div>
 
                                             <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
                                                 <li data-department-id="0" data-division-id="0" data-division-name="All Division" class="dropdown-item division-item fs-14">
-                                                    <div class="dropdown-item fs-14">All Division</div>
+                                                    <div class="dropdown-item fs-14">All Site</div>
                                                 </li>
                                                 @foreach ($division as $itemDivision)
                                                     <li data-department-id="{{ $itemDivision->department_id }}" data-division-id="{{ $itemDivision->id }}" data-division-name="{{ $itemDivision->name_division }}" class="dropdown-item division-item fs-14">
@@ -403,7 +403,7 @@
                                     <div class="mb-2">
                                         <div class="d-flex justify-content-between align-items-center w-100">
                                             <div>
-                                                <div class="fs-14 text-secondary fw-normal">Division</div>
+                                                <div class="fs-14 text-secondary fw-normal">Site</div>
                                             </div>
                                             <div>
                                                 <div class="employee-division fs-14 fw-normal"></div>
@@ -717,7 +717,7 @@
                                     <div class="mb-2">
                                         <div class="d-flex justify-content-between align-items-center w-100">
                                             <div>
-                                                <div class="fs-14 text-secondary fw-normal">Division</div>
+                                                <div class="fs-14 text-secondary fw-normal">Site</div>
                                             </div>
                                             <div>
                                                 <div class="employee-division fs-14 fw-normal"></div>
@@ -827,7 +827,7 @@
                                     <div class="mb-2">
                                         <div class="d-flex justify-content-between align-items-center w-100">
                                             <div>
-                                                <div class="fs-14 text-secondary fw-normal">Division</div>
+                                                <div class="fs-14 text-secondary fw-normal">Site</div>
                                             </div>
                                             <div>
                                                 <div class="employee-division fs-14 fw-normal"></div>

@@ -504,14 +504,14 @@
                         <tr>
                             <td style="width: 24%">ID Karyawan</td>
                             <td style="width: 24%">: {{$employee->employee_niks}}</td>
-                            <td style="width: 24%">Department</td>
+                            <td style="width: 24%">Partner</td>
                             <td style="width: 24%">: {{$employee->division->name_division}}</td>
                         </tr>
 
                         <tr>
                             <td>Nama Karyawan</td>
                             <td>: {{$employee->name}}</td>
-                            <td>Divisi</td>
+                            <td>Site</td>
                             <td>: {{$employee->job->job_name}}</td>
                         </tr>
 

@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function (response) {
                 const data = response.data || response;
                 filterDepartmentSelect.innerHTML =
-                    '<option value="">Department</option>';
+                    '<option value="">Partner</option>';
                 data.forEach((dept) => {
                     const option = document.createElement("option");
                     option.value = dept.id;
@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     filterDepartmentSelect.appendChild(option);
                 });
                 filterDivisionSelect.innerHTML =
-                    '<option value="">Division</option>';
+                    '<option value="">Site</option>';
                 filterDivisionSelect.disabled = true;
                 filterJobSelect.innerHTML =
                     '<option value="">Job</option>';
@@ -263,7 +263,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     <td>${workingPeriod}</td>
                     <td>${departmentName}</td>
                     <td>${divisionName}</td>
-                    <td>${office}</td>
+                    <td>
+                        <div class="office-text">${office}</div>
+                    </td>
                     <td><span class="status-badge ${statusClass}">${status}</span></td>
                     <td class="text-end">
                         <button class="btn-icon-toggle btn-detail" data-id="${employee.id}" title="Detail">

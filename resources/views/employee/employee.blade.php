@@ -53,24 +53,24 @@
                                     <option value="hire_date_oldest">Hire Date (Oldest)</option>
                                     <option value="contract_date_newest">Contract Date (Newest)</option>
                                     <option value="contract_date_oldest">Contract Date (Oldest)</option>
-                                    <option value="department_asc">Department (A-Z)</option>
-                                    <option value="department_desc">Department (Z-A)</option>
-                                    <option value="division_asc">Division (A-Z)</option>
-                                    <option value="division_desc">Division (Z-A)</option>
+                                    <option value="department_asc">Partner (A-Z)</option>
+                                    <option value="department_desc">Partner (Z-A)</option>
+                                    <option value="division_asc">Site (A-Z)</option>
+                                    <option value="division_desc">Site (Z-A)</option>
                                 </select>
                             </div>
 
                             <div class="mb-3 custom-input">
-                                <label for="filterDepartment" class="form-label small">Department</label>
+                                <label for="filterDepartment" class="form-label small">Partner</label>
                                 <select id="filterDepartment" class="form-select form-select-sm">
-                                    <option value="">Select Department</option>
+                                    <option value="">Select Partner</option>
                                 </select>
                             </div>
 
                             <div class="mb-3 custom-input">
-                                <label for="filterDivision" class="form-label small">Division</label>
+                                <label for="filterDivision" class="form-label small">Site</label>
                                 <select id="filterDivision" class="form-select form-select-sm" disabled>
-                                    <option value="">Select Division</option>
+                                    <option value="">Select Site</option>
                                 </select>
                             </div>
                             <div class="mb-3 custom-input">
@@ -105,8 +105,8 @@
                             <th scope="col" style="text-align: left;">Hire Date</th>
                             <th scope="col" style="text-align: left;">Contract Date</th>
                             <th scope="col" style="text-align: left;">Working Period</th>
-                            <th scope="col" style="text-align: left;">Department Name</th>
-                            <th scope="col" style="text-align: left;">Division Name</th>
+                            <th scope="col" style="text-align: left;">Partner Name</th>
+                            <th scope="col" style="text-align: left;">Site Name</th>
                             <th scope="col" style="text-align: left;">Office</th>
                             <th scope="col" style="text-align: center;">Status</th>
                             <th scope="col" style="text-align: right;"></th>
@@ -136,8 +136,8 @@
                     <h5 id="deleteEmployeeName" class="fw-semibold"></h5>
                     <div id="deleteEmployeeEmail" class="text-muted small mb-3"></div>
                     <div class="text-start mx-4">
-                        <p class="mb-1"><strong>Department:</strong> <span id="deleteEmployeeDepartment"></span></p>
-                        <p class="mb-1"><strong>Division:</strong> <span id="deleteEmployeeDivision"></span></p>
+                        <p class="mb-1"><strong>Partner:</strong> <span id="deleteEmployeeDepartment"></span></p>
+                        <p class="mb-1"><strong>Site:</strong> <span id="deleteEmployeeDivision"></span></p>
                         <p class="mb-1"><strong>Office:</strong> <span id="deleteEmployeeOffice"></span></p>
                         <p class="mb-1"><strong>Status:</strong> <span id="deleteEmployeeStatus"></span></p>
                     </div>
@@ -179,8 +179,8 @@
                                 <p><strong>Address:</strong> <span id="detailAddress"></span></p>
                             </div>
                             <div class="employee-detail-right">
-                                <p><strong>Department:</strong> <span id="detailDepartment"></span></p>
-                                <p><strong>Division:</strong> <span id="detailDivision"></span></p>
+                                <p><strong>Partner:</strong> <span id="detailDepartment"></span></p>
+                                <p><strong>Site:</strong> <span id="detailDivision"></span></p>
                                 <p><strong>Job:</strong> <span id="detailJob"></span></p>
                                 <p><strong>Hire Date:</strong> <span id="detailHireDate"></span></p>
                                 <p><strong>Grade:</strong> <span id="detailGrade"></span></p>
