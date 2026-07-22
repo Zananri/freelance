@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Job;
+use App\Models\Division;
+use App\Models\Partner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +21,7 @@ class JobController extends Controller
     {
         $query = $request->input('query');
         $status = $request->input('status');
-        $departmentId = $request->input('department_id');
+        $partnerId = $request->input('partner_id', $request->input('department_id'));
         $divisionId = $request->input('division_id');
 
         $jobsQuery = Job::with(['department', 'division']);
@@ -38,15 +40,19 @@ class JobController extends Controller
             $jobsQuery->where('status', '!=', 'DELETED');
         }
 
-        if ($departmentId) {
-            $jobsQuery->where('department_id', $departmentId);
+        if ($partnerId) {
+            $jobsQuery->where('partner_id', $partnerId);
         }
 
         if ($divisionId) {
             $jobsQuery->where('division_id', $divisionId);
         }
 
-        $jobs = $jobsQuery->get();
+        $jobs = $jobsQuery->get()->map(function ($job) {
+            $job->business_department_id = $job->department_id;
+            $job->department_id = $job->partner_id;
+            return $job;
+        });
 
         return response()->json(['data' => $jobs]);
     }
@@ -57,6 +63,8 @@ class JobController extends Controller
         if (!$job) {
             return response()->json(['message' => 'Job not found'], 404);
         }
+        $job->business_department_id = $job->department_id;
+        $job->department_id = $job->partner_id;
         return response()->json($job);
     }
 
@@ -66,7 +74,8 @@ class JobController extends Controller
             DB::beginTransaction();
 
             $validator = Validator::make($request->all(), [
-                'department_id' => 'required|exists:departments,id',
+                'partner_id' => 'nullable|exists:partners,id',
+                'department_id' => 'nullable|exists:partners,id',
                 'division_id' => 'required|exists:divisions,id',
                 'job_name' => 'required|string|max:255',
                 'status' => 'required|string|in:ACTIVE,INACTIVE,DELETED',
@@ -78,9 +87,29 @@ class JobController extends Controller
             }
 
             $userId = auth()->check() ? auth()->id() : 1;
+            $partnerId = $request->input('partner_id', $request->input('department_id'));
+            $division = Division::find($request->division_id);
+
+            if (!$partnerId && $division) {
+                $partnerId = $division->partner_id;
+            }
+
+            if (!$partnerId) {
+                throw new \Exception('Partner is required');
+            }
+
+            $partner = Partner::find($partnerId);
+            if (!$partner) {
+                throw new \Exception('Partner not found');
+            }
+
+            if ($division && (int) $division->partner_id !== (int) $partner->id) {
+                throw new \Exception('Division does not belong to selected partner');
+            }
 
             $job = Job::create([
-                'department_id' => $request->department_id,
+                'department_id' => $partner->department_id,
+                'partner_id' => $partner->id,
                 'division_id' => $request->division_id,
                 'job_name' => $request->job_name,
                 'status' => $request->status,
@@ -126,7 +155,8 @@ class JobController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'department_id' => 'sometimes|exists:departments,id',
+                'partner_id' => 'nullable|exists:partners,id',
+                'department_id' => 'nullable|exists:partners,id',
                 'division_id' => 'sometimes|exists:divisions,id',
                 'job_name' => 'sometimes|string|max:255',
                 'status' => 'sometimes|string|in:ACTIVE,INACTIVE,DELETED',
@@ -139,7 +169,27 @@ class JobController extends Controller
 
             $userId = auth()->check() ? auth()->id() : 1;
 
-            $updateData = $request->only(['department_id', 'division_id', 'job_name', 'status', 'description']);
+            $updateData = $request->only(['division_id', 'job_name', 'status', 'description']);
+
+            $partnerId = $request->input('partner_id', $request->input('department_id', $job->partner_id));
+            $divisionId = $request->input('division_id', $job->division_id);
+            $division = Division::find($divisionId);
+            if ($division && !$partnerId) {
+                $partnerId = $division->partner_id;
+            }
+
+            if ($partnerId) {
+                $partner = Partner::find($partnerId);
+                if (!$partner) {
+                    throw new \Exception('Partner not found');
+                }
+                if ($division && (int) $division->partner_id !== (int) $partner->id) {
+                    throw new \Exception('Division does not belong to selected partner');
+                }
+                $updateData['partner_id'] = $partner->id;
+                $updateData['department_id'] = $partner->department_id;
+            }
+
             $updateData['updated_by'] = $userId;
 
             $updated = $job->update($updateData);

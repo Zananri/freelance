@@ -11,6 +11,7 @@ class Division extends Model
 
     protected $fillable = [
         'department_id',
+        'partner_id',
         'name_division',
         'status',
         'description',
@@ -22,7 +23,24 @@ class Division extends Model
 
     public function department()
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(Partner::class, 'partner_id');
+    }
+
+    public function partner()
+    {
+        return $this->belongsTo(Partner::class, 'partner_id');
+    }
+
+    public function businessDepartment()
+    {
+        return $this->hasOneThrough(
+            Department::class,
+            Partner::class,
+            'id',
+            'id',
+            'partner_id',
+            'department_id'
+        );
     }
 
     public function projects()

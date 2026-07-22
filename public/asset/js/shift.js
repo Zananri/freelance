@@ -825,6 +825,40 @@ document.addEventListener("click", async (e) => {
     modalEl.querySelector("#editTimeStart").value = toHHMM(editBtn.dataset.start || "");
     modalEl.querySelector("#editTimeEnd").value = toHHMM(editBtn.dataset.end || "");
 
+        // Load existing checkpoints into edit modal
+        resetCheckpoint("#checkpointContainerEdit");
+        let checkpoints = editBtn.dataset.checkpoints || "[]";
+        try {
+            checkpoints = JSON.parse(checkpoints);
+            if (typeof checkpoints === "string") checkpoints = JSON.parse(checkpoints);
+            if (!Array.isArray(checkpoints)) checkpoints = [];
+        } catch (e) {
+            checkpoints = [];
+        }
+        const $editModalBody = $(modalEl).find(".modal-body");
+        checkpoints.forEach(function(time) {
+            if (time) {
+                const container = $editModalBody.find(".checkpoint-wrapper");
+                const items = container.find(".checkpoint-item");
+                const index = items.length + 1;
+                container.append(`
+                    <div class="row align-items-center mb-2 checkpoint-item">
+                        <div class="col-3">
+                            <small class="fw-semibold">Checkpoint ${index}</small>
+                        </div>
+                        <div class="col-8">
+                            <input type="time" class="form-control border-0 checkpoint-time" name="checkpoints[]" value="${time}">
+                        </div>
+                        <div class="col-1 text-end">
+                            <button type="button" class="btn btn-sm btn-link text-dark removeCheckpoint">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                    </div>
+                `);
+            }
+        });
+
         modal.show();
     }
 
@@ -870,6 +904,13 @@ document.getElementById("saveUpdateShiftConfigBtn").addEventListener("click", as
     const timeStart = toHHMM(modalEl.querySelector("#editTimeStart").value);
     const timeEnd = toHHMM(modalEl.querySelector("#editTimeEnd").value);
 
+    const checkpoints = [];
+    $(modalEl).find(".checkpoint-time").each(function () {
+        if ($(this).val()) {
+            checkpoints.push($(this).val());
+        }
+    });
+
     if (!title || !timeStart || !timeEnd) {
         showFloatingAlert("Please fill all required fields", "warning");
         return;
@@ -885,7 +926,7 @@ document.getElementById("saveUpdateShiftConfigBtn").addEventListener("click", as
                 "Content-Type": "application/json",
                 "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
             },
-            body: JSON.stringify({ title, description, time_start: timeStart, time_end: timeEnd }),
+            body: JSON.stringify({ title, description, time_start: timeStart, time_end: timeEnd, checkpoints }),
         });
 
         // Handle validation errors (e.g., 422) gracefully
@@ -1076,6 +1117,23 @@ function setupEventListeners() {
                 const activeShifts = shifts.filter(s => !s.deleted_by);
                 renderShiftConfigTable(activeShifts);
             });
+        });
+    }
+
+    // Reset checkpoint container when add config modal opens
+    const addConfigEl = document.getElementById("addConfigModal");
+    if (addConfigEl) {
+        addConfigEl.addEventListener("show.bs.modal", function () {
+            resetCheckpoint("#checkpointContainerAdd");
+        });
+    }
+
+    // Reset checkpoint container when edit config modal opens
+    const editConfigEl = document.getElementById("editConfigModal");
+    if (editConfigEl) {
+        editConfigEl.addEventListener("show.bs.modal", function () {
+            // Reset is done in the click handler after data loads,
+            // but ensure clean state on show
         });
     }
 
@@ -1284,7 +1342,7 @@ async function saveNewShift(formId = "addShiftForm") {
 
     const checkpoints = [];
 
-    $(".checkpoint-time").each(function () {
+    $(`#${formId} .checkpoint-time`).each(function () {
         if ($(this).val()) {
             checkpoints.push($(this).val());
         }
@@ -1381,74 +1439,43 @@ async function saveNewShift(formId = "addShiftForm") {
     }
 }
 
-let checkpointIndex = 0;
-
 function addCheckpoint($modalBody) {
-    checkpointIndex++;
+    const container = $modalBody.find(".checkpoint-wrapper");
+    const items = container.find(".checkpoint-item");
+    const index = items.length + 1;
 
-    $modalBody.find(".checkpoint-wrapper").append(`
+    container.append(`
         <div class="row align-items-center mb-2 checkpoint-item">
-
             <div class="col-3">
-                <small class="fw-semibold">
-                    Checkpoint ${checkpointIndex}
-                </small>
+                <small class="fw-semibold">Checkpoint ${index}</small>
             </div>
-
             <div class="col-8">
-                <input
-                    type="time"
-                    class="form-control border-0 checkpoint-time"
-                    name="checkpoints[]">
+                <input type="time" class="form-control border-0 checkpoint-time" name="checkpoints[]">
             </div>
-
             <div class="col-1 text-end">
-                <button
-                    type="button"
-                    class="btn btn-sm btn-link text-dark removeCheckpoint">
-
-                    <span class="material-symbols-outlined">
-                        close
-                    </span>
-
+                <button type="button" class="btn btn-sm btn-link text-dark removeCheckpoint">
+                    <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
-
         </div>
     `);
 }
 
-$(document).on("click", ".modal-body input[placeholder='Add checkpoint'], .modal-body button:has(.material-symbols-outlined:contains('add'))", function () {
+$(document).on("click", ".addCheckpointBtn, .addCheckpointInput", function () {
     const $modalBody = $(this).closest(".modal-body");
     addCheckpoint($modalBody);
 });
 
 $(document).on("click", ".removeCheckpoint", function () {
+    const wrapper = $(this).closest(".checkpoint-wrapper");
     $(this).closest(".checkpoint-item").remove();
-});
-
-$(document).on("click", ".removeCheckpoint", function () {
-
-    $(this).closest(".checkpoint-item").remove();
-
-    $("#checkpointContainer .checkpoint-item").each(function(index){
-
-        $(this)
-            .find("small")
-            .text(`Checkpoint ${index + 1}`);
-
+    wrapper.find(".checkpoint-item").each(function(index){
+        $(this).find("small").text(`Checkpoint ${index + 1}`);
     });
-
-    checkpointIndex = $("#checkpointContainer .checkpoint-item").length;
-
 });
 
-function resetCheckpoint(){
-
-    checkpointIndex = 0;
-
-    $("#checkpointContainer").empty();
-
+function resetCheckpoint(containerId){
+    $(containerId).empty();
 }
 
 // Save shift changes via AJAX

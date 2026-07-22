@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Division;
-use App\Models\Department;
+use App\Models\Partner;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
@@ -17,13 +17,13 @@ class DivisionController extends Controller
 
             $query = $request->input('query', '');
             $status = $request->input('status', 'ALL');
-            $departmentId = $request->input('department_id', null);
+            $partnerId = $request->input('partner_id', $request->input('department_id'));
 
             $divisions = Division::with('department')
                 ->when($query, function ($q) use ($query) {
                     $q->where('name_division', 'like', '%' . $query . '%')
                       ->orWhereHas('department', function ($q2) use ($query) {
-                          $q2->where('name_department', 'like', '%' . $query . '%');
+                          $q2->where('partner_name', 'like', '%' . $query . '%');
                       });
                 })
                 ->when($status === 'ALL', function ($q) {
@@ -31,8 +31,8 @@ class DivisionController extends Controller
                 }, function ($q) use ($status) {
                     $q->where('status', $status);
                 })
-                ->when($departmentId, function ($q) use ($departmentId) {
-                    $q->where('department_id', $departmentId);
+                ->when($partnerId, function ($q) use ($partnerId) {
+                    $q->where('partner_id', $partnerId);
                 })
                 ->get();
 
@@ -40,6 +40,8 @@ class DivisionController extends Controller
                 $division->image_url = $division->images
                     ? url('file/division/' . $division->images)
                     : null;
+                $division->business_department_id = $division->department_id;
+                $division->department_id = $division->partner_id;
                 return $division;
             });
 
@@ -70,7 +72,8 @@ class DivisionController extends Controller
             DB::beginTransaction();
 
             $validator = Validator::make($request->all(), [
-                'department_id' => 'required|exists:departments,id',
+                'partner_id' => 'nullable|exists:partners,id',
+                'department_id' => 'nullable|exists:partners,id',
                 'name_division' => 'required|string|max:255',
                 'status' => 'required|string|in:ACTIVE,INACTIVE',
                 'description' => 'nullable|string',
@@ -82,6 +85,14 @@ class DivisionController extends Controller
             }
 
             $validated = $validator->validated();
+            $partnerId = $validated['partner_id'] ?? $validated['department_id'] ?? null;
+            if (!$partnerId) {
+                throw new \Exception('Partner is required');
+            }
+            $partner = Partner::find($partnerId);
+            if (!$partner) {
+                throw new \Exception('Partner not found');
+            }
 
             $imageName = null;
             if ($request->hasFile('image')) {
@@ -93,7 +104,8 @@ class DivisionController extends Controller
             $userId = auth()->check() ? auth()->id() : null;
 
             $division = Division::create([
-                'department_id' => $validated['department_id'],
+                'department_id' => $partner->department_id,
+                'partner_id' => $partner->id,
                 'name_division' => $validated['name_division'],
                 'status' => $validated['status'],
                 'description' => $validated['description'] ?? null,
@@ -137,6 +149,8 @@ class DivisionController extends Controller
 
             $data = $division->toArray();
             $data['image_url'] = $division->images ? url('file/division/' . $division->images) : null;
+            $data['business_department_id'] = $division->department_id;
+            $data['department_id'] = $division->partner_id;
 
             DB::commit();
 
@@ -171,7 +185,8 @@ class DivisionController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'department_id' => 'required|exists:departments,id',
+                'partner_id' => 'nullable|exists:partners,id',
+                'department_id' => 'nullable|exists:partners,id',
                 'name_division' => 'required|string|max:255',
                 'status' => 'required|string|in:ACTIVE,INACTIVE',
                 'description' => 'nullable|string',
@@ -183,9 +198,18 @@ class DivisionController extends Controller
             }
 
             $validated = $validator->validated();
+            $partnerId = $validated['partner_id'] ?? $validated['department_id'] ?? null;
+            if (!$partnerId) {
+                throw new \Exception('Partner is required');
+            }
+            $partner = Partner::find($partnerId);
+            if (!$partner) {
+                throw new \Exception('Partner not found');
+            }
 
             $updateData = [
-                'department_id' => $validated['department_id'],
+                'department_id' => $partner->department_id,
+                'partner_id' => $partner->id,
                 'name_division' => $validated['name_division'],
                 'status' => $validated['status'],
                 'description' => $validated['description'] ?? null,
@@ -278,20 +302,20 @@ class DivisionController extends Controller
         try {
             $user = auth()->user();
             $employee = $user ? $user->employee : null;
-            $departmentId = $employee ? $employee->department_id : null;
+            $partnerId = $request->input('partner_id', $request->input('department_id', $employee?->partner_id));
 
-            if (!$departmentId) {
+            if (!$partnerId) {
                 return response()->json([
                     'code' => 404,
                     'status' => 'error',
-                    'message' => 'Department not found for current user.'
+                    'message' => 'Partner not found.'
                 ], 404);
             }
 
             $divisions = Division::where('status', 'ACTIVE')
-                ->where('department_id', $departmentId)
+                ->where('partner_id', $partnerId)
                 ->orderBy('name_division')
-                ->get(['id', 'name_division', 'department_id', 'description']);
+                ->get(['id', 'name_division', 'partner_id', 'description']);
 
             return response()->json([
                 'code' => 200,

@@ -14,4 +14,9 @@ class Office extends Model
         'created_by',
         'updated_by',
     ];
+
+    public function partners()
+    {
+        return $this->hasMany(Partner::class, 'office_id');
+    }
 }

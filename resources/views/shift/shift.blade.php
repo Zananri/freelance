@@ -507,7 +507,7 @@
 
                                 </div>
 
-                                <div id="checkpointContainer" class="checkpoint-wrapper"></div>
+                                <div id="checkpointContainerAdd" class="checkpoint-wrapper"></div>
 
                             </div>
 
@@ -608,7 +608,7 @@
 
                                 </div>
 
-                                <div id="checkpointContainer" class="checkpoint-wrapper"></div>
+                                <div id="checkpointContainerEdit" class="checkpoint-wrapper"></div>
 
                             </div>
 

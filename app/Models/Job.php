@@ -13,6 +13,7 @@ class Job extends Model
 
     protected $fillable = [
         'department_id',
+        'partner_id',
         'division_id',
         'job_name',
         'description',
@@ -24,7 +25,12 @@ class Job extends Model
 
     public function department()
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(Partner::class, 'partner_id');
+    }
+
+    public function partner()
+    {
+        return $this->belongsTo(Partner::class, 'partner_id');
     }
 
     public function division()

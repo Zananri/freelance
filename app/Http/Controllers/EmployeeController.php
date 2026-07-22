@@ -23,6 +23,7 @@ use App\Models\Division;
 use App\Models\Job;
 use App\Models\Grade;
 use App\Models\Office;
+use App\Models\Partner;
 use App\Models\EmployeeShift;
 use App\Models\Attendance;
 use Carbon\Carbon;
@@ -69,6 +70,32 @@ class EmployeeController extends Controller
         if (!is_dir($path)) {
             mkdir($path, 0777, true);
         }
+    }
+
+    private function resolvePartnerContext(?int $partnerId): array
+    {
+        if (!$partnerId) {
+            throw new \Exception('Partner is required');
+        }
+
+        $partner = Partner::find($partnerId);
+        if (!$partner) {
+            throw new \Exception('Partner not found');
+        }
+
+        if (!$partner->department_id) {
+            throw new \Exception('Selected partner has no department mapping');
+        }
+
+        if (!$partner->office_id) {
+            throw new \Exception('Selected partner has no wilayah mapping');
+        }
+
+        return [
+            'partner_id' => (int) $partner->id,
+            'department_id' => (int) $partner->department_id,
+            'office_id' => (int) $partner->office_id,
+        ];
     }
 
     private function createEmployeeDocumentStructure(Employee $employee, array $documentSources): void
@@ -168,14 +195,14 @@ class EmployeeController extends Controller
         $userRole = strtoupper((string) ($user->user_role ?? ''));
 
         $query = $request->input('query', '');
-        $departmentIds = $request->input('department', []);
+        $partnerIds = $request->input('department', []);
         $divisionIds = $request->input('division', []);
         $jobIds = $request->input('job', []);
 
         if ($request->wantsJson()) {
             $excludeEmployeeId = $request->input('exclude_employee_id', null);
 
-            $employees = Employee::with(['department', 'division', 'job', 'user', 'grade', 'officeModel'])
+            $employees = Employee::with(['department', 'partner', 'division', 'job', 'user', 'grade', 'officeModel'])
                 ->where('status', '!=', 'DELETED');
 
             if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
@@ -192,15 +219,15 @@ class EmployeeController extends Controller
                             $qOffice->where('name', 'like', '%' . $query . '%');
                         })
                         ->orWhereHas('department', function ($q3) use ($query) {
-                            $q3->where('name_department', 'like', '%' . $query . '%');
+                            $q3->where('partner_name', 'like', '%' . $query . '%');
                         })
                         ->orWhereHas('division', function ($q4) use ($query) {
                             $q4->where('name_division', 'like', '%' . $query . '%');
                         });
                 });
             })
-                ->when(!empty($departmentIds), function ($q) use ($departmentIds, $divisionIds, $jobIds) {
-                    $q->whereIn('department_id', $departmentIds);
+                ->when(!empty($partnerIds), function ($q) use ($partnerIds, $divisionIds, $jobIds) {
+                    $q->whereIn('partner_id', $partnerIds);
 
                     if (!empty($divisionIds)) {
                         $q->whereIn('division_id', $divisionIds);
@@ -328,7 +355,8 @@ class EmployeeController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'department_id' => 'required|exists:departments,id',
+                'partner_id' => 'nullable|exists:partners,id',
+                'department_id' => 'nullable|exists:partners,id',
                 'division_id' => 'required|exists:divisions,id',
                 'job_id' => [
                     'required',
@@ -355,7 +383,6 @@ class EmployeeController extends Controller
                 'contract_end_date' => 'required|date',
                 'resign_date' => 'nullable|date',
                 'grade_id' => 'required|exists:grades,id',
-                'office' => 'required|exists:offices,id',
             ]);
 
             if ($validator->fails()) {
@@ -382,6 +409,17 @@ class EmployeeController extends Controller
             }
 
             // At this point $emailWork is ensured unique by loop; no need to throw exception on dup.
+
+            $partnerContext = $this->resolvePartnerContext((int) $request->input('partner_id', $request->input('department_id')));
+            $division = Division::find($request->division_id);
+            if (!$division || (int) $division->partner_id !== $partnerContext['partner_id']) {
+                throw new \Exception('Site does not belong to selected partner');
+            }
+
+            $job = Job::find($request->job_id);
+            if (!$job || (int) $job->division_id !== (int) $division->id) {
+                throw new \Exception('Job does not belong to selected site');
+            }
 
             $photoPath = null;
             $ktpPath = null;
@@ -483,7 +521,8 @@ class EmployeeController extends Controller
 
             $employee = Employee::create([
                 'user_id' => $user->id,
-                'department_id' => $request->department_id,
+                'department_id' => $partnerContext['department_id'],
+                'partner_id' => $partnerContext['partner_id'],
                 'division_id' => $request->division_id,
                 'job_id' => $request->job_id,
                 'shift_id' => $request->shift_id,
@@ -509,7 +548,7 @@ class EmployeeController extends Controller
                 'contract_end_date' => $request->contract_end_date,
                 'resign_date' => $request->resign_date,
                 'grade_id' => $request->grade_id,
-                'office' => $request->office,
+                'office' => $partnerContext['office_id'],
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id(),
                 'deleted_by' => null,
@@ -582,7 +621,8 @@ class EmployeeController extends Controller
 
             // Build dynamic rules to allow ignoring current employee/user for unique checks
             $validator = Validator::make($request->all(), [
-                'department_id' => 'sometimes|exists:departments,id',
+                'partner_id' => 'nullable|exists:partners,id',
+                'department_id' => 'nullable|exists:partners,id',
                 'division_id' => 'sometimes|exists:divisions,id',
                 'job_id' => 'sometimes|exists:job_list,id',
                 'shift_id' => 'sometimes|exists:shifts,id',
@@ -617,7 +657,6 @@ class EmployeeController extends Controller
                 'contract_end_date' => 'sometimes|date',
                 'resign_date' => 'nullable|date',
                 'grade_id' => 'sometimes|exists:grades,id',
-                'office' => 'sometimes|exists:offices,id',
             ]);
 
             if ($validator->fails()) {
@@ -630,7 +669,7 @@ class EmployeeController extends Controller
             }
 
             $updateData = $request->only([
-                'department_id',
+                'partner_id',
                 'division_id',
                 'job_id',
                 'shift_id',
@@ -646,9 +685,30 @@ class EmployeeController extends Controller
                 'hire_date',
                 'contract_end_date',
                 'resign_date',
-                'grade_id',
-                'office'
+                'grade_id'
             ]);
+
+            if ($request->hasAny(['partner_id', 'department_id'])) {
+                $partnerContext = $this->resolvePartnerContext((int) $request->input('partner_id', $request->input('department_id')));
+                $updateData['partner_id'] = $partnerContext['partner_id'];
+                $updateData['department_id'] = $partnerContext['department_id'];
+                $updateData['office'] = $partnerContext['office_id'];
+            }
+
+            if (isset($updateData['partner_id']) && $request->filled('division_id')) {
+                $division = Division::find($request->division_id);
+                if (!$division || (int) $division->partner_id !== (int) $updateData['partner_id']) {
+                    throw new \Exception('Site does not belong to selected partner');
+                }
+            }
+
+            if ($request->filled('job_id')) {
+                $job = Job::find($request->job_id);
+                $divisionId = (int) ($request->input('division_id', $employee->division_id));
+                if (!$job || (int) $job->division_id !== $divisionId) {
+                    throw new \Exception('Job does not belong to selected site');
+                }
+            }
 
             // Ensure status remains uppercase in DB and map legacy value just in case
             if (isset($updateData['status']) && $updateData['status']) {
@@ -901,12 +961,12 @@ class EmployeeController extends Controller
 
         $employeeSalaries = EmployeeSalary::where('employee_id', $employee->id)->first();
 
-        $departments = Department::all();
-        $divisions = Division::all();
+        $departments = Partner::where('status', '!=', 'DELETED')->get();
+        $divisions = Division::where('status', '!=', 'DELETED')->get();
 
         $jobs = Job::where('status', '!=', 'DELETED');
-        if ($employee->department_id) {
-            $jobs = $jobs->where('department_id', $employee->department_id);
+        if ($employee->partner_id) {
+            $jobs = $jobs->where('partner_id', $employee->partner_id);
         }
         if ($employee->division_id) {
             $jobs = $jobs->where('division_id', $employee->division_id);

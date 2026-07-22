@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\JobController;
+use App\Http\Controllers\PartnerController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\OvertimeController;
 
@@ -199,12 +200,21 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/user/ajax/data', [UserController::class, 'getUsersAjax'])->name('user.ajax.data');
 
 
-    Route::get('/department', [DepartmentController::class, 'showDepartmentPage'])->name('department');
-    Route::get('/department/index', [DepartmentController::class, 'index'])->name('department.index');
-    Route::get('/department/{id}', [DepartmentController::class, 'show'])->name('department.show');
-    Route::post('/department/store', [DepartmentController::class, 'store'])->name('department.store');
-    Route::put('/department/{id}', [DepartmentController::class, 'update'])->name('department.update');
-    Route::delete('/department/{id}', [DepartmentController::class, 'destroy'])->name('department.destroy');
+    Route::get('/department', [PartnerController::class, 'showPartnerPage'])->name('department');
+    Route::get('/department/index', [PartnerController::class, 'index'])->name('department.index');
+    Route::get('/department/options', [PartnerController::class, 'options'])->name('department.options');
+    Route::get('/department/{id}', [PartnerController::class, 'show'])->name('department.show');
+    Route::post('/department/store', [PartnerController::class, 'store'])->name('department.store');
+    Route::put('/department/{id}', [PartnerController::class, 'update'])->name('department.update');
+    Route::delete('/department/{id}', [PartnerController::class, 'destroy'])->name('department.destroy');
+
+    Route::get('/partner', [PartnerController::class, 'showPartnerPage'])->name('partner');
+    Route::get('/partner/index', [PartnerController::class, 'index'])->name('partner.index');
+    Route::get('/partner/options', [PartnerController::class, 'options'])->name('partner.options');
+    Route::get('/partner/{id}', [PartnerController::class, 'show'])->name('partner.show');
+    Route::post('/partner/store', [PartnerController::class, 'store'])->name('partner.store');
+    Route::put('/partner/{id}', [PartnerController::class, 'update'])->name('partner.update');
+    Route::delete('/partner/{id}', [PartnerController::class, 'destroy'])->name('partner.destroy');
 
 
     // Division CRUD routes

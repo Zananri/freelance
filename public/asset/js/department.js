@@ -1,14 +1,10 @@
 var appUrl = $('meta[name="app-url"]').attr("content");
-
 var selectedStatus = "ALL";
 
-var editDepartmentModal = new bootstrap.Modal(
-    document.getElementById("editDepartmentModal")
-);
-
 var addDepartmentModal;
+var editDepartmentModal;
+var deleteDepartmentModal;
 
-// Unified alert: use Settings-style white alert (from office.js)
 function showFloatingAlert(message, type = 'success', delayMs = 2500) {
     try {
         if (typeof window.showAlertMsg === 'function') {
@@ -18,590 +14,423 @@ function showFloatingAlert(message, type = 'success', delayMs = 2500) {
         const box = document.querySelector('.box-alert-messages .box-message');
         if (box && box.parentElement) {
             box.parentElement.style.display = 'block';
-            box.classList.remove('success','warning','error','light');
+            box.classList.remove('success', 'warning', 'error', 'light');
             box.classList.add('light');
             box.innerHTML = message;
             setTimeout(() => {
-                if (typeof window.hideAlertMsg === 'function') { window.hideAlertMsg(); }
-                else { box.parentElement.style.display = 'none'; }
+                if (typeof window.hideAlertMsg === 'function') {
+                    window.hideAlertMsg();
+                } else {
+                    box.parentElement.style.display = 'none';
+                }
             }, delayMs);
             return;
         }
-    } catch (e) { /* no-op */ }
-    try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
+    } catch (e) {}
+
+    try {
+        alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message));
+    } catch (e) {}
+}
+
+function showLoader(modalType, show) {
+    const loaderMap = {
+        add: '#addModalLoader',
+        edit: '#editModalLoader',
+        delete: '#deleteModalLoader'
+    };
+
+    const selector = loaderMap[modalType];
+    if (!selector) {
+        return;
+    }
+
+    $(selector).toggleClass('d-none', !show);
 }
 
 function readURL(input, labelSelector) {
     if (input.files && input.files[0]) {
-        var reader = new FileReader();
-
+        const reader = new FileReader();
         reader.onload = function (e) {
             $(labelSelector)
-                .css("background-image", "url(" + e.target.result + ")")
-                .css("background-size", "cover");
+                .css('background-image', 'url(' + e.target.result + ')')
+                .css('background-size', 'cover')
+                .css('opacity', '1');
         };
-
         reader.readAsDataURL(input.files[0]);
     }
 }
 
-$(document).ready(function () {
-    if ($("#editDepartmentForm input[name='remove_image']").length === 0) {
-        $("#editDepartmentForm").append(
-            '<input type="hidden" name="remove_image" id="edit_remove_image" value="0">'
-        );
-    }
+function getDefaultImageCss() {
+    return {
+        'background-image': "url('" + appUrl + "/asset/img/background/add-image.png')",
+        'background-position': 'center center',
+        'background-repeat': 'no-repeat',
+        'background-size': '50%',
+        opacity: '0.5'
+    };
+}
 
-    addDepartmentModal = new bootstrap.Modal(
-        document.getElementById("addDepartmentModal")
-    );
+function loadPartnerOptions(selectedDepartmentId, selectedOfficeId, isEdit) {
+    const departmentSelector = isEdit ? '#edit_department_id' : '#department_id';
+    const officeSelector = isEdit ? '#edit_office_id' : '#office_id';
 
-    $("#editDepartmentModal").on("hidden.bs.modal", function () {
-        $("#edit_image").val("");
-        $("#editImageLabel").css({
-            "background-image":
-                "url('" + appUrl + "/asset/img/background/add-image.png')",
-            "background-position": "center center",
-            "background-repeat": "no-repeat",
-            "background-size": "50%",
-            opacity: "0.5",
-        });
-        $("#editImageClearBtn").addClass("d-none");
-        $("#editImageLabel").removeClass("is-valid is-invalid");
-        $("#edit_image").removeClass("is-valid is-invalid");
+    $.ajax({
+        url: appUrl + '/department/options',
+        type: 'GET',
+        success: function (response) {
+            const data = response.data || {};
+            const departments = data.departments || [];
+            const offices = data.offices || [];
+
+            let departmentOptions = '<option value="" disabled selected>Select Department</option>';
+            departments.forEach((item) => {
+                departmentOptions += '<option value="' + item.id + '">' + item.name_department + '</option>';
+            });
+
+            let officeOptions = '<option value="" disabled selected>Select Wilayah</option>';
+            offices.forEach((item) => {
+                officeOptions += '<option value="' + item.id + '">' + item.name + '</option>';
+            });
+
+            $(departmentSelector).html(departmentOptions);
+            $(officeSelector).html(officeOptions);
+
+            if (selectedDepartmentId) {
+                $(departmentSelector).val(String(selectedDepartmentId));
+            }
+
+            if (selectedOfficeId) {
+                $(officeSelector).val(String(selectedOfficeId));
+            }
+        },
+        error: function () {
+            showFloatingAlert('Failed to load partner options.', 'warning', 3500);
+        }
     });
+}
 
-    function resetAddDepartmentForm() {
-        $("#addDepartmentModal .alert-container").empty();
-        var form = $("#addDepartmentForm")[0];
-        form.reset();
-        $(form).removeClass("was-validated");
-        $("#name_department, #description, #status, #image").removeClass(
-            "is-valid is-invalid"
-        );
-        $("#imageLabel").removeClass("is-valid is-invalid");
-        $("#imageLabel").css({
-            "background-image":
-                "url('" + appUrl + "/asset/img/background/add-image.png')",
-            "background-position": "center center",
-            "background-repeat": "no-repeat",
-            "background-size": "50%",
-            opacity: "0.5",
-        });
-        $("#imageLabel").removeClass("has-image");
-        $("#imageClearBtn").addClass("d-none");
+function loadDepartments(query, status) {
+    $.ajax({
+        url: appUrl + '/department/index',
+        type: 'GET',
+        data: { query: query || '', status: status || 'ALL' },
+        success: function (response) {
+            const rows = response.data || [];
+            let rowHtml = '';
+
+            if (!rows.length) {
+                rowHtml = '<tr><td colspan="4" class="text-center">No Data</td></tr>';
+            } else {
+                rows.forEach((partner) => {
+                    let statusText = partner.status;
+                    let statusClass = 'status-INACTIVE';
+                    if (partner.status === 'ACTIVE') {
+                        statusText = 'ACTIVE';
+                        statusClass = 'status-ACTIVE';
+                    }
+                    if (partner.status === 'DELETED') {
+                        statusText = 'DELETED';
+                        statusClass = 'status-DELETED';
+                    }
+
+                    const imageHtml = partner.image_url
+                        ? '<img src="' + partner.image_url + '" alt="Partner Image" class="table-image" />'
+                        : '';
+
+                    rowHtml +=
+                        '<tr data-id="' + partner.id + '">' +
+                        '<td>' + imageHtml + '</td>' +
+                        '<td>' + (partner.name_department || partner.partner_name || '-') + '</td>' +
+                        '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
+                        '<td style="text-align: right;">' +
+                        '<button class="btn-icon-toggle btn-edit" data-id="' + partner.id + '"><span class="material-symbols-outlined icon">edit</span></button> ' +
+                        '<button class="btn-icon-toggle btn-delete" data-id="' + partner.id + '"><span class="material-symbols-outlined icon">delete</span></button>' +
+                        '</td>' +
+                        '</tr>';
+                });
+            }
+
+            $('#departmentTableBody').html(rowHtml);
+        },
+        error: function () {
+            showFloatingAlert('Failed to load partners.', 'warning', 3500);
+        }
+    });
+}
+
+function buildValidationErrors(errors) {
+    let html = '<ul style="margin:0; padding-left:18px;">';
+    $.each(errors || {}, function (_, value) {
+        if (Array.isArray(value)) {
+            value.forEach((item) => {
+                html += '<li>' + item + '</li>';
+            });
+        } else {
+            html += '<li>' + value + '</li>';
+        }
+    });
+    html += '</ul>';
+    return html;
+}
+
+function resetAddDepartmentForm() {
+    const form = $('#addDepartmentForm')[0];
+    form.reset();
+    $(form).removeClass('was-validated');
+
+    $('#name_department, #department_id, #office_id, #status, #description, #image').removeClass('is-valid is-invalid');
+    $('#imageLabel').removeClass('is-valid is-invalid').css(getDefaultImageCss());
+    $('#imageClearBtn').addClass('d-none');
+    $('#addDepartmentModal .alert-container').empty();
+}
+
+$(document).ready(function () {
+    addDepartmentModal = new bootstrap.Modal(document.getElementById('addDepartmentModal'));
+    editDepartmentModal = new bootstrap.Modal(document.getElementById('editDepartmentModal'));
+    deleteDepartmentModal = new bootstrap.Modal(document.getElementById('deleteDepartmentModal'));
+
+    if ($('#editDepartmentForm input[name="remove_image"]').length === 0) {
+        $('#editDepartmentForm').append('<input type="hidden" name="remove_image" id="edit_remove_image" value="0">');
     }
 
-    $("#btnAddData").on("click", function () {
+    loadDepartments('', selectedStatus);
+
+    $('#btnAddData').on('click', function () {
         resetAddDepartmentForm();
+        loadPartnerOptions('', '', false);
         addDepartmentModal.show();
     });
 
-    $("#editDepartmentModal").on("show.bs.modal", function () {
-        $("#editDepartmentModal .alert-container").empty();
-        $("#edit_name_department").removeClass("is-valid is-invalid");
-        $("#edit_status").removeClass("is-valid is-invalid");
-        $("#edit_description").removeClass("is-valid is-invalid");
-        $("#edit_image").removeClass("is-valid is-invalid");
-        $("#editModalLoader").addClass("d-none");
-
-        var bgImage = $("#editImageLabel").css("background-image");
-        if (
-            !bgImage ||
-            bgImage === "none" ||
-            bgImage.indexOf("add-image.png") !== -1
-        ) {
-            $("#editImageLabel").css("opacity", "0.5");
-            $("#editImageLabel").removeClass("is-valid is-invalid");
+    $('#image').on('change', function () {
+        readURL(this, '#imageLabel');
+        if (this.files && this.files.length > 0) {
+            $('#imageClearBtn').removeClass('d-none');
         } else {
-            $("#editImageLabel").css("opacity", "1");
+            $('#imageLabel').css(getDefaultImageCss());
+            $('#imageClearBtn').addClass('d-none');
         }
     });
 
-    $("#image").change(function () {
-        readURL(this, "#imageLabel");
-        if (this.checkValidity()) {
-            $("#imageLabel").removeClass("is-invalid").addClass("is-valid");
-        } else {
-            $("#imageLabel").removeClass("is-valid").addClass("is-invalid");
+    $('#edit_image').on('change', function () {
+        readURL(this, '#editImageLabel');
+        $('#edit_remove_image').val('0');
+        if (this.files && this.files.length > 0) {
+            $('#editImageClearBtn').removeClass('d-none');
         }
     });
 
-    $("#edit_image").change(function () {
-        readURL(this, "#editImageLabel");
-        $("#edit_image_preview").hide();
-        if (this.checkValidity()) {
-            $("#editImageLabel").removeClass("is-invalid").addClass("is-valid");
-        } else {
-            $("#editImageLabel").removeClass("is-valid").addClass("is-invalid");
-        }
-        $("#edit_remove_image").val("0");
-    });
-
-    $("#image").change(function () {
-        readURL(this, "#imageLabel");
-        if (this.files && this.files[0]) {
-            $("#imageClearBtn").removeClass("d-none");
-            $("#imageLabel").css({
-                "background-size": "cover",
-                opacity: "1",
-            });
-        } else {
-            $("#imageClearBtn").addClass("d-none");
-            $("#imageLabel").css({
-                "background-image":
-                    "url('" + appUrl + "/asset/img/background/add-image.png')",
-                "background-position": "center center",
-                "background-repeat": "no-repeat",
-                "background-size": "50%",
-                opacity: "0.5",
-            });
-        }
-        // Validasi
-        if (this.checkValidity()) {
-            $("#imageLabel").removeClass("is-invalid").addClass("is-valid");
-        } else {
-            $("#imageLabel").removeClass("is-valid").addClass("is-invalid");
-        }
-    });
-
-    $("#imageClearBtn").on("click", function (e) {
+    $('#imageClearBtn').on('click', function (e) {
         e.preventDefault();
-        $("#image").val("");
-        $("#imageLabel").css({
-            "background-image":
-                "url('" + appUrl + "/asset/img/background/add-image.png')",
-            "background-position": "center center",
-            "background-repeat": "no-repeat",
-            "background-size": "50%",
-            opacity: "0.5",
-        });
-        $("#imageClearBtn").addClass("d-none");
+        $('#image').val('');
+        $('#imageLabel').css(getDefaultImageCss());
+        $('#imageClearBtn').addClass('d-none');
     });
-    $("#image").removeClass("is-valid is-invalid");
-    $("#imageLabel").removeClass("is-valid is-invalid");
 
-    $("#editImageClearBtn").on("click", function (e) {
+    $('#editImageClearBtn').on('click', function (e) {
         e.preventDefault();
-        $("#edit_image").val("");
-        $("#editImageLabel").css({
-            "background-image":
-                "url('" + appUrl + "/asset/img/background/add-image.png')",
-            "background-position": "center center",
-            "background-repeat": "no-repeat",
-            "background-size": "50%",
-            opacity: "0.5",
-        });
-        $("#edit_image_preview").hide();
-        $("#editImageLabel").removeClass("is-valid is-invalid");
-        $("#edit_image").removeClass("is-valid is-invalid");
-        $("#editImageClearBtn").addClass("d-none");
-        $("#edit_remove_image").val("1");
+        $('#edit_image').val('');
+        $('#editImageLabel').css(getDefaultImageCss());
+        $('#editImageClearBtn').addClass('d-none');
+        $('#edit_remove_image').val('1');
     });
 
-    $("#edit_image").change(function () {
-        readURL(this, "#editImageLabel");
-        if (this.files && this.files[0]) {
-            $("#editImageClearBtn").removeClass("d-none");
-            $("#editImageLabel").css({
-                "background-size": "cover",
-                opacity: "1",
-            });
-        } else {
-            $("#editImageClearBtn").addClass("d-none");
-            $("#editImageLabel").css({
-                "background-image":
-                    "url('" + appUrl + "/asset/img/background/add-image.png')",
-                "background-position": "center center",
-                "background-repeat": "no-repeat",
-                "background-size": "50%",
-                opacity: "0.5",
-            });
-        }
-        if (this.checkValidity()) {
-            $("#editImageLabel").removeClass("is-invalid").addClass("is-valid");
-        } else {
-            $("#editImageLabel").removeClass("is-valid").addClass("is-invalid");
-        }
-    });
-
-    function showLoader(modalType, show = true) {
-        const loaderId = {
-            add: "#addModalLoader",
-            edit: "#editModalLoader",
-            delete: "#deleteModalLoader",
-        }[modalType];
-        if (loaderId) {
-            document.querySelector(loaderId).classList.toggle("d-none", !show);
-        }
-    }
-
-    $("#addDepartmentForm").submit(function (e) {
+    $('#addDepartmentForm').on('submit', function (e) {
         e.preventDefault();
 
-        var form = this;
-        var imageInput = $("#image")[0];
-        var isValid = form.checkValidity();
-
-        if (!isValid) {
+        const form = this;
+        if (!form.checkValidity()) {
             e.stopPropagation();
-            $(form).addClass("was-validated");
-            return false;
+            $(form).addClass('was-validated');
+            return;
         }
-        $(form).removeClass("was-validated");
 
-        showLoader("add", true);
-
-        var formData = new FormData(form);
+        $(form).removeClass('was-validated');
+        showLoader('add', true);
 
         $.ajax({
-            url: appUrl + "/department/store",
-            type: "POST",
-            data: formData,
+            url: appUrl + '/department/store',
+            type: 'POST',
+            data: new FormData(form),
             contentType: false,
             processData: false,
             headers: {
-                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function (response) {
-                showLoader("add", false);
-                showFloatingAlert(response.message || 'Department created successfully.', 'success', 1500);
-                loadDepartments();
+                showLoader('add', false);
+                showFloatingAlert(response.message || 'Partner created successfully.', 'success', 1400);
+                loadDepartments($('#searchInput').val(), selectedStatus);
                 setTimeout(function () {
-                    var addDepartmentModalEl =
-                        document.getElementById("addDepartmentModal");
-                    var addDepartmentModal =
-                        bootstrap.Modal.getInstance(addDepartmentModalEl);
                     addDepartmentModal.hide();
-                }, 1500);
+                }, 1400);
             },
             error: function (xhr) {
-                showLoader("add", false);
-                console.log("Add Department Error:", xhr);
-                if (xhr.status === 422) {
-                    var errors = xhr.responseJSON.errors;
-                    var listHtml = '<ul style="margin:0; padding-left:18px;">';
-                    $.each(errors, function (key, value) {
-                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
-                        else { listHtml += '<li>'+value+'</li>'; }
-                    });
-                    listHtml += '</ul>';
-                    showFloatingAlert(listHtml, 'warning', 5000);
-                } else {
-                    showFloatingAlert("An error occurred. Please try again.", 'warning', 3500);
+                showLoader('add', false);
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    showFloatingAlert(buildValidationErrors(xhr.responseJSON.errors), 'warning', 5000);
+                    return;
                 }
-            },
+                showFloatingAlert((xhr.responseJSON && xhr.responseJSON.message) || 'Failed to create partner.', 'warning', 3500);
+            }
         });
     });
 
-    $(document).on("click", ".btn-edit", function () {
-        var id = $(this).data("id");
+    $(document).on('click', '.btn-edit', function () {
+        const id = $(this).data('id');
+
         $.ajax({
-            url: appUrl + "/department/" + id,
-            type: "GET",
-            success: function (department) {
-                $("#edit_name_department").val(department.name_department);
-                $("#edit_status").val(department.status);
-                $("#edit_description").val(department.description);
-                if (department.image_url) {
-                    var imageUrl = department.image_url;
-                    $("#editImageLabel").css({
-                        "background-image": "url(" + imageUrl + ")",
-                        "background-position": "center center",
-                        "background-repeat": "no-repeat",
-                        "background-size": "cover",
-                        opacity: "1",
+            url: appUrl + '/department/' + id,
+            type: 'GET',
+            success: function (partner) {
+                $('#edit_name_department').val(partner.name_department || partner.partner_name || '');
+                $('#edit_status').val(partner.status || 'ACTIVE');
+                $('#edit_description').val(partner.description || '');
+                $('#editDepartmentForm').data('id', id);
+
+                loadPartnerOptions(partner.department_id, partner.office_id, true);
+
+                if (partner.image_url) {
+                    $('#editImageLabel').css({
+                        'background-image': 'url(' + partner.image_url + ')',
+                        'background-position': 'center center',
+                        'background-repeat': 'no-repeat',
+                        'background-size': 'cover',
+                        opacity: '1'
                     });
-                    $("#editImageClearBtn").removeClass("d-none");
-                    $("#edit_image_preview").hide();
+                    $('#editImageClearBtn').removeClass('d-none');
                 } else {
-                    $("#editImageLabel").css({
-                        "background-image":
-                            "url('" +
-                            appUrl +
-                            "/asset/img/background/add-image.png')",
-                        "background-position": "center center",
-                        "background-repeat": "no-repeat",
-                        "background-size": "50%",
-                        opacity: "0.5",
-                    });
-                    $("#editImageClearBtn").addClass("d-none");
-                    $("#edit_image_preview").hide();
+                    $('#editImageLabel').css(getDefaultImageCss());
+                    $('#editImageClearBtn').addClass('d-none');
                 }
-                $("#editDepartmentForm").data("id", id);
+
+                $('#edit_remove_image').val('0');
+                $('#editDepartmentForm').removeClass('was-validated');
                 editDepartmentModal.show();
             },
             error: function () {
-                showFloatingAlert("Failed to fetch department data.", 'warning', 3000);
-            },
+                showFloatingAlert('Failed to fetch partner data.', 'warning', 3000);
+            }
         });
     });
 
-    $("#editDepartmentForm").submit(function (e) {
+    $('#editDepartmentForm').on('submit', function (e) {
         e.preventDefault();
 
-        var id = $(this).data("id");
-        var form = this;
-
+        const id = $(this).data('id');
+        const form = this;
         if (!form.checkValidity()) {
             e.stopPropagation();
-            $(form).addClass("was-validated");
-            return false;
+            $(form).addClass('was-validated');
+            return;
         }
-        $(form).removeClass("was-validated");
 
-        var formData = new FormData(form);
-        formData.append("_method", "PUT");
+        $(form).removeClass('was-validated');
 
-        showLoader("edit", true);
+        const formData = new FormData(form);
+        formData.append('_method', 'PUT');
+
+        showLoader('edit', true);
 
         $.ajax({
-            url: appUrl + "/department/" + id,
-            type: "POST",
+            url: appUrl + '/department/' + id,
+            type: 'POST',
             data: formData,
             contentType: false,
             processData: false,
             headers: {
-                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function (response) {
-                showLoader("edit", false);
-                showFloatingAlert(response.message || 'Department updated successfully.', 'success', 1500);
-                loadDepartments();
+                showLoader('edit', false);
+                showFloatingAlert(response.message || 'Partner updated successfully.', 'success', 1400);
+                loadDepartments($('#searchInput').val(), selectedStatus);
                 setTimeout(function () {
-                    var editDepartmentModalEl = document.getElementById(
-                        "editDepartmentModal"
-                    );
-                    var editDepartmentModal = bootstrap.Modal.getInstance(
-                        editDepartmentModalEl
-                    );
                     editDepartmentModal.hide();
-                }, 1500);
+                }, 1400);
             },
             error: function (xhr) {
-                if (xhr.status === 422) {
-                    var errors = xhr.responseJSON.errors;
-                    var listHtml = '<ul style="margin:0; padding-left:18px;">';
-                    $.each(errors, function (key, value) {
-                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
-                        else { listHtml += '<li>'+value+'</li>'; }
-                    });
-                    listHtml += '</ul>';
-                    showFloatingAlert(listHtml, 'warning', 5000);
-                } else {
-                    showFloatingAlert("An error occurred. Please try again.", 'warning', 3500);
+                showLoader('edit', false);
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    showFloatingAlert(buildValidationErrors(xhr.responseJSON.errors), 'warning', 5000);
+                    return;
                 }
-                showLoader("edit", false);
-            },
+                showFloatingAlert((xhr.responseJSON && xhr.responseJSON.message) || 'Failed to update partner.', 'warning', 3500);
+            }
         });
     });
 
-    $("#edit_name_department, #edit_status, #edit_description, #edit_image").on(
-        "input change",
-        function () {
-            var input = $(this)[0];
-            if (input.checkValidity()) {
-                $(this).removeClass("is-invalid").addClass("is-valid");
-                if (this.id === "edit_image") {
-                    $("#editImageLabel")
-                        .removeClass("is-invalid")
-                        .addClass("is-valid");
-                }
-            } else {
-                $(this).removeClass("is-valid").addClass("is-invalid");
-                if (this.id === "edit_image") {
-                    $("#editImageLabel")
-                        .removeClass("is-valid")
-                        .addClass("is-invalid");
-                }
-            }
-            $("#editDepartmentForm").removeClass("was-validated");
-        }
-    );
+    $(document).on('click', '.btn-delete', function () {
+        const id = $(this).data('id');
 
-    $("#name_department, #status, #description, #image").on(
-        "input change",
-        function () {
-            var input = $(this)[0];
-            if (input.checkValidity()) {
-                $(this).removeClass("is-invalid").addClass("is-valid");
-                if (this.id === "image") {
-                    $("#imageLabel")
-                        .removeClass("is-invalid")
-                        .addClass("is-valid");
-                }
-            } else {
-                $(this).removeClass("is-valid").addClass("is-invalid");
-                if (this.id === "image") {
-                    $("#imageLabel")
-                        .removeClass("is-valid")
-                        .addClass("is-invalid");
-                }
-            }
-            $("#addDepartmentForm").removeClass("was-validated");
-        }
-    );
-
-    $(document).on("click", ".btn-delete", function () {
-        var id = $(this).data("id");
         $.ajax({
-            url: appUrl + "/department/" + id,
-            type: "GET",
-            success: function (department) {
-                $("#delete_name_department").val(department.name_department);
-                $("#delete_status").val(department.status);
-                $("#delete_description").val(department.description);
-                if (department.image_url) {
-                    $("#deleteImageLabel").css({
-                        "background-image": "url(" + department.image_url + ")",
-                        "background-position": "center center",
-                        "background-repeat": "no-repeat",
-                        "background-size": "cover",
-                        opacity: "1",
+            url: appUrl + '/department/' + id,
+            type: 'GET',
+            success: function (partner) {
+                $('#delete_name_department').val(partner.name_department || partner.partner_name || '-');
+                $('#delete_department_name').val(partner.department && partner.department.name_department ? partner.department.name_department : '-');
+                $('#delete_office_name').val(partner.office && partner.office.name ? partner.office.name : '-');
+                $('#delete_status').val(partner.status || '-');
+                $('#delete_description').val(partner.description || '-');
+
+                if (partner.image_url) {
+                    $('#deleteImageLabel').css({
+                        'background-image': 'url(' + partner.image_url + ')',
+                        'background-position': 'center center',
+                        'background-repeat': 'no-repeat',
+                        'background-size': 'cover',
+                        opacity: '1'
                     });
                 } else {
-                    $("#deleteImageLabel").css({
-                        "background-image":
-                            "url('" +
-                            appUrl +
-                            "/asset/img/background/add-image.png')",
-                        "background-position": "center center",
-                        "background-repeat": "no-repeat",
-                        "background-size": "50%",
-                        opacity: "0.5",
-                    });
+                    $('#deleteImageLabel').css(getDefaultImageCss());
                 }
-                $("#deleteDepartmentForm").data("id", id);
-                var deleteDepartmentModal = new bootstrap.Modal(
-                    document.getElementById("deleteDepartmentModal")
-                );
+
+                $('#deleteDepartmentForm').data('id', id);
                 deleteDepartmentModal.show();
             },
             error: function () {
-                showFloatingAlert("Failed to fetch department data.", 'warning', 3000);
-            },
+                showFloatingAlert('Failed to fetch partner data.', 'warning', 3000);
+            }
         });
     });
 
-    $("#deleteDepartmentForm").submit(function (e) {
+    $('#deleteDepartmentForm').on('submit', function (e) {
         e.preventDefault();
-        var id = $(this).data("id");
 
-        showLoader("delete", true);
+        const id = $(this).data('id');
+        showLoader('delete', true);
 
         $.ajax({
-            url: appUrl + "/department/" + id,
-            type: "DELETE",
+            url: appUrl + '/department/' + id,
+            type: 'DELETE',
             headers: {
-                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function (response) {
-                showLoader("delete", false);
-                showFloatingAlert(response.message || 'Department deleted successfully.', 'success', 1200);
-                $('#departmentTableBody tr[data-id="' + id + '"]').remove();
-                var deleteDepartmentModalEl = document.getElementById(
-                    "deleteDepartmentModal"
-                );
-                var deleteDepartmentModal = bootstrap.Modal.getInstance(
-                    deleteDepartmentModalEl
-                );
+                showLoader('delete', false);
+                showFloatingAlert(response.message || 'Partner deleted successfully.', 'success', 1200);
                 deleteDepartmentModal.hide();
-                setTimeout(function(){ location.reload(); }, 1200);
+                loadDepartments($('#searchInput').val(), selectedStatus);
             },
             error: function () {
-                showLoader("delete", false);
-                showFloatingAlert("Failed to delete department.", 'warning', 3500);
-            },
+                showLoader('delete', false);
+                showFloatingAlert('Failed to delete partner.', 'warning', 3500);
+            }
         });
     });
-});
 
-    function loadDepartments(query = "", status = "ALL") {
-        $.ajax({
-            url: appUrl + "/department/index",
-            type: "GET",
-            data: { query: query, status: status },
-            success: function (response) {
-                var departments = response.data;
-                var rowHtml = "";
-                if (departments.length === 0) {
-                    rowHtml =
-                        '<tr><td colspan="4" class="text-center">No Data</td></tr>';
-                } else {
-                    $.each(departments, function (index, department) {
-                        var statusText =
-                            department.status === "ACTIVE"
-                                ? "ACTIVE"
-                                : department.status;
-                        var statusClass =
-                            department.status === "ACTIVE"
-                                ? "status-ACTIVE"
-                                : "status-INACTIVE";
-                        if (department.status === "DELETED") {
-                            statusText = "DELETED";
-                            statusClass = "status-DELETED";
-                        }
-                        var imageHtml = "";
-                        if (department.image_url) {
-                            imageHtml =
-                                '<img src="' +
-                                department.image_url +
-                                '" alt="Department Image" class="table-image" />';
-                        } else {
-                            imageHtml = "";
-                        }
-                        rowHtml +=
-                            '<tr data-id="' +
-                            department.id +
-                            '">' +
-                            "<td>" +
-                            imageHtml +
-                            "</td>" +
-                            "<td>" +
-                            department.name_department +
-                            "</td>" +
-                            '<td><span class="' +
-                            statusClass +
-                            '">' +
-                            statusText +
-                            "</span></td>" +
-                            '<td style="text-align: right;">' +
-                            '<button class="btn-icon-toggle btn-edit" data-id="' +
-                            department.id +
-                            '"><span class="material-symbols-outlined icon">edit</span></button> ' +
-                            '<button class="btn-icon-toggle btn-delete" data-id="' +
-                            department.id +
-                            '"><span class="material-symbols-outlined icon">delete</span></button>' +
-                            "</td>" +
-                            "</tr>";
-                    });
-                }
-
-                $("#departmentTableBody").html(rowHtml);
-            },
-            error: function () {
-                showFloatingAlert("Failed to load departments.", 'warning', 3500);
-            },
-        });
-    }
-
-$(document).ready(function () {
-    $("#searchInput").on("keydown", function (e) {
-        if (e.key === "Enter") {
+    $('#searchInput').on('keydown', function (e) {
+        if (e.key === 'Enter') {
             e.preventDefault();
-            var query = $(this).val();
-            loadDepartments(query, selectedStatus);
+            loadDepartments($(this).val(), selectedStatus);
         }
     });
 
-    loadDepartments("", selectedStatus);
-
-    $(".filter-option").click(function (e) {
+    $('.filter-option').on('click', function (e) {
         e.preventDefault();
-        $(".filter-option").removeClass("active");
-        $(this).addClass("active");
-        selectedStatus = $(this).data("status");
-        loadDepartments($("#searchInput").val(), selectedStatus);
+        $('.filter-option').removeClass('active');
+        $(this).addClass('active');
+        selectedStatus = $(this).data('status');
+        loadDepartments($('#searchInput').val(), selectedStatus);
     });
 });
-

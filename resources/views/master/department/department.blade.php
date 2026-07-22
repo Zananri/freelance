@@ -91,6 +91,24 @@
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
+                            <label for="department_id" class="form-label label-custom">Department</label>
+                            <select class="form-select input-select" id="department_id" name="department_id" required>
+                                <option value="" disabled selected>Select Department</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a department.
+                            </div>
+                        </div>
+                        <div class="mb-3 custom-input">
+                            <label for="office_id" class="form-label label-custom">Wilayah</label>
+                            <select class="form-select input-select" id="office_id" name="office_id" required>
+                                <option value="" disabled selected>Select Wilayah</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select wilayah.
+                            </div>
+                        </div>
+                        <div class="mb-3 custom-input">
                             <label for="status" class="form-label label-custom">Status</label>
                             <select class="form-select input-select" id="status" name="status" required>
                                 <option value="" disabled selected>Select Status</option>
@@ -154,6 +172,24 @@
                                 name="name_department" placeholder="Input Partner Name" required>
                             <div class="invalid-feedback">
                                 Please enter the partner name.
+                            </div>
+                        </div>
+                        <div class="mb-3 custom-input">
+                            <label for="edit_department_id" class="form-label label-custom">Department</label>
+                            <select class="form-select input-select" id="edit_department_id" name="department_id" required>
+                                <option value="" disabled selected>Select Department</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a department.
+                            </div>
+                        </div>
+                        <div class="mb-3 custom-input">
+                            <label for="edit_office_id" class="form-label label-custom">Wilayah</label>
+                            <select class="form-select input-select" id="edit_office_id" name="office_id" required>
+                                <option value="" disabled selected>Select Wilayah</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select wilayah.
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
@@ -221,6 +257,14 @@
                             <label for="delete_name_department" class="form-label label-custom">Name</label>
                             <input type="text" class="form-control input-text" id="delete_name_department"
                                 name="name_department" readonly disabled />
+                        </div>
+                        <div class="mb-3 custom-input">
+                            <label for="delete_department_name" class="form-label label-custom">Department</label>
+                            <input type="text" class="form-control input-text" id="delete_department_name" readonly disabled />
+                        </div>
+                        <div class="mb-3 custom-input">
+                            <label for="delete_office_name" class="form-label label-custom">Wilayah</label>
+                            <input type="text" class="form-control input-text" id="delete_office_name" readonly disabled />
                         </div>
                         <div class="mb-3 custom-input">
                             <label for="delete_status" class="form-label label-custom">Status</label>

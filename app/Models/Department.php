@@ -24,6 +24,11 @@ class Department extends Model
         return $this->hasMany(Division::class);
     }
 
+    public function partners()
+    {
+        return $this->hasMany(Partner::class);
+    }
+
     public function projects()
     {
         return $this->hasMany(Project::class);

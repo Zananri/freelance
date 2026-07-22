@@ -11,7 +11,9 @@ class Employee extends Model
 
     protected $fillable = [
         'user_id',
+        'region',
         'department_id',
+        'partner_id',
         'division_id',
         'job_id',
         'shift_id',
@@ -24,6 +26,8 @@ class Employee extends Model
         'phone',
         'status',
         'bpjs_allowance',
+        'no_bpjs',
+        'no_bpjstk',
         'bpjs_tenaga_kerja_allowance',
         'pension_allowance',
         'positional_allowance',
@@ -46,7 +50,17 @@ class Employee extends Model
 
     public function department()
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(Partner::class, 'partner_id');
+    }
+
+    public function partner()
+    {
+        return $this->belongsTo(Partner::class, 'partner_id');
+    }
+
+    public function businessDepartment()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
     }
 
     public function division()
