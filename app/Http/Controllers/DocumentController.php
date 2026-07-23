@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\DocumentFolders;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class DocumentController extends Controller
 {
@@ -52,6 +53,12 @@ class DocumentController extends Controller
         $departmentFilter = $request->input('filter_department');
         $divisionFilter = $request->input('filter_division');
         $jobFilter = $request->input('filter_job');
+        $page = max((int) $request->input('page', 1), 1);
+        $perPage = (int) $request->input('per_page', 10);
+
+        if (!in_array($perPage, [10, 20, 50, 100], true)) {
+            $perPage = 10;
+        }
 
         $currentFolder = null;
 
@@ -151,14 +158,79 @@ class DocumentController extends Controller
                 break;
         }
 
-        $folders = $query->get();
-        $files = $fileQuery->get();
+        $folders = $query->get()->map(function ($folder) {
+            $folder->item_type = 'folder';
+            return $folder;
+        });
+
+        $files = $fileQuery->get()->map(function ($file) {
+            $file->item_type = 'file';
+            return $file;
+        });
+
+        $merged = $folders->concat($files)->values();
+
+        $sorted = $merged->sort(function ($a, $b) use ($sortBy, $direction) {
+            if ($sortBy === 'owner') {
+                $valueA = strtolower((string) ($a->item_type === 'folder' ? ($a->creator->name ?? '') : ($a->employee->name ?? '')));
+                $valueB = strtolower((string) ($b->item_type === 'folder' ? ($b->creator->name ?? '') : ($b->employee->name ?? '')));
+            } elseif ($sortBy === 'updated_at') {
+                $valueA = strtotime((string) ($a->updated_at ?? '1970-01-01 00:00:00'));
+                $valueB = strtotime((string) ($b->updated_at ?? '1970-01-01 00:00:00'));
+            } else {
+                $valueA = strtolower((string) ($a->item_type === 'folder' ? ($a->folder_name ?? '') : ($a->file_name ?? '')));
+                $valueB = strtolower((string) ($b->item_type === 'folder' ? ($b->folder_name ?? '') : ($b->file_name ?? '')));
+            }
+
+            if ($valueA === $valueB) {
+                return 0;
+            }
+
+            if ($direction === 'desc') {
+                return $valueA < $valueB ? 1 : -1;
+            }
+
+            return $valueA > $valueB ? 1 : -1;
+        })->values();
+
+        $total = $sorted->count();
+        $offset = ($page - 1) * $perPage;
+        $pageItems = $sorted->slice($offset, $perPage)->values();
+
+        $paginator = new LengthAwarePaginator(
+            $pageItems,
+            $total,
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
+
+        $pagedFolders = $pageItems->where('item_type', 'folder')->values()->map(function ($item) {
+            unset($item->item_type);
+            return $item;
+        });
+
+        $pagedFiles = $pageItems->where('item_type', 'file')->values()->map(function ($item) {
+            unset($item->item_type);
+            return $item;
+        });
 
         return response()->json([
-            'folders' => $folders,
-            'files' => $files,
+            'folders' => $pagedFolders,
+            'files' => $pagedFiles,
             'breadcrumb' => $this->getBreadcrumb($request->parent_id),
-            'current_folder' => $currentFolder
+            'current_folder' => $currentFolder,
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+            ],
         ]);
     }
 

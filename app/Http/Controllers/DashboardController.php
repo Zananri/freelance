@@ -215,9 +215,14 @@ class DashboardController extends Controller
         // $today = Carbon::parse('2025-09-07')->toDateString();
         // $yesterday = Carbon::parse('2025-09-06')->toDateString();
 
-        $employee = Employee::with('division', 'department', 'job', 'grade', 'shift')->where('user_id', $user->id)->first();
-
+        $employee = Employee::with('division', 'partner', 'department', 'job', 'grade', 'shift')->where('user_id', $user->id)->first();
+        // dd($user->id, Employee::where('user_id', $user->id)->first());
+        // dd($employee);
         $office = Office::where('id', $employee->office)->first();
+
+        // if($office == null) {
+            
+        // }
 
         $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
             ->where('date_shift', $today)

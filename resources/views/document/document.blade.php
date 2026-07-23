@@ -202,6 +202,11 @@
         </div>
     </div>
 
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2" id="documentPaginationWrap">
+        <div class="document-pagination-info" id="documentPaginationInfo"></div>
+        <div class="document-pagination" id="documentPagination"></div>
+    </div>
+
     <div class="modal fade" id="modalCreateFolder" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">

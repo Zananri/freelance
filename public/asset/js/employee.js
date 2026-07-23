@@ -25,6 +25,14 @@ function showFloatingAlert(message, type = 'success', delayMs = 2500) {
 
 document.addEventListener("DOMContentLoaded", function () {
     const tableBody = document.getElementById("employeeTableBody");
+    const importEmployeeForm = document.getElementById("importEmployeeForm");
+    const importEmployeeLoader = document.getElementById("importEmployeeLoader");
+    const importEmployeeSubmitBtn = document.getElementById("importEmployeeSubmitBtn");
+    const importEmployeeModalEl = document.getElementById("importEmployeeModal");
+    const importEmployeeModal = importEmployeeModalEl ? bootstrap.Modal.getOrCreateInstance(importEmployeeModalEl) : null;
+    const employeePaginationWrap = document.getElementById("employeePaginationWrap");
+    const employeePaginationInfo = document.getElementById("employeePaginationInfo");
+    const employeePagination = document.getElementById("employeePagination");
 
     // Normalize image URL: keep absolute/http(s), data:, and blob: as-is; otherwise prefix with appUrl
     function normalizeImageUrl(url) {
@@ -48,6 +56,9 @@ document.addEventListener("DOMContentLoaded", function () {
         job: "",
         sort: "",
     };
+
+    let currentPage = 1;
+    const perPage = 10;
 
     const filterDepartmentSelect = document.getElementById("filterDepartment");
     const filterDivisionSelect = document.getElementById("filterDivision");
@@ -153,33 +164,110 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Fetch employees with filters
-    function fetchEmployees(filters = {}) {
+    function fetchEmployees(filters = {}, page = 1) {
         $.ajax({
             url: appUrl + "/employee/index",
             type: "GET",
             dataType: "json",
-            data: filters,
+            data: {
+                ...filters,
+                page,
+                per_page: perPage,
+            },
             headers: {
                 Accept: "application/json",
             },
             success: function (data) {
-                let employees = data.data;
-                
-                // Apply client-side sorting if sort parameter exists
-                if (filters.sort) {
-                    employees = applySorting(employees, filters.sort);
-                }
-                
+                const employees = data.data || [];
+                console.log(employees)
+                const pagination = data.pagination || null;
+
                 renderEmployees(employees);
-                console.log(employees);
+                renderPagination(pagination);
+                currentPage = pagination?.current_page || 1;
 
             },
             error: function () {
                 tableBody.innerHTML =
                     '<tr><td colspan="8">Failed to load employee data.</td></tr>';
+                renderPagination(null);
                 showFloatingAlert('Failed to load employees.', 'warning', 3500);
             },
         });
+    }
+
+    function renderPagination(pagination) {
+        if (!employeePaginationWrap || !employeePaginationInfo || !employeePagination) {
+            return;
+        }
+
+        if (!pagination || (pagination.total || 0) === 0) {
+            employeePaginationWrap.classList.add("d-none");
+            employeePaginationInfo.textContent = "";
+            employeePagination.innerHTML = "";
+            return;
+        }
+
+        employeePaginationWrap.classList.remove("d-none");
+        const from = pagination.from || 0;
+        const to = pagination.to || 0;
+        const total = pagination.total || 0;
+        employeePaginationInfo.textContent = `Showing ${from}-${to} of ${total}`;
+
+        const current = pagination.current_page || 1;
+        const last = pagination.last_page || 1;
+
+        const buttons = [];
+        buttons.push(createPageButton("Prev", Math.max(current - 1, 1), current <= 1));
+
+        const pages = buildPageNumbers(current, last);
+        pages.forEach((item) => {
+            if (item === "...") {
+                buttons.push('<span class="employee-page-btn" style="pointer-events:none;">...</span>');
+                return;
+            }
+            const activeClass = item === current ? " active" : "";
+            buttons.push(`<button type="button" class="employee-page-btn${activeClass}" data-page="${item}">${item}</button>`);
+        });
+
+        buttons.push(createPageButton("Next", Math.min(current + 1, last), current >= last));
+
+        employeePagination.innerHTML = buttons.join("");
+    }
+
+    function createPageButton(label, page, disabled) {
+        return `<button type="button" class="employee-page-btn" data-page="${page}" ${disabled ? "disabled" : ""}>${label}</button>`;
+    }
+
+    function buildPageNumbers(current, last) {
+        const pages = [];
+
+        if (last <= 7) {
+            for (let i = 1; i <= last; i++) {
+                pages.push(i);
+            }
+            return pages;
+        }
+
+        pages.push(1);
+
+        if (current > 3) {
+            pages.push("...");
+        }
+
+        const start = Math.max(2, current - 1);
+        const end = Math.min(last - 1, current + 1);
+
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+
+        if (current < last - 2) {
+            pages.push("...");
+        }
+
+        pages.push(last);
+        return pages;
     }
 
     // Render employee rows in table
@@ -192,17 +280,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let rows = "";
         employees.forEach((employee) => {
-            // Sesuai permintaan: table Employee menggunakan field photo milik employee saja (bukan profile_picture)
             let photoUrl = normalizeImageUrl(employee.photo || null);
             const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
             const departmentName = employee.department
                 ? employee.department.name_department
                 : "-";
+            const partnerName = employee.partner
+                ? employee.partner.partner_name
+                : "-";
             const divisionName = employee.division
                 ? employee.division.name_division
                 : "-";
             const office = employee.office ? employee.office : "-";
-            // Ensure status uppercase and map legacy INACTIVE -> RESIGN for UI
             let status = employee.status ? String(employee.status).toUpperCase() : "-";
             if (status === 'INACTIVE') status = 'RESIGN';
 
@@ -262,6 +351,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <td>${contractDisplay}</td>
                     <td>${workingPeriod}</td>
                     <td>${departmentName}</td>
+                    <td>${partnerName}</td>
                     <td>${divisionName}</td>
                     <td>
                         <div class="office-text">${office}</div>
@@ -282,88 +372,6 @@ document.addEventListener("DOMContentLoaded", function () {
             `;
         });
         tableBody.innerHTML = rows;
-    }
-
-    // Apply sorting to employees array
-    function applySorting(employees, sortType) {
-        if (!sortType) return employees;
-        
-        let sortedEmployees = [...employees];
-        
-        switch (sortType) {
-            case 'name_asc':
-                sortedEmployees.sort((a, b) => {
-                    const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
-                    const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
-                    return nameA.localeCompare(nameB);
-                });
-                break;
-            case 'name_desc':
-                sortedEmployees.sort((a, b) => {
-                    const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
-                    const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
-                    return nameB.localeCompare(nameA);
-                });
-                break;
-            case 'hire_date_newest':
-                sortedEmployees.sort((a, b) => {
-                    const dateA = a.hire_date ? new Date(a.hire_date) : new Date(0);
-                    const dateB = b.hire_date ? new Date(b.hire_date) : new Date(0);
-                    return dateB - dateA;
-                });
-                break;
-            case 'hire_date_oldest':
-                sortedEmployees.sort((a, b) => {
-                    const dateA = a.hire_date ? new Date(a.hire_date) : new Date(0);
-                    const dateB = b.hire_date ? new Date(b.hire_date) : new Date(0);
-                    return dateA - dateB;
-                });
-                break;
-            case 'contract_date_newest':
-                sortedEmployees.sort((a, b) => {
-                    const dateA = a.contract_end_date ? new Date(a.contract_end_date) : new Date(0);
-                    const dateB = b.contract_end_date ? new Date(b.contract_end_date) : new Date(0);
-                    return dateB - dateA;
-                });
-                break;
-            case 'contract_date_oldest':
-                sortedEmployees.sort((a, b) => {
-                    const dateA = a.contract_end_date ? new Date(a.contract_end_date) : new Date(0);
-                    const dateB = b.contract_end_date ? new Date(b.contract_end_date) : new Date(0);
-                    return dateA - dateB;
-                });
-                break;
-            case 'department_asc':
-                sortedEmployees.sort((a, b) => {
-                    const deptA = (a.department?.name_department || '').toLowerCase();
-                    const deptB = (b.department?.name_department || '').toLowerCase();
-                    return deptA.localeCompare(deptB);
-                });
-                break;
-            case 'department_desc':
-                sortedEmployees.sort((a, b) => {
-                    const deptA = (a.department?.name_department || '').toLowerCase();
-                    const deptB = (b.department?.name_department || '').toLowerCase();
-                    return deptB.localeCompare(deptA);
-                });
-                break;
-            case 'division_asc':
-                sortedEmployees.sort((a, b) => {
-                    const divA = (a.division?.name_division || '').toLowerCase();
-                    const divB = (b.division?.name_division || '').toLowerCase();
-                    return divA.localeCompare(divB);
-                });
-                break;
-            case 'division_desc':
-                sortedEmployees.sort((a, b) => {
-                    const divA = (a.division?.name_division || '').toLowerCase();
-                    const divB = (b.division?.name_division || '').toLowerCase();
-                    return divB.localeCompare(divA);
-                });
-                break;
-        }
-        
-        return sortedEmployees;
     }
 
     // Delete modal and logic
@@ -455,8 +463,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 showFloatingAlert(response.message || 'Employee deleted successfully.', 'success', 1200);
                 // Hide modal
                 deleteEmployeeModal.hide();
-                // Reload page to reflect changes
-                setTimeout(function () { location.reload(); }, 1200);
+                setTimeout(function () { fetchEmployees(currentFilters, currentPage); }, 1200);
             },
             error: function () {
                 loaderOverlay.classList.add("d-none");
@@ -579,7 +586,8 @@ document.addEventListener("DOMContentLoaded", function () {
         currentFilters.department = filterDepartmentSelect.value ? [filterDepartmentSelect.value] : [];
         currentFilters.division = filterDivisionSelect.value ? [filterDivisionSelect.value] : [];
         currentFilters.job = filterJobSelect.value ? [filterJobSelect.value] : [];
-        fetchEmployees(currentFilters);
+        currentPage = 1;
+        fetchEmployees(currentFilters, currentPage);
         // Close dropdown
         const dropdown = bootstrap.Dropdown.getInstance(document.getElementById("filterDropdownBtn"));
         if (dropdown) dropdown.hide();
@@ -598,7 +606,8 @@ document.addEventListener("DOMContentLoaded", function () {
         currentFilters.department = [];
         currentFilters.division = [];
         currentFilters.job = [];
-        fetchEmployees(currentFilters);
+        currentPage = 1;
+        fetchEmployees(currentFilters, currentPage);
         // Close dropdown
         const dropdown = bootstrap.Dropdown.getInstance(document.getElementById("filterDropdownBtn"));
         if (dropdown) dropdown.hide();
@@ -607,15 +616,93 @@ document.addEventListener("DOMContentLoaded", function () {
     // Search input event
     searchInput.addEventListener("input", () => {
         currentFilters.query = searchInput.value.trim();
-        fetchEmployees(currentFilters);
+        currentPage = 1;
+        fetchEmployees(currentFilters, currentPage);
     });
+
+    if (employeePagination) {
+        employeePagination.addEventListener("click", (event) => {
+            const target = event.target.closest("button[data-page]");
+            if (!target || target.disabled) {
+                return;
+            }
+            const page = Number(target.getAttribute("data-page"));
+            if (!Number.isFinite(page) || page < 1 || page === currentPage) {
+                return;
+            }
+            currentPage = page;
+            fetchEmployees(currentFilters, currentPage);
+        });
+    }
 
     // Initial load departments and fetch employees without filters
     loadDepartments();
-    fetchEmployees();
+    fetchEmployees(currentFilters, currentPage);
 
     window.addEventListener('profilePictureUpdated', function () {
-        // Refresh table so current user's universal avatar updates immediately.
-        fetchEmployees(currentFilters);
+        fetchEmployees(currentFilters, currentPage);
     });
+
+    if (importEmployeeForm) {
+        importEmployeeForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            if (!importEmployeeForm.checkValidity()) {
+                importEmployeeForm.classList.add("was-validated");
+                return;
+            }
+
+            importEmployeeForm.classList.remove("was-validated");
+
+            if (importEmployeeLoader) {
+                importEmployeeLoader.classList.remove("d-none");
+            }
+            if (importEmployeeSubmitBtn) {
+                importEmployeeSubmitBtn.disabled = true;
+            }
+
+            const formData = new FormData(importEmployeeForm);
+
+            fetch(importEmployeeForm.action, {
+                method: "POST",
+                headers: {
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Accept": "application/json",
+                },
+                body: formData,
+            })
+                .then(async (response) => {
+                    let data = {};
+                    try {
+                        data = await response.json();
+                    } catch (_) {
+                        data = {};
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(data.message || "Import gagal.");
+                    }
+
+                    showFloatingAlert(data.message || "Import selesai.", data.status === "warning" ? "warning" : "success", 5000);
+                    if (importEmployeeModal) {
+                        importEmployeeModal.hide();
+                    }
+                    importEmployeeForm.reset();
+                    currentPage = 1;
+                    fetchEmployees(currentFilters, currentPage);
+                })
+                .catch((error) => {
+                    showFloatingAlert(error.message || "Import gagal.", "warning", 5000);
+                })
+                .finally(() => {
+                    if (importEmployeeLoader) {
+                        importEmployeeLoader.classList.add("d-none");
+                    }
+                    if (importEmployeeSubmitBtn) {
+                        importEmployeeSubmitBtn.disabled = false;
+                    }
+                });
+        });
+    }
 });

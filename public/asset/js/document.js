@@ -25,6 +25,9 @@ const filterDepartmentSelect = document.getElementById("filter_department");
 const filterSiteSelect = document.getElementById("filter_site");
 const filterJobSelect = document.getElementById("filter_job");
 const resetDocumentFiltersButton = document.getElementById("btnResetDocumentFilters");
+const documentPaginationWrap = document.getElementById("documentPaginationWrap");
+const documentPaginationInfo = document.getElementById("documentPaginationInfo");
+const documentPagination = document.getElementById("documentPagination");
 let currentFolder = null;
 let selectedFiles = [];
 let currentSearch = "";
@@ -38,6 +41,8 @@ const currentSort = {
     field: "folder_name",
     direction: "asc",
 };
+let currentPage = 1;
+const perPage = 10;
 
 const currentUserEmployeeId = Number(document.querySelector('meta[name="current-employee-id"]')?.content || 0);
 const currentUserType = (document.querySelector('meta[name="current-user-type"]')?.content || '').toUpperCase();
@@ -410,6 +415,79 @@ function renderGrid(folders, files = [], currentFolderData = null) {
     gridBody.innerHTML = html;
 }
 
+function createPaginationButton(label, page, disabled) {
+    return `<button type="button" class="document-page-btn" data-page="${page}" ${disabled ? "disabled" : ""}>${label}</button>`;
+}
+
+function buildPaginationNumbers(current, last) {
+    const pages = [];
+
+    if (last <= 7) {
+        for (let i = 1; i <= last; i++) {
+            pages.push(i);
+        }
+        return pages;
+    }
+
+    pages.push(1);
+
+    if (current > 3) {
+        pages.push("...");
+    }
+
+    const start = Math.max(2, current - 1);
+    const end = Math.min(last - 1, current + 1);
+
+    for (let i = start; i <= end; i++) {
+        pages.push(i);
+    }
+
+    if (current < last - 2) {
+        pages.push("...");
+    }
+
+    pages.push(last);
+
+    return pages;
+}
+
+function renderPagination(pagination) {
+    if (!documentPaginationWrap || !documentPaginationInfo || !documentPagination) {
+        return;
+    }
+
+    if (!pagination || (pagination.total || 0) === 0) {
+        documentPaginationWrap.classList.add("d-none");
+        documentPaginationInfo.textContent = "";
+        documentPagination.innerHTML = "";
+        return;
+    }
+
+    documentPaginationWrap.classList.remove("d-none");
+    const from = pagination.from || 0;
+    const to = pagination.to || 0;
+    const total = pagination.total || 0;
+    documentPaginationInfo.textContent = `Showing ${from}-${to} of ${total}`;
+
+    const current = pagination.current_page || 1;
+    const last = pagination.last_page || 1;
+    const buttons = [];
+
+    buttons.push(createPaginationButton("Prev", Math.max(current - 1, 1), current <= 1));
+
+    buildPaginationNumbers(current, last).forEach((item) => {
+        if (item === "...") {
+            buttons.push('<span class="document-page-btn" style="pointer-events:none;">...</span>');
+            return;
+        }
+        const activeClass = item === current ? " active" : "";
+        buttons.push(`<button type="button" class="document-page-btn${activeClass}" data-page="${item}">${item}</button>`);
+    });
+
+    buttons.push(createPaginationButton("Next", Math.min(current + 1, last), current >= last));
+    documentPagination.innerHTML = buttons.join("");
+}
+
 function getCsrfToken() {
     return document
         .querySelector('meta[name="csrf-token"]')
@@ -472,16 +550,28 @@ function renderBreadcrumb(breadcrumb = []) {
     breadcrumbContainer.innerHTML = html;
 }
 
-function loadFolder(folderId = null) {
+function loadFolder(folderId = currentFolder, page = currentPage) {
     currentFolder = folderId;
+    currentPage = page;
     const url = new URL("/document/get-all-folder", window.location.origin);
     if (folderId !== null) {
         url.searchParams.set("parent_id", folderId);
     }
+    url.searchParams.set("page", String(currentPage));
+    url.searchParams.set("per_page", String(perPage));
     url.searchParams.set("sort_by", currentSort.field);
     url.searchParams.set("sort_direction", currentSort.direction);
     if (currentSearch) {
         url.searchParams.set("search", currentSearch);
+    }
+    if (currentFilterDepartment && currentFilterDepartment !== "all") {
+        url.searchParams.set("filter_department", currentFilterDepartment);
+    }
+    if (currentFilterSite && currentFilterSite !== "all") {
+        url.searchParams.set("filter_division", currentFilterSite);
+    }
+    if (currentFilterJob && currentFilterJob !== "all") {
+        url.searchParams.set("filter_job", currentFilterJob);
     }
     if (currentFilterType && currentFilterType !== "all") {
         url.searchParams.set("filter_type", currentFilterType);
@@ -502,9 +592,12 @@ function loadFolder(folderId = null) {
             renderBreadcrumb(res.breadcrumb);
             renderTable(res.folders, res.files, res.current_folder);
             renderGrid(res.folders, res.files, res.current_folder);
+            renderPagination(res.pagination || null);
+            currentPage = res.pagination?.current_page || 1;
         })
         .catch(() => {
             showAlertMsg("Failed to load documents");
+            renderPagination(null);
         })
         .finally(() => {
             hideDocumentLoaders();
@@ -542,7 +635,8 @@ document.addEventListener("click", function (event) {
             currentSort.direction = "asc";
         }
         updateSortIcon();
-        loadFolder(currentFolder);
+        currentPage = 1;
+        loadFolder(currentFolder, currentPage);
         return;
     }
     const addFolder = event.target.closest(".add-folder");
@@ -612,7 +706,8 @@ document.addEventListener("click", function (event) {
     );
     if (breadcrumbTarget) {
         const id = breadcrumbTarget.dataset.id || null;
-        loadFolder(id);
+        currentPage = 1;
+        loadFolder(id, currentPage);
         return;
     }
     const folderRow = event.target.closest(".folder-row");
@@ -623,7 +718,8 @@ document.addEventListener("click", function (event) {
         !event.target.closest(".edit-folder") &&
         !event.target.closest(".delete-folder")
     ) {
-        loadFolder(folderRow.dataset.id);
+        currentPage = 1;
+        loadFolder(folderRow.dataset.id, currentPage);
     }
     if (
         folderCard &&
@@ -631,9 +727,25 @@ document.addEventListener("click", function (event) {
         !event.target.closest(".edit-folder") &&
         !event.target.closest(".delete-folder")
     ) {
-        loadFolder(folderCard.dataset.id);
+        currentPage = 1;
+        loadFolder(folderCard.dataset.id, currentPage);
     }
 });
+
+if (documentPagination) {
+    documentPagination.addEventListener("click", function (event) {
+        const target = event.target.closest("button[data-page]");
+        if (!target || target.disabled) {
+            return;
+        }
+        const page = Number(target.getAttribute("data-page"));
+        if (!Number.isFinite(page) || page < 1 || page === currentPage) {
+            return;
+        }
+        currentPage = page;
+        loadFolder(currentFolder, currentPage);
+    });
+}
 
 function renderUploadPreview() {
     if (!uploadPreviewList) {
@@ -919,7 +1031,8 @@ if (typeof jQuery !== "undefined") {
             "input",
             debounce(function () {
                 currentSearch = $(this).val().trim();
-                loadFolder(currentFolder);
+                currentPage = 1;
+                loadFolder(currentFolder, currentPage);
             }, 250),
         );
 
@@ -942,7 +1055,8 @@ if (typeof jQuery !== "undefined") {
             currentFilterJob = "all";
             loadSiteFilters(currentFilterDepartment, "all").then(function () {
                 loadJobFilters("all", "all").then(function () {
-                    loadFolder(currentFolder);
+                    currentPage = 1;
+                    loadFolder(currentFolder, currentPage);
                 });
             });
         });
@@ -951,13 +1065,15 @@ if (typeof jQuery !== "undefined") {
             currentFilterSite = $(this).val() || "all";
             currentFilterJob = "all";
             loadJobFilters(currentFilterSite, "all").then(function () {
-                loadFolder(currentFolder);
+                currentPage = 1;
+                loadFolder(currentFolder, currentPage);
             });
         });
 
         $(filterJobSelect).on("change", function () {
             currentFilterJob = $(this).val() || "all";
-            loadFolder(currentFolder);
+            currentPage = 1;
+            loadFolder(currentFolder, currentPage);
         });
 
         $("#filter_type, #filter_extension, #filter_updated").on(
@@ -966,7 +1082,8 @@ if (typeof jQuery !== "undefined") {
                 currentFilterType = $("#filter_type").val() || "all";
                 currentFilterExtension = $("#filter_extension").val() || "all";
                 currentFilterUpdated = $("#filter_updated").val() || "all";
-                loadFolder(currentFolder);
+                currentPage = 1;
+                loadFolder(currentFolder, currentPage);
             },
         );
 
@@ -978,6 +1095,7 @@ if (typeof jQuery !== "undefined") {
                 currentFilterDepartment = "all";
                 currentFilterSite = "all";
                 currentFilterJob = "all";
+                currentPage = 1;
 
                 $("#filter_type").val("all");
                 $("#filter_extension").val("all");
@@ -987,7 +1105,7 @@ if (typeof jQuery !== "undefined") {
                     loadDepartmentFilters("all").then(function () {
                         loadSiteFilters("all", "all").then(function () {
                             loadJobFilters("all", "all").then(function () {
-                                loadFolder(currentFolder);
+                                loadFolder(currentFolder, currentPage);
                             });
                         });
                     });
@@ -995,14 +1113,14 @@ if (typeof jQuery !== "undefined") {
                     if (currentUserDepartmentId) {
                         loadSiteFilters(currentUserDepartmentId, "all").then(function () {
                             loadJobFilters("all", "all").then(function () {
-                                loadFolder(currentFolder);
+                                loadFolder(currentFolder, currentPage);
                             });
                         });
                     } else {
-                        loadFolder(currentFolder);
+                        loadFolder(currentFolder, currentPage);
                     }
                 } else {
-                    loadFolder(currentFolder);
+                    loadFolder(currentFolder, currentPage);
                 }
             });
         }
@@ -1025,6 +1143,6 @@ window.addEventListener("DOMContentLoaded", function () {
     if (currentUserType === "ADMINISTRATOR") {
         currentFilterDepartment = currentUserDepartmentId ? String(currentUserDepartmentId) : "all";
     }
-    loadFolder();
+    loadFolder(null, currentPage);
     updateSortIcon();
 });

@@ -152,6 +152,17 @@
                             </div>
 
                             <div class="custom-form-employee">
+                                <label for="no_bpjs" class="form-label">No BPJS</label>
+                                <input type="number" id="no_bpjs" name="no_bpjs" class="form-control input-text" />
+                            </div>
+
+                            <div class="custom-form-employee">
+                                <label for="no_bpjstk" class="form-label">No BPJSTK</label>
+                                <input type="number" id="no_bpjstk" name="no_bpjstk"
+                                    class="form-control input-text" />
+                            </div>
+
+                            <div class="custom-form-employee">
                                 <label for="department_id" class="form-label">Partner</label>
                                 <select id="department_id" name="department_id" class="form-select input-select"
                                     required>

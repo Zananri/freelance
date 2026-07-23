@@ -13,6 +13,7 @@ use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class OfficeBasicSeeder extends Seeder
 {
@@ -116,13 +117,13 @@ class OfficeBasicSeeder extends Seeder
                     'division_id' => $division->id,
                     'job_id' => $job->id,
                     'shift_id' => $defaultShiftId,
-                    'profile_picture' => 'asset/img/avatar.png',
+                    'profile_picture' => 'asset/img/logo.png',
                     'name' => 'Superadmin SGS',
                     'email_work' => 'superadminsgs@gmail.com',
                     'phone' => '081234567890',
                     'status' => 'ACTIVE',
                     'address' => 'SUPERADMIN ADDRESS',
-                    'photo' => 'asset/img/avatar.png',
+                    'photo' => 'asset/img/logo.png',
                     'ktp' => null,
                     'birth_date' => '1990-01-01',
                     'hire_date' => '2024-01-01',
@@ -135,6 +136,125 @@ class OfficeBasicSeeder extends Seeder
                     'deleted_by' => $actorId,
                 ]
             );
+
+            $otherDepartments = [
+                'HSN',
+                'KEMENAG',
+                'BATANG',
+                'SEKWAN JATENG',
+                'SEKWAN KENDAL',
+                'BPSDM',
+                'SEMARANG',
+            ];
+
+            foreach ($otherDepartments as $index => $deptName) {
+                $dept = Department::updateOrCreate(
+                    ['name_department' => $deptName],
+                    [
+                        'status' => 'ACTIVE',
+                        'description' => "System {$deptName} department for superadmin",
+                        'images' => null,
+                        'created_by' => $actorId,
+                        'updated_by' => $actorId,
+                        'deleted_by' => $actorId,
+                    ]
+                );
+
+                $slug = Str::slug($deptName, '_');
+
+                $deptPartner = Partner::updateOrCreate(
+                    [
+                        'partner_name' => "ADMIN {$deptName} PARTNER",
+                        'department_id' => $dept->id,
+                    ],
+                    [
+                        'office_id' => $defaultOfficeId,
+                        'status' => 'ACTIVE',
+                        'description' => "Admin partner for {$deptName}",
+                        'images' => null,
+                        'created_by' => $actorId,
+                        'updated_by' => $actorId,
+                        'deleted_by' => $actorId,
+                    ]
+                );
+
+                $deptDivision = Division::updateOrCreate(
+                    [
+                        'partner_id' => $deptPartner->id,
+                        'name_division' => "ADMIN {$deptName} DIVISION",
+                    ],
+                    [
+                        'department_id' => $dept->id,
+                        'status' => 'ACTIVE',
+                        'description' => "Admin division for {$deptName}",
+                        'images' => null,
+                        'created_by' => $actorId,
+                        'updated_by' => $actorId,
+                        'deleted_by' => $actorId,
+                    ]
+                );
+
+                $deptJob = Job::updateOrCreate(
+                    [
+                        'division_id' => $deptDivision->id,
+                        'job_name' => 'ADMIN',
+                    ],
+                    [
+                        'department_id' => $dept->id,
+                        'partner_id' => $deptPartner->id,
+                        'description' => "Admin job for {$deptName}",
+                        'status' => 'ACTIVE',
+                        'created_by' => $actorId,
+                        'updated_by' => $actorId,
+                        'deleted_by' => $actorId,
+                    ]
+                );
+
+                $adminEmail = "admin.{$slug}@office.local";
+                $adminPassword = "admin_{$slug}_2026";
+                $adminPhone = '0812345' . str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT);
+
+                $deptAdminUser = User::updateOrCreate(
+                    ['email' => $adminEmail],
+                    [
+                        'name' => "Admin {$deptName}",
+                        'user_type' => 'ADMIN',
+                        'user_role' => 'ADMIN',
+                        'password' => $adminPassword,
+                        'photo' => 'asset/img/avatar.png',
+                    ]
+                );
+
+                Employee::updateOrCreate(
+                    ['email' => $adminEmail],
+                    [
+                        'user_id' => $deptAdminUser->id,
+                        'region' => 'DKI JAKARTA',
+                        'department_id' => $dept->id,
+                        'partner_id' => $deptPartner->id,
+                        'division_id' => $deptDivision->id,
+                        'job_id' => $deptJob->id,
+                        'shift_id' => $defaultShiftId,
+                        'profile_picture' => 'asset/img/logo.png',
+                        'name' => "Admin {$deptName}",
+                        'email_work' => $adminEmail,
+                        'phone' => $adminPhone,
+                        'status' => 'ACTIVE',
+                        'address' => "ADMIN {$deptName} ADDRESS",
+                        'photo' => 'asset/img/logo.png',
+                        'ktp' => null,
+                        'birth_date' => '1990-01-01',
+                        'hire_date' => '2024-01-01',
+                        'contract_end_date' => '2030-12-31',
+                        'resign_date' => null,
+                        'grade_id' => $defaultGradeId,
+                        'office' => $defaultOfficeId,
+                        'created_by' => $actorId,
+                        'updated_by' => $actorId,
+                        'deleted_by' => $actorId,
+                    ]
+                );
+            }
         });
     }
 }

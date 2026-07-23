@@ -236,6 +236,7 @@ Route::middleware('auth', 'management')->group(function () {
 
     // Employee CRUD routes
     Route::get('/employee/export-employee-active', [EmployeeController::class, 'exportEmployeeActive'])->name('employee.exportEmployeeActive');
+    Route::post('/employee/import', [EmployeeController::class, 'import'])->name('employee.import');
     Route::get('/employee', [EmployeeController::class, 'showEmployeePage'])->name('employee');
     Route::get('/employee/index', [EmployeeController::class, 'index'])->name('employee.index');
     Route::get('/employee/create', [EmployeeController::class, 'create'])->name('employee.create');

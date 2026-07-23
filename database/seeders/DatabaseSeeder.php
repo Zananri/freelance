@@ -32,7 +32,6 @@ class DatabaseSeeder extends Seeder
             UpdateEmployeeGradeOfficeSeeder::class,
             ShiftSeeder::class,
             OfficeBasicSeeder::class,
-            EmployeeExcelSeeder::class,
         ]);
     }
 }

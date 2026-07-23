@@ -1,8 +1,9 @@
 <?php
 
-namespace Database\Seeders;
+namespace App\Services;
 
 use App\Models\Department;
+use App\Models\DocumentFolders;
 use App\Models\Division;
 use App\Models\Employee;
 use App\Models\EmployeeSalary;
@@ -12,17 +13,16 @@ use App\Models\Office;
 use App\Models\Partner;
 use App\Models\Shift;
 use App\Models\User;
-use Illuminate\Database\Seeder;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class EmployeeExcelSeeder extends Seeder
+class EmployeeExcelImportService
 {
-    private const FILE_PATH = 'public/file/employee_seeder/Employee List SGS 2026 (1).xlsx';
-
     private const REGION_ALLOWLIST = [
         'JAWA TENGAH',
         'DKI JAKARTA',
@@ -40,45 +40,54 @@ class EmployeeExcelSeeder extends Seeder
     private array $jobCache = [];
     private array $userEmailIndex = [];
     private array $phoneOwnerIndex = [];
-    private array $seededDepartmentIds = [];
 
-    public function run(): void
+    public function importFromPath(string $filePath, int $actorId): array
     {
-        $fullPath = base_path(self::FILE_PATH);
-        if (!is_file($fullPath)) {
-            throw new \RuntimeException('Excel file not found: ' . $fullPath);
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
         }
 
-        DB::transaction(function () use ($fullPath) {
-            $this->bootstrapContext();
+        $this->actorId = $actorId;
+        $this->bootstrapContext();
 
-            $spreadsheet = IOFactory::load($fullPath);
+        $summary = [
+            'created' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+            'blank' => 0,
+            'errors' => [],
+        ];
 
-            foreach ($spreadsheet->getAllSheets() as $sheet) {
-                $this->seedSheet($sheet);
+        $spreadsheet = IOFactory::load($filePath);
+
+        foreach ($spreadsheet->getAllSheets() as $sheet) {
+            try {
+                $sheetResult = $this->importSheet($sheet);
+                $summary['created'] += $sheetResult['created'];
+                $summary['updated'] += $sheetResult['updated'];
+                $summary['skipped'] += $sheetResult['skipped'];
+                $summary['blank'] += $sheetResult['blank'];
+                $summary['errors'] = array_merge($summary['errors'], $sheetResult['errors']);
+            } catch (\Throwable $e) {
+                $summary['errors'][] = 'Sheet "' . $sheet->getTitle() . '" gagal diproses: ' . $e->getMessage();
             }
+        }
 
-            $this->seedDepartmentAdmins();
-        });
+        return $summary;
     }
 
     private function bootstrapContext(): void
     {
-        $systemUser = User::updateOrCreate(
-            ['email' => 'seeder.system@office.local'],
-            [
-                'name' => 'Seeder System',
-                'user_type' => 'ADMINISTRATOR',
-                'user_role' => 'ADMINISTRATOR',
-                'password' => 'office_2025',
-                'photo' => 'asset/img/avatar.png',
-            ]
-        );
-
-        $this->actorId = (int) $systemUser->id;
         $this->defaultGradeId = Grade::query()->orderBy('id')->value('id');
         $this->defaultOfficeId = Office::query()->orderBy('id')->value('id');
         $this->defaultShiftId = Shift::query()->orderBy('id')->value('id');
+
+        $this->departmentCache = Department::query()
+            ->get(['id', 'name_department'])
+            ->mapWithKeys(fn (Department $department) => [
+                $this->key((string) $department->name_department) => (int) $department->id,
+            ])
+            ->toArray();
 
         $this->userEmailIndex = User::query()
             ->get(['id', 'email'])
@@ -93,230 +102,125 @@ class EmployeeExcelSeeder extends Seeder
             ->toArray();
     }
 
-    private function seedSheet(Worksheet $sheet): void
+    private function importSheet(Worksheet $sheet): array
     {
+        $summary = [
+            'created' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+            'blank' => 0,
+            'errors' => [],
+        ];
+
         $departmentName = $this->cleanText($sheet->getTitle());
         if ($departmentName === null) {
-            return;
+            return $summary;
         }
 
-        $header = $this->resolveHeader($sheet);
+        try {
+            $header = $this->resolveHeader($sheet);
+        } catch (\Throwable $e) {
+            $summary['errors'][] = $sheet->getTitle() . ': ' . $e->getMessage();
+            return $summary;
+        }
+
         $departmentId = $this->resolveDepartmentId($departmentName);
-        $this->seededDepartmentIds[$departmentId] = $departmentId;
 
         for ($row = $header['row'] + 1; $row <= $sheet->getHighestRow(); $row++) {
-            $record = $this->extractRecord($sheet, $row, $header['map']);
-            if ($record === null) {
-                continue;
+            try {
+                $record = $this->extractRecord($sheet, $row, $header['map']);
+                if ($record === null) {
+                    $summary['blank']++;
+                    continue;
+                }
+
+                if ($record['name'] === null || $record['partner'] === null || $record['division'] === null) {
+                    $summary['skipped']++;
+                    $summary['errors'][] = $sheet->getTitle() . ' row ' . $row . ': missing required name/partner/division';
+                    continue;
+                }
+
+                $employeeEmail = $record['email']
+                    ?? $this->buildSyntheticEmployeeEmail($departmentName, $record['employee_niks'], $record['name'], $row);
+
+                $partnerId = $this->resolvePartnerId($record['partner'], $departmentId);
+                $divisionId = $this->resolveDivisionId($record['division'], $departmentId, $partnerId);
+                $jobId = $this->resolveJobId($record['job'], $departmentId, $partnerId, $divisionId);
+
+                $workEmail = $this->resolveWorkEmail($record['email_work'], $employeeEmail, $record['employee_niks'], $record['name']);
+                $resolvedPhone = $this->resolveEmployeePhone($record['phone'], $employeeEmail);
+                $hireDate = $record['hire_date'] ?? now()->toDateString();
+                $birthDate = $record['birth_date'] ?? $hireDate;
+
+                $user = $this->upsertUser($workEmail, $record['name']);
+
+                $existingEmployee = Employee::where('email', $employeeEmail)->first();
+                $employee = Employee::updateOrCreate(
+                    ['email' => $employeeEmail],
+                    [
+                        'user_id' => $user->id,
+                        'region' => $record['region'],
+                        'department_id' => $departmentId,
+                        'partner_id' => $partnerId,
+                        'division_id' => $divisionId,
+                        'job_id' => $jobId,
+                        'shift_id' => $this->defaultShiftId,
+                        'weekday_off' => $record['weekday_off'],
+                        'name' => $record['name'],
+                        'employee_niks' => $record['employee_niks'],
+                        'email_work' => $workEmail,
+                        'phone' => $resolvedPhone,
+                        'status' => $record['status'],
+                        'bpjs_allowance' => $record['bpjs_allowance'],
+                        'no_bpjs' => $record['no_bpjs'],
+                        'no_bpjstk' => $record['no_bpjstk'],
+                        'bpjs_tenaga_kerja_allowance' => $record['bpjs_tk_allowance'],
+                        'pension_allowance' => $record['pension_allowance'],
+                        'positional_allowance' => $record['positional_allowance'],
+                        'basic_salary' => $record['basic_salary'],
+                        'address' => $record['address'],
+                        'photo' => $record['photo'],
+                        'ktp' => $record['ktp'],
+                        'cv' => $record['cv'],
+                        'pkwt' => $record['pkwt'],
+                        'birth_date' => $birthDate,
+                        'hire_date' => $hireDate,
+                        'contract_end_date' => $record['contract_end_date'],
+                        'grade_id' => $this->defaultGradeId,
+                        'office' => $this->defaultOfficeId,
+                        'created_by' => $this->actorId,
+                        'updated_by' => $this->actorId,
+                    ]
+                );
+
+                if ($existingEmployee) {
+                    $summary['updated']++;
+                } else {
+                    $summary['created']++;
+                }
+
+                $this->ensureEmployeeDefaultFolders($employee);
+
+                EmployeeSalary::updateOrCreate(
+                    ['employee_id' => $employee->id],
+                    [
+                        'take_home_pay' => $record['basic_salary'] + $record['positional_allowance'] + $record['pension_allowance'] + $record['bpjs_tk_allowance'] + $record['bpjs_allowance'],
+                        'basic_salary' => $record['basic_salary'],
+                        'positional_allowance' => $record['positional_allowance'],
+                        'bpjs_allowance' => $record['bpjs_allowance'],
+                        'bpjs_tenaga_kerja_allowance' => $record['bpjs_tk_allowance'],
+                        'pension_allowance' => $record['pension_allowance'],
+                        'created_by' => $this->actorId,
+                        'updated_by' => $this->actorId,
+                    ]
+                );
+            } catch (\Throwable $e) {
+                $summary['skipped']++;
+                $summary['errors'][] = $sheet->getTitle() . ' row ' . $row . ': ' . $e->getMessage();
             }
-
-            if ($record['name'] === null || $record['partner'] === null || $record['division'] === null) {
-                continue;
-            }
-
-            $employeeEmail = $record['email']
-                ?? $this->buildSyntheticEmployeeEmail($departmentName, $record['employee_niks'], $record['name'], $row);
-
-            $partnerId = $this->resolvePartnerId($record['partner'], $departmentId);
-            $divisionId = $this->resolveDivisionId($record['division'], $departmentId, $partnerId);
-            $jobId = $this->resolveJobId($record['job'], $departmentId, $partnerId, $divisionId);
-
-            $workEmail = $this->resolveWorkEmail($record['email_work'], $employeeEmail, $record['employee_niks'], $record['name']);
-            $resolvedPhone = $this->resolveEmployeePhone($record['phone'], $employeeEmail);
-            $hireDate = $record['hire_date'] ?? now()->toDateString();
-            $birthDate = $record['birth_date'] ?? $hireDate;
-
-            $user = $this->upsertUser($workEmail, $record['name']);
-
-            $employee = Employee::updateOrCreate(
-                ['email' => $employeeEmail],
-                [
-                    'user_id' => $user->id,
-                    'region' => $record['region'],
-                    'department_id' => $departmentId,
-                    'partner_id' => $partnerId,
-                    'division_id' => $divisionId,
-                    'job_id' => $jobId,
-                    'shift_id' => $this->defaultShiftId,
-                    'weekday_off' => $record['weekday_off'],
-                    'name' => $record['name'],
-                    'employee_niks' => $record['employee_niks'],
-                    'email_work' => $workEmail,
-                    'phone' => $resolvedPhone,
-                    'status' => $record['status'],
-                    'bpjs_allowance' => $record['bpjs_allowance'],
-                    'no_bpjs' => $record['no_bpjs'],
-                    'no_bpjstk' => $record['no_bpjstk'],
-                    'bpjs_tenaga_kerja_allowance' => $record['bpjs_tk_allowance'],
-                    'pension_allowance' => $record['pension_allowance'],
-                    'positional_allowance' => $record['positional_allowance'],
-                    'basic_salary' => $record['basic_salary'],
-                    'address' => $record['address'],
-                    'photo' => $record['photo'],
-                    'ktp' => $record['ktp'],
-                    'cv' => $record['cv'],
-                    'pkwt' => $record['pkwt'],
-                    'birth_date' => $birthDate,
-                    'hire_date' => $hireDate,
-                    'contract_end_date' => $record['contract_end_date'],
-                    'grade_id' => $this->defaultGradeId,
-                    'office' => $this->defaultOfficeId,
-                    'created_by' => $this->actorId,
-                    'updated_by' => $this->actorId,
-                ]
-            );
-
-            EmployeeSalary::updateOrCreate(
-                ['employee_id' => $employee->id],
-                [
-                    'take_home_pay' => $record['basic_salary'] + $record['positional_allowance'] + $record['pension_allowance'] + $record['bpjs_tk_allowance'] + $record['bpjs_allowance'],
-                    'basic_salary' => $record['basic_salary'],
-                    'positional_allowance' => $record['positional_allowance'],
-                    'bpjs_allowance' => $record['bpjs_allowance'],
-                    'bpjs_tenaga_kerja_allowance' => $record['bpjs_tk_allowance'],
-                    'pension_allowance' => $record['pension_allowance'],
-                    'created_by' => $this->actorId,
-                    'updated_by' => $this->actorId,
-                ]
-            );
         }
-    }
 
-    private function seedDepartmentAdmins(): void
-    {
-        $departmentIds = array_values($this->seededDepartmentIds);
-        sort($departmentIds);
-
-        foreach (array_slice($departmentIds, 0, 7) as $index => $departmentId) {
-            $department = Department::find($departmentId);
-            if (!$department) {
-                continue;
-            }
-
-            $partner = Partner::where('department_id', $departmentId)->orderBy('id')->first();
-            if (!$partner) {
-                $partner = Partner::updateOrCreate(
-                    [
-                        'partner_name' => $department->name_department . ' Partner',
-                        'department_id' => $departmentId,
-                    ],
-                    [
-                        'office_id' => $this->defaultOfficeId,
-                        'status' => 'ACTIVE',
-                        'description' => null,
-                        'images' => null,
-                        'created_by' => $this->actorId,
-                        'updated_by' => $this->actorId,
-                        'deleted_by' => $this->actorId,
-                    ]
-                );
-            }
-
-            $division = Division::where('partner_id', $partner->id)->orderBy('id')->first();
-            if (!$division) {
-                $division = Division::updateOrCreate(
-                    [
-                        'partner_id' => $partner->id,
-                        'name_division' => $department->name_department . ' Division',
-                    ],
-                    [
-                        'department_id' => $departmentId,
-                        'status' => 'ACTIVE',
-                        'description' => null,
-                        'images' => null,
-                        'created_by' => $this->actorId,
-                        'updated_by' => $this->actorId,
-                        'deleted_by' => $this->actorId,
-                    ]
-                );
-            }
-
-            $job = Job::where('division_id', $division->id)->orderBy('id')->first();
-            if (!$job) {
-                $job = Job::updateOrCreate(
-                    [
-                        'division_id' => $division->id,
-                        'job_name' => 'ADMIN ' . strtoupper($department->name_department),
-                    ],
-                    [
-                        'department_id' => $departmentId,
-                        'partner_id' => $partner->id,
-                        'status' => 'ACTIVE',
-                        'description' => null,
-                        'created_by' => $this->actorId,
-                        'updated_by' => $this->actorId,
-                        'deleted_by' => $this->actorId,
-                    ]
-                );
-            }
-
-            $adminNo = $index + 1;
-            $adminName = 'Admin ' . strtoupper($department->name_department);
-            $local = Str::slug($department->name_department, '.');
-            if ($local === '') {
-                $local = 'department.' . $departmentId;
-            }
-
-            $adminEmail = strtolower('admin.' . $local . '@office.local');
-
-            $user = User::whereRaw('LOWER(email) = ?', [strtolower($adminEmail)])->first();
-            if (!$user) {
-                $user = User::create([
-                    'name' => $adminName,
-                    'email' => $adminEmail,
-                    'user_type' => 'ADMINISTRATOR',
-                    'user_role' => 'ADMINISTRATOR',
-                    'photo' => 'asset/img/avatar.png',
-                    'password' => 'admin_2026',
-                ]);
-            } else {
-                $user->name = $adminName;
-                $user->user_type = 'ADMINISTRATOR';
-                $user->user_role = 'ADMINISTRATOR';
-                $user->save();
-            }
-
-            $this->userEmailIndex[strtolower($adminEmail)] = (int) $user->id;
-
-            Employee::updateOrCreate(
-                ['email' => $adminEmail],
-                [
-                    'user_id' => $user->id,
-                    'region' => 'DKI JAKARTA',
-                    'department_id' => $departmentId,
-                    'partner_id' => $partner->id,
-                    'division_id' => $division->id,
-                    'job_id' => $job->id,
-                    'shift_id' => $this->defaultShiftId,
-                    'weekday_off' => null,
-                    'name' => $adminName,
-                    'employee_niks' => sprintf('ADM-%03d', $adminNo),
-                    'email_work' => $adminEmail,
-                    'phone' => null,
-                    'status' => 'ACTIVE',
-                    'bpjs_allowance' => 0,
-                    'no_bpjs' => null,
-                    'no_bpjstk' => null,
-                    'bpjs_tenaga_kerja_allowance' => 0,
-                    'pension_allowance' => 0,
-                    'positional_allowance' => 0,
-                    'basic_salary' => 0,
-                    'address' => 'SYSTEM ADMIN',
-                    'photo' => 'asset/img/avatar.png',
-                    'ktp' => null,
-                    'cv' => null,
-                    'pkwt' => null,
-                    'birth_date' => '1990-01-01',
-                    'hire_date' => now()->toDateString(),
-                    'contract_end_date' => '2030-12-31',
-                    'grade_id' => $this->defaultGradeId,
-                    'office' => $this->defaultOfficeId,
-                    'created_by' => $this->actorId,
-                    'updated_by' => $this->actorId,
-                    'deleted_by' => $this->actorId,
-                ]
-            );
-        }
+        return $summary;
     }
 
     private function resolveHeader(Worksheet $sheet): array
@@ -351,12 +255,12 @@ class EmployeeExcelSeeder extends Seeder
         ];
 
         $maxRow = min(15, $sheet->getHighestRow());
-        $maxCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestColumn());
+        $maxCol = Coordinate::columnIndexFromString($sheet->getHighestColumn());
 
         for ($row = 1; $row <= $maxRow; $row++) {
             $columns = [];
             for ($col = 1; $col <= $maxCol; $col++) {
-                $letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
+                $letter = Coordinate::stringFromColumnIndex($col);
                 $key = $this->normalizeHeader((string) $sheet->getCell($letter . $row)->getValue());
                 if ($key !== '') {
                     $columns[$key] = $letter;
@@ -458,27 +362,46 @@ class EmployeeExcelSeeder extends Seeder
         ];
     }
 
+    private function ensureEmployeeDefaultFolders(Employee $employee): void
+    {
+        $employeeFolder = DocumentFolders::firstOrCreate(
+            [
+                'employee_id' => $employee->id,
+                'parent_folder_id' => null,
+                'folder_name' => $employee->name,
+            ],
+            [
+                'created_by' => $this->actorId,
+            ]
+        );
+
+        foreach (['CV', 'PKWT', 'DAN LAINNYA'] as $folderName) {
+            DocumentFolders::firstOrCreate(
+                [
+                    'employee_id' => $employee->id,
+                    'parent_folder_id' => $employeeFolder->id,
+                    'folder_name' => $folderName,
+                ],
+                [
+                    'created_by' => $this->actorId,
+                ]
+            );
+        }
+    }
+
     private function resolveDepartmentId(string $name): int
     {
         $key = $this->key($name);
+
         if (isset($this->departmentCache[$key])) {
             return $this->departmentCache[$key];
         }
 
-        $department = Department::updateOrCreate(
-            ['name_department' => $name],
-            [
-                'status' => 'ACTIVE',
-                'description' => null,
-                'images' => null,
-                'created_by' => $this->actorId,
-                'updated_by' => $this->actorId,
-                'deleted_by' => $this->actorId,
-            ]
-        );
-
-        $this->departmentCache[$key] = (int) $department->id;
-        return $this->departmentCache[$key];
+        throw new \RuntimeException(sprintf(
+            'Department "%s" tidak ditemukan. Pastikan nama sheet sama persis dengan department yang sudah dibuat lewat seeder (department tersedia: %s).',
+            $name,
+            implode(', ', array_keys($this->departmentCache)) ?: '-'
+        ));
     }
 
     private function resolvePartnerId(string $name, int $departmentId): int
@@ -531,17 +454,18 @@ class EmployeeExcelSeeder extends Seeder
 
     private function resolveJobId(?string $name, int $departmentId, int $partnerId, int $divisionId): ?int
     {
-        if ($name === null || trim($name) === '') {
-            return null;
+        $jobName = $name;
+        if ($jobName === null || trim($jobName) === '') {
+            $jobName = 'UNASSIGNED';
         }
 
-        $key = $divisionId . '|' . $this->key($name);
+        $key = $divisionId . '|' . $this->key($jobName);
         if (isset($this->jobCache[$key])) {
             return $this->jobCache[$key];
         }
 
         $job = Job::updateOrCreate(
-            ['division_id' => $divisionId, 'job_name' => $name],
+            ['division_id' => $divisionId, 'job_name' => $jobName],
             [
                 'department_id' => $departmentId,
                 'partner_id' => $partnerId,
@@ -574,6 +498,10 @@ class EmployeeExcelSeeder extends Seeder
         }
 
         $candidate = $localBase . '@office.local';
+        if (strtolower($candidate) === strtolower($fallbackEmail)) {
+            $candidate = $localBase . '.work@office.local';
+        }
+
         return $this->reserveEmail($candidate);
     }
 
@@ -599,7 +527,7 @@ class EmployeeExcelSeeder extends Seeder
             'password' => 'office_2025',
         ]);
 
-        $this->userEmailIndex[strtolower($email)] = $newUser->id;
+        $this->userEmailIndex[strtolower($email)] = (int) $newUser->id;
 
         return $newUser;
     }
@@ -636,7 +564,7 @@ class EmployeeExcelSeeder extends Seeder
 
     private function key(string $value): string
     {
-        return strtoupper(trim(preg_replace('/\s+/', ' ', $value)));
+        return strtoupper(trim((string) preg_replace('/\s+/', ' ', $value)));
     }
 
     private function cleanText(?string $value): ?string
@@ -645,7 +573,7 @@ class EmployeeExcelSeeder extends Seeder
             return null;
         }
 
-        $value = trim(preg_replace('/\s+/', ' ', $value));
+        $value = trim((string) preg_replace('/\s+/', ' ', $value));
         if ($value === '' || $value === '-') {
             return null;
         }
@@ -692,7 +620,7 @@ class EmployeeExcelSeeder extends Seeder
             return null;
         }
 
-        $digits = preg_replace('/\D+/', '', $phone);
+        $digits = (string) preg_replace('/\D+/', '', $phone);
         if ($digits === '') {
             return null;
         }
@@ -711,6 +639,10 @@ class EmployeeExcelSeeder extends Seeder
         }
 
         $normalized = strtoupper(trim($region));
+        if ($normalized === 'DI YOGYAKARTA') {
+            $normalized = 'DAERAH ISTIMEWA YOGYAKARTA';
+        }
+
         return in_array($normalized, self::REGION_ALLOWLIST, true) ? $normalized : null;
     }
 
@@ -735,7 +667,7 @@ class EmployeeExcelSeeder extends Seeder
                 return ExcelDate::excelToDateTimeObject((float) $value)->format('Y-m-d');
             }
 
-            return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
+            return Carbon::parse((string) $value)->format('Y-m-d');
         } catch (\Throwable $e) {
             return null;
         }
@@ -751,8 +683,8 @@ class EmployeeExcelSeeder extends Seeder
             return (float) $value;
         }
 
-        $clean = preg_replace('/[^0-9,.-]/', '', (string) $value);
-        if ($clean === '' || $clean === null) {
+        $clean = (string) preg_replace('/[^0-9,.-]/', '', (string) $value);
+        if ($clean === '') {
             return 0;
         }
 
@@ -772,7 +704,7 @@ class EmployeeExcelSeeder extends Seeder
             return null;
         }
 
-        $digits = preg_replace('/\D+/', '', (string) $value);
+        $digits = (string) preg_replace('/\D+/', '', (string) $value);
         if ($digits === '') {
             return null;
         }

@@ -26,6 +26,13 @@
         <h2 class="m-0">Employee</h2>
     </div>
 
+    @if (session('employee_import_message'))
+        <div class="alert alert-{{ session('employee_import_status', 'info') }} alert-dismissible fade show mt-3" role="alert">
+            {{ session('employee_import_message') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="body-content scrollable-container rounded-4 px-3 py-3">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="mb-0 table-title">List Employee</h5>
@@ -90,6 +97,9 @@
                 <a href="{{ route('employee.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd add-btn">
                     <span class="material-symbols-outlined icon">add</span><span class="text-btn">Add Data</span>
                 </a>
+                <button type="button" class="btn btn-icon-toggle border-dddd add-btn" data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
+                    <span class="material-symbols-outlined icon">upload</span><span class="text-btn">Import Excel</span>
+                </button>
                 <a href="{{ url('/employee/export-employee-active')}}" target="_blank" class="btn btn-icon-toggle border-dddd add-btn" style="width: auto; min-width: 20px;">
                     <span class="material-symbols-outlined icon">download</span>
                 </a>
@@ -105,6 +115,7 @@
                             <th scope="col" style="text-align: left;">Hire Date</th>
                             <th scope="col" style="text-align: left;">Contract Date</th>
                             <th scope="col" style="text-align: left;">Working Period</th>
+                            <th scope="col" style="text-align: left;">Department Name</th>
                             <th scope="col" style="text-align: left;">Partner Name</th>
                             <th scope="col" style="text-align: left;">Site Name</th>
                             <th scope="col" style="text-align: left;">Office</th>
@@ -116,6 +127,44 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2" id="employeePaginationWrap">
+            <div class="employee-pagination-info" id="employeePaginationInfo"></div>
+            <div class="employee-pagination" id="employeePagination"></div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="importEmployeeModal" tabindex="-1" aria-labelledby="importEmployeeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form id="importEmployeeForm" action="{{ route('employee.import') }}" method="POST" enctype="multipart/form-data" class="modal-content position-relative">
+                @csrf
+                <div class="modal-header modal-header-custom mb-3">
+                    <h5 class="modal-title" id="importEmployeeModalLabel">Import Employee Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom mb-3">
+                    <div class="mb-3">
+                        <label for="employee_file" class="form-label">File Excel</label>
+                        <input class="form-control" type="file" id="employee_file" name="employee_file" accept=".xlsx,.xls" required>
+                        <div class="form-text">Upload 1 file Excel berisi data employee. Maksimal 20MB.</div>
+                    </div>
+                </div>
+                <div class="modal-footer modal-footer-custom px-2 py-2">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" id="importEmployeeSubmitBtn" class="btn btn-submit-black">Import</button>
+                </div>
+                <div id="importEmployeeLoader" class="loader d-none">
+                    <div class="box-loader rounded-4 bg-body bg-opacity-50 position-absolute top-0 start-0 w-100 h-100">
+                        <div class="text-center">
+                            <div class="spinner-border text-secondary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 

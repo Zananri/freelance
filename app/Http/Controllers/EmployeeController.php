@@ -26,6 +26,7 @@ use App\Models\Office;
 use App\Models\Partner;
 use App\Models\EmployeeShift;
 use App\Models\Attendance;
+use App\Services\EmployeeExcelImportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -198,9 +199,15 @@ class EmployeeController extends Controller
         $partnerIds = $request->input('department', []);
         $divisionIds = $request->input('division', []);
         $jobIds = $request->input('job', []);
+        $sort = (string) $request->input('sort', '');
 
         if ($request->wantsJson()) {
             $excludeEmployeeId = $request->input('exclude_employee_id', null);
+            $page = max((int) $request->input('page', 1), 1);
+            $perPage = (int) $request->input('per_page', 10);
+            if (!in_array($perPage, [10, 20, 50, 100], true)) {
+                $perPage = 10;
+            }
 
             $employees = Employee::with(['department', 'partner', 'division', 'job', 'user', 'grade', 'officeModel'])
                 ->where('status', '!=', 'DELETED');
@@ -226,16 +233,14 @@ class EmployeeController extends Controller
                         });
                 });
             })
-                ->when(!empty($partnerIds), function ($q) use ($partnerIds, $divisionIds, $jobIds) {
+                ->when(!empty($partnerIds), function ($q) use ($partnerIds) {
                     $q->whereIn('partner_id', $partnerIds);
-
-                    if (!empty($divisionIds)) {
-                        $q->whereIn('division_id', $divisionIds);
-                    }
-
-                    if (!empty($divisionIds) && !empty($jobIds)) {
-                        $q->whereIn('job_id', $jobIds);
-                    }
+                })
+                ->when(!empty($divisionIds), function ($q) use ($divisionIds) {
+                    $q->whereIn('division_id', $divisionIds);
+                })
+                ->when(!empty($jobIds), function ($q) use ($jobIds) {
+                    $q->whereIn('job_id', $jobIds);
                 })
                 ->when($excludeEmployeeId, function ($q) use ($excludeEmployeeId) {
                     $q->where('id', '!=', $excludeEmployeeId);
@@ -243,10 +248,67 @@ class EmployeeController extends Controller
                 ->whereHas('user', function ($q) {
                     $q->where('user_type', '!=', 'ADMINISTRATOR')
                         ->whereNotIn('user_role', ['ADMINISTRATOR']);
-                })
-                ->get();
+                });
 
-            $employees->transform(function ($employee) {
+            switch ($sort) {
+                case 'name_asc':
+                    $employees->orderBy('name', 'asc');
+                    break;
+                case 'name_desc':
+                    $employees->orderBy('name', 'desc');
+                    break;
+                case 'hire_date_newest':
+                    $employees->orderBy('hire_date', 'desc');
+                    break;
+                case 'hire_date_oldest':
+                    $employees->orderBy('hire_date', 'asc');
+                    break;
+                case 'contract_date_newest':
+                    $employees->orderBy('contract_end_date', 'desc');
+                    break;
+                case 'contract_date_oldest':
+                    $employees->orderBy('contract_end_date', 'asc');
+                    break;
+                case 'department_asc':
+                    $employees->orderBy(
+                        Partner::select('partner_name')
+                            ->whereColumn('partners.id', 'employees.partner_id')
+                            ->limit(1),
+                        'asc'
+                    );
+                    break;
+                case 'department_desc':
+                    $employees->orderBy(
+                        Partner::select('partner_name')
+                            ->whereColumn('partners.id', 'employees.partner_id')
+                            ->limit(1),
+                        'desc'
+                    );
+                    break;
+                case 'division_asc':
+                    $employees->orderBy(
+                        Division::select('name_division')
+                            ->whereColumn('divisions.id', 'employees.division_id')
+                            ->limit(1),
+                        'asc'
+                    );
+                    break;
+                case 'division_desc':
+                    $employees->orderBy(
+                        Division::select('name_division')
+                            ->whereColumn('divisions.id', 'employees.division_id')
+                            ->limit(1),
+                        'desc'
+                    );
+                    break;
+                default:
+                    $employees->orderBy('id', 'desc');
+                    break;
+            }
+
+            $paginatedEmployees = $employees->paginate($perPage, ['*'], 'page', $page);
+
+            $paginatedEmployees->getCollection()->transform(function ($employee) {
                 $employee->user_photo = $employee->user && $employee->user->photo ? asset($employee->user->photo) : null;
                 $employee->hire_date = $employee->hire_date ? Carbon::parse($employee->hire_date)->toDateString() : null;
                 $employee->contract_end_date = $employee->contract_end_date ? Carbon::parse($employee->contract_end_date)->toDateString() : null;
@@ -274,7 +336,17 @@ class EmployeeController extends Controller
                 return $employee;
             });
 
-            return response()->json(['data' => $employees]);
+            return response()->json([
+                'data' => $paginatedEmployees->items(),
+                'pagination' => [
+                    'current_page' => $paginatedEmployees->currentPage(),
+                    'last_page' => $paginatedEmployees->lastPage(),
+                    'per_page' => $paginatedEmployees->perPage(),
+                    'total' => $paginatedEmployees->total(),
+                    'from' => $paginatedEmployees->firstItem(),
+                    'to' => $paginatedEmployees->lastItem(),
+                ],
+            ]);
         }
 
 
@@ -373,6 +445,8 @@ class EmployeeController extends Controller
                     Rule::unique('users', 'email'),
                 ],
                 'phone' => 'required|string|max:14|regex:/^[0-9]+$/|unique:employees,phone',
+                'no_bpjs' => 'nullable|integer',
+                'no_bpjstk' => 'nullable|integer',
                 'address' => 'required|string',
                 'photo' => 'nullable|file|image|max:10240',
                 'ktp' => 'nullable|file|image|max:10240',
@@ -536,6 +610,8 @@ class EmployeeController extends Controller
                 'basic_salary' => $request->basic_salary,
                 'positional_allowance' => $request->positional_allowance,
                 'bpjs_allowance' => $request->bpjs_allowance,
+                'no_bpjs' => $request->no_bpjs,
+                'no_bpjstk' => $request->no_bpjstk,
                 'bpjs_tenaga_kerja_allowance' => $request->bpjs_tenaga_kerja_allowance,
                 'pension_allowance' => $request->pension_allowance,
                 'address' => $request->address,
@@ -643,6 +719,8 @@ class EmployeeController extends Controller
                     'max:14',
                     Rule::unique('employees', 'phone')->ignore($id)
                 ],
+                'no_bpjs' => 'nullable|integer',
+                'no_bpjstk' => 'nullable|integer',
                 'status' => [
                     'sometimes',
                     Rule::in(['ACTIVE', 'RESIGN', 'CANDIDATE', 'DELETED'])
@@ -678,6 +756,8 @@ class EmployeeController extends Controller
                 'email',
                 'email_work',
                 'phone',
+                'no_bpjs',
+                'no_bpjstk',
                 'status',
                 'address',
                 'address',
@@ -1053,6 +1133,91 @@ class EmployeeController extends Controller
                 'status' => 'error',
                 'message' => 'Failed to fetch employees: ' . $e->getMessage()
             ], $status);
+        }
+    }
+
+    public function import(Request $request, EmployeeExcelImportService $importService)
+    {
+        try {
+            $isJsonRequest = $request->expectsJson() || $request->ajax();
+
+            if (function_exists('set_time_limit')) {
+                @set_time_limit(0);
+            }
+            @ini_set('max_execution_time', '0');
+            @ini_set('memory_limit', '1024M');
+
+            DB::connection()->disableQueryLog();
+
+            $userRole = auth()->user()->user_role;
+
+            if (!in_array($userRole, ['ADMINISTRATOR', 'HR_MANAGER'])) {
+                throw new \Exception('Only HR Manager can import employee');
+            }
+
+            $validator = Validator::make($request->all(), [
+                'employee_file' => 'required|file|mimes:xlsx,xls|max:20480',
+            ]);
+
+            if ($validator->fails()) {
+                if ($isJsonRequest) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => $validator->errors()->first('employee_file'),
+                        'errors' => $validator->errors(),
+                    ], 422);
+                }
+
+                return redirect()->route('employee')
+                    ->with('employee_import_status', 'danger')
+                    ->with('employee_import_message', $validator->errors()->first('employee_file'));
+            }
+
+            $summary = $importService->importFromPath(
+                $request->file('employee_file')->getRealPath(),
+                (int) auth()->id()
+            );
+
+            $status = 'success';
+            if ($summary['created'] === 0 && $summary['updated'] === 0) {
+                $status = 'warning';
+            }
+
+            $message = 'Import selesai. Created: ' . $summary['created']
+                . ', Updated: ' . $summary['updated']
+                . ', Skipped: ' . $summary['skipped']
+                . ', Blank rows: ' . ($summary['blank'] ?? 0) . '.';
+
+            if (!empty($summary['errors'])) {
+                $status = 'warning';
+                $message .= ' Issues: ' . implode(' | ', array_slice($summary['errors'], 0, 20));
+            }
+
+            if ($isJsonRequest) {
+                return response()->json([
+                    'code' => 200,
+                    'status' => $status,
+                    'message' => $message,
+                    'data' => $summary,
+                ]);
+            }
+
+            return redirect()->route('employee')
+                ->with('employee_import_status', $status)
+                ->with('employee_import_message', $message);
+        } catch (\Throwable $e) {
+            if (($request->expectsJson() || $request->ajax())) {
+                return response()->json([
+                    'code' => 500,
+                    'status' => 'error',
+                    'message' => 'Import gagal: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return redirect()->route('employee')
+                ->with('employee_import_status', 'danger')
+                ->with('employee_import_message', 'Import gagal: ' . $e->getMessage());
         }
     }
 
