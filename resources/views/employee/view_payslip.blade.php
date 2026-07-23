@@ -6,28 +6,26 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>SGS</title>
-    
+
         <link rel="icon" href="{{ asset('asset/img/logo/logo.png') }}" type="image/x-icon">
         <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
-        
+
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-        
+
         <style>
-            body{
-                background-color: rgb(189, 197, 210);
-                font-family:Arial, Helvetica, sans-serif;
+            body {
+                font-family: Arial, Helvetica, sans-serif;
             }
 
             @page {
-                size: A4 portrait; /* or size: 10cm 20cm; */
+                size: A4 portrait;
             }
-            
-            @media print{
-                body{
+
+            @media print {
+                body {
                     background-color: #fff !important;
                 }
-            
             }
 
             .page-salary {
@@ -36,842 +34,309 @@
                 margin: 0 auto;
                 padding: 15mm 25mm;
                 background-color: rgb(255, 255, 255);
-                font-size: 11px;
-            }
-
-            
-        </style>
-    </head>
-    
-    <body style=" padding: 0px; margin:0px;">
-        @if ($downloadPayslip ==  1)
-
-        <style>
-            body{
-                background-color: #fff;
+                font-size: 12px;
             }
 
             .page-download {
                 min-height: 200px !important;
-                font-size: 9px;
+                font-size: 11px;
                 padding-left: 20px;
                 padding-right: 20px;
+                background-color: #fff;
+            }
+
+            .payslip-company-name {
+                font-size: 15px;
+                font-weight: bold;
+            }
+
+            .payslip-company-address {
+                font-size: 11px;
+                line-height: 15px;
+            }
+
+            .payslip-info-table {
+                width: 100%;
+                margin-top: 10px;
+                border-collapse: collapse;
+            }
+
+            .payslip-info-table td {
+                padding: 2px 0;
+                font-size: 12px;
+                vertical-align: top;
+            }
+
+            .payslip-info-table td.label {
+                width: 150px;
+                color: #333;
+            }
+
+            .payslip-info-table td.value {
+                text-align: right;
+            }
+
+            .payslip-info-table td.label-2 {
+                width: 130px;
+                color: #333;
+            }
+
+            .payslip-summary-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }
+
+            .payslip-summary-table th {
+                background-color: #d9d9d9;
+                text-align: left;
+                padding: 8px 10px;
+                font-size: 13px;
+                font-weight: bold;
+            }
+
+            .payslip-summary-table td {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+
+            .payslip-summary-table td.amount {
+                text-align: right;
+                width: 35%;
+            }
+
+            .payslip-total-row td {
+                font-weight: bold;
+                border-top: 2px solid #000;
+                padding-top: 8px;
+            }
+
+            .payslip-footer-note {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            .payslip-footer-box {
+                border: 1px solid #000;
+                text-align: center;
+                padding: 15px 10px;
+            }
+
+            .payslip-footer-box .box-label {
+                font-size: 13px;
+            }
+
+            .payslip-footer-box .box-amount {
+                font-size: 28px;
+                font-weight: bold;
+                margin-top: 8px;
             }
         </style>
+    </head>
 
-        <div class="page-download">
-            <table style="width: 100%; position: relative;">
-                <tr>
-                    <td style="vertical-align: top; width: 90px;">
-                        @php
-                            if($downloadPayslip ==  1){
-                                $logoPath = public_path('asset/img/logo.png');
-                            }else{
-                                $logoPath = asset('asset/img/logo.png');
-                            }
-                        @endphp
-                        <img src="{{ $logoPath }}" class="align-middle" width="70" alt="LOGO">
-                    </td>
-                    <td style="text-align: left;">
-                        <div style="margin: 0px 10px 2px 10px; font-size: 16px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">PT. ACER</div>
-                        <div style="margin: 0px 10px 5px 10px; font-size: 16px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">ACER</div>
-                    </td>
-                </tr>
-            </table>
+    <body style="padding: 0px; margin:0px;">
+        @php
+            $companyName = 'PT. Sekar Global Solusindo';
+            $companyAddress = 'Ruko Sultan Agung No. 07 Jl.Sultan Agung 104-106 Candisari';
 
-            <div style="text-align: right; position: relative; margin-top:-10px;">
-                <div style="display: inline-block; padding: 4px 25px; font-size: 18px; font-weight: bold; font-style: italic; border:solid 2px #000; color:#000; font-family:Arial, Helvetica, sans-serif;">
-                    CONFIDENTIAL
-                </div>
-            </div>
+            $hireDateFormatted = $employee->hire_date ? \Carbon\Carbon::parse($employee->hire_date)->format('d/m/Y') : '-';
+            $periodeGaji = $employeePayslip->date_salary ? \Carbon\Carbon::parse($employeePayslip->date_salary)->format('Y/m') : '-';
+            $statusKawin = $employee->marital_status ?? '-';
 
-            <div style="margin-top: 15px; line-height: 15px; margin-bottom: 10px;">
-                <div style="font-size: 9px;">Slip Gaji</div>
-                <div style="font-size: 9px; font-weight: bold">
-                    {{ $dateSalary }}
-                </div>
-            </div>
-            
-            <div class="employee-info" >
+            $incomeItems = [
+                ['label' => 'Gaji Pokok', 'value' => $employeePayslip->prorate_basic_salary ?? $employeePayslip->basic_salary ?? 0],
+                ['label' => 'Tunjangan Jabatan', 'value' => $employeePayslip->prorate_positional_allowance ?? $employeePayslip->positional_allowance ?? 0],
+                ['label' => 'Tunjangan Kehadiran', 'value' => $employeePayslip->attendance_allowance ?? 0],
+                ['label' => 'Tunjangan BPJS Kesehatan', 'value' => $employeePayslip->prorate_bpjs_allowance ?? $employeePayslip->bpjs_allowance ?? 0],
+                ['label' => 'Tunjangan BPJS Ketenagakerjaan', 'value' => $employeePayslip->prorate_bpjs_tenaga_kerja_allowance ?? $employeePayslip->bpjs_tenaga_kerja_allowance ?? 0],
+                ['label' => 'Tunjangan BPJSTK Dana Pensiun', 'value' => $employeePayslip->prorate_pension_allowance ?? $employeePayslip->pension_allowance ?? 0],
+                ['label' => 'THR', 'value' => $employeePayslip->thr ?? 0],
+                ['label' => 'Kompensasi PKWT', 'value' => $employeePayslip->kompensasi_pkwt ?? $employeePayslip->pkwt ?? 0],
+            ];
 
-                <table style="font-size: 9px; width: 100%; line-height: 12px;">
-                    <tr>
-                        <td style="width: 24%">ID Karyawan</td>
-                        <td style="width: 24%">: {{$employee->employee_niks}}</td>
-                        <td style="width: 24%">Divisi</td>
-                        <td style="width: 24%">: {{$employee->division->name_division}}</td>
-                    </tr>
+            $deductionItems = [
+                ['label' => 'Potongan Absen', 'value' => $employeePayslip->deduction_absent ?? 0],
+                ['label' => 'Potongan Datang Terlambat', 'value' => $employeePayslip->deduction_late ?? 0],
+                ['label' => 'Potongan BPJS Kesehatan', 'value' => $employeePayslip->deduction_bpjs_kesehatan ?? 0],
+                ['label' => 'Potongan BPJS Ketenagakerjaan', 'value' => $employeePayslip->deduction_bpjs_tenaga_kerja ?? 0],
+                ['label' => 'Potongan BPJS TK Dana Pensiun', 'value' => $employeePayslip->deduction_bpjs_dana_pensiun ?? 0],
+                ['label' => 'Potongan Pajak PPh21', 'value' => $employeePayslip->deduction_pph21 ?? 0],
+                ['label' => 'Potongan Koperasi', 'value' => $employeePayslip->deduction_cooperative ?? 0],
+                ['label' => 'Potongan Lainnya', 'value' => $employeePayslip->deduction_other ?? 0],
+            ];
 
-                    <tr>
-                        <td>Nama Karyawan</td>
-                        <td>: {{$employee->name}}</td>
-                        <td>Job Position</td>
-                        <td>: {{$employee->job->job_name}}</td>
-                    </tr>
+            $totalIncome = collect($incomeItems)->sum('value');
+            $totalDeduction = $employeePayslip->deduction ?? collect($deductionItems)->sum('value');
+            $totalReceived = $employeePayslip->take_home_pay ?? ($totalIncome - $totalDeduction);
 
-                    <tr>
-                        <td>Status Karyawan</td>
-                        <td>: Aktif Bekerja</td>
-                        <td>Grade</td>
-                        <td>: {{$employee->grade->title}}</td>
-                    </tr>
+            $formatAmount = function ($value) {
+                $value = (int) $value;
+                return $value > 0 ? number_format($value, 0, '', '.') : '-';
+            };
+        @endphp
 
-                    <tr>
-                        <td>Periode Kerja</td>
-                        <td>: {{ $workPeriod }}</td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td>Nama Bank</td>
-                        <td>: {{ $employeePayslip->bank_name }}</td>
-                    </tr>
-
-                    <tr>
-                        <td>Total wajib kerja tetap (hari)</td>
-                        <td>: {{ $employeePayslip->total_day_active }}</td>
-                        <td>Nama Penerima</td>
-                        <td>: {{$employee->name}}</td>
-                    </tr>
-
-                    <tr>
-                        <td>Total bekerja bulan ini (Hari)</td>
-                        <td>: {{ $employeePayslip->total_working_day }}</td>
-                        <td>Nomor Rekening</td>
-                        <td>: {{ $employeePayslip->bank_account_number }}</td>
-                    </tr>
-
-                </table>
-
-            </div>
-            
-            <div class="salary" style="margin-top: 25px;">
-                <style>
-                    .table-salary{
-                        width: 100%;
-                    }
-
-                    .table-salary, 
-                    .table-salary th, 
-                    .table-salary td {
-                        border-collapse: collapse;
-                    }
-                    .table-salary td{
-                        vertical-align: top;
-                        border: 1px solid #777;
-                        font-size: 9px;
-                        line-height: 15px;
-                        padding-left: 7px;
-                        padding-right: 7px;
-                    }
-
-                    .table-salary tr:nth-child(2n){
-                        background-color: #eff3f6;
-                    }
-                </style>
-                <table class="table-salary" >
-                    <tr></tr>
-                    <tr style="background-color: #d8dde2; color:#000; text-align: center; font-weight: bold">
-                        <td>Pendapatan Gaji</td>
-                        <td>Gaji Original</td>
-                        <td>Pendapatan prorate bulan ini (A)</td>
-                    </tr>
-
-                    <tr>
-                        <td>Gaji Pokok</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->basic_salary, 0, '', '.')}}</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->prorate_basic_salary, 0, '', '.')}}</td>
-                    </tr>
-
-                    <tr>
-                        <td>Tunjangan Makan</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->bpjs_allowance, 0, '', '.')}}</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->prorate_bpjs_allowance, 0, '', '.')}}</td>
-                    </tr>
-
-                    <tr>
-                        <td>Tunjangan Transportasi</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->bpjs_tenaga_kerja_allowance, 0, '', '.')}}</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->prorate_bpjs_tenaga_kerja_allowance, 0, '', '.')}}</td>
-                    </tr>
-
-                    <tr>
-                        <td>Tunjangan Pulsa & Internet</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->pension_allowance, 0, '', '.')}}</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->prorate_pension_allowance, 0, '', '.')}}</td>
-                    </tr>
-                    
-                    <tr>
-                        <td>Tunjangan Jabatan</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->positional_allowance, 0, '', '.')}}</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->prorate_positional_allowance, 0, '', '.')}}</td>
-                    </tr>
-                    
-                    <tr>
-                        <td>Kompensasi PKWT</td>
-                        <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->pkwt, 0, '', '.')}}</td>
-                    </tr>
-
-                    <tr>
-                        <td>THR</td>
-                        <td style="text-align: right">0</td>
-                        <td style="text-align: right">{{number_format($employeePayslip->thr, 0, '', '.')}}</td>
-                    </tr>
-                    
-                    @php
-                        $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->positional_allowance;
-                        $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->bonus + $employeePayslip->thr + $employeePayslip->overtime;
-                        $totalPendapatan2excBonusOvertime = $totalPendapatan1 - ($employeePayslip->prorate_basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->prorate_positional_allowance);
-                        $totalPengurangan = (($employeeAttendanceNotComplete[0] ?? 0)*50000) + $employeePayslip->deduction  + $totalPendapatan2excBonusOvertime;
-                    @endphp
-
-                    <tr style="font-weight: bold;">
-                        <td>Total Pendapatan</td>
-                        <td style="text-align: right">
-                            {{ number_format($totalPendapatan1, 0, '', '.')}}
-                        </td>
-                        <td style="text-align: right">
-                            {{ number_format($totalPendapatan2, 0, '', '.')}}
-                        </td>
-                    </tr>
-
-
-                    <tr style="background-color: #ffffff; border: 0px #fff;">
-                        <td colspan="3" style="background-color: #ffffff; border: 0px #fff;">
-                            &nbsp;
-                        </td>
-                    </tr>
-
-                    <tr></tr>
-                    <tr style="background-color: #d8dde2; color:#000; text-align: center; font-weight: bold">
-                        <td>Deduction</td>
-                        <td>Jumlah</td>
-                        <td>Jumlah salary yang tidak diperoleh</td>
-                    </tr>
-{{-- 
-                    <tr>
-                        <td>Sakit</td>
-                        <td style="text-align: right">{{$employeeLeaveSick}}</td>
-                        <td style="text-align: right">0</td>
-                    </tr>
-                    <tr>
-                        <td>Alfa</td>
-                        <td style="text-align: right">{{ $employeePayslip->total_day_active - $employeePayslip->total_working_day }}</td>
-                        <td style="text-align: right">{{number_format($totalPendapatan2excBonusOvertime, 0, '', '.')}}</td>
-                    </tr>
-                    <tr>
-                        <td>Cuti</td>
-                        <td style="text-align: right">{{$employeeAnnualLeave}}</td>
-                        <td style="text-align: right">0</td>
-                    </tr> --}}
-
-                    <tr>
-                        <td>Absensi Tidak Lengkap</td>
-                        <td style="text-align: right">{{ $employeeAttendanceNotComplete[0] ?? 0 }}</td>
-                        <td style="text-align: right">{{number_format((($employeeAttendanceNotComplete[0] ?? 0)*50000), 0, '', '.')}}</td>
-                    </tr>
-
-                    @if ($employeePayslip->deduction > 0)
-                    
-                    {{-- Potongan/Detail Deduction --}}
-                    @php
-                        $deductionAbsent = $employeePayslip->deduction_absent ?? 0;
-                        $deductionLate = $employeePayslip->deduction_late ?? 0;
-                        $deductionBpjsKesehatan = $employeePayslip->deduction_bpjs_kesehatan ?? 0;
-                        $deductionBpjsTenagaKerja = $employeePayslip->deduction_bpjs_tenaga_kerja ?? 0;
-                        $deductionBpjsDanaPensiun = $employeePayslip->deduction_bpjs_dana_pensiun ?? 0;
-                        $deductionPph21 = $employeePayslip->deduction_pph21 ?? 0;
-                        $deductionCooperative = $employeePayslip->deduction_cooperative ?? 0;
-                        $deductionOther = $employeePayslip->deduction_other ?? 0;
-                    @endphp
-
-                    @if($deductionLate > 0)
-                        <tr>
-                            <td>Potongan Terlambat</td>
-                            <td style="text-align: right">1</td>
-                            <td style="text-align: right">{{ number_format($deductionLate, 0, '', '.') }}</td>
-                        </tr>
-                    @endif
-
-                    @if($deductionBpjsKesehatan > 0)
-                        <tr>
-                            <td>Potongan BPJS Kesehatan</td>
-                            <td style="text-align: right">1</td>
-                            <td style="text-align: right">{{ number_format($deductionBpjsKesehatan, 0, '', '.') }}</td>
-                        </tr>
-                    @endif
-
-                    @if($deductionBpjsTenagaKerja > 0)
-                        <tr>
-                            <td>Potongan BPJS Ketenagakerjaan</td>
-                            <td style="text-align: right">1</td>
-                            <td style="text-align: right">{{ number_format($deductionBpjsTenagaKerja, 0, '', '.') }}</td>
-                        </tr>
-                    @endif
-
-                    @if($deductionBpjsDanaPensiun > 0)
-                        <tr>
-                            <td>Potongan BPJS Dana Pensiun</td>
-                            <td style="text-align: right">1</td>
-                            <td style="text-align: right">{{ number_format($deductionBpjsDanaPensiun, 0, '', '.') }}</td>
-                        </tr>
-                    @endif
-
-                    @if($deductionPph21 > 0)
-                        <tr>
-                            <td>Potongan Pajak (PPh 21)</td>
-                            <td style="text-align: right">1</td>
-                            <td style="text-align: right">{{ number_format($deductionPph21, 0, '', '.') }}</td>
-                        </tr>
-                    @endif
-
-                    @if($deductionCooperative > 0)
-                        <tr>
-                            <td>Potongan Koperasi</td>
-                            <td style="text-align: right">1</td>
-                            <td style="text-align: right">{{ number_format($deductionCooperative, 0, '', '.') }}</td>
-                        </tr>
-                    @endif
-
-                    @if($deductionOther > 0)
-                        <tr>
-                            <td>Potongan Lainnya</td>
-                            <td style="text-align: right">1</td>
-                            <td style="text-align: right">{{ number_format($deductionOther, 0, '', '.') }}</td>
-                        </tr>
-                    @endif
-
-                    {{-- total deduction --}}
-                    @if($employeePayslip->deduction > 0)
-                        <tr>
-                            <td>Potongan</td>
-                            <td style="text-align: right">1</td>
-                            <td style="text-align: right">{{ number_format($employeePayslip->deduction, 0, '', '.') }}</td>
-                        </tr>
-                    @endif
-
-                    @endif
-                    
-                    <tr style="font-weight: bold;">
-                        <td colspan="2">Total Pengurangan</td>
-                        <td style="text-align: right">{{number_format($totalPengurangan, 0, '', '.')}}</td>
-                    </tr>
-
-                    <tr style="background-color: #ffffff; border: 0px #fff;">
-                        <td colspan="3" style="background-color: #ffffff; border: 0px #fff;">
-                            &nbsp;
-                        </td>
-                    </tr>
-
-                    <tr></tr>
-
-                    <tr style="background-color: #ffffff; border: 0px #fff;">
-                        <td colspan="3" style="background-color: #ffffff; border: 0px #fff;">
-                            &nbsp;
-                        </td>
-                    </tr>
-                    
-                    <tr style=" border: 0px; border-left: 0px; background-color: #ffffff">
-                        <td colspan="3" style="border: 0px; border-left: 0px">
-                            <span style="font-weight: bold;">
-                                Note :
-                            </span>
-                            {{ $employeePayslip->note }}
-                        </td>
-                    </tr>
-                    <tr style="font-weight: bold; border-right: 0px; border-left: 0px; background-color: #ffffff">
-                        <td colspan="3" style="border-right: 0px; border-left: 0px">&nbsp; </td>
-                    </tr>
-
-                    <tr style="background-color: #ffffff; border: 0px #fff;">
-                        <td colspan="3" style="background-color: #ffffff; border: 0px #fff;">
-                            &nbsp;
-                        </td>
-                    </tr>
-
-                    <tr style="border:0px; background-color: #fff !important;">
-                        <td style="background-color: #edeff1;">Gaji yang seharusnya diidapatkan
-                            <span style="float: right; font-weight: bold;">
-                                {{number_format($totalPendapatan1, 0, '', '.')}}
-                            </span>
-                        </td>
-                        <td style="border:0px"></td>
-                        <td style="border:0px"></td>
-                    </tr>
-                    <tr>
-                        <td>Gaji yang dibayarkan 
-                            <span style="float: right; font-weight: bold; color:#ec2525">
-                                {{number_format($employeePayslip->take_home_pay, 0, '', '.')}}
-                            </span>
-                        </td>
-                        <td style="border:0px"></td>
-                        <td style="border:0px; text-align: right">
-                            Jakarta, {{ $dateSalary }}
-                        </td>
-                    </tr>
-                </table>
-                
-
-            </div>
-
-            <div class="assignment" style="margin-top:30px;">
+        @if ($downloadPayslip == 1)
+            <div class="page-download">
                 <table style="width: 100%;">
-                    <tr style="vertical-align: top;">
-                        <td style="text-align: center; width: 200px;">
-                            <div>Penerima</div>
-                            <div style="height: 50px; border-bottom: 1px solid #333;">
-
-                            </div>
-                            <div style="margin-top: 7px;">
-                                {{ $employee->name }}
-                            </div>
-                        </td>
-
+                    <tr>
                         <td>
-                            
+                            <div class="payslip-company-name">{{ $companyName }}</div>
+                            <div class="payslip-company-address">{{ $companyAddress }}</div>
                         </td>
+                        <td style="width: 45%; vertical-align: top;">
+                            <table class="payslip-info-table">
+                                <tr>
+                                    <td class="label">Nama</td>
+                                    <td class="value" colspan="3">{{ $employee->name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label">Jabatan</td>
+                                    <td class="value" colspan="3">{{ $employee->job->job_name ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label">NIK</td>
+                                    <td class="value" colspan="3">{{ $employee->employee_niks ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label">Tgl Mulai Bekerja</td>
+                                    <td>{{ $hireDateFormatted }}</td>
+                                    <td class="label-2">Periode Gaji</td>
+                                    <td class="value">{{ $periodeGaji }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label">Status Kawin</td>
+                                    <td class="value" colspan="3">{{ $statusKawin }}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
 
-                        <td style="text-align: center; width: 100px;">
-                            <div>Menyetujui,</div>
-                            <div style="height: 30px; ">
+                <table class="payslip-summary-table">
+                    <tr>
+                        <th style="width: 15%;">Pendapatan</th>
+                        <th style="width: 35%;"></th>
+                        <th style="width: 15%;">Potongan</th>
+                        <th style="width: 35%;"></th>
+                    </tr>
+                    @foreach ($incomeItems as $i => $item)
+                        <tr>
+                            <td>{{ $item['label'] }}</td>
+                            <td class="amount">{{ $formatAmount($item['value']) }}</td>
+                            <td>{{ $deductionItems[$i]['label'] }}</td>
+                            <td class="amount">{{ $formatAmount($deductionItems[$i]['value']) }}</td>
+                        </tr>
+                    @endforeach
+                    <tr class="payslip-total-row">
+                        <td>Total Ditagihkan</td>
+                        <td class="amount">{{ $formatAmount($totalIncome) }}</td>
+                        <td>Total Potongan Karyawan</td>
+                        <td class="amount">{{ $formatAmount($totalDeduction) }}</td>
+                    </tr>
+                </table>
 
-                            </div>
-                            <div style="margin-top: 10px; font-weight: bolder; ">
-                                <span style="border-bottom: 1px solid #333;">
-                                    CEO
-                                </span>
-                                
+                <table style="width: 100%; margin-top: 25px;">
+                    <tr>
+                        <td style="width: 60%; vertical-align: top;" class="payslip-footer-note">
+                            Pembayaran gaji telah dilakukan oleh perusahaan<br>
+                            Secara transfer ke rekening karyawan<br><br>
+                            Nomor Rekening &nbsp;: {{ $employeePayslip->bank_account_number ?? '-' }}<br>
+                            Bank &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $employeePayslip->bank_name ?? '-' }}
+                        </td>
+                        <td style="width: 40%; vertical-align: top;">
+                            <div class="payslip-footer-box">
+                                <div class="box-label">Total Penerimaan Bulan Ini</div>
+                                <div class="box-amount">{{ $formatAmount($totalReceived) }}</div>
                             </div>
                         </td>
                     </tr>
                 </table>
             </div>
-        </div>
-
-
         @else
-
-
-        <div style="">
-
             <div class="page-salary">
-                
-                <div class="header-salary" style="margin-bottom: 20px;">
-                    <table style="width: 100%; position: relative;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td>
+                            <div class="payslip-company-name">{{ $companyName }}</div>
+                            <div class="payslip-company-address">{{ $companyAddress }}</div>
+                        </td>
+                        <td style="width: 45%; vertical-align: top;">
+                            <table class="payslip-info-table">
+                                <tr>
+                                    <td class="label">Nama</td>
+                                    <td class="value" colspan="3">{{ $employee->name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label">Jabatan</td>
+                                    <td class="value" colspan="3">{{ $employee->job->job_name ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label">NIK</td>
+                                    <td class="value" colspan="3">{{ $employee->employee_niks ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label">Tgl Mulai Bekerja</td>
+                                    <td>{{ $hireDateFormatted }}</td>
+                                    <td class="label-2">Periode Gaji</td>
+                                    <td class="value">{{ $periodeGaji }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label">Status Kawin</td>
+                                    <td class="value" colspan="3">{{ $statusKawin }}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <table class="payslip-summary-table">
+                    <tr>
+                        <th style="width: 15%;">Pendapatan</th>
+                        <th style="width: 35%;"></th>
+                        <th style="width: 15%;">Potongan</th>
+                        <th style="width: 35%;"></th>
+                    </tr>
+                    @foreach ($incomeItems as $i => $item)
                         <tr>
-                            <td style="vertical-align: top; width: 90px;">
-                                @php
-                                    if($downloadPayslip ==  1){
-                                        $logoPath = public_path('asset/img/logo/logo.png');
-                                    }else{
-                                        $logoPath = asset('asset/img/logo/logo.png');
-                                    }
-                                @endphp
-                                <img src="{{ $logoPath }}" class="align-middle" width="70" alt="LOGO">
-                            </td>
-                            <td style="text-align: left;">
-                                <div style="margin: 0px 10px 5px 10px; font-size: 18px; font-weight: bold; font-family: 'Times New Roman', Georgia, Garamond;">PT. SGS</div>
-                                <div style="font-size: 12px; margin: 5px 10px;">
-                                    (Location) 
-                                    <br>
-                                    (province)
-                                </div>
-                            </td>
+                            <td>{{ $item['label'] }}</td>
+                            <td class="amount">{{ $formatAmount($item['value']) }}</td>
+                            <td>{{ $deductionItems[$i]['label'] }}</td>
+                            <td class="amount">{{ $formatAmount($deductionItems[$i]['value']) }}</td>
                         </tr>
-                    </table>
+                    @endforeach
+                    <tr class="payslip-total-row">
+                        <td>Total Ditagihkan</td>
+                        <td class="amount">{{ $formatAmount($totalIncome) }}</td>
+                        <td>Total Potongan Karyawan</td>
+                        <td class="amount">{{ $formatAmount($totalDeduction) }}</td>
+                    </tr>
+                </table>
 
-                    <div style="text-align: right; position: relative; margin-top:-30px;">
-                        <div style="display: inline-block; padding: 5px 30px; font-size: 22px; font-weight: bolder; font-style: italic; border:solid 3px #000; color:#000; font-family: fantasy;">
-                            CONFIDENTIAL
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 25px; line-height: 22px;">
-                        <div style="font-size: 12px;">Slip Gaji</div>
-                        <div style="font-size: 12px; font-weight: bold">
-                            {{ $dateSalary }}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="employee-info">
-
-                    <table style="font-size: 11px; width: 100%; line-height: 18px;">
-                        <tr>
-                            <td style="width: 24%">ID Karyawan</td>
-                            <td style="width: 24%">: {{$employee->employee_niks}}</td>
-                            <td style="width: 24%">Partner</td>
-                            <td style="width: 24%">: {{$employee->division->name_division}}</td>
-                        </tr>
-
-                        <tr>
-                            <td>Nama Karyawan</td>
-                            <td>: {{$employee->name}}</td>
-                            <td>Site</td>
-                            <td>: {{$employee->job->job_name}}</td>
-                        </tr>
-
-                        <tr>
-                            <td>Status Karyawan</td>
-                            <td>: Aktif Bekerja</td>
-                            <td>Job Position</td>
-                            <td>: {{$employee->job->job_name}}</td>
-                        </tr>
-
-                        <tr>
-                            <td>Periode Kerja</td>
-                            <td>: {{ $workPeriod }}</td>
-                            <td>Grade</td>
-                            <td>: {{$employee->grade->title}}</td>
-                        </tr>
-
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td>Nama Bank</td>
-                            <td>: {{ $employeePayslip->bank_name }}</td>
-                        </tr>
-
-                        
-
-                        <tr>
-                            <td>Total wajib kerja tetap (hari)</td>
-                            <td>: {{ $employeePayslip->total_day_active }}</td>
-                            <td>Nama Penerima</td>
-                            <td>: {{$employee->name}}</td>
-                        </tr>
-
-                        <tr>
-                            <td>Total bekerja bulan ini (Hari)</td>
-                            <td>: {{ $employeePayslip->total_working_day }}</td>
-                            <td>Nomor Rekening</td>
-                            <td>: {{ $employeePayslip->bank_account_number }}</td>
-                        </tr>
-
-                    </table>
-
-                </div>
-
-                <div class="salary" style="margin-top: 25px;">
-                    <style>
-                        .table-salary{
-                            width: 100%;
-                        }
-
-                        .table-salary, 
-                        .table-salary th, 
-                        .table-salary td {
-                            border-collapse: collapse;
-                        }
-                        .table-salary td{
-                            vertical-align: top;
-                            border: 1px solid #777;
-                            font-size: 11px;
-                            line-height: 18px;
-                            padding-left: 7px;
-                            padding-right: 7px;
-                        }
-
-                        .table-salary tr:nth-child(2n){
-                            background-color: #eff3f6;
-                        }
-                    </style>
-                    <table class="table-salary" >
-                        <tr></tr>
-                        <tr style="background-color: #d8dde2; color:#000; text-align: center; font-weight: bold">
-                            <td>Pendapatan Gaji</td>
-                            <td>Gaji Original</td>
-                            <td>Pendapatan prorate bulan ini</td>
-                        </tr>
-
-                        <tr>
-                            <td>Gaji Pokok</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->basic_salary, 0, '', '.')}}</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->prorate_basic_salary, 0, '', '.')}}</td>
-                        </tr>
-
-                        <tr>
-                            <td>Tunjangan Makan</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->bpjs_allowance, 0, '', '.')}}</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->prorate_bpjs_allowance, 0, '', '.')}}</td>
-                        </tr>
-
-                        <tr>
-                            <td>Tunjangan Transportasi</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->bpjs_tenaga_kerja_allowance, 0, '', '.')}}</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->prorate_bpjs_tenaga_kerja_allowance, 0, '', '.')}}</td>
-                        </tr>
-
-                        <tr>
-                            <td>Tunjangan Jabatan</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->positional_allowance, 0, '', '.')}}</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->prorate_positional_allowance, 0, '', '.')}}</td>
-                        </tr>
-
-                        <tr>
-                            <td>Tunjangan BPJSTK Dana Pensiun</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->pension_allowance, 0, '', '.')}}</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->prorate_pension_allowance, 0, '', '.')}}</td>
-                        </tr>
-                        
-                        <tr>
-                            <td>Kompensasi PKWT</td>
-                            <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->pkwt, 0, '', '.')}}</td>
-                        </tr>
-
-                        <tr>
-                            <td>THR</td>
-                            <td style="text-align: right">0</td>
-                            <td style="text-align: right">{{number_format($employeePayslip->thr, 0, '', '.')}}</td>
-                        </tr>
-                        
-                        @php
-                            $totalPendapatan1 = $employeePayslip->basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->positional_allowance;
-                            $totalPendapatan2 = $employeePayslip->prorate_basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->prorate_positional_allowance + $employeePayslip->pkwt + $employeePayslip->thr;
-                            $totalPendapatan2excBonusOvertime = $totalPendapatan1 - $employeePayslip->prorate_basic_salary + $employeePayslip->pension_allowance + $employeePayslip->bpjs_allowance + $employeePayslip->bpjs_tenaga_kerja_allowance + $employeePayslip->prorate_positional_allowance;
-                            $totalPengurangan = (($employeeAttendanceNotComplete[0] ?? 0)*50000) + $employeePayslip->deduction  + $totalPendapatan2excBonusOvertime;
-                        @endphp
-
-                        <tr style="font-weight: bold;">
-                            <td>Total Pendapatan</td>
-                            <td style="text-align: right">
-                                {{ number_format($totalPendapatan1, 0, '', '.')}}
-                            </td>
-                            <td style="text-align: right">
-                                {{ number_format($totalPendapatan2, 0, '', '.')}}
-                            </td>
-                        </tr>
- 
-
-                        <tr style="background-color: #ffffff; border: 0px #fff;">
-                            <td colspan="3" style="background-color: #ffffff; border: 0px #fff;">
-                                &nbsp;
-                            </td>
-                        </tr>
-
-                        <tr></tr>
-                        <tr style="background-color: #d8dde2; color:#000; text-align: center; font-weight: bold">
-                            <td>Deduction</td>
-                            <td>Jumlah</td>
-                            <td>Jumlah salary yang tidak diperoleh</td>
-                        </tr>
-
-                        {{-- <tr>
-                            <td>Sakit</td>
-                            <td style="text-align: right">{{$employeeLeaveSick}}</td>
-                            <td style="text-align: right">0</td>
-                        </tr>
-                        <tr>
-                            <td>Alfa</td>
-                            <td style="text-align: right">{{ $employeePayslip->total_day_active - $employeePayslip->total_working_day }}</td>
-                            <td style="text-align: right">{{number_format($totalPendapatan2excBonusOvertime, 0, '', '.')}}</td>
-                        </tr>
-                        <tr>
-                            <td>Cuti</td>
-                            <td style="text-align: right">{{$employeeAnnualLeave}}</td>
-                            <td style="text-align: right">0</td>
-                        </tr> --}}
-                        <tr>
-                            <td>Absensi Tidak Lengkap</td>
-                            <td style="text-align: right">{{ $employeeAttendanceNotComplete[0] ?? 0 }}</td>
-                            <td style="text-align: right">{{number_format((($employeeAttendanceNotComplete[0] ?? 0)*50000), 0, '', '.')}}</td>
-                        </tr>
-                        @if ($employeePayslip->deduction > 0)
-                    
-                        @php
-                            $deductionAbsent = $employeePayslip->deduction_absent ?? 0;
-                            $deductionLate = $employeePayslip->deduction_late ?? 0;
-                            $deductionBpjsKesehatan = $employeePayslip->deduction_bpjs_kesehatan ?? 0;
-                            $deductionBpjsTenagaKerja = $employeePayslip->deduction_bpjs_tenaga_kerja ?? 0;
-                            $deductionBpjsDanaPensiun = $employeePayslip->deduction_bpjs_dana_pensiun ?? 0;
-                            $deductionPph21 = $employeePayslip->deduction_pph21 ?? 0;
-                            $deductionCooperative = $employeePayslip->deduction_cooperative ?? 0;
-                            $deductionOther = $employeePayslip->deduction_other ?? 0;
-                        @endphp
-
-                        @if($deductionAbsent > 0)
-                            <tr>
-                                <td>Potongan Absen</td>
-                                <td style="text-align: right">{{ $employeeAttendanceNotComplete[0] ?? 0 }}</td>
-                                <td style="text-align: right">{{ number_format($deductionAbsent, 0, '', '.') }}</td>
-                            </tr>
-                        @endif
-
-                        @if($deductionLate > 0)
-                            <tr>
-                                <td>Potongan Terlambat</td>
-                                <td style="text-align: right">1</td>
-                                <td style="text-align: right">{{ number_format($deductionLate, 0, '', '.') }}</td>
-                            </tr>
-                        @endif
-
-                        @if($deductionBpjsKesehatan > 0)
-                            <tr>
-                                <td>Potongan BPJS Kesehatan</td>
-                                <td style="text-align: right">1</td>
-                                <td style="text-align: right">{{ number_format($deductionBpjsKesehatan, 0, '', '.') }}</td>
-                            </tr>
-                        @endif
-
-                        @if($deductionBpjsTenagaKerja > 0)
-                            <tr>
-                                <td>Potongan BPJS Ketenagakerjaan</td>
-                                <td style="text-align: right">1</td>
-                                <td style="text-align: right">{{ number_format($deductionBpjsTenagaKerja, 0, '', '.') }}</td>
-                            </tr>
-                        @endif
-
-                        @if($deductionBpjsDanaPensiun > 0)
-                            <tr>
-                                <td>Potongan BPJS Dana Pensiun</td>
-                                <td style="text-align: right">1</td>
-                                <td style="text-align: right">{{ number_format($deductionBpjsDanaPensiun, 0, '', '.') }}</td>
-                            </tr>
-                        @endif
-
-                        @if($deductionPph21 > 0)
-                            <tr>
-                                <td>Potongan Pajak (PPh 21)</td>
-                                <td style="text-align: right">1</td>
-                                <td style="text-align: right">{{ number_format($deductionPph21, 0, '', '.') }}</td>
-                            </tr>
-                        @endif
-
-                        @if($deductionCooperative > 0)
-                            <tr>
-                                <td>Potongan Koperasi</td>
-                                <td style="text-align: right">1</td>
-                                <td style="text-align: right">{{ number_format($deductionCooperative, 0, '', '.') }}</td>
-                            </tr>
-                        @endif
-
-                        @if($deductionOther > 0)
-                            <tr>
-                                <td>Potongan Lainnya</td>
-                                <td style="text-align: right">1</td>
-                                <td style="text-align: right">{{ number_format($deductionOther, 0, '', '.') }}</td>
-                            </tr>
-                        @endif
-
-                        {{-- total deduction --}}
-                        @if($employeePayslip->deduction > 0)
-                            <tr>
-                                <td>Potongan</td>
-                                <td style="text-align: right">1</td>
-                                <td style="text-align: right">{{ number_format($employeePayslip->deduction, 0, '', '.') }}</td>
-                            </tr>
-                        @endif
-
-                        @endif
-                        <tr style="font-weight: bold;">
-                            <td colspan="2">Total Pengurangan</td>
-                            <td style="text-align: right">{{number_format($totalPengurangan, 0, '', '.')}}</td>
-                        </tr>
-
-                        <tr style="background-color: #ffffff; border: 0px #fff;">
-                            <td colspan="3" style="background-color: #ffffff; border: 0px #fff;">
-                                &nbsp;
-                            </td>
-                        </tr>
-
-                        <tr></tr>
-
-                        <tr style="background-color: #ffffff; border: 0px #fff;">
-                            <td colspan="3" style="background-color: #ffffff; border: 0px #fff;">
-                                &nbsp;
-                            </td>
-                        </tr>
-                        
-                        <tr style="font-weight: bold; border: 0px; border-left: 0px; background-color: #ffffff">
-                            <td colspan="3" style="border: 0px; border-left: 0px">Note : </td>
-                        </tr>
-                        <tr style="font-weight: bold; border-right: 0px; border-left: 0px; background-color: #ffffff">
-                            <td colspan="3" style="border-right: 0px; border-left: 0px">&nbsp; </td>
-                        </tr>
-
-                        <tr style="background-color: #ffffff; border: 0px #fff;">
-                            <td colspan="3" style="background-color: #ffffff; border: 0px #fff;">
-                                &nbsp;
-                            </td>
-                        </tr>
-
-                        <tr style="border:0px; background-color: #fff !important;">
-                            <td style="background-color: #edeff1;">Gaji yang seharusnya diidapatkan
-                                <span style="float: right; font-weight: bold;">
-                                    {{number_format($totalPendapatan1, 0, '', '.')}}
-                                </span>
-                            </td>
-                            <td style="border:0px"></td>
-                            <td style="border:0px"></td>
-                        </tr>
-                        <tr>
-                            <td>Gaji yang dibayarkan
-                                <span style="float: right; font-weight: bold; color:#ec2525">
-                                    {{number_format($totalPendapatan2, 0, '', '.')}}
-                                </span>
-                            </td>
-                            <td style="border:0px"></td>
-                            <td style="border:0px; text-align: right">
-                                Jakarta, {{ $dateSalary }}
-                            </td>
-                        </tr>
-                    </table>
-                    
-
-                </div>
-
-                <div class="assignment" style="margin-top:30px;">
-                    <table style="width: 100%;">
-                        <tr style="vertical-align: top;">
-                            <td style="text-align: center; width: 200px;">
-                                <div>Penerima</div>
-                                <div style="height: 70px; border-bottom: 1px solid #333;">
-
-                                </div>
-                                <div style="margin-top: 7px;">
-                                    {{ $employee->name }}
-                                </div>
-                            </td>
-
-                            <td>
-                                
-                            </td>
-
-                            <td style="text-align: center; width: 200px;">
-                                <div>Menyetujui,</div>
-                                <div style="height: 40px; ">
-
-                                </div>
-                                <div style="margin-top: 10px; font-weight: bolder; ">
-                                    <span style="border-bottom: 1px solid #333;">
-                                        nama_direktur
-                                    </span>
-                                    
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-
+                <table style="width: 100%; margin-top: 25px;">
+                    <tr>
+                        <td style="width: 60%; vertical-align: top;" class="payslip-footer-note">
+                            Pembayaran gaji telah dilakukan oleh perusahaan<br>
+                            Secara transfer ke rekening karyawan<br><br>
+                            Nomor Rekening &nbsp;: {{ $employeePayslip->bank_account_number ?? '-' }}<br>
+                            Bank &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $employeePayslip->bank_name ?? '-' }}
+                        </td>
+                        <td style="width: 40%; vertical-align: top;">
+                            <div class="payslip-footer-box">
+                                <div class="box-label">Total Penerimaan Bulan Ini</div>
+                                <div class="box-amount">{{ $formatAmount($totalReceived) }}</div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
             </div>
 
-        </div>
-        
-        <script src="{{ asset('asset/js/jquery-3.7.1.min.js') }}"></script>
-
-        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
-            integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous">
-        </script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js"
-            integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D" crossorigin="anonymous">
-        </script>
-
+            <script src="{{ asset('asset/js/jquery-3.7.1.min.js') }}"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+                integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous">
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js"
+                integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D" crossorigin="anonymous">
+            </script>
         @endif
-        
     </body>
 </html>
