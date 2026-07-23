@@ -162,33 +162,127 @@
                                     class="form-control input-text" />
                             </div>
 
+                            @php
+                                $currentUser = auth()->user();
+                                $currentEmployee = $currentUser?->employee;
+                                $currentUserType = strtoupper((string) ($currentUser->user_type ?? ''));
+                                $isAdminUser = $currentUserType === 'ADMINISTRATOR';
+                            @endphp
+
                             <div class="custom-form-employee">
-                                <label for="department_id" class="form-label">Partner</label>
-                                <select id="department_id" name="department_id" class="form-select input-select"
-                                    required>
-                                    <option value="" disabled selected>Select Partner</option>
+                                <label for="business_department_id" class="form-label">
+                                    Department
+                                </label>
+
+                                <select
+                                    id="business_department_id"
+                                    name="business_department_id"
+                                    class="form-select input-select"
+                                    data-current="{{ $currentEmployee?->department_id }}"
+                                    data-admin-division="{{ $currentEmployee?->division_id }}"
+                                    data-admin-partner="{{ $currentEmployee?->department_id }}"
+                                    data-admin-job="{{ $currentEmployee?->job_id }}"
+                                    data-locked="{{ $isAdminUser ? '1' : '0' }}"
+                                    required
+                                >
+                                    <option value="" disabled selected>
+                                        Select Department
+                                    </option>
                                 </select>
+
+                                @if ($isAdminUser)
+                                    <input
+                                        type="hidden"
+                                        name="business_department_id"
+                                        value="{{ $currentEmployee?->department_id }}"
+                                    >
+                                @endif
+
+                                <div class="invalid-feedback">
+                                    Please select a department.
+                                </div>
+                            </div>
+
+                            <div class="custom-form-employee">
+                                <label for="region" class="form-label">
+                                    Wilayah
+                                </label>
+
+                                <select
+                                    id="region"
+                                    name="region"
+                                    class="form-select input-select"
+                                    required
+                                    disabled
+                                >
+                                    <option value="" disabled selected>
+                                        Select Department First
+                                    </option>
+                                </select>
+
+                                <div class="invalid-feedback">
+                                    Please select a region.
+                                </div>
+                            </div>
+
+                            <div class="custom-form-employee">
+                                <label for="department_id" class="form-label">
+                                    Partner
+                                </label>
+
+                                <select
+                                    id="department_id"
+                                    name="department_id"
+                                    class="form-select input-select"
+                                    required
+                                >
+                                    <option value="" disabled selected>
+                                        Select Partner
+                                    </option>
+                                </select>
+
                                 <div class="invalid-feedback">
                                     Please select a partner.
                                 </div>
                             </div>
 
                             <div class="custom-form-employee">
-                                <label for="division_id" class="form-label">Site</label>
-                                <select id="division_id" name="division_id" class="form-select input-select"
-                                    required>
-                                    <option value="" disabled selected>Select Site</option>
+                                <label for="division_id" class="form-label">
+                                    Site
+                                </label>
+
+                                <select
+                                    id="division_id"
+                                    name="division_id"
+                                    class="form-select input-select"
+                                    required
+                                >
+                                    <option value="" disabled selected>
+                                        Select Site
+                                    </option>
                                 </select>
+
                                 <div class="invalid-feedback">
                                     Please select a site.
                                 </div>
                             </div>
 
                             <div class="custom-form-employee">
-                                <label for="job_id" class="form-label">Job</label>
-                                <select id="job_id" name="job_id" class="form-select input-select" required>
-                                    <option value="" disabled selected>Select Job</option>
+                                <label for="job_id" class="form-label">
+                                    Job
+                                </label>
+
+                                <select
+                                    id="job_id"
+                                    name="job_id"
+                                    class="form-select input-select"
+                                    required
+                                >
+                                    <option value="" disabled selected>
+                                        Select Job
+                                    </option>
                                 </select>
+
                                 <div class="invalid-feedback">
                                     Please select a job.
                                 </div>

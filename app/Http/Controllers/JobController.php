@@ -23,6 +23,7 @@ class JobController extends Controller
         $status = $request->input('status');
         $partnerId = $request->input('partner_id', $request->input('department_id'));
         $divisionId = $request->input('division_id');
+        $businessDepartmentId = $request->input('business_department_id');
 
         $jobsQuery = Job::with(['department', 'division']);
 
@@ -46,6 +47,10 @@ class JobController extends Controller
 
         if ($divisionId) {
             $jobsQuery->where('division_id', $divisionId);
+        }
+
+        if ($businessDepartmentId) {
+            $jobsQuery->where('department_id', $businessDepartmentId);
         }
 
         $jobs = $jobsQuery->get()->map(function ($job) {

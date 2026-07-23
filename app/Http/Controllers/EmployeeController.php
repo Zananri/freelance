@@ -139,11 +139,13 @@ class EmployeeController extends Controller
             ]),
         ];
 
-        foreach ([
-            'PKWT' => 'pkwt',
-            'CV' => 'cv',
-            'Dan_Lainnya' => 'others',
-        ] as $directoryName => $folderKey) {
+        foreach (
+            [
+                'PKWT' => 'pkwt',
+                'CV' => 'cv',
+                'Dan_Lainnya' => 'others',
+            ] as $directoryName => $folderKey
+        ) {
             $this->ensureDirectoryExists($employeeDirectory . DIRECTORY_SEPARATOR . $directoryName);
         }
 
@@ -185,6 +187,7 @@ class EmployeeController extends Controller
     {
         return view('employee.employee');
     }
+
     public function index(Request $request)
     {
         $user = auth()->user();
@@ -404,7 +407,9 @@ class EmployeeController extends Controller
 
         $offices = Office::orderByRaw(
             "FIELD(name, 'Office 1', 'Office 2')"
-        )->orderBy('name')->get();
+        )
+            ->orderBy('name')
+            ->get();
 
         $employeeSalaries = new EmployeeSalary();
 
@@ -413,6 +418,47 @@ class EmployeeController extends Controller
             'offices',
             'employeeSalaries'
         ));
+    }
+
+    public function getRegions(Request $request)
+    {
+        $request->validate([
+            'business_department_id' => 'required|integer',
+        ]);
+
+        $user = auth()->user();
+
+        $currentEmployee = Employee::where(
+            'user_id',
+            $user->id
+        )->first();
+
+        $userType = strtoupper(
+            (string) ($user->user_type ?? '')
+        );
+
+        $departmentId = $request->business_department_id;
+
+        if (
+            $userType === 'ADMINISTRATOR' &&
+            $currentEmployee
+        ) {
+            $departmentId = $currentEmployee->department_id;
+        }
+
+        $regions = Employee::query()
+            ->where('department_id', $departmentId)
+            ->where('status', '!=', 'DELETED')
+            ->whereNotNull('region')
+            ->where('region', '!=', '')
+            ->distinct()
+            ->orderBy('region')
+            ->pluck('region')
+            ->values();
+
+        return response()->json([
+            'data' => $regions,
+        ]);
     }
 
     public function store(Request $request)
@@ -669,6 +715,51 @@ class EmployeeController extends Controller
                 'message' => $e->getMessage()
             ], $status);
         }
+    }
+
+    public function edit($id)
+    {
+        $user = auth()->user();
+        $userId = auth()->user()->id;
+
+        $currentEmployee = Employee::where('user_id', $userId)->first();
+
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
+
+        $employee = Employee::find($id);
+
+        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
+        } else {
+            $employee = Employee::where('department_id', $currentEmployee->department_id)->find($id);
+        }
+
+        if (!$employee) {
+            abort(404, 'Employee not found');
+        }
+
+        $employeeSalaries = EmployeeSalary::where('employee_id', $employee->id)->first();
+
+        $departments = Partner::where('status', '!=', 'DELETED')->get();
+        $divisions = Division::where('status', '!=', 'DELETED')->get();
+
+        $jobs = Job::where('status', '!=', 'DELETED');
+        if ($employee->partner_id) {
+            $jobs = $jobs->where('partner_id', $employee->partner_id);
+        }
+        if ($employee->division_id) {
+            $jobs = $jobs->where('division_id', $employee->division_id);
+        }
+        $jobs = $jobs->get();
+
+        $grades = Grade::orderByRaw(
+            "FIELD(title, 'Manager','Analyst','Senior Analyst','Associate','Junior Manager','Junior Analyst','Junior Associate')"
+        )->get();
+        $offices = Office::orderByRaw(
+            "FIELD(name, 'Office 1', 'Office 2')"
+        )->orderBy('name')->get();
+
+        return view('employee.edit', compact('employee', 'employeeSalaries', 'departments', 'divisions', 'jobs', 'grades', 'offices'));
     }
 
     public function update(Request $request, $id)
@@ -1018,50 +1109,6 @@ class EmployeeController extends Controller
         }
     }
 
-    public function edit($id)
-    {
-        $user = auth()->user();
-        $userId = auth()->user()->id;
-
-        $currentEmployee = Employee::where('user_id', $userId)->first();
-
-        $userType = strtoupper((string) ($user->user_type ?? ''));
-        $userRole = strtoupper((string) ($user->user_role ?? ''));
-
-        $employee = Employee::find($id);
-
-        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
-        } else {
-            $employee = Employee::where('department_id', $currentEmployee->department_id)->find($id);
-        }
-
-        if (!$employee) {
-            abort(404, 'Employee not found');
-        }
-
-        $employeeSalaries = EmployeeSalary::where('employee_id', $employee->id)->first();
-
-        $departments = Partner::where('status', '!=', 'DELETED')->get();
-        $divisions = Division::where('status', '!=', 'DELETED')->get();
-
-        $jobs = Job::where('status', '!=', 'DELETED');
-        if ($employee->partner_id) {
-            $jobs = $jobs->where('partner_id', $employee->partner_id);
-        }
-        if ($employee->division_id) {
-            $jobs = $jobs->where('division_id', $employee->division_id);
-        }
-        $jobs = $jobs->get();
-
-        $grades = Grade::orderByRaw(
-            "FIELD(title, 'Manager','Analyst','Senior Analyst','Associate','Junior Manager','Junior Analyst','Junior Associate')"
-        )->get();
-        $offices = Office::orderByRaw(
-            "FIELD(name, 'Office 1', 'Office 2')"
-        )->orderBy('name')->get();
-
-        return view('employee.edit', compact('employee', 'employeeSalaries', 'departments', 'divisions', 'jobs', 'grades', 'offices'));
-    }
 
     /**
      * Get employees for project assignments (accessible to all authenticated users)

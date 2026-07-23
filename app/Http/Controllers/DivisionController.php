@@ -18,6 +18,7 @@ class DivisionController extends Controller
             $query = $request->input('query', '');
             $status = $request->input('status', 'ALL');
             $partnerId = $request->input('partner_id', $request->input('department_id'));
+            $businessDepartmentId = $request->input('business_department_id');
 
             $divisions = Division::with('department')
                 ->when($query, function ($q) use ($query) {
@@ -33,6 +34,9 @@ class DivisionController extends Controller
                 })
                 ->when($partnerId, function ($q) use ($partnerId) {
                     $q->where('partner_id', $partnerId);
+                })
+                ->when($businessDepartmentId, function ($q) use ($businessDepartmentId) {
+                    $q->where('department_id', $businessDepartmentId);
                 })
                 ->get();
 

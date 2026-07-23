@@ -200,13 +200,15 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/user/ajax/data', [UserController::class, 'getUsersAjax'])->name('user.ajax.data');
 
 
-    Route::get('/department', [PartnerController::class, 'showPartnerPage'])->name('department');
-    Route::get('/department/index', [PartnerController::class, 'index'])->name('department.index');
-    Route::get('/department/options', [PartnerController::class, 'options'])->name('department.options');
-    Route::get('/department/{id}', [PartnerController::class, 'show'])->name('department.show');
-    Route::post('/department/store', [PartnerController::class, 'store'])->name('department.store');
-    Route::put('/department/{id}', [PartnerController::class, 'update'])->name('department.update');
-    Route::delete('/department/{id}', [PartnerController::class, 'destroy'])->name('department.destroy');
+    Route::get('/department', [DepartmentController::class, 'showPartnerPage'])->name('department');
+    Route::get('/department/index', [DepartmentController::class, 'index'])->name('department.index');
+    Route::get('/department/options', [DepartmentController::class, 'options'])->name('department.options');
+    Route::get('/department/{id}', [DepartmentController::class, 'show'])->name('department.show');
+    Route::post('/department/store', [DepartmentController::class, 'store'])->name('department.store');
+    Route::put('/department/{id}', [DepartmentController::class, 'update'])->name('department.update');
+    Route::delete('/department/{id}', [DepartmentController::class, 'destroy'])->name('department.destroy');
+
+    Route::get('/employee/regions', [EmployeeController::class, 'getRegions'])->name('employee.regions');
 
     Route::get('/partner', [PartnerController::class, 'showPartnerPage'])->name('partner');
     Route::get('/partner/index', [PartnerController::class, 'index'])->name('partner.index');

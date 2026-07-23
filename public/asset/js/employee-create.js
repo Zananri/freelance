@@ -1,57 +1,151 @@
 var appUrl = $('meta[name="app-url"]').attr("content");
+var regionsUrl = appUrl + "/employee/regions";
 
-document.addEventListener("DOMContentLoaded", function () {
-    // --- DYNAMIC DROPDOWN LOGIC ---
-    const departmentSelect = document.getElementById("department_id");
+$(function () {
+    var $partnerSelect = $("#department_id");
+    var $businessDepartmentSelect = $("#business_department_id");
+    var $partnerOfficeSelect = $("#partner_office_id");
+    var $regionSelect = $("#region");
+    var $divisionSelect = $("#division_id");
+    var $jobSelect = $("#job_id");
+    var $shiftSelect = $("#shift_id");
+    var $shiftTimeHint = $("#shift_time_hint");
 
-    // Unified alert: route to Settings-style white alert (office.js -> showAlertMsg)
-    function showFloatingAlert(message, type = 'success', delayMs = 2500) {
+    function showFloatingAlert(message, type, delayMs) {
+        type = type || "success";
+        delayMs = delayMs || 2500;
+        if (typeof window.showAlertMsg === "function") {
+            window.showAlertMsg(message, "light", delayMs);
+            return;
+        }
+        var $box = $(".box-alert-messages .box-message");
+        if ($box.length) {
+            $box.parent().show();
+            $box.removeClass("success warning error light").addClass("light");
+            $box.html(message);
+            setTimeout(function () {
+                if (typeof window.hideAlertMsg === "function") {
+                    window.hideAlertMsg();
+                } else {
+                    $box.parent().hide();
+                }
+            }, delayMs);
+            return;
+        }
         try {
-            if (typeof window.showAlertMsg === 'function') {
-                // Force white style as requested (use 'light' variant)
-                window.showAlertMsg(message, 'light', delayMs);
-                return;
-            }
-            // Fallback to container if present
-            const box = document.querySelector('.box-alert-messages .box-message');
-            if (box && box.parentElement) {
-                box.parentElement.style.display = 'block';
-                box.classList.remove('success','warning','error','light');
-                box.classList.add('light');
-                box.innerHTML = message;
-                setTimeout(() => {
-                    if (typeof window.hideAlertMsg === 'function') {
-                        window.hideAlertMsg();
-                    } else {
-                        box.parentElement.style.display = 'none';
-                    }
-                }, delayMs);
-                return;
-            }
-        } catch (e) { /* no-op */ }
-        // Last resort
-        try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
+            alert(typeof message === "string" ? message.replace(/<[^>]+>/g, "") : String(message));
+        } catch (e) {}
     }
-    const divisionSelect = document.getElementById("division_id");
-    const jobSelect = document.getElementById("job_id");
-    const shiftSelect = document.getElementById("shift_id");
-    const shiftTimeHint = document.getElementById("shift_time_hint");
 
-    // Load departments on page load
-    function loadDepartments() {
+    function isSuperadminName(name) {
+        return /superadmin/i.test(String(name || ""));
+    }
+
+    function isAdminDummyName(name) {
+        return /^ADMIN\s+.+\s+(PARTNER|SITE|DIVISION|JOB)$/i.test(String(name || "").trim());
+    }
+
+    function loadBusinessDepartments() {
+        if (!$businessDepartmentSelect.length) return;
+        var currentId = $businessDepartmentSelect.attr("data-current") || "";
+        var locked = $businessDepartmentSelect.attr("data-locked") === "1";
+
         $.ajax({
             url: appUrl + "/department/index",
             type: "GET",
             dataType: "json",
             success: function (data) {
-                let options =
-                    '<option value="" disabled selected>Select Partner</option>';
-                (data.data || []).forEach((dept) => {
-                    options += `<option value="${dept.id}">${
-                        dept.name_department || dept.name
-                    }</option>`;
+                var options = '<option value="" disabled selected>Select Department</option>';
+                (data.data || [])
+                    .filter(function (dept) {
+                        return !isSuperadminName(dept.name_department || dept.name);
+                    })
+                    .forEach(function (dept) {
+                        var selected = currentId && String(currentId) === String(dept.id) ? "selected" : "";
+                        options += '<option value="' + dept.id + '" ' + selected + ">" + (dept.name_department || dept.name) + "</option>";
+                    });
+                $businessDepartmentSelect.html(options);
+                if (currentId) {
+                    $businessDepartmentSelect.val(String(currentId));
+                }
+                $businessDepartmentSelect.prop("disabled", locked);
+                loadRegions();
+                loadPartners();
+                loadDivisionsByDepartment();
+                loadJobsByDepartment();
+            },
+            error: function () {
+                showFloatingAlert("Failed to load departments.", "warning", 3000);
+            },
+        });
+    }
+
+    function loadRegions(selectedRegion) {
+        if (!$regionSelect.length) return;
+        var departmentId = $businessDepartmentSelect.val();
+
+        if (!departmentId) {
+            $regionSelect.html('<option value="" disabled selected>Select Department First</option>');
+            $regionSelect.prop("disabled", true);
+            return;
+        }
+
+        $regionSelect.html('<option value="" disabled selected>Loading...</option>');
+        $regionSelect.prop("disabled", true);
+
+        $.ajax({
+            url: regionsUrl,
+            type: "GET",
+            data: {
+                business_department_id: departmentId,
+            },
+            dataType: "json",
+            success: function (data) {
+                var options = '<option value="" disabled selected>Select Region</option>';
+                (data.data || []).forEach(function (region) {
+                    var selected = selectedRegion && String(selectedRegion) === String(region) ? "selected" : "";
+                    options += '<option value="' + region + '" ' + selected + ">" + region + "</option>";
                 });
-                departmentSelect.innerHTML = options;
+                $regionSelect.html(options);
+                $regionSelect.prop("disabled", false);
+                if (selectedRegion) {
+                    $regionSelect.val(String(selectedRegion));
+                }
+            },
+            error: function () {
+                $regionSelect.html('<option value="" disabled selected>Select Region</option>');
+                $regionSelect.prop("disabled", false);
+                showFloatingAlert("Failed to load regions.", "warning", 3000);
+            },
+        });
+    }
+
+    function loadPartners() {
+        if (!$partnerSelect.length) return;
+        var selectedDepartmentId = $businessDepartmentSelect.val();
+        var selectedOfficeId = $partnerOfficeSelect.val();
+        var selectedRegion = $regionSelect.length ? $regionSelect.val() : "";
+
+        $.ajax({
+            url: appUrl + "/partner/index",
+            type: "GET",
+            data: {
+                department_id: selectedDepartmentId || undefined,
+                office_id: selectedOfficeId || undefined,
+                region: selectedRegion || undefined,
+            },
+            dataType: "json",
+            success: function (data) {
+                var options = '<option value="" disabled selected>Select Partner</option>';
+                (data.data || [])
+                    .filter(function (dept) {
+                        var name = dept.name_department || dept.name;
+                        return !isSuperadminName(name) && !isAdminDummyName(name);
+                    })
+                    .forEach(function (dept) {
+                        options += '<option value="' + dept.id + '">' + (dept.name_department || dept.name) + "</option>";
+                    });
+                $partnerSelect.html(options);
             },
             error: function () {
                 showFloatingAlert("Failed to load partners.", "warning", 3000);
@@ -59,51 +153,115 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Load divisions when department changes
-    function loadDivisions(departmentId) {
-        divisionSelect.innerHTML =
-            '<option value="" disabled selected>Loading...</option>';
+    function loadDivisionsByDepartment(selectedDivisionId) {
+        selectedDivisionId = selectedDivisionId || "";
+        var departmentId = $businessDepartmentSelect.val() || "";
+        var partnerId = $partnerSelect.val() || "";
+        var region = $regionSelect.length ? $regionSelect.val() || "" : "";
+        var adminDivisionId = String($businessDepartmentSelect.data("admin-division") || "");
+        var isAdmin = $businessDepartmentSelect.data("locked") === "1" || $businessDepartmentSelect.data("locked") === 1;
+
+        $divisionSelect.html('<option value="" disabled selected>Loading...</option>');
+
+        if (!departmentId) {
+            $divisionSelect.html('<option value="" disabled selected>Select Department</option>');
+            $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+            return;
+        }
+
+        if (!partnerId) {
+            $divisionSelect.html('<option value="" disabled selected>Select Partner</option>');
+            $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+            return;
+        }
+
         $.ajax({
             url: appUrl + "/division/index",
             type: "GET",
-            data: { department_id: departmentId },
+            data: {
+                business_department_id: departmentId,
+                partner_id: partnerId,
+                region: region || undefined,
+                status: "ACTIVE",
+            },
             dataType: "json",
             success: function (data) {
-                let options =
-                    '<option value="" disabled selected>Select Site</option>';
-                (data.data || []).forEach((div) => {
-                    options += `<option value="${div.id}">${
-                        div.name_division || div.name
-                    }</option>`;
-                });
-                divisionSelect.innerHTML = options;
-                jobSelect.innerHTML =
-                    '<option value="" disabled selected>Select Job</option>';
+                var options = '<option value="" disabled selected>Select Site</option>';
+                var divisions = data.data || [];
+
+                divisions
+                    .filter(function (division) {
+                        var divisionName = division.name_division || division.name || "";
+                        var isAdminDivision = isAdmin && adminDivisionId && String(division.id) === adminDivisionId;
+                        return !isSuperadminName(divisionName) && !isAdminDummyName(divisionName) && !isAdminDivision;
+                    })
+                    .forEach(function (division) {
+                        var divisionName = division.name_division || division.name || "";
+                        var selected = selectedDivisionId && String(selectedDivisionId) === String(division.id) ? "selected" : "";
+                        options += '<option value="' + division.id + '" ' + selected + ">" + divisionName + "</option>";
+                    });
+
+                $divisionSelect.html(options);
+
+                var selectedDivisionExists = $divisionSelect.find('option[value="' + selectedDivisionId + '"]').length > 0;
+                if (selectedDivisionExists) {
+                    $divisionSelect.val(String(selectedDivisionId));
+                }
+
+                $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+                loadJobsByDepartment();
             },
             error: function () {
+                $divisionSelect.html('<option value="" disabled selected>Select Site</option>');
+                $jobSelect.html('<option value="" disabled selected>Select Job</option>');
                 showFloatingAlert("Failed to load sites.", "warning", 3000);
             },
         });
     }
 
-    // Load jobs when division changes
-    function loadJobs(divisionId) {
-        jobSelect.innerHTML =
-            '<option value="" disabled selected>Loading...</option>';
+    function loadJobsByDepartment(selectedJobId) {
+        selectedJobId = selectedJobId || "";
+        var departmentId = $businessDepartmentSelect.val() || "";
+        var partnerId = $partnerSelect.val() || "";
+        var divisionId = $divisionSelect.val() || "";
+        var region = $regionSelect.length ? $regionSelect.val() || "" : "";
+        var adminJobId = String($businessDepartmentSelect.data("admin-job") || "");
+        var isAdmin = $businessDepartmentSelect.data("locked") === "1" || $businessDepartmentSelect.data("locked") === 1;
+
+        $jobSelect.html('<option value="" disabled selected>Loading...</option>');
+
+        if (!departmentId || !partnerId || !divisionId) {
+            $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+            return;
+        }
+
         $.ajax({
             url: appUrl + "/job/index",
             type: "GET",
-            data: { division_id: divisionId },
+            data: {
+                business_department_id: departmentId,
+                partner_id: partnerId,
+                division_id: divisionId,
+                region: region || undefined,
+                status: "ACTIVE",
+            },
             dataType: "json",
             success: function (data) {
-                let options =
-                    '<option value="" disabled selected>Select Job</option>';
-                (data.data || []).forEach((job) => {
-                    options += `<option value="${job.id}">${
-                        job.job_name || job.name
-                    }</option>`;
-                });
-                jobSelect.innerHTML = options;
+                var options = '<option value="" disabled selected>Select Job</option>';
+                (data.data || [])
+                    .filter(function (job) {
+                        var name = job.job_name || job.name;
+                        var isAdminJob = isAdmin && adminJobId && String(job.id) === adminJobId;
+                        return !isSuperadminName(name) && !isAdminDummyName(name) && !isAdminJob;
+                    })
+                    .forEach(function (job) {
+                        var selected = selectedJobId && String(selectedJobId) === String(job.id) ? "selected" : "";
+                        options += '<option value="' + job.id + '" ' + selected + ">" + (job.job_name || job.name) + "</option>";
+                    });
+                $jobSelect.html(options);
+                if (selectedJobId) {
+                    $jobSelect.val(String(selectedJobId));
+                }
             },
             error: function () {
                 showFloatingAlert("Failed to load jobs.", "warning", 3000);
@@ -111,188 +269,166 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    if (departmentSelect && divisionSelect && jobSelect) {
-        loadDepartments();
+    if ($partnerSelect.length && $divisionSelect.length && $jobSelect.length) {
+        loadBusinessDepartments();
 
-        departmentSelect.addEventListener("change", function () {
-            const deptId = this.value;
-            if (deptId) {
-                loadDivisions(deptId);
-            } else {
-                divisionSelect.innerHTML =
-                    '<option value="" disabled selected>Select Site</option>';
-                jobSelect.innerHTML =
-                    '<option value="" disabled selected>Select Job</option>';
-            }
+        $partnerSelect.on("change", function () {
+            loadDivisionsByDepartment();
+            $jobSelect.html('<option value="" disabled selected>Select Job</option>');
         });
 
-        divisionSelect.addEventListener("change", function () {
-            const divId = this.value;
-            if (divId) {
-                loadJobs(divId);
-            } else {
-                jobSelect.innerHTML =
-                    '<option value="" disabled selected>Select Job</option>';
-            }
+        if ($businessDepartmentSelect.length) {
+            $businessDepartmentSelect.on("change", function () {
+                loadRegions();
+                loadPartners();
+                $divisionSelect.html('<option value="" disabled selected>Select Site</option>');
+                $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+            });
+        }
+
+        if ($regionSelect.length) {
+            $regionSelect.on("change", function () {
+                loadPartners();
+                $divisionSelect.html('<option value="" disabled selected>Select Site</option>');
+                $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+            });
+        }
+
+        if ($partnerOfficeSelect.length) {
+            $partnerOfficeSelect.on("change", function () {
+                loadPartners();
+            });
+        }
+
+        $divisionSelect.on("change", function () {
+            loadJobsByDepartment();
         });
     }
 
-    // Load shifts for selection and show time hint
     function loadShifts() {
-        if (!shiftSelect) return;
-        const shiftsUrl = shiftSelect.getAttribute('data-fetch-url') || (appUrl ? appUrl + '/shift/list' : '/shift/list');
+        if (!$shiftSelect.length) return;
+        var shiftsUrl = $shiftSelect.attr("data-fetch-url") || (appUrl ? appUrl + "/shift/list" : "/shift/list");
+
         $.ajax({
             url: shiftsUrl,
             type: "GET",
             dataType: "json",
             success: function (resp) {
-                const data = resp.data || [];
-                let options = '<option value="" disabled selected>Select Shift</option>';
-                data.forEach((s) => {
-                    const start = s.time_start?.slice(0,5) || "--:--";
-                    const end = s.time_end?.slice(0,5) || "--:--";
-                    const title = s.title || `Shift ${start}-${end}`;
-                    options += `<option value="${s.id}" data-start="${start}" data-end="${end}">${title} (${start} - ${end})</option>`;
+                var data = resp.data || [];
+                var options = '<option value="" disabled selected>Select Shift</option>';
+                data.forEach(function (s) {
+                    var start = (s.time_start || "").slice(0, 5) || "--:--";
+                    var end = (s.time_end || "").slice(0, 5) || "--:--";
+                    var title = s.title || "Shift " + start + "-" + end;
+                    options += '<option value="' + s.id + '" data-start="' + start + '" data-end="' + end + '">' + title + " (" + start + " - " + end + ")</option>";
                 });
-                shiftSelect.innerHTML = options;
-                // If we have at least one shift, select it by default to show the hint
-                if (data.length > 0) {
-                    // Keep placeholder selected unless required to auto-select
-                    // Uncomment to auto-select first shift:
-                    // shiftSelect.selectedIndex = 1;
-                    // const first = shiftSelect.options[1];
-                    // if (first && shiftTimeHint) {
-                    //     shiftTimeHint.textContent = `${first.getAttribute('data-start')} - ${first.getAttribute('data-end')}`;
-                    // }
-                }
+                $shiftSelect.html(options);
             },
             error: function () {
-                console.error("Failed to load shifts");
                 showFloatingAlert("Gagal memuat data shift. Coba refresh halaman.", "warning", 3500);
             },
         });
     }
 
-    if (shiftSelect) {
+    if ($shiftSelect.length) {
         loadShifts();
-        shiftSelect.addEventListener("change", function(){
-            const opt = this.options[this.selectedIndex];
-            const start = opt.getAttribute("data-start");
-            const end = opt.getAttribute("data-end");
-            if (shiftTimeHint) shiftTimeHint.textContent = `${start} - ${end}`;
+        $shiftSelect.on("change", function () {
+            var $opt = $(this).find("option:selected");
+            var start = $opt.attr("data-start");
+            var end = $opt.attr("data-end");
+            if ($shiftTimeHint.length) $shiftTimeHint.text(start + " - " + end);
         });
     }
 
-    // New code to auto-fill email_work based on employee_name
-    const employeeNameInput = document.getElementById("employee_name");
-    const employeeEmailWorkInput = document.getElementById("employee_email_work");
+    var $employeeNameInput = $("#employee_name");
+    var $employeeEmailWorkInput = $("#employee_email_work");
 
-    if (employeeNameInput && employeeEmailWorkInput) {
-        employeeNameInput.addEventListener("input", function () {
-            const fullName = employeeNameInput.value.trim();
+    if ($employeeNameInput.length && $employeeEmailWorkInput.length) {
+        $employeeNameInput.on("input", function () {
+            var fullName = $employeeNameInput.val().trim();
             if (fullName.length > 0) {
-                // Only auto-fill if email_work is empty or matches previous auto-fill pattern
-                const currentEmailWork = employeeEmailWorkInput.value.trim();
-                const generatedEmailWork = fullName.replace(/\s+/g, "_").toLowerCase() + "@office.id";
-                if (currentEmailWork === "" || currentEmailWork === employeeEmailWorkInput.getAttribute("data-auto-filled")) {
-                    employeeEmailWorkInput.value = generatedEmailWork;
-                    employeeEmailWorkInput.setAttribute("data-auto-filled", generatedEmailWork);
+                var currentEmailWork = $employeeEmailWorkInput.val().trim();
+                var generatedEmailWork = fullName.replace(/\s+/g, "_").toLowerCase() + "@office.id";
+                if (currentEmailWork === "" || currentEmailWork === $employeeEmailWorkInput.attr("data-auto-filled")) {
+                    $employeeEmailWorkInput.val(generatedEmailWork);
+                    $employeeEmailWorkInput.attr("data-auto-filled", generatedEmailWork);
                 }
-                employeeEmailWorkInput.readOnly = false; // allow editing
-                employeeEmailWorkInput.removeAttribute("disabled");
+                $employeeEmailWorkInput.prop("readOnly", false).removeAttr("disabled");
             } else {
-                employeeEmailWorkInput.value = "";
-                employeeEmailWorkInput.readOnly = false;
-                employeeEmailWorkInput.removeAttribute("disabled");
-                employeeEmailWorkInput.removeAttribute("data-auto-filled");
+                $employeeEmailWorkInput.val("").prop("readOnly", false).removeAttr("disabled").removeAttr("data-auto-filled");
             }
         });
 
-        // Remove data-auto-filled attribute if user manually edits email_work
-        employeeEmailWorkInput.addEventListener("input", function () {
-            employeeEmailWorkInput.removeAttribute("data-auto-filled");
+        $employeeEmailWorkInput.on("input", function () {
+            $employeeEmailWorkInput.removeAttr("data-auto-filled");
         });
     }
 
     function setupImageInput(inputId, labelSelector, clearBtnId) {
-        const input = document.getElementById(inputId);
-        const label = document.querySelector(labelSelector);
-        const clearBtn = clearBtnId ? document.getElementById(clearBtnId) : null;
+        var $input = $("#" + inputId);
+        var $label = $(labelSelector);
+        var $clearBtn = clearBtnId ? $("#" + clearBtnId) : $();
 
-        if (!input || !label) return;
+        if (!$input.length || !$label.length) return;
 
-        input.addEventListener("change", function () {
-            if (input.files && input.files[0]) {
-                // Enforce 10 MB max on client-side
-                const maxBytes = 10 * 1024 * 1024; // 10MB
-                if (input.files[0].size > maxBytes) {
-                    showFloatingAlert('Maximum file size is 10 MB.', 'warning', 3500);
-                    input.value = '';
-                    if (label) {
-                        label.style.backgroundImage = '';
-                        label.classList.remove('has-image');
-                        label.style.opacity = '0.5';
-                    }
-                    if (clearBtn) clearBtn.classList.add('d-none');
+        $input.on("change", function () {
+            var files = this.files;
+            if (files && files[0]) {
+                var maxBytes = 10 * 1024 * 1024;
+                if (files[0].size > maxBytes) {
+                    showFloatingAlert("Maximum file size is 10 MB.", "warning", 3500);
+                    $input.val("");
+                    $label.css("background-image", "").removeClass("has-image").css("opacity", "0.5");
+                    if ($clearBtn.length) $clearBtn.addClass("d-none");
                     return;
                 }
-                const reader = new FileReader();
+                var reader = new FileReader();
                 reader.onload = function (e) {
-                    label.style.backgroundImage = `url('${e.target.result}')`;
-                    label.classList.add("has-image");
-                    label.style.backgroundSize = "cover";
-                    label.style.opacity = "1";
-                    if (clearBtn) clearBtn.classList.remove("d-none");
+                    $label.css("background-image", "url('" + e.target.result + "')").addClass("has-image").css({ "background-size": "cover", opacity: "1" });
+                    if ($clearBtn.length) $clearBtn.removeClass("d-none");
                 };
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(files[0]);
             } else {
-                label.style.backgroundImage = "";
-                label.classList.remove("has-image");
-                label.style.opacity = "0.5";
-                if (clearBtn) clearBtn.classList.add("d-none");
+                $label.css("background-image", "").removeClass("has-image").css("opacity", "0.5");
+                if ($clearBtn.length) $clearBtn.addClass("d-none");
             }
         });
 
-        if (clearBtn) {
-            clearBtn.addEventListener("click", function (e) {
+        if ($clearBtn.length) {
+            $clearBtn.on("click", function (e) {
                 e.preventDefault();
-                input.value = "";
-                label.style.backgroundImage = "";
-                label.classList.remove("has-image");
-                label.style.opacity = "0.5";
-                label.classList.remove("is-valid");
-                label.classList.remove("is-invalid");
-                clearBtn.classList.add("d-none");
+                $input.val("");
+                $label.css("background-image", "").removeClass("has-image is-valid is-invalid").css("opacity", "0.5");
+                $clearBtn.addClass("d-none");
             });
         }
     }
 
-    // AJAX form submission for employee create form
-    const employeeCreateForm = document.getElementById("employeeCreateForm");
-    const formAlert = document.getElementById("formAlert");
+    var $employeeCreateForm = $("#employeeCreateForm");
+    var $formAlert = $("#formAlert");
 
-    if (employeeCreateForm) {
-        const photoLabel = document.querySelector('label[for="photo"]');
-        employeeCreateForm.addEventListener("submit", function (e) {
-            // Bootstrap validation
-            if (!employeeCreateForm.checkValidity()) {
+    if ($employeeCreateForm.length) {
+        var $photoLabel = $('label[for="photo"]');
+
+        $employeeCreateForm.on("submit", function (e) {
+            var formEl = $employeeCreateForm.get(0);
+
+            if (!formEl.checkValidity()) {
                 e.preventDefault();
                 e.stopPropagation();
-                employeeCreateForm.classList.add("was-validated");
+                $employeeCreateForm.addClass("was-validated");
                 return;
             }
-            employeeCreateForm.classList.remove("was-validated");
+            $employeeCreateForm.removeClass("was-validated");
 
             e.preventDefault();
 
-            const employeeCreateLoader = document.getElementById("employeeCreateLoader");
-            formAlert.innerHTML = "";
-            // Show loader
-            if (employeeCreateLoader) employeeCreateLoader.classList.remove("d-none");
+            var $employeeCreateLoader = $("#employeeCreateLoader");
+            $formAlert.html("");
+            if ($employeeCreateLoader.length) $employeeCreateLoader.removeClass("d-none");
 
-            const formData = new FormData(employeeCreateForm);
+            var formData = new FormData(formEl);
 
-            // Map form field names to controller expected names
             formData.set("name", formData.get("employee_name"));
             formData.delete("employee_name");
             if (formData.get("employee_niks") !== null) {
@@ -307,14 +443,15 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.set("address", formData.get("address"));
             formData.set("birth_date", formData.get("birth_date"));
             formData.set("hire_date", formData.get("hire_date"));
-            // grade and office are ids now
             formData.set("grade_id", formData.get("grade_id"));
             formData.delete("grade");
             formData.set("office", formData.get("office"));
             formData.set("department_id", formData.get("department_id"));
             formData.set("division_id", formData.get("division_id"));
             formData.set("job_id", formData.get("job_id"));
-            // Map shift id
+            if (formData.get("region")) {
+                formData.set("region", formData.get("region"));
+            }
             if (formData.get("shift_id")) {
                 formData.set("shift_id", formData.get("shift_id"));
             }
@@ -330,209 +467,137 @@ document.addEventListener("DOMContentLoaded", function () {
                     Accept: "application/json",
                 },
                 success: function (response) {
-                    // Hide loader
-                    if (employeeCreateLoader) employeeCreateLoader.classList.add("d-none");
+                    if ($employeeCreateLoader.length) $employeeCreateLoader.addClass("d-none");
 
-                // Show success floating alert
-                showFloatingAlert("Employee created successfully!", "success");
+                    showFloatingAlert("Employee created successfully!", "success");
 
-                if (response.redirect_url) {
-                    // Redirect after showing alert
-                    setTimeout(() => {
-                        window.location.href = response.redirect_url;
-                    }, 2000);
-                    employeeCreateForm.reset();
-                    return;
-                }
-
-                employeeCreateForm.reset();
-
-                // Remove validation classes from inputs and labels
-                const inputs = employeeCreateForm.querySelectorAll("input, select, textarea");
-                inputs.forEach((input) => {
-                    input.classList.remove("is-valid", "is-invalid");
-                });
-                const labels = employeeCreateForm.querySelectorAll("label");
-                labels.forEach((label) => {
-                    label.classList.remove("is-valid", "is-invalid");
-                });
-                employeeCreateForm.classList.remove("was-validated");
-
-                // Reset image previews
-                ["photo", "ktp", "profile_picture"].forEach((id) => {
-                    const input = document.getElementById(id);
-                    if (input) input.value = "";
-                    const label = document.querySelector(
-                        `label[for="${id}"]`
-                    );
-                    if (label) {
-                        label.style.backgroundImage = "";
-                        label.classList.remove("has-image", "is-valid", "is-invalid");
-                        label.style.opacity = "0.5";
+                    if (response.redirect_url) {
+                        setTimeout(function () {
+                            window.location.href = response.redirect_url;
+                        }, 2000);
+                        formEl.reset();
+                        return;
                     }
-                    const clearBtn = document.getElementById(
-                        id === "photo"
-                            ? "photoClearBtn"
-                            : id === "ktp"
-                            ? "ktpClearBtn"
-                            : id + "ClearBtn"
-                    );
 
-                    if (clearBtn) clearBtn.classList.add("d-none");
-                });
+                    formEl.reset();
+
+                    $employeeCreateForm.find("input, select, textarea").removeClass("is-valid is-invalid");
+                    $employeeCreateForm.find("label").removeClass("is-valid is-invalid");
+                    $employeeCreateForm.removeClass("was-validated");
+
+                    ["photo", "ktp", "profile_picture"].forEach(function (id) {
+                        var $input = $("#" + id);
+                        if ($input.length) $input.val("");
+                        var $label = $('label[for="' + id + '"]');
+                        if ($label.length) {
+                            $label.css("background-image", "").removeClass("has-image is-valid is-invalid").css("opacity", "0.5");
+                        }
+                        var clearBtnId = id === "photo" ? "photoClearBtn" : id === "ktp" ? "ktpClearBtn" : id + "ClearBtn";
+                        var $clearBtn = $("#" + clearBtnId);
+                        if ($clearBtn.length) $clearBtn.addClass("d-none");
+                    });
                 },
                 error: function (xhr) {
-                    // Hide loader
-                    if (employeeCreateLoader) employeeCreateLoader.classList.add("d-none");
+                    if ($employeeCreateLoader.length) $employeeCreateLoader.addClass("d-none");
 
                     if (xhr.status === 422) {
-                        const resp = xhr.responseJSON || {};
-                        const errors = resp.errors || {};
-                        let message = resp.message || 'Validation failed.';
-                        const keys = Object.keys(errors);
+                        var resp = xhr.responseJSON || {};
+                        var errors = resp.errors || {};
+                        var message = resp.message || "Validation failed.";
+                        var keys = Object.keys(errors);
                         if (keys.length) {
-                            const firstKey = keys[0];
-                            const arr = errors[firstKey] || [];
+                            var firstKey = keys[0];
+                            var arr = errors[firstKey] || [];
                             if (arr.length) message = arr[0];
                         }
-                        if (formAlert) formAlert.innerHTML = "";
-                        showFloatingAlert(message, 'warning', 5000);
+                        if ($formAlert.length) $formAlert.html("");
+                        showFloatingAlert(message, "warning", 5000);
                     } else {
-                        const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to create employee.';
-                        if (formAlert) formAlert.innerHTML = "";
-                        showFloatingAlert(msg, 'warning', 4000);
+                        var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : "Failed to create employee.";
+                        if ($formAlert.length) $formAlert.html("");
+                        showFloatingAlert(msg, "warning", 4000);
                     }
                 },
             });
         });
 
-        // Add input/change event listeners for validation classes
-        const inputs = employeeCreateForm.querySelectorAll("input, select, textarea");
-        inputs.forEach((input) => {
-            input.addEventListener("input", () => {
-                if (input.id === "photo" || input.id === "ktp") {
-                    if (input.checkValidity()) {
-                        input.classList.remove("is-invalid");
-                        input.classList.add("is-valid");
-                        if (photoLabel) {
-                            photoLabel.classList.remove("is-invalid");
-                            photoLabel.classList.add("is-valid");
-                        }
-                    } else {
-                        input.classList.remove("is-valid");
-                        input.classList.add("is-invalid");
-                        if (photoLabel) {
-                            photoLabel.classList.add("is-invalid");
-                            photoLabel.classList.remove("is-valid");
-                        }
-                    }
+        var $inputs = $employeeCreateForm.find("input, select, textarea");
+
+        function validateField($input) {
+            var el = $input.get(0);
+            if ($input.attr("id") === "photo" || $input.attr("id") === "ktp") {
+                if (el.checkValidity()) {
+                    $input.removeClass("is-invalid").addClass("is-valid");
+                    if ($photoLabel.length) $photoLabel.removeClass("is-invalid").addClass("is-valid");
                 } else {
-                    if (input.checkValidity()) {
-                        input.classList.remove("is-invalid");
-                        input.classList.add("is-valid");
-                    } else {
-                        input.classList.remove("is-valid");
-                        input.classList.add("is-invalid");
-                    }
+                    $input.removeClass("is-valid").addClass("is-invalid");
+                    if ($photoLabel.length) $photoLabel.addClass("is-invalid").removeClass("is-valid");
                 }
-                employeeCreateForm.classList.remove("was-validated");
-            });
-            input.addEventListener("change", () => {
-                if (input.id === "photo" || input.id === "ktp") {
-                    if (input.checkValidity()) {
-                        input.classList.remove("is-invalid");
-                        input.classList.add("is-valid");
-                        if (photoLabel) {
-                            photoLabel.classList.remove("is-invalid");
-                            photoLabel.classList.add("is-valid");
-                        }
-                    } else {
-                        input.classList.remove("is-valid");
-                        input.classList.add("is-invalid");
-                        if (photoLabel) {
-                            photoLabel.classList.add("is-invalid");
-                            photoLabel.classList.remove("is-valid");
-                        }
-                    }
+            } else {
+                if (el.checkValidity()) {
+                    $input.removeClass("is-invalid").addClass("is-valid");
                 } else {
-                    if (input.checkValidity()) {
-                        input.classList.remove("is-invalid");
-                        input.classList.add("is-valid");
-                    } else {
-                        input.classList.remove("is-valid");
-                        input.classList.add("is-invalid");
-                    }
+                    $input.removeClass("is-valid").addClass("is-invalid");
                 }
-                employeeCreateForm.classList.remove("was-validated");
-            });
+            }
+            $employeeCreateForm.removeClass("was-validated");
+        }
+
+        $inputs.on("input", function () {
+            validateField($(this));
+        });
+        $inputs.on("change", function () {
+            validateField($(this));
         });
     }
 
-    setupImageInput(
-        "photo",
-        'label[for="photo"]',
-        "photoClearBtn"
-    );
+    setupImageInput("photo", 'label[for="photo"]', "photoClearBtn");
+    setupImageInput("ktp", 'label[for="ktp"]', "ktpClearBtn");
 
-    setupImageInput(
-        "ktp",
-        'label[for="ktp"]',
-        "ktpClearBtn"
-    );
+    $("#basic_salary,#positional_allowance,#bpjs_allowance,#bpjs_tenaga_kerja_allowance,#pension_allowance").mask("000.000.000", { reverse: true });
+    $('[name="hid_thp"]').mask("000.000.000", { reverse: true });
+    $(".text-thp").html($('[name="hid_thp"]').val());
 
-    // Date picker removed for employee create; shift selection is used instead
-});
+    function setTHP() {
+        var basicSalary = $('[name="basic_salary"]').val();
+        var positionalAllowance = $('[name="positional_allowance"]').val();
+        var transportationAllowance = $('[name="bpjs_allowance"]').val();
+        var mealAllowance = $('[name="bpjs_tenaga_kerja_allowance"]').val();
+        var internetPhoneAllowance = $('[name="pension_allowance"]').val();
+        var thp = parseInt(basicSalary) + parseInt(positionalAllowance) + parseInt(transportationAllowance) + parseInt(mealAllowance) + parseInt(internetPhoneAllowance);
 
-$('#basic_salary,#positional_allowance,#bpjs_allowance,#bpjs_tenaga_kerja_allowance,#pension_allowance').mask('000.000.000', {reverse: true});
+        $('[name="hid_thp"]').val(thp).unmask().mask("000.000.000", { reverse: true });
+        $(".text-thp").html($('[name="hid_thp"]').val());
+    }
 
-$('[name="hid_thp"]').mask('000.000.000', {reverse: true});
+    $("#basic_salary").on("keyup", function () {
+        $('[name="basic_salary"]').val($("#basic_salary").cleanVal());
+        setTHP();
+    });
+    $("#positional_allowance").on("keyup", function () {
+        $('[name="positional_allowance"]').val($("#positional_allowance").cleanVal());
+        setTHP();
+    });
+    $("#bpjs_allowance").on("keyup", function () {
+        $('[name="bpjs_allowance"]').val($("#bpjs_allowance").cleanVal());
+        setTHP();
+    });
+    $("#bpjs_tenaga_kerja_allowance").on("keyup", function () {
+        $('[name="bpjs_tenaga_kerja_allowance"]').val($("#bpjs_tenaga_kerja_allowance").cleanVal());
+        setTHP();
+    });
+    $("#pension_allowance").on("keyup", function () {
+        $('[name="pension_allowance"]').val($("#pension_allowance").cleanVal());
+        setTHP();
+    });
 
-$('.text-thp').html($('[name="hid_thp"]').val());
+    $("#cv").on("change", function () {
+        var file = this.files[0];
+        $("#cvFileName").val(file ? file.name : "");
+    });
 
-$('#basic_salary').on('keyup',function(){
-    $('[name="basic_salary"]').val($('#basic_salary').cleanVal());
-});
-
-$('#positional_allowance').on('keyup',function(){
-    $('[name="positional_allowance"]').val($('#positional_allowance').cleanVal());
-});
-
-$('#bpjs_allowance').on('keyup',function(){
-    $('[name="bpjs_allowance"]').val($('#bpjs_allowance').cleanVal());
-});
-
-$('#bpjs_tenaga_kerja_allowance').on('keyup',function(){
-    $('[name="bpjs_tenaga_kerja_allowance"]').val($('#bpjs_tenaga_kerja_allowance').cleanVal());
-});
-
-$('#pension_allowance').on('keyup',function(){
-    $('[name="pension_allowance"]').val($('#pension_allowance').cleanVal());
-});
-
-
-$('#basic_salary,#positional_allowance,#bpjs_allowance,#bpjs_tenaga_kerja_allowance,#pension_allowance').on('keyup',function(){
-    setTHP();
-});
-
-function setTHP(){
-    let basicSalary = $('[name="basic_salary"]').val();
-    let positionalAllowance = $('[name="positional_allowance"]').val();
-    let transportationAllowance = $('[name="bpjs_allowance"]').val();
-    let mealAllowance = $('[name="bpjs_tenaga_kerja_allowance"]').val();
-    let internetPhoneAllowance = $('[name="pension_allowance"]').val();
-    let thp = parseInt(basicSalary) + parseInt(positionalAllowance) + parseInt(transportationAllowance) + parseInt(mealAllowance) + parseInt(internetPhoneAllowance);
-    
-    $('[name="hid_thp"]').val(thp).unmask().mask('000.000.000', {reverse: true});
-
-    $('.text-thp').html($('[name="hid_thp"]').val());
-}
-
-$('#cv').on('change', function () {
-    const file = this.files[0];
-    $('#cvFileName').val(file ? file.name : '');
-});
-
-$('#pkwt').on('change', function () {
-    const file = this.files[0];
-    $('#pkwtFileName').val(file ? file.name : '');
+    $("#pkwt").on("change", function () {
+        var file = this.files[0];
+        $("#pkwtFileName").val(file ? file.name : "");
+    });
 });
