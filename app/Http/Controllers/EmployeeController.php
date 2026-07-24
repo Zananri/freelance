@@ -1303,8 +1303,8 @@ class EmployeeController extends Controller
             $employee = $employee->where('employees.department_id', $currentEmployee->department_id);
         }
 
-        $employee = $employee->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO"])
-            ->whereNotIn('users.user_type', ["ADMINISTRATOR"])
+        $employee = $employee->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO", "ADMINISTRATOR", "SUPERADMIN"])
+            ->whereNotIn('users.user_type', ["ADMINISTRATOR", "SUPERADMIN"])
             ->get();
 
         $employeeIds = $employee->pluck('id');

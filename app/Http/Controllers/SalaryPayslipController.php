@@ -19,13 +19,38 @@ use App\Models\Employee;
 use App\Models\EmployeeSalary;
 use App\Models\EmployeePayslip;
 use App\Models\EmployeeLeaveRequest;
+use App\Models\User;
 
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 
 class SalaryPayslipController extends Controller
 {
+    private const EXCLUDED_SALARY_PAYSLIP_DEPARTMENT_IDS = [1];
+    private const EXCLUDED_SALARY_PAYSLIP_USER_ROLES = ['ADMINISTRATOR', 'SUPERADMIN', 'ADMIN'];
+    private const EXCLUDED_SALARY_PAYSLIP_USER_TYPES = ['ADMINISTRATOR', 'SUPERADMIN', 'ADMIN'];
+
+    private function getSalaryPayslipEmployeeIds()
+    {
+        $employeeActiveIds = EmployeeHelper::EmployeeActiveIds();
+
+        return Employee::select('employees.id')
+            ->join('users', 'employees.user_id', '=', 'users.id')
+            ->whereIn('employees.id', $employeeActiveIds)
+            ->whereNotIn('users.user_role', self::EXCLUDED_SALARY_PAYSLIP_USER_ROLES)
+            ->whereNotIn('users.user_type', self::EXCLUDED_SALARY_PAYSLIP_USER_TYPES)
+            ->whereNotIn('department_id', self::EXCLUDED_SALARY_PAYSLIP_DEPARTMENT_IDS)
+            ->pluck('employees.id');
+    }
+
+    private function findSalaryPayslipEmployee(int $employeeId)
+    {
+        return Employee::with('department', 'division', 'job', 'grade')
+            ->where('id', $employeeId)
+            ->whereNotIn('department_id', self::EXCLUDED_SALARY_PAYSLIP_DEPARTMENT_IDS)
+            ->first();
+    }
 
     public function generatePDFPayslipEX()
     {
@@ -37,7 +62,7 @@ class SalaryPayslipController extends Controller
             'users' => $users
         ]; 
                 
-        $pdf = PDF::loadView('myPDF', $data);
+        $pdf = Pdf::loadView('myPDF', $data);
         $pdf->setPaper('A4', 'portrait');
 
         return $pdf->download('itsolutionstuff.pdf');
@@ -49,7 +74,7 @@ class SalaryPayslipController extends Controller
         $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
         $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
 
-        $employee = Employee::with('department','division','job','grade')->where('id',$employeeId)->first();
+        $employee = $this->findSalaryPayslipEmployee((int) $employeeId);
 
         if(!$employee){
             return '<h4>Employee not found</h4>';
@@ -114,7 +139,7 @@ class SalaryPayslipController extends Controller
             'employeeAttendanceAbsent'  => $employeeAttendanceAbsent
         ];
 
-        $pdf = PDF::loadView('employee.view_payslip', $data)->setPaper('A4', 'portrait');
+        $pdf = Pdf::loadView('employee.view_payslip', $data)->setPaper('A4', 'portrait');
         
         return $pdf->download('payslipEmployee.pdf');            
     }
@@ -125,7 +150,7 @@ class SalaryPayslipController extends Controller
         $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
         $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
 
-        $employee = Employee::with('department','division','job','grade')->where('id',$employeeId)->first();
+        $employee = $this->findSalaryPayslipEmployee((int) $employeeId);
 
         if(!$employee){
             return '<h4>Employee not found</h4>';
@@ -227,7 +252,7 @@ class SalaryPayslipController extends Controller
             'employeeAnnualLeave' => $employeeAnnualLeave
         ];
 
-        $pdf = PDF::loadView('employee.view_payslip', $data)->setPaper('A4', 'portrait');
+        $pdf = Pdf::loadView('employee.view_payslip', $data)->setPaper('A4', 'portrait');
         
         return $pdf->stream('payslipEmployee.pdf');            
     }
@@ -237,26 +262,53 @@ class SalaryPayslipController extends Controller
     {
         $user = auth()->user();
         $userId = auth()->user()->id;
+        $selectedDepartmentId = request()->query('department', 'all');
+        $selectedDivisionId = request()->query('division', 'all');
+        $searchQuery = trim((string) request()->query('query', ''));
         
-        $employeeActiveIds = EmployeeHelper::EmployeeActiveIds();
+        $employeeActiveIds = $this->getSalaryPayslipEmployeeIds();
         
-        $employee = Employee::select('employees.id','employees.user_id','employees.name','employees.status','employees.photo',
+        $employeeQuery = Employee::select('employees.id','employees.user_id','employees.name','employees.status','employees.photo',
                 'employees.department_id','employees.division_id',
                 'job_list.job_name'
             )
             ->join('job_list','employees.job_id','=','job_list.id')
             ->join('users','employees.user_id','=','users.id')
             ->where('employees.status',"ACTIVE")
-            ->whereIn('employees.id',$employeeActiveIds)
-        ->get();
+            ->whereNotIn('users.user_role', self::EXCLUDED_SALARY_PAYSLIP_USER_ROLES)
+            ->whereNotIn('users.user_type', self::EXCLUDED_SALARY_PAYSLIP_USER_TYPES)
+            ->whereIn('employees.id',$employeeActiveIds);
 
-        $department = Department::where('status','ACTIVE')->get();
+        if ($selectedDepartmentId !== 'all' && $selectedDepartmentId !== '0' && $selectedDepartmentId !== 0) {
+            $employeeQuery->where('employees.department_id', $selectedDepartmentId);
+        }
+
+        if ($selectedDivisionId !== 'all' && $selectedDivisionId !== '0' && $selectedDivisionId !== 0) {
+            $employeeQuery->where('employees.division_id', $selectedDivisionId);
+        }
+
+        if ($searchQuery !== '') {
+            $employeeQuery->where('employees.name', 'like', '%' . $searchQuery . '%');
+        }
+
+        $employee = $employeeQuery
+            ->orderBy('employees.division_id', 'asc')
+            ->orderBy('employees.name', 'asc')
+            ->paginate(15)
+            ->withQueryString();
+
+        $department = Department::where('status','ACTIVE')
+            ->whereNotIn('id', self::EXCLUDED_SALARY_PAYSLIP_DEPARTMENT_IDS)
+            ->get();
         $division = Division::where('status','ACTIVE')->get();
         
         return view('employee.salary_payslip',[
             'employee' => $employee,
             'department'    => $department,
-            'division'      => $division
+            'division'      => $division,
+            'selectedDepartmentId' => $selectedDepartmentId,
+            'selectedDivisionId' => $selectedDivisionId,
+            'searchQuery' => $searchQuery,
         ]);
     }
 
@@ -276,7 +328,7 @@ class SalaryPayslipController extends Controller
         $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
         $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
 
-        $employeeActiveIds = EmployeeHelper::EmployeeActiveIds();   
+        $employeeActiveIds = $this->getSalaryPayslipEmployeeIds();   
 
         $employeeSalary = EmployeeSalary::with('employee')
             ->whereIn('employee_id', $employeeActiveIds)
@@ -355,7 +407,7 @@ class SalaryPayslipController extends Controller
         $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
         $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
 
-        $employee = Employee::with('department','division','job','grade')->where('id',$employeeId)->first();
+        $employee = $this->findSalaryPayslipEmployee($employeeId);
 
         if(!$employee){
             throw new \Exception('Employee not found');
@@ -456,7 +508,7 @@ class SalaryPayslipController extends Controller
                 'meal_day' => 'required|integer',
             ]);
 
-            $employee = Employee::where('id',$request->employee_id)->first();
+            $employee = $this->findSalaryPayslipEmployee((int) $request->employee_id);
 
             if(!$employee){
                 throw new \Exception('Employee not found');
@@ -502,11 +554,11 @@ class SalaryPayslipController extends Controller
             $salaryData['total_working_day'] = $request->working_day;
             $salaryData['total_working_day_meal'] = $request->meal_day;
 
-            $salaryData['basic_salary'] = $employeeSalary->basic_salary;
-            $salaryData['positional_allowance'] = $employeeSalary->positional_allowance;
-            $salaryData['bpjs_allowance'] = $employeeSalary->bpjs_allowance;
-            $salaryData['bpjs_tenaga_kerja_allowance'] = $employeeSalary->bpjs_tenaga_kerja_allowance;
-            $salaryData['pension_allowance'] = $employeeSalary->pension_allowance;
+            $salaryData['basic_salary'] = $request->basic_salary;
+            $salaryData['positional_allowance'] = $request->positional_allowance;
+            $salaryData['bpjs_allowance'] = $request->bpjs_allowance;
+            $salaryData['bpjs_tenaga_kerja_allowance'] = $request->bpjs_tenaga_kerja_allowance;
+            $salaryData['pension_allowance'] = $request->pension_allowance;
 
             $salaryData['thr'] = $request->thr;
             $salaryData['kompensasi_pkwt'] = $request->kompensasi_pkwt;
@@ -596,7 +648,7 @@ class SalaryPayslipController extends Controller
             ]);
 
             $userId = auth()->user()->id;
-            $employee = Employee::where('id',$request->employee_id)->first();
+            $employee = $this->findSalaryPayslipEmployee((int) $request->employee_id);
 
             if(!$employee){
                 throw new \Exception('Employee not found');
@@ -661,7 +713,7 @@ class SalaryPayslipController extends Controller
             ]);
 
             $userId = auth()->user()->id;
-            $employee = Employee::where('id',$request->employee_id)->first();
+            $employee = $this->findSalaryPayslipEmployee((int) $request->employee_id);
 
             if(!$employee){
                 throw new \Exception('Employee not found');

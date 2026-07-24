@@ -10,6 +10,23 @@
     </x-slot>
 
     <div class="title-content">
+        @php
+            $selectedDepartmentId = $selectedDepartmentId ?? 'all';
+            $selectedDivisionId = $selectedDivisionId ?? 'all';
+            $searchQuery = $searchQuery ?? '';
+            $selectedDepartmentName = 'All Department';
+            $selectedDivisionName = 'All Site';
+
+            if ($selectedDepartmentId !== 'all' && $selectedDepartmentId !== '0' && $selectedDepartmentId !== 0) {
+                $selectedDepartment = $department->firstWhere('id', (int) $selectedDepartmentId);
+                $selectedDepartmentName = $selectedDepartment?->name_department ?? $selectedDepartmentName;
+            }
+
+            if ($selectedDivisionId !== 'all' && $selectedDivisionId !== '0' && $selectedDivisionId !== 0) {
+                $selectedDivision = $division->firstWhere('id', (int) $selectedDivisionId);
+                $selectedDivisionName = $selectedDivision?->name_division ?? $selectedDivisionName;
+            }
+        @endphp
 
         <div class="row">
             <div class="col-12 col-md-9">
@@ -18,7 +35,7 @@
             <div class="col-12 col-md-3">
                 <div class="d-flex gap-2 justify-content-end align-items-center">
                     <div>
-                        <input type="text" class="input-search-query w-100">
+                        <input type="text" class="input-search-query w-100" value="{{ $searchQuery }}">
                     </div>
                 </div>
                 
@@ -33,7 +50,7 @@
 
             <di class="col-12 col-md-12"> 
 
-                <div class="card-content scrollbar-transparent overflow-auto position-relative">
+                <div class="card-content scrollbar-transparent position-relative">
                     <div class="header-calendar">
                         <div class="">
 
@@ -48,7 +65,7 @@
                                     @endphp
 
                                     <div class="col-dropdown-department {{ $hideDepartment }}"
-                                        data-department-id="{{ $isSuperadmin ? 0 : auth()->user()->employee->department_id }}">
+                                        data-department-id="{{ $isSuperadmin ? $selectedDepartmentId : auth()->user()->employee->department_id }}">
 
                                         <div class="dropdown dropdown-select">
 
@@ -59,7 +76,7 @@
 
                                                 <div class="d-inline-flex align-items-center">
                                                     <span class="title-dropdown">
-                                                        {{ $isSuperadmin ? 'All Department' : auth()->user()->employee->department->name_department }}
+                                                        {{ $isSuperadmin ? $selectedDepartmentName : auth()->user()->employee->department->name_department }}
                                                     </span>
                                                 </div>
 
@@ -71,7 +88,7 @@
                                                     <li class="dropdown-item department-item"
                                                         data-department-id="0"
                                                         data-department-name="All Department">
-                                                        <div class="dropdown-item fs-14">All Partner</div>
+                                                        <div class="dropdown-item fs-14">All Department</div>
                                                     </li>
                                                 @endif
 
@@ -94,13 +111,13 @@
                                             <div class="dropdown-toggle btn btn-dropdown-table ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                 
                                                 <div class="d-inline-flex align-items-center">
-                                                    <span class="title-dropdown">All Site</span>
+                                                    <span class="title-dropdown">{{ $selectedDivisionName }}</span>
                                                 </div>
 
                                             </div>
 
                                             <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                                                <li data-department-id="0" data-division-id="0" data-division-name="All Division" class="dropdown-item division-item fs-14">
+                                                <li data-department-id="0" data-division-id="0" data-division-name="All Site" class="dropdown-item division-item fs-14">
                                                     <div class="dropdown-item fs-14">All Site</div>
                                                 </li>
                                                 @foreach ($division as $itemDivision)
@@ -336,6 +353,15 @@
                                     
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="salary-payslip-pagination mt-3">
+                            <div class="salary-payslip-pagination-inner">
+                                {{ $employee->onEachSide(1)->links('pagination::bootstrap-5') }}
+                            </div>
+
+                            <div class="salary-payslip-pagination-summary">
+                                Showing {{ $employee->firstItem() ?? 0 }} - {{ $employee->lastItem() ?? 0 }} of {{ $employee->total() }}
+                            </div>
                         </div>
                     </div>
 

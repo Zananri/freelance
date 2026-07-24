@@ -12,89 +12,106 @@ const modalPayslipRecalled = new bootstrap.Modal('#modalPayslipRecalled', {
    keyboard: false
 });
 
-$('.input-search-query').on('keyup',function(){
-    filterEmployee();
-});
+let salaryPayslipSearchTimer = null;
 
-function filterEmployee() {
-
-    let departmentId = $('.col-dropdown-department').attr('data-department-id');
-    let divisionId = $('.col-dropdown-division').attr('data-division-id');
-
-    let divisionFilter = `[data-division="${divisionId}"]`;
-    let searchQuery = $('.input-search-query').val();
-
-    $('.employee-row').addClass('d-none');
-
-    if (divisionId == 0) {
-        divisionFilter = '';
-    }
-
-    let selector = departmentId == 0
-        ? `.employee-row${divisionFilter}`
-        : `.employee-row[data-department="${departmentId}"]${divisionFilter}`;
-
-    if (searchQuery) {
-
-        $(selector).each(function () {
-            let employeeName = $(this).find('.employee-name').text();
-
-            if (employeeName.toLowerCase().includes(searchQuery.toLowerCase())) {
-                $(this).removeClass('d-none');
-            }
-        });
-
-    } else {
-
-        $(selector).removeClass('d-none');
-
-    }
-
+function updateDivisionOptions(departmentId) {
+    $('.division-item').addClass('d-none');
+    $(`.division-item[data-department-id="${departmentId}"], .division-item[data-department-id="0"]`).removeClass('d-none');
 }
+
+function reloadSalaryPayslipPage(filters) {
+    const url = new URL(window.location.href);
+
+    if (filters.departmentId !== undefined) {
+        const departmentId = String(filters.departmentId);
+        if (departmentId === 'all' || departmentId === '0' || departmentId === '') {
+            url.searchParams.delete('department');
+        } else {
+            url.searchParams.set('department', departmentId);
+        }
+    }
+
+    if (filters.divisionId !== undefined) {
+        const divisionId = String(filters.divisionId);
+        if (divisionId === 'all' || divisionId === '0' || divisionId === '') {
+            url.searchParams.delete('division');
+        } else {
+            url.searchParams.set('division', divisionId);
+        }
+    }
+
+    if (filters.query !== undefined) {
+        const query = String(filters.query).trim();
+        if (query === '') {
+            url.searchParams.delete('query');
+        } else {
+            url.searchParams.set('query', query);
+        }
+    }
+
+    window.location.href = url.toString();
+}
+
+$('.input-search-query').on('keyup', function (event) {
+    if (event.key === 'Enter') {
+        reloadSalaryPayslipPage({
+            query: $(this).val(),
+            departmentId: $('.col-dropdown-department').attr('data-department-id'),
+            divisionId: $('.col-dropdown-division').attr('data-division-id'),
+        });
+        return;
+    }
+
+    clearTimeout(salaryPayslipSearchTimer);
+    salaryPayslipSearchTimer = setTimeout(function () {
+        reloadSalaryPayslipPage({
+            query: $('.input-search-query').val(),
+            departmentId: $('.col-dropdown-department').attr('data-department-id'),
+            divisionId: $('.col-dropdown-division').attr('data-division-id'),
+        });
+    }, 400);
+});
 
 $('.department-item').on('click',function(){
     let departmentId = $(this).attr('data-department-id');
     let departmentName = $(this).attr('data-department-name');
 
-    $('.col-dropdown-department').attr('data-department-id',departmentId);
-    $('.col-dropdown-department .title-dropdown').text(departmentName);
-    
-    $('.col-dropdown-division').attr('data-division-id',0);
-    $('.col-dropdown-division .title-dropdown').text('All Division');
+    clearTimeout(salaryPayslipSearchTimer);
 
-    $('.division-item').addClass('d-none');
-    $(`.division-item[data-department-id="${departmentId}"], .division-item[data-department-id="0"]`).removeClass('d-none');
-    
-    filterEmployee();
+    $('.col-dropdown-department').attr('data-department-id', departmentId);
+    $('.col-dropdown-department .title-dropdown').text(departmentName);
+
+    $('.col-dropdown-division').attr('data-division-id', 0);
+    $('.col-dropdown-division .title-dropdown').text('All Site');
+
+    updateDivisionOptions(departmentId);
+
+    reloadSalaryPayslipPage({
+        departmentId: departmentId,
+        divisionId: 0,
+        query: $('.input-search-query').val(),
+    });
 });
 
 $('.division-item').on('click',function(){
     let departmentId = $(this).attr('data-department-id');
     let divisionId = $(this).attr('data-division-id');
     let divisionName = $(this).attr('data-division-name');
+
+    clearTimeout(salaryPayslipSearchTimer);
  
     $('.col-dropdown-division').attr('data-department-id',departmentId);
     $('.col-dropdown-division').attr('data-division-id',divisionId);
     $('.col-dropdown-division .title-dropdown').text(divisionName);
-    
-    
-    filterEmployee();
+
+    reloadSalaryPayslipPage({
+        departmentId: $('.col-dropdown-department').attr('data-department-id'),
+        divisionId: divisionId,
+        query: $('.input-search-query').val(),
+    });
 });
 
-function setDefaultDropdown(){
-
-    let departmentId = $('.col-dropdown-department').attr('data-department-id');
-    
-    // $('.col-dropdown-division').attr('data-department-id',1);
-    // $('.col-dropdown-division').attr('data-division-id',0);
-    // $('.col-dropdown-division .title-dropdown').text('All Division');
-
-    $('.department-item[data-department-id="'+departmentId+'"]').click();
-
-}
-
-setDefaultDropdown();
-filterEmployee();
+updateDivisionOptions($('.col-dropdown-department').attr('data-department-id'));
 
 let CURRENT_DATE = new Date();
 
@@ -545,7 +562,7 @@ $('#modalSalaryEdit [name="thr"], #modalSalaryEdit [name="kompensasi_pkwt"], #mo
     const numValue = parseSalaryInput($(this).val());
     $(this).data('raw-value', numValue);
     $(this).attr('value', numValue);
-    $(this).val(formatRawRupiah(numValue));
+    $(this).val(numValue);
     countSalary();
 });
 
@@ -557,6 +574,11 @@ $('#modalSalaryEdit [name="active_day"], #modalSalaryEdit [name="working_day"], 
 function countSalary(){
     let totalDayActive = parseSalaryInput($('#modalSalaryEdit [name="active_day"]').val());
     let totalWorkingDay = parseSalaryInput($('#modalSalaryEdit [name="working_day"]').val());
+    let basicSalaryInput = parseSalaryInput($('#modalSalaryEdit [name="basic_salary"]').val());
+    let positionalAllowanceInput = parseSalaryInput($('#modalSalaryEdit [name="positional_allowance"]').val());
+    let bpjsAllowanceInput = parseSalaryInput($('#modalSalaryEdit [name="bpjs_allowance"]').val());
+    let bpjsTenagaKerjaAllowanceInput = parseSalaryInput($('#modalSalaryEdit [name="bpjs_tenaga_kerja_allowance"]').val());
+    let pensionAllowanceInput = parseSalaryInput($('#modalSalaryEdit [name="pension_allowance"]').val());
     let thr = parseSalaryInput($('#modalSalaryEdit [name="thr"]').val());
     let kompensasiPkwt = parseSalaryInput($('#modalSalaryEdit [name="kompensasi_pkwt"]').val());
 
@@ -588,20 +610,20 @@ function countSalary(){
 
     if(employeeSalary && totalDayActive > 0){
 
-        basicSalary = (employeeSalary.basic_salary / totalDayActive) * totalWorkingDay;
-        positionalAllowance = (employeeSalary.positional_allowance / totalDayActive) * totalWorkingDay;
-        bpjsAllowance = (employeeSalary.bpjs_allowance / totalDayActive) * totalWorkingDay;
-        bpjsTenagaKerjaAllowance = (employeeSalary.bpjs_tenaga_kerja_allowance / totalDayActive) * totalWorkingDay;
-        pensionAllowance = (employeeSalary.pension_allowance / totalDayActive) * totalWorkingDay;
+        basicSalary = basicSalaryInput > 0 ? basicSalaryInput : parseSalaryInput(employeeSalary.basic_salary);
+        positionalAllowance = positionalAllowanceInput > 0 ? positionalAllowanceInput : parseSalaryInput(employeeSalary.positional_allowance);
+        bpjsAllowance = bpjsAllowanceInput > 0 ? bpjsAllowanceInput : parseSalaryInput(employeeSalary.bpjs_allowance);
+        bpjsTenagaKerjaAllowance = bpjsTenagaKerjaAllowanceInput > 0 ? bpjsTenagaKerjaAllowanceInput : parseSalaryInput(employeeSalary.bpjs_tenaga_kerja_allowance);
+        pensionAllowance = pensionAllowanceInput > 0 ? pensionAllowanceInput : parseSalaryInput(employeeSalary.pension_allowance);
     }
     
     if(employeePayslip && totalDayActive > 0){
 
-        basicSalary = (employeePayslip.basic_salary / totalDayActive) * totalWorkingDay;
-        positionalAllowance = (employeePayslip.positional_allowance / totalDayActive) * totalWorkingDay;
-        bpjsAllowance = (employeePayslip.bpjs_allowance / totalDayActive) * totalWorkingDay;
-        bpjsTenagaKerjaAllowance = (employeePayslip.bpjs_tenaga_kerja_allowance / totalDayActive) * totalWorkingDay;
-        pensionAllowance = (employeePayslip.pension_allowance / totalDayActive) * totalWorkingDay;
+        basicSalary = basicSalaryInput > 0 ? basicSalaryInput : parseSalaryInput(employeePayslip.basic_salary);
+        positionalAllowance = positionalAllowanceInput > 0 ? positionalAllowanceInput : parseSalaryInput(employeePayslip.positional_allowance);
+        bpjsAllowance = bpjsAllowanceInput > 0 ? bpjsAllowanceInput : parseSalaryInput(employeePayslip.bpjs_allowance);
+        bpjsTenagaKerjaAllowance = bpjsTenagaKerjaAllowanceInput > 0 ? bpjsTenagaKerjaAllowanceInput : parseSalaryInput(employeePayslip.bpjs_tenaga_kerja_allowance);
+        pensionAllowance = pensionAllowanceInput > 0 ? pensionAllowanceInput : parseSalaryInput(employeePayslip.pension_allowance);
 
     }
 

@@ -24,11 +24,7 @@ class EmployeeHelper
             ->where('employees.status', "ACTIVE")
             ->where('employees.user_id', '!=', $userId);
 
-        if ($userType === 'SUPERADMIN') {
-            return $employeeQuery->get()->pluck('id');
-        }
-
-        $hasGlobalAccess = in_array($userType, ['ADMINISTRATOR']) || 
+        $hasGlobalAccess = in_array($userType, ['ADMINISTRATOR', 'SUPERADMIN']) || 
                            in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER']);
 
         if (!$hasGlobalAccess) {
@@ -37,8 +33,8 @@ class EmployeeHelper
             }
         }
 
-        $employeeQuery->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO"])
-                      ->whereNotIn('users.user_type', ["ADMINISTRATOR"]);
+        $employeeQuery->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO", "ADMINISTRATOR", "SUPERADMIN"])
+                      ->whereNotIn('users.user_type', ["ADMINISTRATOR", "SUPERADMIN"]);
 
         return $employeeQuery->get()->pluck('id');
     }
