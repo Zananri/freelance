@@ -346,14 +346,6 @@
                             <small>Add Candidate</small>
                         </button>
 
-                        <button type="button" id="addJobBtn"
-                            class="btn quick-btn-action w-100 d-flex align-items-center py-3">
-                            <span class="material-symbols-outlined me-2">
-                                groups
-                            </span>
-                            <small>Add Position</small>
-                        </button>
-
                         <button type="button" id="openScheduleCalendarBtn"
                             class="btn quick-btn-action w-100 d-flex align-items-center py-3">
                             <span class="material-symbols-outlined me-2">
