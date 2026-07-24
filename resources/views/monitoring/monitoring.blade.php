@@ -46,10 +46,6 @@
                     <h6 class="mb-0 fw-semibold">
                         Site List
                     </h6>
-
-                    <select class="form-select form-select-sm division-filter">
-                        <option value="all">All Site</option>
-                    </select>
                 </div>
 
                 <div class="input-group mb-3">

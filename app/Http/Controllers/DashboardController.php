@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Models\EmployeeLocation;
 
 use App\Models\Division;
 use App\Models\Department;
@@ -39,12 +40,11 @@ class DashboardController extends Controller
         $userType = strtoupper((string) (auth()->user()->user_type ?? ''));
 
         $currentEmployee = Employee::where('user_id', $userId)->first();
-
-        // Department & division options for the monitoring widget filter.
-        // SUPERADMIN can monitor every department/division company-wide.
-        // Everyone else (e.g. ADMINISTRATOR) is scoped to their own department only.
         if ($userType === 'SUPERADMIN') {
-            $widgetDepartments = Department::orderBy('name_department')
+            $widgetDepartments = Department::when($currentEmployee && $currentEmployee->department_id, function ($q) use ($currentEmployee) {
+                $q->where('id', '!=', $currentEmployee->department_id);
+            })
+                ->orderBy('name_department')
                 ->get(['id', 'name_department']);
 
             $widgetDivisions = Division::orderBy('name_division')
@@ -59,7 +59,6 @@ class DashboardController extends Controller
                 ->get(['id', 'name_division', 'department_id']);
         }
 
-        // record activity
         try {
             ActivityHelper::record([
                 'employee_id' => $currentEmployee?->id,
@@ -88,11 +87,11 @@ class DashboardController extends Controller
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => ['employees' => [], 'checkins' => []],
+                'data' => ['employees' => [], 'checkins' => [], 'locations' => [], 'points' => []],
             ]);
         }
 
-        $query = Employee::with(['division', 'department', 'job'])
+        $query = Employee::with(['division', 'department', 'job', 'partner'])
             ->where('status', 'ACTIVE')
             ->where('id', '!=', $currentEmployee->id)
             ->whereHas('user', function ($q) {
@@ -122,66 +121,142 @@ class DashboardController extends Controller
         $today = Carbon::today();
 
         $checkins = collect();
+        $locations = collect();
+        $points = collect();
 
         if (!empty($employeeIds)) {
             $checkins = AttendanceTracking::select(
+                'attendance_trackings.id',
                 'attendance_trackings.location',
                 'attendance_trackings.date_time',
                 'attendance_trackings.type',
+                'attendance_trackings.image',
                 'attendances.employee_id'
             )
                 ->join('attendances', 'attendance_trackings.attendance_id', '=', 'attendances.id')
                 ->whereIn('attendance_trackings.type', ['check_in', 'check_out'])
                 ->whereDate('attendance_trackings.date_time', $today)
                 ->whereIn('attendances.employee_id', $employeeIds)
-                ->orderBy('attendance_trackings.date_time', 'desc')
+                ->orderBy('attendance_trackings.date_time')
                 ->get()
-                ->map(function ($record) {
-                    // Guard against empty/malformed location values (e.g. missing GPS data)
-                    if (empty($record->location) || strpos($record->location, ',') === false) {
-                        return null;
-                    }
+                ->values();
 
-                    [$lat, $lng] = array_map('trim', explode(',', $record->location, 2));
-
-                    if (!is_numeric($lat) || !is_numeric($lng)) {
-                        return null;
-                    }
-
+            $locations = EmployeeLocation::whereIn('employee_id', $employeeIds)
+                ->get(['employee_id', 'latitude', 'longitude', 'accuracy', 'tracked_at'])
+                ->map(function ($location) {
                     return [
-                        'employee_id' => (int) $record->employee_id,
-                        'lat' => (float) $lat,
-                        'lng' => (float) $lng,
-                        'type' => $record->type,
-                        'time' => optional($record->date_time)->format('H:i'),
-                        'date_time' => optional($record->date_time)->toDateTimeString(),
+                        'employee_id' => $location->employee_id,
+                        'lat' => (float) $location->latitude,
+                        'lng' => (float) $location->longitude,
+                        'accuracy' => $location->accuracy,
+                        'tracked_at' => optional($location->tracked_at)->toDateTimeString(),
                     ];
                 })
-                ->filter()
                 ->values();
+
+            $checkinCounterByEmployee = [];
+            $latestStatusByEmployee = [];
+
+            $points = $checkins->map(function ($record) use (&$checkinCounterByEmployee, &$latestStatusByEmployee) {
+                if (empty($record->location) || strpos($record->location, ',') === false) {
+                    return null;
+                }
+
+                [$lat, $lng] = array_map('trim', explode(',', $record->location, 2));
+
+                if (!is_numeric($lat) || !is_numeric($lng)) {
+                    return null;
+                }
+
+                $employeeId = (int) $record->employee_id;
+                $checkinCounterByEmployee[$employeeId] = $checkinCounterByEmployee[$employeeId] ?? 0;
+
+                if ($record->type === 'check_out') {
+                    $pointType = 'check_out';
+                } else {
+                    $checkinCounterByEmployee[$employeeId]++;
+                    $pointType = $checkinCounterByEmployee[$employeeId] === 1 ? 'check_in' : 'checkpoint';
+                }
+
+                $latestStatusByEmployee[$employeeId] = $record->type;
+
+                $firstImage = null;
+                if (is_array($record->image) && isset($record->image[0])) {
+                    $firstImage = $record->image[0];
+                }
+
+                if ($firstImage && !preg_match('/^(https?:)?\/\//i', $firstImage)) {
+                    $firstImage = asset(ltrim($firstImage, '/'));
+                }
+
+                return [
+                    'id' => (int) $record->id,
+                    'employee_id' => $employeeId,
+                    'lat' => (float) $lat,
+                    'lng' => (float) $lng,
+                    'type' => $pointType,
+                    'source_type' => $record->type,
+                    'time' => optional($record->date_time)->format('H:i'),
+                    'date_time' => optional($record->date_time)->toDateTimeString(),
+                    'image_url' => $firstImage,
+                    'is_live' => false,
+                ];
+            })->filter()->values();
+
+            foreach ($locations as $location) {
+                $employeeId = (int) $location['employee_id'];
+                $latestStatus = $latestStatusByEmployee[$employeeId] ?? null;
+
+                if ($latestStatus === 'check_out') {
+                    continue;
+                }
+
+                $points->push([
+                    'id' => 'live_' . $employeeId,
+                    'employee_id' => $employeeId,
+                    'lat' => (float) $location['lat'],
+                    'lng' => (float) $location['lng'],
+                    'type' => 'checkpoint',
+                    'source_type' => 'live',
+                    'time' => optional($location['tracked_at'] ? Carbon::parse($location['tracked_at']) : null)->format('H:i'),
+                    'date_time' => $location['tracked_at'],
+                    'image_url' => null,
+                    'is_live' => true,
+                ]);
+            }
+
+            $points = $points->sortBy(function ($point) {
+                return strtotime($point['date_time'] ?? '') ?: 0;
+            })->values();
         }
 
-        $checkedInEmployeeIds = $checkins
-            ->where('type_attendance', 'check_in')
+        $checkedInEmployeeIds = $points
+            ->where('source_type', 'check_in')
             ->pluck('employee_id')
             ->toArray();
 
-        $employees = $employees->map(function ($employee) use ($checkins, $checkedInEmployeeIds) {
-            $lastCheckin = $checkins
+        $locationByEmployeeId = $locations->keyBy('employee_id');
+
+        $employees = $employees->map(function ($employee) use ($points, $checkedInEmployeeIds, $locationByEmployeeId) {
+            $lastCheckin = $points
                 ->where('employee_id', $employee->id)
-                ->where('type_attendance', 'check_in')
+                ->where('type', 'check_in')
                 ->first();
 
-            $lastCheckout = $checkins
+            $lastCheckout = $points
                 ->where('employee_id', $employee->id)
-                ->where('type_attendance', 'check_out')
+                ->where('type', 'check_out')
                 ->first();
+
+            $location = $locationByEmployeeId->get($employee->id);
 
             return [
                 'id' => $employee->id,
                 'name' => $employee->name,
                 'department_id' => $employee->department_id,
                 'department_name' => optional($employee->department)->name_department,
+                'partner_id' => $employee->partner_id,
+                'partner_name' => optional($employee->partner)->partner_name,
                 'division_id' => $employee->division_id,
                 'division_name' => optional($employee->division)->name_division,
                 'job_id' => $employee->job_id,
@@ -189,6 +264,7 @@ class DashboardController extends Controller
                 'checked_in' => in_array($employee->id, $checkedInEmployeeIds),
                 'checkin_time' => $lastCheckin['time'] ?? null,
                 'checkout_time' => $lastCheckout['time'] ?? null,
+                'last_location_at' => $location['tracked_at'] ?? null,
             ];
         })->values();
 
@@ -197,7 +273,9 @@ class DashboardController extends Controller
             'status' => 'success',
             'data' => [
                 'employees' => $employees,
-                'checkins' => $checkins,
+                'checkins' => $points,
+                'locations' => $locations,
+                'points' => $points,
             ],
         ]);
     }

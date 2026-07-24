@@ -17,6 +17,7 @@ use App\Http\Controllers\EmployeeTimeOffController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\RecruitmentController;
 use App\Http\Controllers\MonitoringController;
+use App\Http\Controllers\EmployeeLocationController;
 
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
@@ -162,6 +163,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/calendar/new-employee-event', [EmployeeCalendarController::class, 'newEmployeeEvent'])->name('calendar.newEmployeeEvent');
     Route::post('/calendar/edit-employee-event', [EmployeeCalendarController::class, 'editEmployeeEvent'])->name('calendar.editEmployeeEvent');
     Route::post('/calendar/delete-employee-event', [EmployeeCalendarController::class, 'deleteEmployeeEvent'])->name('calendar.deleteEmployeeEvent');
+
+    Route::post('/location/update', [EmployeeLocationController::class, 'update']);
+    Route::post('/location', [EmployeeLocationController::class, 'store']);
 });
 
 

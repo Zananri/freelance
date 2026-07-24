@@ -12,6 +12,10 @@ function updateClock() {
 
 $(document).ready(function(){
     setInterval(updateClock, 1000);
+
+    if (typeof ATTENDANCE_STATUS !== 'undefined' && ATTENDANCE_STATUS.hasCheckedIn && !ATTENDANCE_STATUS.hasCheckedOut) {
+        startLiveLocationTracking();
+    }
 });
 
 const checkInModal = new bootstrap.Modal('#checkInModal', {
@@ -30,74 +34,127 @@ const checkOutDetailModal = new bootstrap.Modal('#checkOutDetailModal', {
   keyboard: false
 });
 
-
-
-
 $('#checkInModal').on('hidden.bs.modal', function (e) {
-    //clearInterval(mapCheckInReload);
+});
+
+$('#checkInModal').on('shown.bs.modal', function () {
+    setTimeout(function () {
+        updateMapCheckInLocation();
+    }, 200);
 });
 
 function setDefaultLocation(){
+    if (LOCATION_REQUEST_IN_FLIGHT) {
+        return;
+    }
+
     if (navigator.geolocation) {
+        LOCATION_REQUEST_IN_FLIGHT = true;
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 LOC_LATITUDE = position.coords.latitude;
                 LOC_LONGITUDE = position.coords.longitude;
+                LOC_ACCURACY = position.coords.accuracy;
+                HAS_VALID_GEOLOCATION = true;
+                LOCATION_REQUEST_IN_FLIGHT = false;
 
-                //console.log(`Latitude: ${LOC_LATITUDE}, Longitude: ${LOC_LONGITUDE}`);
-                
                 $('[name="latitudeCheckIn"]').val(LOC_LATITUDE);
                 $('[name="longitudeCheckIn"]').val(LOC_LONGITUDE);
-
-                $('[name="latitudeCheckOut"]').val(LOC_LATITUDE);
-                $('[name="longitudeCheckOut"]').val(LOC_LONGITUDE);
-                
-                MAP_CHECKIN.invalidateSize();
-                MAP_CHECKIN.setView([LOC_LATITUDE, LOC_LONGITUDE], 16);
-                MAP_CHECKIN.panTo([LOC_LATITUDE, LOC_LONGITUDE]);
-
-                if(MAP_CHECKIN_MARKER){
-                    MAP_CHECKIN_MARKER.setLatLng([LOC_LATITUDE, LOC_LONGITUDE]);
-                    MAP_CHECKIN_MARKER.update();
-                }
-                
                 $('[name="latitudeCheckOut"]').val(LOC_LATITUDE);
                 $('[name="longitudeCheckOut"]').val(LOC_LONGITUDE);
 
-                MAP_CHECKOUT.invalidateSize();
-                MAP_CHECKOUT.setView([LOC_LATITUDE, LOC_LONGITUDE], 16);
-                MAP_CHECKOUT.panTo([LOC_LATITUDE, LOC_LONGITUDE]);
-                
-                if(MAP_CHECKOUT_MARKER){
-                    MAP_CHECKOUT_MARKER.setLatLng([LOC_LATITUDE, LOC_LONGITUDE]);
-                    MAP_CHECKOUT_MARKER.update();
+                if (MAP_CHECKIN_MARKER) {
+                    MAP_CHECKIN_MARKER.setLatLng([LOC_LATITUDE, LOC_LONGITUDE]).update();
                 }
 
+                if (MAP_CHECKOUT_MARKER) {
+                    MAP_CHECKOUT_MARKER.setLatLng([LOC_LATITUDE, LOC_LONGITUDE]).update();
+                }
             },
             (error) => {
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                    console.error("User denied the request for Geolocation.");
-                    break;
-                    case error.POSITION_UNAVAILABLE:
-                    console.error("Location information is unavailable.");
-                    break;
-                    case error.TIMEOUT:
-                    console.error("The request to get user location timed out.");
-                    break;
-                    case error.UNKNOWN_ERROR:
-                    console.error("An unknown error occurred.");
-                    break;
+                LOCATION_REQUEST_IN_FLIGHT = false;
+
+                if (!HAS_VALID_GEOLOCATION && LOC_OFFICE) {
+                    LOC_LATITUDE = LOC_OFFICE.lat;
+                    LOC_LONGITUDE = LOC_OFFICE.lng;
+                    LOC_ACCURACY = 0;
+
+                    $('[name="latitudeCheckIn"]').val(LOC_LATITUDE);
+                    $('[name="longitudeCheckIn"]').val(LOC_LONGITUDE);
+                    $('[name="latitudeCheckOut"]').val(LOC_LATITUDE);
+                    $('[name="longitudeCheckOut"]').val(LOC_LONGITUDE);
                 }
             },
             {
                 enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
+                timeout: 15000,
+                maximumAge: 15000
             }
         );
-    } else {
-        console.error("Geolocation is not supported by this browser.");
+    } else if (!HAS_VALID_GEOLOCATION && LOC_OFFICE) {
+        LOC_LATITUDE = LOC_OFFICE.lat;
+        LOC_LONGITUDE = LOC_OFFICE.lng;
+        LOC_ACCURACY = 0;
+
+        $('[name="latitudeCheckIn"]').val(LOC_LATITUDE);
+        $('[name="longitudeCheckIn"]').val(LOC_LONGITUDE);
+        $('[name="latitudeCheckOut"]').val(LOC_LATITUDE);
+        $('[name="longitudeCheckOut"]').val(LOC_LONGITUDE);
+    }
+}
+
+function sendLiveLocation() {
+    if (!LOC_LATITUDE || !LOC_LONGITUDE) return;
+
+    $.ajax({
+        url: appUrl + "/location/update",
+        type: "POST",
+        data: {
+            latitude: LOC_LATITUDE,
+            longitude: LOC_LONGITUDE,
+            accuracy: LOC_ACCURACY,
+            tracked_at: new Date().toISOString(),
+            _token: $('input[name="_token"]').first().val()
+        }
+    });
+}
+
+function startLiveLocationTracking() {
+    if (LIVE_LOCATION_INTERVAL || LIVE_LOCATION_WATCH_ID !== null) return;
+
+    if (navigator.geolocation && navigator.geolocation.watchPosition) {
+        LIVE_LOCATION_WATCH_ID = navigator.geolocation.watchPosition(
+            function (position) {
+                LOC_LATITUDE = position.coords.latitude;
+                LOC_LONGITUDE = position.coords.longitude;
+                LOC_ACCURACY = position.coords.accuracy;
+
+                sendLiveLocation();
+            },
+            function () {
+                return;
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 3000,
+                timeout: 10000,
+            }
+        );
+    }
+
+    sendLiveLocation();
+    LIVE_LOCATION_INTERVAL = setInterval(sendLiveLocation, 10000);
+}
+
+function stopLiveLocationTracking() {
+    if (LIVE_LOCATION_WATCH_ID !== null && navigator.geolocation && navigator.geolocation.clearWatch) {
+        navigator.geolocation.clearWatch(LIVE_LOCATION_WATCH_ID);
+        LIVE_LOCATION_WATCH_ID = null;
+    }
+
+    if (LIVE_LOCATION_INTERVAL) {
+        clearInterval(LIVE_LOCATION_INTERVAL);
+        LIVE_LOCATION_INTERVAL = null;
     }
 }
 
@@ -108,11 +165,60 @@ async function getAttendanceToday() {
     });
 }
 
+const CHECKIN_DEFAULT_ZOOM = 16;
+
+function getCheckInCoordinates() {
+    const latitude = Number(LOC_LATITUDE);
+    const longitude = Number(LOC_LONGITUDE);
+
+    if (
+        Number.isFinite(latitude) &&
+        Number.isFinite(longitude) &&
+        latitude !== 0 &&
+        longitude !== 0
+    ) {
+        return [latitude, longitude];
+    }
+
+    return [
+        CHECKOUT_DEFAULT_LATITUDE,
+        CHECKOUT_DEFAULT_LONGITUDE
+    ];
+}
+
+function updateMapCheckInLocation() {
+    if (!MAP_CHECKIN) {
+        return;
+    }
+
+    const coordinates = getCheckInCoordinates();
+
+    MAP_CHECKIN.invalidateSize();
+
+    MAP_CHECKIN.setView(
+        coordinates,
+        CHECKIN_DEFAULT_ZOOM,
+        {
+            animate: false
+        }
+    );
+
+    if (MAP_CHECKIN_MARKER) {
+        MAP_CHECKIN_MARKER
+            .setLatLng(coordinates)
+            .update();
+    }
+
+    $('[name="latitudeCheckIn"]').val(coordinates[0]);
+    $('[name="longitudeCheckIn"]').val(coordinates[1]);
+}
+
 async function initialiseMapsCheckIn() {
+    const coordinates = getCheckInCoordinates();
 
     MAP_CHECKIN = L.map('mapCheckIn', {
-        center: [LOC_LATITUDE, LOC_LONGITUDE],
-        zoom: 16
+        center: coordinates,
+        zoom: CHECKIN_DEFAULT_ZOOM
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -120,7 +226,7 @@ async function initialiseMapsCheckIn() {
         maxZoom: 19
     }).addTo(MAP_CHECKIN);
 
-    MAP_CHECKIN_MARKER = L.marker([LOC_LATITUDE, LOC_LONGITUDE]).addTo(MAP_CHECKIN);
+    MAP_CHECKIN_MARKER = L.marker(coordinates).addTo(MAP_CHECKIN);
 
     MAP_CHECKIN_MARKER.bindTooltip("Your Location", {
         permanent: true,
@@ -183,8 +289,13 @@ async function initialiseMapsCheckIn() {
 
 let LOC_LATITUDE = 0;
 let LOC_LONGITUDE = 0;
+let LOC_ACCURACY = 0;
+let LOCATION_REQUEST_IN_FLIGHT = false;
+let HAS_VALID_GEOLOCATION = false;
 let MAP_CHECKIN = null;
 let MAP_CHECKIN_MARKER = null;
+let LIVE_LOCATION_INTERVAL = null;
+let LIVE_LOCATION_WATCH_ID = null;
 
 let MAP_CHECKIN_DETAIL = null;
 let MAP_CHECKIN_DETAIL_LOCATION = null;
@@ -206,9 +317,14 @@ const LOC_OFFICE = L.latLng(locationLat, locationLong);
 
 $(document).ready(function(){
     initialiseMapsCheckIn();
+    setDefaultLocation();
 });
 
-const loopGetLocation = setInterval(setDefaultLocation, 500);
+const loopGetLocation = setInterval(function () {
+    if (!HAS_VALID_GEOLOCATION) {
+        setDefaultLocation();
+    }
+}, 10000);
 
 
 $('#checkInBtn').click(function(){
@@ -565,8 +681,9 @@ $('#checkOutModal [name="photo_checkout"]').on('change', function(e){
     reader.readAsDataURL($(this).get(0).files[0]); 
 });
 
-
-
+const CHECKOUT_DEFAULT_LATITUDE = -6.601375904876687;
+const CHECKOUT_DEFAULT_LONGITUDE = 106.80689246674521;
+const CHECKOUT_DEFAULT_ZOOM = 16;
 
 let MAP_CHECKOUT = null;
 let MAP_CHECKOUT_MARKER = null;
@@ -575,48 +692,134 @@ let MAP_CHECKOUT_DETAIL = null;
 let MAP_CHECKOUT_DETAIL_MARKER = null;
 let MAP_CHECKOUT_DETAIL_LOCATION = null;
 
+function getCheckOutCoordinates() {
+    const latitude = Number(LOC_LATITUDE);
+    const longitude = Number(LOC_LONGITUDE);
 
+    if (
+        Number.isFinite(latitude) &&
+        Number.isFinite(longitude) &&
+        latitude !== 0 &&
+        longitude !== 0
+    ) {
+        return [latitude, longitude];
+    }
 
-function initialiseMapsCheckOut(){
+    return [
+        CHECKOUT_DEFAULT_LATITUDE,
+        CHECKOUT_DEFAULT_LONGITUDE
+    ];
+}
+
+function updateMapCheckOutLocation() {
+    if (!MAP_CHECKOUT) {
+        return;
+    }
+
+    const coordinates = getCheckOutCoordinates();
+
+    MAP_CHECKOUT.invalidateSize();
+
+    MAP_CHECKOUT.setView(
+        coordinates,
+        CHECKOUT_DEFAULT_ZOOM,
+        {
+            animate: false
+        }
+    );
+
+    if (MAP_CHECKOUT_MARKER) {
+        MAP_CHECKOUT_MARKER
+            .setLatLng(coordinates)
+            .update();
+    }
+
+    $('[name="latitudeCheckOut"]').val(coordinates[0]);
+    $('[name="longitudeCheckOut"]').val(coordinates[1]);
+}
+
+function initialiseMapsCheckOut() {
+    if (MAP_CHECKOUT) {
+        return;
+    }
+
+    const coordinates = getCheckOutCoordinates();
+
     MAP_CHECKOUT = L.map('mapCheckOut', {
-                center: [LOC_LATITUDE, LOC_LONGITUDE],
-                zoom: 16
-            });
+        center: coordinates,
+        zoom: CHECKOUT_DEFAULT_ZOOM
+    });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: 'ACER',
-        maxZoom: 19
-    }).addTo(MAP_CHECKOUT);
-
-    MAP_CHECKOUT_MARKER = L.marker([LOC_LATITUDE, LOC_LONGITUDE]).addTo(MAP_CHECKOUT);
-    MAP_CHECKOUT_MARKER.bindTooltip("Your Location", { permanent: true, direction: 'top', offset: [0, 0] });
-
-
-    if($('#detailMapCheckOut').attr('data-location')){
-
-        MAP_CHECKOUT_DETAIL_LOCATION = $('#detailMapCheckOut').attr('data-location').split(',');
-
-        MAP_CHECKOUT_DETAIL = L.map('detailMapCheckOut', {
-                    center: MAP_CHECKOUT_DETAIL_LOCATION,
-                    zoom: 16
-                });
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
             attribution: 'ACER',
             maxZoom: 19
-        }).addTo(MAP_CHECKOUT_DETAIL);
+        }
+    ).addTo(MAP_CHECKOUT);
 
-        MAP_CHECKOUT_DETAIL_MARKER = L.marker(MAP_CHECKOUT_DETAIL_LOCATION).addTo(MAP_CHECKOUT_DETAIL);
-        MAP_CHECKOUT_DETAIL_MARKER.bindTooltip("Check Out Location", { permanent: true, direction: 'top', offset: [0, 0] });
+    MAP_CHECKOUT_MARKER = L.marker(
+        coordinates
+    ).addTo(MAP_CHECKOUT);
 
+    MAP_CHECKOUT_MARKER.bindTooltip(
+        'Your Location',
+        {
+            permanent: true,
+            direction: 'top',
+            offset: [0, 0]
+        }
+    );
+
+    $('[name="latitudeCheckOut"]').val(coordinates[0]);
+    $('[name="longitudeCheckOut"]').val(coordinates[1]);
+
+    const detailLocation = $('#detailMapCheckOut').attr('data-location');
+
+    if (detailLocation) {
+        MAP_CHECKOUT_DETAIL_LOCATION = detailLocation
+            .split(',')
+            .map(Number);
+
+        MAP_CHECKOUT_DETAIL = L.map('detailMapCheckOut', {
+            center: MAP_CHECKOUT_DETAIL_LOCATION,
+            zoom: CHECKOUT_DEFAULT_ZOOM
+        });
+
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                attribution: 'ACER',
+                maxZoom: 19
+            }
+        ).addTo(MAP_CHECKOUT_DETAIL);
+
+        MAP_CHECKOUT_DETAIL_MARKER = L.marker(
+            MAP_CHECKOUT_DETAIL_LOCATION
+        ).addTo(MAP_CHECKOUT_DETAIL);
+
+        MAP_CHECKOUT_DETAIL_MARKER.bindTooltip(
+            'Check Out Location',
+            {
+                permanent: true,
+                direction: 'top',
+                offset: [0, 0]
+            }
+        );
     }
 }
 
-initialiseMapsCheckOut();
+$(document).ready(function () {
+    initialiseMapsCheckOut();
+});
 
-$('#checkOutModal [name="is_work_outside"]').change(function() {
-    var selectedValue = $('#checkOutModal input[name="is_work_outside"]:checked').val();
-    
+$('#checkOutModal').on('shown.bs.modal', function () {
+    setTimeout(function () {
+        updateMapCheckOutLocation();
+    }, 200);
+});
+
+$('#checkOutModal [name="is_work_outside"]').change(function () {
     $('#checkOutModal .col-map').addClass('col-6');
     $('#checkOutModal .col-map .ratio').addClass('ratio-1x1');
 
@@ -624,91 +827,103 @@ $('#checkOutModal [name="is_work_outside"]').change(function() {
     $('#checkOutModal .col-map .ratio').removeClass('ratio-21x9');
 
     $('#checkOutModal .col-photo').removeClass('d-none');
-    // You can perform other actions here based on the selected value
+
+    setTimeout(function () {
+        updateMapCheckOutLocation();
+    }, 200);
 });
 
-$('#submitCheckOutBtn').click(function(){
+$('#submitCheckOutBtn').click(function () {
+    const coordinates = getCheckOutCoordinates();
 
-    //const employeeLocation = L.latLng(LOC_LATITUDE, LOC_LONGITUDE);
-    // Calculate the distance in meters
-    //const distance = LOC_OFFICE.distanceTo(employeeLocation);
-    //console.log(distance);
+    LOC_LATITUDE = coordinates[0];
+    LOC_LONGITUDE = coordinates[1];
 
-    var workOutside = $('#checkOutModal input[name="is_work_outside"]:checked').val();
-    const employeeLocation = L.latLng(LOC_LATITUDE, LOC_LONGITUDE);
-    const distance = LOC_OFFICE.distanceTo(employeeLocation);
-    //console.log(distance);
-
-    // if(workOutside == 1){
-    //     submitCheckOut();
-    // }else{
-
-    //     if(distance > 200){        
-    //         showAlertMsg('You are not in the office area yet','error',5000);
-    //     }else{
-    //         submitCheckOut();
-    //     }
-    // }
+    $('[name="latitudeCheckOut"]').val(LOC_LATITUDE);
+    $('[name="longitudeCheckOut"]').val(LOC_LONGITUDE);
 
     submitCheckOut();
-    
 });
 
-function submitCheckOut(){
+function submitCheckOut() {
     $.ajax({
-        url: appUrl + "/attendance/submit-checkout",
-        type: "POST",
-        data: new FormData($('#checkOutForm').get(0)) ,
+        url: appUrl + '/attendance/submit-checkout',
+        type: 'POST',
+        data: new FormData($('#checkOutForm').get(0)),
         cache: false,
         processData: false,
         contentType: false,
-        beforeSend:function(){
+
+        beforeSend: function () {
             $('#checkOutModal .box-loader').fadeIn();
         },
-        error:function(res){
-            var resJson = res.responseJSON;
-            showAlertMsg(resJson.message,'error',5000);
+
+        error: function (res) {
+            const resJson = res.responseJSON;
+
+            showAlertMsg(
+                resJson?.message || 'Failed to check out',
+                'error',
+                5000
+            );
+
             $('#checkOutModal .box-loader').fadeOut();
-            //$('.loader').fadeOut('fast');
         },
-        success: function(res) {
-            //checkInModal.hide();
-            //$('.modal .loader').fadeOut('fast');
-            showAlertMsg(res.message,'success',15000);
-            
-            setTimeout(function() {
+
+        success: function (res) {
+            stopLiveLocationTracking();
+
+            showAlertMsg(
+                res.message,
+                'success',
+                15000
+            );
+
+            setTimeout(function () {
                 window.location.reload();
             }, 2000);
         }
     });
 }
 
-$('#checkOutBtn').click(function(){
-    
-    if($('#checkOutBtn').hasClass('active')){
+$('#checkOutBtn').click(function () {
+    if ($('#checkOutBtn').hasClass('active')) {
         showCheckoutDetail();
-    }else{
-        checkOutModal.show();
+        return;
     }
 
+    checkOutModal.show();
 });
 
-$('.time-log.time-out').on('click', function(){
+$('.time-log.time-out').on('click', function () {
     showCheckoutDetail();
 });
 
-function showCheckoutDetail(){
+function showCheckoutDetail() {
     checkOutDetailModal.show();
-        
-    setTimeout(() => {
-        MAP_CHECKOUT_DETAIL.invalidateSize();
-        MAP_CHECKOUT_DETAIL.setView(MAP_CHECKOUT_DETAIL_LOCATION, 16);
-        MAP_CHECKOUT_DETAIL.panTo(MAP_CHECKOUT_DETAIL_LOCATION);
 
-        if(MAP_CHECKOUT_DETAIL_MARKER){
-            MAP_CHECKOUT_DETAIL_MARKER.setLatLng(MAP_CHECKOUT_DETAIL_LOCATION);
-            MAP_CHECKOUT_DETAIL_MARKER.update();
+    setTimeout(function () {
+        if (
+            !MAP_CHECKOUT_DETAIL ||
+            !MAP_CHECKOUT_DETAIL_LOCATION
+        ) {
+            return;
         }
-        
+
+        MAP_CHECKOUT_DETAIL.invalidateSize();
+
+        MAP_CHECKOUT_DETAIL.setView(
+            MAP_CHECKOUT_DETAIL_LOCATION,
+            CHECKOUT_DEFAULT_ZOOM,
+            {
+                animate: false
+            }
+        );
+
+        if (MAP_CHECKOUT_DETAIL_MARKER) {
+            MAP_CHECKOUT_DETAIL_MARKER
+                .setLatLng(MAP_CHECKOUT_DETAIL_LOCATION)
+                .update();
+        }
     }, 700);
 }

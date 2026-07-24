@@ -46,35 +46,60 @@
                         </select>
                     </div>
 
-                    <div id="widgetMonitoringMap" style="height:260px;"></div>
+                    <div id="widgetMonitoringMap" style="height:350px;"></div>
                     <div id="widgetMonitoringLegend" class="widget-monitoring-legend mt-2"></div>
                 </div>
             </div>
 
             <div class="col-md-3 pb-4">
-                <div class="card-content p-3 dashboard-widget-card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3 class="fs-18 fw-normal text-body text-opacity-75 mb-0">Document</h3>
+                <div class="card-content p-3 dashboard-widget-card document-widget-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3 document-widget-header">
+                        <h3 class="fs-18 fw-normal text-body text-opacity-75 mb-0">
+                            Document
+                        </h3>
+
                         <a href="{{ url('/document') }}" class="widget-link">
                             View All
-                            <span class="material-symbols-outlined">chevron_right</span>
+                            <span class="material-symbols-outlined">
+                                chevron_right
+                            </span>
                         </a>
                     </div>
 
                     <div class="widget-search-container mb-2">
-                        <span class="material-symbols-outlined widget-search-icon">search</span>
-                        <input type="text" class="form-control widget-search-input border-0"
-                            id="widgetDocumentSearch" placeholder="Search document">
+                        <span class="material-symbols-outlined widget-search-icon">
+                            search
+                        </span>
+
+                        <input
+                            type="text"
+                            class="form-control widget-search-input border-0"
+                            id="widgetDocumentSearch"
+                            placeholder="Search document"
+                        >
                     </div>
 
-                    <button type="button" id="widgetDocumentBack" class="widget-back-btn mb-3">
-                        <span class="material-symbols-outlined">arrow_back</span>
+                    <button
+                        type="button"
+                        id="widgetDocumentBack"
+                        class="widget-back-btn mb-3"
+                    >
+                        <span class="material-symbols-outlined">
+                            arrow_back
+                        </span>
                         Back
                     </button>
 
                     <div id="widgetDocumentGrid" class="widget-document-grid">
-                        <div class="text-body text-opacity-50 fs-12 text-center py-4">Loading...</div>
+                        <div class="text-body text-opacity-50 fs-12 text-center py-4">
+                            Loading...
+                        </div>
                     </div>
+
+                    <div
+                        id="widgetDocumentPagination"
+                        class="widget-document-pagination mt-3"
+                    ></div>
                 </div>
             </div>
 

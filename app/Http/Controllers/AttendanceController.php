@@ -17,6 +17,7 @@ use App\Models\EmployeeLeaveRequest;
 
 use App\Models\Attendance;
 use App\Models\AttendanceTracking;
+use App\Models\EmployeeLocation;
 use App\Helpers\DeviceHelper;
 use App\Helpers\ActivityHelper;
 use Illuminate\Http\Request;
@@ -24,6 +25,62 @@ use Illuminate\Http\Request;
 class AttendanceController extends Controller
 
 {
+    private function parseCoordinatePair(?string $pair): ?array
+    {
+        if (!$pair || strpos($pair, ',') === false) {
+            return null;
+        }
+
+        [$lat, $lng] = array_map('trim', explode(',', $pair, 2));
+
+        if (!is_numeric($lat) || !is_numeric($lng)) {
+            return null;
+        }
+
+        return [(float) $lat, (float) $lng];
+    }
+
+    private function distanceMeters(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadius = 6371000;
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2)
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2))
+            * sin($dLng / 2) * sin($dLng / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
+    }
+
+    private function validateHsnDistanceRule(Employee $employee, float $latitude, float $longitude, int $existingCheckinCount): void
+    {
+        $departmentName = strtoupper(trim((string) optional($employee->department)->name_department));
+        if ($departmentName !== 'HSN') {
+            return;
+        }
+
+        $officeLocationRaw = (string) optional($employee->officeModel)->location;
+        $officeCoordinates = $this->parseCoordinatePair($officeLocationRaw);
+
+        if (!$officeCoordinates) {
+            return;
+        }
+
+        $distance = $this->distanceMeters($officeCoordinates[0], $officeCoordinates[1], $latitude, $longitude);
+
+        // if ($existingCheckinCount === 0 && $distance > 50) {
+        //     throw new \Exception('HSN check-in must be within 50 meters from office.');
+        // }
+
+        // if ($existingCheckinCount > 0 && $distance < 90000) {
+        //     throw new \Exception('HSN checkpoint must be at least 90 km from office.');
+        // }
+    }
+
 
 
     public function showAttendancePage()
@@ -379,7 +436,7 @@ class AttendanceController extends Controller
             $yesterday = Carbon::today()->subDays(1)->toDateString();
             $tomorow = Carbon::today()->addDay()->toDateString();
 
-            $employee = Employee::with('shift')->where('user_id', $userId)->first();
+            $employee = Employee::with(['shift', 'department', 'officeModel'])->where('user_id', $userId)->first();
 
             $shiftId = $employee->shift_id;
             $currentShift = $employee->shift;
@@ -528,8 +585,12 @@ class AttendanceController extends Controller
                 ->where('type', 'check_in')
                 ->count();
 
-            if ($totalCheckIn >= $currentShift->total_checkpoint) {
-                throw new \Exception('You have reached the maximum number of check-ins for this shift.');
+            $requiredCheckpoint = max(1, min((int) $currentShift->total_checkpoint, 8));
+
+            $this->validateHsnDistanceRule($employee, (float) $latitude, (float) $longitude, $totalCheckIn);
+
+            if ($totalCheckIn >= $requiredCheckpoint) {
+                throw new \Exception('Maximum checkpoint limit is 8 including check-in.');
             }
 
             $attendanceTracking = AttendanceTracking::create([
@@ -802,7 +863,9 @@ class AttendanceController extends Controller
                     ->where('type', 'check_in')
                     ->count();
 
-                if ($totalCheckIn < (int) $employeeShiftForCheckout->shift->total_checkpoint) {
+                $requiredCheckpoint = max(1, min((int) $employeeShiftForCheckout->shift->total_checkpoint, 8));
+
+                if ($totalCheckIn < $requiredCheckpoint) {
                     throw new \Exception('You can only check out after reaching the required number of check-ins.');
                 }
 
@@ -883,6 +946,7 @@ class AttendanceController extends Controller
                     'status' => 'PRESENT'
                 ]);
 
+            EmployeeLocation::where('employee_id', $employee->id)->delete();
 
             DB::commit();
 

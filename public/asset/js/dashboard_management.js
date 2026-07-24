@@ -17,6 +17,9 @@ let widgetMarkerLayer = null;
 let widgetUserLocationMarker = null;
 let widgetDefaultCenter = [-6.2, 106.816666];
 let widgetUserLocation = null;
+let widgetMonitoringPollingTimer = null;
+let widgetMonitoringRequestInFlight = false;
+let widgetPointModal = null;
 
 const departmentColorPalette = [
     "#0d6efd",
@@ -70,20 +73,134 @@ function getDepartmentColor(employee) {
     return departmentColorMap[departmentColorKey(employee)] || "#6c757d";
 }
 
-function createPinIcon(color) {
+function pointBadgeColor(type, sourceType, isLive) {
+    if (type === "check_out") {
+        return "#dc3545";
+    }
+    if (type === "check_in") {
+        return "#28a745";
+    }
+    if (isLive || sourceType === "live") {
+        return "#0dcaf0";
+    }
+    return "#f39c12";
+}
+
+function pointTypeLabel(type, sourceType, isLive) {
+    if (type === "check_out") {
+        return "Check Out";
+    }
+    if (type === "check_in") {
+        return "Check In";
+    }
+    if (isLive || sourceType === "live") {
+        return "Checkpoint Live";
+    }
+    return "Checkpoint";
+}
+
+function createStickmanIcon(color, type, sourceType, isLive) {
+    const badgeColor = pointBadgeColor(type, sourceType, isLive);
+
     return L.divIcon({
-        className: "custom-pin-marker",
+        className: "",
         html: `
-            <svg width="28" height="38" viewBox="0 0 28 38" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 24 14 24s14-13.5 14-24c0-7.7-6.3-14-14-14z"
-                      fill="${color}" stroke="#fff" stroke-width="1.5"/>
-                <circle cx="14" cy="14" r="5.5" fill="#fff"/>
+            <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="15" cy="6" r="4" fill="${color}" />
+                <line x1="15" y1="10" x2="15" y2="19" stroke="${color}" stroke-width="3" stroke-linecap="round" />
+                <line x1="9" y1="13" x2="21" y2="13" stroke="${color}" stroke-width="3" stroke-linecap="round" />
+                <line x1="15" y1="19" x2="10" y2="27" stroke="${color}" stroke-width="3" stroke-linecap="round" />
+                <line x1="15" y1="19" x2="20" y2="27" stroke="${color}" stroke-width="3" stroke-linecap="round" />
+                <circle cx="28" cy="8" r="5" fill="${badgeColor}" stroke="#ffffff" stroke-width="1.5" />
             </svg>
         `,
-        iconSize: [28, 38],
-        iconAnchor: [14, 38],
-        popupAnchor: [0, -34],
+        iconSize: [34, 34],
+        iconAnchor: [17, 28],
+        popupAnchor: [0, -24],
     });
+}
+
+function buildMarkerTooltip(employee, checkin) {
+    const statusClass =
+        checkin.type === "check_out"
+            ? "#dc3545"
+            : checkin.type === "check_in"
+                ? "#28a745"
+                : "#f39c12";
+    const statusText = pointTypeLabel(checkin.type, checkin.source_type, checkin.is_live);
+
+    if (checkin.image_url) {
+        return '<div style="display:flex;align-items:center;gap:8px;min-width:190px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
+            '<img src="' + escapeHtml(checkin.image_url) + '" alt="" style="width:60px;height:60px;aspect-ratio:1/1;object-fit:cover;border-radius:8px;display:block;">' +
+            '<div style="min-width:0;">' +
+                '<div style="font-size:12px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.name || "-") + '</div>' +
+                '<div style="font-size:11px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.partner_name || "-") + '</div>' +
+                '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' + statusClass + ';color:#fff;font-size:10px;font-weight:700;">' + escapeHtml(statusText) + '</span></div>' +
+            '</div>' +
+            '</div>';
+    }
+
+    return '<div style="display:flex;align-items:center;gap:8px;min-width:170px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
+        '<div style="width:60px;height:60px;aspect-ratio:1/1;border-radius:8px;background:#edf1ff;display:flex;align-items:center;justify-content:center;color:#4e5a75;font-size:10px;font-weight:700;">No Photo</div>' +
+        '<div style="min-width:0;">' +
+            '<div style="font-size:12px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.name || "-") + '</div>' +
+            '<div style="font-size:11px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.partner_name || "-") + '</div>' +
+            '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' + statusClass + ';color:#fff;font-size:10px;font-weight:700;">' + escapeHtml(statusText) + '</span></div>' +
+        '</div>' +
+    '</div>';
+}
+
+function createPointLabelIcon(employee, checkin) {
+    return L.divIcon({
+        className: "dashboard-marker-label-wrap",
+        html: buildMarkerTooltip(employee, checkin),
+        iconSize: [190, 74],
+        iconAnchor: [95, 76],
+    });
+}
+
+function ensureWidgetPointModal() {
+    if (widgetPointModal) {
+        return widgetPointModal;
+    }
+
+    const modalId = "dashboardMonitoringPointModal";
+    const html =
+        '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-hidden="true">' +
+        '  <div class="modal-dialog modal-dialog-centered">' +
+        '    <div class="modal-content border-0 rounded-4">' +
+        '      <div class="modal-header border-0 pb-0">' +
+        '        <h5 class="modal-title fw-semibold">Employee Point Detail</h5>' +
+        '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+        '      </div>' +
+        '      <div class="modal-body pt-2" id="dashboardMonitoringPointModalBody"></div>' +
+        '    </div>' +
+        '  </div>' +
+        '</div>';
+
+    $("body").append(html);
+    widgetPointModal = new bootstrap.Modal(document.getElementById(modalId));
+    return widgetPointModal;
+}
+
+function openWidgetPointModal(employee, checkin) {
+    const modal = ensureWidgetPointModal();
+    let bodyHtml =
+        '<div class="mb-2">' +
+        '<div class="fw-semibold">' + escapeHtml(employee.name || "-") + '</div>' +
+        '<div class="small text-secondary">' + escapeHtml(employee.partner_name || "-") + ' • ' + escapeHtml(employee.division_name || "-") + '</div>' +
+        '</div>' +
+        '<div class="mb-2"><span class="badge ' +
+            (checkin.type === "check_out" ? "bg-danger" : checkin.type === "check_in" ? "bg-success" : "bg-warning") +
+            '">' + escapeHtml(pointTypeLabel(checkin.type, checkin.source_type, checkin.is_live)) + '</span></div>' +
+        '<div class="small text-secondary mb-2">' + escapeHtml(formatWidgetCheckinTime(checkin.date_time)) + '</div>';
+
+    if (checkin.image_url) {
+        bodyHtml += '<img src="' + escapeHtml(checkin.image_url) + '" alt="" style="width:92px;height:92px;aspect-ratio:1/1;border-radius:10px;object-fit:cover;display:block;">';
+    }
+
+    $("#dashboardMonitoringPointModalBody").html(bodyHtml);
+    modal.show();
 }
 
 function initWidgetMonitoringMap() {
@@ -147,7 +264,7 @@ function centerMapOnUserLocation() {
             }
 
             widgetUserLocationMarker = L.marker(widgetUserLocation, {
-                icon: createPinIcon("#28a745"),
+                icon: createStickmanIcon("#28a745", "checkpoint", "live", true),
             })
                 .addTo(widgetMonitoringMap)
                 .bindPopup("Your current location");
@@ -173,58 +290,6 @@ function formatWidgetCheckinTime(dateTimeString) {
         minute: "2-digit",
     });
 }
-
-// function renderWidgetEmployeeList(employees) {
-//     const container = $("#widgetEmployeeList");
-
-//     if (!container.length) {
-//         return;
-//     }
-
-//     if (!employees.length) {
-//         container.html(
-//             '<div class="text-body text-opacity-50 fs-12 text-center py-4">No employee found</div>',
-//         );
-//         return;
-//     }
-
-//     let html = "";
-
-//     employees.forEach(function (employee) {
-//         const statusClass = employee.checked_in ? "is-online" : "";
-//         const statusText = (() => {
-//             if (employee.checked_in) {
-//                 return "Checked in " + (employee.checkin_time || "");
-//             }
-
-//             if (employee.checkout_time) {
-//                 return "Checked out " + (employee.checkout_time || "");
-//             }
-
-//             return "No attendance";
-//         })();
-//         const deptColor = getDepartmentColor(employee);
-
-//         html += `
-//             <div class="widget-employee-item">
-//                 <div class="widget-employee-avatar" style="border-color:${deptColor}"></div>
-//                 <div class="widget-employee-info">
-//                     <div class="widget-employee-name">${escapeHtml(employee.name)}</div>
-//                     <div class="widget-employee-meta">
-//                         <span class="legend-dot legend-dot-sm" style="background-color:${deptColor}"></span>
-//                         ${escapeHtml(employee.division_name || "-")} • ${escapeHtml(employee.department_name || "-")}
-//                     </div>
-//                 </div>
-//                 <div class="widget-employee-status ${statusClass}">
-//                     <span class="status-dot"></span>
-//                     <span class="status-text">${escapeHtml(statusText)}</span>
-//                 </div>
-//             </div>
-//         `;
-//     });
-
-//     container.html(html);
-// }
 
 function renderMonitoringLegend(employees) {
     const legendContainer = document.getElementById("widgetMonitoringLegend");
@@ -274,41 +339,40 @@ function renderWidgetMonitoringMap(employees, checkins) {
 
     (checkins || []).forEach(function (checkin) {
         const employee = employeeById[checkin.employee_id];
+        const lat = Number(checkin.lat);
+        const lng = Number(checkin.lng);
 
         if (
             !employee ||
-            typeof checkin.lat !== "number" ||
-            typeof checkin.lng !== "number"
+            !Number.isFinite(lat) ||
+            !Number.isFinite(lng)
         ) {
             return;
         }
 
-        const markerColor =
-            checkin.type === "check_out"
-                ? "#dc3545" 
-                : "#0d6efd"; 
-
-        const marker = L.marker([checkin.lat, checkin.lng], {
-            icon: createPinIcon(markerColor),
+        const markerColor = getDepartmentColor(employee);
+        const marker = L.marker([lat, lng], {
+            icon: createStickmanIcon(
+                markerColor,
+                checkin.type,
+                checkin.source_type,
+                checkin.is_live
+            ),
         });
 
-        marker.bindPopup(
-            "<strong>" +
-                escapeHtml(employee.name) +
-                "</strong><br/>" +
-                escapeHtml(employee.department_name || "-") +
-                "<br/>" +
-                escapeHtml(employee.job_name || "-") +
-                "<br/>" +
+        const labelMarker = L.marker([lat, lng], {
+            icon: createPointLabelIcon(employee, checkin),
+            zIndexOffset: 1500,
+            keyboard: false,
+        });
 
-                (checkin.type === "check_out"
-                    ? '<span class="badge bg-danger me-1">Checked-out</span>'
-                    : '<span class="badge bg-primary me-1">Checked-in</span>'
-            ) + escapeHtml(checkin.time || "-")
-        );
+        labelMarker.on("click", function () {
+            openWidgetPointModal(employee, checkin);
+        });
 
         widgetMarkerLayer.addLayer(marker);
-        bounds.push([checkin.lat, checkin.lng]);
+        widgetMarkerLayer.addLayer(labelMarker);
+        bounds.push([lat, lng]);
     });
 
     if (bounds.length) {
@@ -328,12 +392,19 @@ function renderWidgetMonitoringMap(employees, checkins) {
 }
 
 function loadDashboardMonitoringWidget() {
+    if (widgetMonitoringRequestInFlight) {
+        return;
+    }
+
     const departmentFilter = $("#widgetDepartmentFilter");
     const departmentId = departmentFilter.length
         ? departmentFilter.val() || "all"
         : "all";
     const divisionId = $("#widgetDivisionFilter").val() || "all";
-    const jobId = $("#widgetJobFilter").val() || "all";
+    const $jobFilter = $("#widgetJobFilter");
+    const jobId = $jobFilter.length ? ($jobFilter.val() || "all") : "all";
+
+    widgetMonitoringRequestInFlight = true;
 
     $.ajax({
         url: appUrl + "/dashboard/monitoring-widget",
@@ -345,25 +416,35 @@ function loadDashboardMonitoringWidget() {
         },
         success: function (response) {
             const employees = (response.data && response.data.employees) || [];
-            const checkins = (response.data && response.data.checkins) || [];
+            const checkins = (response.data && (response.data.points || response.data.checkins)) || [];
 
             buildDepartmentColorMap(employees);
-            // renderWidgetEmployeeList(employees);
             renderWidgetMonitoringMap(employees, checkins);
             renderMonitoringLegend(employees);
+            widgetMonitoringRequestInFlight = false;
         },
         error: function () {
-            $("#widgetEmployeeList").html(
-                '<div class="text-danger fs-12 text-center py-4">Failed to load data</div>',
-            );
+            widgetMonitoringRequestInFlight = false;
+            return;
         },
     });
 }
 
+function startWidgetMonitoringPolling() {
+    if (widgetMonitoringPollingTimer) {
+        clearInterval(widgetMonitoringPollingTimer);
+    }
+
+    widgetMonitoringPollingTimer = setInterval(function () {
+        loadDashboardMonitoringWidget();
+    }, 30000);
+}
+
 $(document).on("change", "#widgetDepartmentFilter", function () {
     const departmentId = $(this).val();
+    const $jobFilter = $("#widgetJobFilter");
 
-    $("#widgetDivisionFilter option, #widgetJobFilter option").each(
+    $("#widgetDivisionFilter option").each(
         function () {
             if ($(this).val() === "all") {
                 $(this).show();
@@ -378,8 +459,25 @@ $(document).on("change", "#widgetDepartmentFilter", function () {
         },
     );
 
+    if ($jobFilter.length) {
+        $jobFilter.find("option").each(function () {
+            if ($(this).val() === "all") {
+                $(this).show();
+                return;
+            }
+
+            const optionDepartmentId = $(this).data("department-id");
+            const visible =
+                departmentId === "all" ||
+                String(optionDepartmentId) === String(departmentId);
+            $(this).toggle(visible);
+        });
+    }
+
     $("#widgetDivisionFilter").val("all");
-    $("#widgetJobFilter").val("all");
+    if ($jobFilter.length) {
+        $jobFilter.val("all");
+    }
     loadDashboardMonitoringWidget();
 });
 
@@ -422,6 +520,9 @@ function applyAdminFilterScope() {
 }
 
 let widgetDocumentRequestToken = 0;
+let widgetDocumentPage = 1;
+let widgetDocumentPerPage = 12;
+let widgetDocumentPagination = null;
 
 function renderWidgetDocumentGrid(folders, files) {
     const container = $("#widgetDocumentGrid");
@@ -430,8 +531,7 @@ function renderWidgetDocumentGrid(folders, files) {
         .map((folder) => Object.assign({}, folder, { __type: "folder" }))
         .concat(
             files.map((file) => Object.assign({}, file, { __type: "file" })),
-        )
-        .slice(0, 9);
+        );
 
     if (!items.length) {
         container.html(
@@ -485,6 +585,80 @@ function renderWidgetDocumentGrid(folders, files) {
     container.html(html);
 }
 
+function renderWidgetDocumentPagination() {
+    const container = $("#widgetDocumentPagination");
+
+    if (!container.length) {
+        return;
+    }
+
+    if (
+        !widgetDocumentPagination ||
+        (widgetDocumentPagination.last_page || 1) <= 1
+    ) {
+        container.html("");
+        return;
+    }
+
+    const currentPage = Number(
+        widgetDocumentPagination.current_page || 1
+    );
+
+    const lastPage = Number(
+        widgetDocumentPagination.last_page || 1
+    );
+
+    let startPage = Math.max(1, currentPage - 1);
+    let endPage = Math.min(lastPage, startPage + 2);
+
+    if (endPage - startPage < 2) {
+        startPage = Math.max(1, endPage - 2);
+    }
+
+    let html = '<div class="widget-doc-pagination-inner">';
+
+    html +=
+        '<button type="button" class="widget-doc-page-btn" data-page="' +
+        Math.max(1, currentPage - 1) +
+        '" ' +
+        (currentPage <= 1 ? 'disabled' : '') +
+        '>Prev</button>';
+
+    for (let page = startPage; page <= endPage; page++) {
+        const activeClass = page === currentPage ? 'is-active' : '';
+
+        html +=
+            '<button type="button" class="widget-doc-page-btn ' +
+            activeClass +
+            '" data-page="' +
+            page +
+            '">' +
+            page +
+            '</button>';
+    }
+
+    html +=
+        '<button type="button" class="widget-doc-page-btn" data-page="' +
+        Math.min(lastPage, currentPage + 1) +
+        '" ' +
+        (currentPage >= lastPage ? 'disabled' : '') +
+        '>Next</button>';
+
+    html += '</div>';
+
+    html +=
+        '<div class="widget-doc-page-summary">' +
+        'Showing ' +
+        (widgetDocumentPagination.from || 0) +
+        ' - ' +
+        (widgetDocumentPagination.to || 0) +
+        ' of ' +
+        (widgetDocumentPagination.total || 0) +
+        '</div>';
+
+    container.html(html);
+}
+
 function updateWidgetDocumentBackButton() {
     const backButton = $("#widgetDocumentBack");
     if (!backButton.length) {
@@ -513,6 +687,9 @@ function loadDashboardDocumentWidget(search, folderId) {
         url.searchParams.set("parent_id", resolvedFolderId);
     }
 
+    url.searchParams.set("page", widgetDocumentPage);
+    url.searchParams.set("per_page", widgetDocumentPerPage);
+
     if (currentDocumentSearch) {
         url.searchParams.set("search", currentDocumentSearch);
     }
@@ -534,7 +711,10 @@ function loadDashboardDocumentWidget(search, folderId) {
                     ? res.current_folder.parent_folder_id
                     : null;
 
+            widgetDocumentPagination = res.pagination || null;
+
             renderWidgetDocumentGrid(res.folders || [], res.files || []);
+            renderWidgetDocumentPagination();
             updateWidgetDocumentBackButton();
         })
         .catch(function () {
@@ -544,6 +724,7 @@ function loadDashboardDocumentWidget(search, folderId) {
             $("#widgetDocumentGrid").html(
                 '<div class="widget-error-state text-danger fs-12 text-center py-4">Failed to load documents</div>',
             );
+            $("#widgetDocumentPagination").html("");
         });
 }
 
@@ -554,10 +735,12 @@ $(document).on("click", "#widgetDocumentGrid .widget-folder-card", function () {
         return;
     }
 
+    widgetDocumentPage = 1;
     loadDashboardDocumentWidget(currentDocumentSearch, folderId);
 });
 
 $(document).on("click", "#widgetDocumentBack", function () {
+    widgetDocumentPage = 1;
     loadDashboardDocumentWidget(currentDocumentSearch, currentDocumentParentId);
 });
 
@@ -566,12 +749,27 @@ $(document).on("keyup", "#widgetDocumentSearch", function () {
 
     clearTimeout(widgetDocumentSearchTimeout);
     widgetDocumentSearchTimeout = setTimeout(function () {
+        widgetDocumentPage = 1;
         loadDashboardDocumentWidget(value, currentDocumentFolderId);
     }, 350);
 });
 
+$(document).on("click", "#widgetDocumentPagination .widget-doc-page-btn", function () {
+    const page = Number($(this).data("page") || 1);
+    if (!page || page < 1) {
+        return;
+    }
+    if (widgetDocumentPagination && page === Number(widgetDocumentPagination.current_page || 1)) {
+        return;
+    }
+
+    widgetDocumentPage = page;
+    loadDashboardDocumentWidget(currentDocumentSearch, currentDocumentFolderId);
+});
+
 initWidgetMonitoringMap();
 applyAdminFilterScope();
+loadDashboardMonitoringWidget();
 
 if ($("#widgetDocumentGrid").length) {
     loadDashboardDocumentWidget("", null);
@@ -579,18 +777,4 @@ if ($("#widgetDocumentGrid").length) {
 
 let widgetDocumentSearchTimeout = null;
 
-$(document).on("keyup", "#widgetDocumentSearch", function () {
-    const value = $(this).val();
-
-    clearTimeout(widgetDocumentSearchTimeout);
-    widgetDocumentSearchTimeout = setTimeout(function () {
-        loadDashboardDocumentWidget(value);
-    }, 350);
-});
-
-initWidgetMonitoringMap();
-applyAdminFilterScope();
-
-if ($("#widgetDocumentGrid").length) {
-    loadDashboardDocumentWidget("");
-}
+startWidgetMonitoringPolling();

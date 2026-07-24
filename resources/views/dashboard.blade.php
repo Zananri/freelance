@@ -1009,6 +1009,12 @@
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
         <script src="{{ asset('asset/js/dashboard.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/dashboard_announcement.js') }}?v={{ time() }}"></script>
+        <script>
+            const ATTENDANCE_STATUS = {
+                hasCheckedIn: {{ $timeIn ? 'true' : 'false' }},
+                hasCheckedOut: {{ $timeOut ? 'true' : 'false' }}
+            };
+        </script>
         <script src="{{ asset('asset/js/attendance_dashboard_new.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
 
