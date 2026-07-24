@@ -35,6 +35,7 @@ $(function () {
     ];
 
     var departmentColorMap = {};
+    var securityColorMap = {};
 
     var monitoringMap = L.map("monitoringMap", {
         scrollWheelZoom: false,
@@ -60,6 +61,43 @@ $(function () {
     var $topList = $("#divisionList");
     var $bottomList = $("#employeeList");
     var monitoringPointModal = null;
+    var monitoringPointModal = null;
+    var securityGalleryModal = null;
+    var securityGalleryPhotos = [];
+    var securityGalleryIndex = 0;
+    var securityGalleryEmployee = null;
+    window.__monitoringSecurityZoneState =
+        window.__monitoringSecurityZoneState || {};
+
+    window.__monitoringSecurityZoneNext = function (popupKey) {
+        var state = window.__monitoringSecurityZoneState[popupKey];
+        if (!state || !state.photos || !state.photos.length) {
+            return;
+        }
+
+        state.index = (state.index + 1) % state.photos.length;
+
+        var currentPhoto = state.photos[state.index];
+        var imageEl = document.getElementById(state.rightImageId);
+        var captionEl = document.getElementById(state.rightCaptionId);
+        var countEl = document.getElementById(state.rightCountId);
+
+        if (imageEl) {
+            imageEl.src = currentPhoto.image_url;
+        }
+
+        if (captionEl) {
+            captionEl.textContent =
+                "Checkpoint " +
+                (state.index + 1) +
+                " of " +
+                state.photos.length;
+        }
+
+        if (countEl) {
+            countEl.textContent = state.photos.length + " photo";
+        }
+    };
 
     function escapeHtml(text) {
         return String(text == null ? "" : text)
@@ -127,12 +165,41 @@ $(function () {
         });
 
         $.each(uniqueDepartments, function (index, dept) {
-            departmentColorMap[dept.key] = departmentColorPalette[index % departmentColorPalette.length];
+            departmentColorMap[dept.key] =
+                departmentColorPalette[index % departmentColorPalette.length];
         });
     }
 
     function getDepartmentColor(employee) {
         return departmentColorMap[departmentColorKey(employee)] || "#6c757d";
+    }
+
+    function hashToHue(value) {
+        var text = String(value == null ? "" : value);
+        var hash = 0;
+
+        for (var i = 0; i < text.length; i++) {
+            hash = (hash * 31 + text.charCodeAt(i)) % 360;
+        }
+
+        return hash;
+    }
+
+    function getSecurityZoneColor(employee) {
+        var key = String(
+            employee && employee.id != null
+                ? employee.id
+                : employee && employee.name
+                  ? employee.name
+                  : "unknown",
+        );
+
+        if (!securityColorMap[key]) {
+            var hue = hashToHue(key);
+            securityColorMap[key] = "hsl(" + hue + ", 72%, 50%)";
+        }
+
+        return securityColorMap[key];
     }
 
     function pointBadgeColor(type, sourceType, isLive) {
@@ -148,19 +215,37 @@ $(function () {
         return "#f39c12";
     }
 
-    function createStickmanIcon(departmentColor, pointType, sourceType, isLive) {
+    function createStickmanIcon(
+        departmentColor,
+        pointType,
+        sourceType,
+        isLive,
+    ) {
         var badgeColor = pointBadgeColor(pointType, sourceType, isLive);
 
         return L.divIcon({
             className: "",
-            html: '<svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg">' +
-                '<circle cx="17" cy="7" r="4" fill="' + departmentColor + '" />' +
-                '<line x1="17" y1="11" x2="17" y2="21" stroke="' + departmentColor + '" stroke-width="3" stroke-linecap="round" />' +
-                '<line x1="10" y1="15" x2="24" y2="15" stroke="' + departmentColor + '" stroke-width="3" stroke-linecap="round" />' +
-                '<line x1="17" y1="21" x2="11" y2="30" stroke="' + departmentColor + '" stroke-width="3" stroke-linecap="round" />' +
-                '<line x1="17" y1="21" x2="23" y2="30" stroke="' + departmentColor + '" stroke-width="3" stroke-linecap="round" />' +
-                '<circle cx="28" cy="8" r="5" fill="' + badgeColor + '" stroke="#ffffff" stroke-width="1.5" />' +
-            "</svg>",
+            html:
+                '<svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg">' +
+                '<circle cx="17" cy="7" r="4" fill="' +
+                departmentColor +
+                '" />' +
+                '<line x1="17" y1="11" x2="17" y2="21" stroke="' +
+                departmentColor +
+                '" stroke-width="3" stroke-linecap="round" />' +
+                '<line x1="10" y1="15" x2="24" y2="15" stroke="' +
+                departmentColor +
+                '" stroke-width="3" stroke-linecap="round" />' +
+                '<line x1="17" y1="21" x2="11" y2="30" stroke="' +
+                departmentColor +
+                '" stroke-width="3" stroke-linecap="round" />' +
+                '<line x1="17" y1="21" x2="23" y2="30" stroke="' +
+                departmentColor +
+                '" stroke-width="3" stroke-linecap="round" />' +
+                '<circle cx="28" cy="8" r="5" fill="' +
+                badgeColor +
+                '" stroke="#ffffff" stroke-width="1.5" />' +
+                "</svg>",
             iconSize: [34, 34],
             iconAnchor: [17, 28],
             popupAnchor: [0, -24],
@@ -187,11 +272,17 @@ $(function () {
     }
 
     function filteredTopItems() {
-        var keyword = String($topSearch.val() || "").trim().toLowerCase();
+        var keyword = String($topSearch.val() || "")
+            .trim()
+            .toLowerCase();
 
         if (userType === "SUPERADMIN") {
             return $.grep(departments, function (department) {
-                return String(department.name || "").toLowerCase().indexOf(keyword) !== -1;
+                return (
+                    String(department.name || "")
+                        .toLowerCase()
+                        .indexOf(keyword) !== -1
+                );
             });
         }
 
@@ -204,24 +295,35 @@ $(function () {
         });
 
         return $.grep(scopedPartners, function (partner) {
-            return String(partner.name || "").toLowerCase().indexOf(keyword) !== -1;
+            return (
+                String(partner.name || "")
+                    .toLowerCase()
+                    .indexOf(keyword) !== -1
+            );
         });
     }
 
     function filteredBottomItems() {
-        var keyword = String($bottomSearch.val() || "").trim().toLowerCase();
+        var keyword = String($bottomSearch.val() || "")
+            .trim()
+            .toLowerCase();
 
         if (userType === "SUPERADMIN") {
             var partnerFiltered = $.grep(partners, function (partner) {
                 var matchedDepartment =
                     selectedDepartmentId === "all" ||
-                    String(partner.department_id || "") === String(selectedDepartmentId);
+                    String(partner.department_id || "") ===
+                        String(selectedDepartmentId);
 
                 if (!matchedDepartment) {
                     return false;
                 }
 
-                return String(partner.name || "").toLowerCase().indexOf(keyword) !== -1;
+                return (
+                    String(partner.name || "")
+                        .toLowerCase()
+                        .indexOf(keyword) !== -1
+                );
             });
             return partnerFiltered;
         }
@@ -230,7 +332,8 @@ $(function () {
         var divisionFiltered = $.grep(divisions, function (division) {
             var matchedDepartment =
                 adminDepartmentId === "all" ||
-                String(division.department_id || "") === String(adminDepartmentId);
+                String(division.department_id || "") ===
+                    String(adminDepartmentId);
 
             var matchedPartner =
                 selectedPartnerId === "all" ||
@@ -240,7 +343,11 @@ $(function () {
                 return false;
             }
 
-            return String(division.name || "").toLowerCase().indexOf(keyword) !== -1;
+            return (
+                String(division.name || "")
+                    .toLowerCase()
+                    .indexOf(keyword) !== -1
+            );
         });
 
         return divisionFiltered;
@@ -248,7 +355,9 @@ $(function () {
 
     function renderList($container, items, selectedId, itemType) {
         if (!items.length) {
-            $container.html('<div class="text-muted small p-2">No data found</div>');
+            $container.html(
+                '<div class="text-muted small p-2">No data found</div>',
+            );
             return;
         }
 
@@ -267,14 +376,25 @@ $(function () {
                 subtitle = "Site";
             }
 
-            html += '<div class="monitoring-filter-item p-2 mb-2 ' + activeClass + '" data-item-id="' + item.id + '" data-item-type="' + itemType + '">' +
+            html +=
+                '<div class="monitoring-filter-item p-2 mb-2 ' +
+                activeClass +
+                '" data-item-id="' +
+                item.id +
+                '" data-item-type="' +
+                itemType +
+                '">' +
                 '<div class="d-flex justify-content-between align-items-center">' +
-                    '<div>' +
-                        '<div class="fw-semibold">' + escapeHtml(item.name || "-") + '</div>' +
-                        '<div class="text-muted small">' + subtitle + '</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>';
+                "<div>" +
+                '<div class="fw-semibold">' +
+                escapeHtml(item.name || "-") +
+                "</div>" +
+                '<div class="text-muted small">' +
+                subtitle +
+                "</div>" +
+                "</div>" +
+                "</div>" +
+                "</div>";
         });
 
         $container.html(html);
@@ -282,17 +402,21 @@ $(function () {
 
     function ensureActiveFiltersValid() {
         if (userType === "SUPERADMIN") {
-            var departmentExists = $.grep(departments, function (department) {
-                return String(department.id) === String(selectedDepartmentId);
-            }).length > 0;
+            var departmentExists =
+                $.grep(departments, function (department) {
+                    return (
+                        String(department.id) === String(selectedDepartmentId)
+                    );
+                }).length > 0;
 
             if (selectedDepartmentId !== "all" && !departmentExists) {
                 selectedDepartmentId = "all";
             }
 
-            var partnerExists = $.grep(partners, function (partner) {
-                return String(partner.id) === String(selectedPartnerId);
-            }).length > 0;
+            var partnerExists =
+                $.grep(partners, function (partner) {
+                    return String(partner.id) === String(selectedPartnerId);
+                }).length > 0;
 
             if (selectedPartnerId !== "all" && !partnerExists) {
                 selectedPartnerId = "all";
@@ -315,9 +439,10 @@ $(function () {
             return String(partner.department_id || "") === adminDepartmentId;
         });
 
-        var partnerExistsForAdmin = $.grep(scopedPartners, function (partner) {
-            return String(partner.id) === String(selectedPartnerId);
-        }).length > 0;
+        var partnerExistsForAdmin =
+            $.grep(scopedPartners, function (partner) {
+                return String(partner.id) === String(selectedPartnerId);
+            }).length > 0;
 
         if (selectedPartnerId !== "all" && !partnerExistsForAdmin) {
             selectedPartnerId = "all";
@@ -326,7 +451,8 @@ $(function () {
         var scopedDivisions = $.grep(divisions, function (division) {
             var matchedDepartment =
                 adminDepartmentId === "all" ||
-                String(division.department_id || "") === String(adminDepartmentId);
+                String(division.department_id || "") ===
+                    String(adminDepartmentId);
 
             var matchedPartner =
                 selectedPartnerId === "all" ||
@@ -335,9 +461,10 @@ $(function () {
             return matchedDepartment && matchedPartner;
         });
 
-        var divisionExists = $.grep(scopedDivisions, function (division) {
-            return String(division.id) === String(selectedDivisionId);
-        }).length > 0;
+        var divisionExists =
+            $.grep(scopedDivisions, function (division) {
+                return String(division.id) === String(selectedDivisionId);
+            }).length > 0;
 
         if (selectedDivisionId !== "all" && !divisionExists) {
             selectedDivisionId = "all";
@@ -350,15 +477,30 @@ $(function () {
         if (userType === "SUPERADMIN") {
             $topTitle.text("Department List");
             $bottomTitle.text("Partner List");
-            renderList($topList, filteredTopItems(), selectedDepartmentId, "department");
-            renderList($bottomList, filteredBottomItems(), selectedPartnerId, "partner");
+            renderList(
+                $topList,
+                filteredTopItems(),
+                selectedDepartmentId,
+                "department",
+            );
+            renderList(
+                $bottomList,
+                filteredBottomItems(),
+                selectedPartnerId,
+                "partner",
+            );
             return;
         }
 
         $topTitle.text("Partner List");
         $bottomTitle.text("Site List");
         renderList($topList, filteredTopItems(), selectedPartnerId, "partner");
-        renderList($bottomList, filteredBottomItems(), selectedDivisionId, "division");
+        renderList(
+            $bottomList,
+            filteredBottomItems(),
+            selectedDivisionId,
+            "division",
+        );
     }
 
     function pointTypeLabel(point) {
@@ -380,47 +522,79 @@ $(function () {
         }
 
         var modalId = "monitoringPointModal";
-        var html = '' +
-            '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-hidden="true">' +
+        var html =
+            "" +
+            '<div class="modal fade" id="' +
+            modalId +
+            '" tabindex="-1" aria-hidden="true">' +
             '  <div class="modal-dialog modal-dialog-centered">' +
             '    <div class="modal-content border-0 rounded-4">' +
             '      <div class="modal-header border-0 pb-0">' +
             '        <h5 class="modal-title fw-semibold">Employee Point Detail</h5>' +
             '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-            '      </div>' +
+            "      </div>" +
             '      <div class="modal-body pt-2" id="monitoringPointModalBody"></div>' +
-            '    </div>' +
-            '  </div>' +
-            '</div>';
+            "    </div>" +
+            "  </div>" +
+            "</div>";
 
         $("body").append(html);
-        monitoringPointModal = new bootstrap.Modal(document.getElementById(modalId));
+        monitoringPointModal = new bootstrap.Modal(
+            document.getElementById(modalId),
+        );
         return monitoringPointModal;
     }
 
     function buildPointTooltipHtml(employee, point) {
-        var statusColor = point.type === "check_out" ? "#dc3545" : point.type === "check_in" ? "#28a745" : "#f39c12";
+        var statusColor =
+            point.type === "check_out"
+                ? "#dc3545"
+                : point.type === "check_in"
+                  ? "#28a745"
+                  : "#f39c12";
         var statusText = pointTypeLabel(point);
 
         if (point.image_url) {
-            return '<div style="display:flex;align-items:center;gap:8px;min-width:190px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
-                '<img src="' + escapeHtml(point.image_url) + '" alt="" style="width:60px;height:60px;aspect-ratio:1/1;object-fit:cover;border-radius:8px;display:block;">' +
+            return (
+                '<div style="display:flex;align-items:center;gap:8px;min-width:190px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
+                '<img src="' +
+                escapeHtml(point.image_url) +
+                '" alt="" style="width:60px;height:60px;aspect-ratio:1/1;object-fit:cover;border-radius:8px;display:block;">' +
                 '<div style="min-width:0;">' +
-                    '<div style="font-size:12px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.name || "-") + '</div>' +
-                    '<div style="font-size:11px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.partner_name || "-") + '</div>' +
-                    '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' + statusColor + ';color:#fff;font-size:10px;font-weight:700;">' + escapeHtml(statusText) + '</span></div>' +
-                '</div>' +
-            '</div>';
+                '<div style="font-size:12px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+                escapeHtml(employee.name || "-") +
+                "</div>" +
+                '<div style="font-size:11px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+                escapeHtml(employee.partner_name || "-") +
+                "</div>" +
+                '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' +
+                statusColor +
+                ';color:#fff;font-size:10px;font-weight:700;">' +
+                escapeHtml(statusText) +
+                "</span></div>" +
+                "</div>" +
+                "</div>"
+            );
         }
 
-        return '<div style="display:flex;align-items:center;gap:8px;min-width:170px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
+        return (
+            '<div style="display:flex;align-items:center;gap:8px;min-width:170px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
             '<div style="width:60px;height:60px;aspect-ratio:1/1;border-radius:8px;background:#edf1ff;display:flex;align-items:center;justify-content:center;color:#4e5a75;font-size:10px;font-weight:700;">No Photo</div>' +
             '<div style="min-width:0;">' +
-                '<div style="font-size:12px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.name || "-") + '</div>' +
-                '<div style="font-size:11px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.partner_name || "-") + '</div>' +
-                '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' + statusColor + ';color:#fff;font-size:10px;font-weight:700;">' + escapeHtml(statusText) + '</span></div>' +
-            '</div>' +
-        '</div>';
+            '<div style="font-size:12px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+            escapeHtml(employee.name || "-") +
+            "</div>" +
+            '<div style="font-size:11px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+            escapeHtml(employee.partner_name || "-") +
+            "</div>" +
+            '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' +
+            statusColor +
+            ';color:#fff;font-size:10px;font-weight:700;">' +
+            escapeHtml(statusText) +
+            "</span></div>" +
+            "</div>" +
+            "</div>"
+        );
     }
 
     function createPointLabelIcon(employee, point) {
@@ -434,21 +608,139 @@ $(function () {
 
     function openPointModal(employee, point) {
         var modal = ensurePointModal();
-        var bodyHtml = '<div class="mb-2">' +
-            '<div class="fw-semibold">' + escapeHtml(employee.name || "-") + '</div>' +
-            '<div class="small text-secondary">' + escapeHtml(employee.partner_name || "-") + ' • ' + escapeHtml(employee.division_name || "-") + '</div>' +
-            '</div>' +
+        var bodyHtml =
+            '<div class="mb-2">' +
+            '<div class="fw-semibold">' +
+            escapeHtml(employee.name || "-") +
+            "</div>" +
+            '<div class="small text-secondary">' +
+            escapeHtml(employee.partner_name || "-") +
+            " • " +
+            escapeHtml(employee.division_name || "-") +
+            "</div>" +
+            "</div>" +
             '<div class="mb-2"><span class="badge ' +
-                (point.type === "check_out" ? "bg-danger" : point.type === "check_in" ? "bg-success" : "bg-warning") +
-                '">' + escapeHtml(pointTypeLabel(point)) + '</span></div>' +
-            '<div class="small text-secondary mb-2">' + escapeHtml(formatDateTime(point.date_time)) + '</div>';
+            (point.type === "check_out"
+                ? "bg-danger"
+                : point.type === "check_in"
+                  ? "bg-success"
+                  : "bg-warning") +
+            '">' +
+            escapeHtml(pointTypeLabel(point)) +
+            "</span></div>" +
+            '<div class="small text-secondary mb-2">' +
+            escapeHtml(formatDateTime(point.date_time)) +
+            "</div>";
 
         if (point.image_url) {
-            bodyHtml += '<img src="' + escapeHtml(point.image_url) + '" alt="" style="width:92px;height:92px;aspect-ratio:1/1;border-radius:10px;object-fit:cover;display:block;">';
+            bodyHtml +=
+                '<img src="' +
+                escapeHtml(point.image_url) +
+                '" alt="" style="width:92px;height:92px;aspect-ratio:1/1;border-radius:10px;object-fit:cover;display:block;">';
         }
 
         $("#monitoringPointModalBody").html(bodyHtml);
         modal.show();
+    }
+
+    function buildSecurityZonePopup(employee, zonePoints, color) {
+        var checkpointPoints = $.grep(zonePoints, function (point) {
+            return point && point.image_url;
+        });
+
+        if (!checkpointPoints.length) {
+            return "";
+        }
+
+        var checkInPoint = checkpointPoints[0];
+        var checkpointPhotos = checkpointPoints.slice(1);
+        var rightPhotos = checkpointPhotos.length
+            ? checkpointPhotos
+            : [checkInPoint];
+        var rightExtraCount = Math.max(checkpointPhotos.length - 1, 0);
+        var popupKey = String(employee.id);
+        var leftImageId = "securityZoneLeftImage_" + popupKey;
+        var rightFrameId = "securityZoneRightFrame_" + popupKey;
+        var rightImageId = "securityZoneRightImage_" + popupKey;
+        var rightCaptionId = "securityZoneRightCaption_" + popupKey;
+        var rightCountId = "securityZoneRightCount_" + popupKey;
+
+        window.__monitoringSecurityZoneState[popupKey] = {
+            index: 0,
+            photos: rightPhotos,
+            rightImageId: rightImageId,
+            rightCaptionId: rightCaptionId,
+            rightCountId: rightCountId,
+        };
+
+        var popupHtml =
+            "" +
+            '<div style="min-width:320px;max-width:420px;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">' +
+            '<div style="min-width:0;">' +
+            '<div style="font-size:14px;font-weight:700;color:#213047;line-height:1.2;">' +
+            escapeHtml(employee.name || "-") +
+            "</div>" +
+            '<div style="font-size:11px;color:#5d6981;line-height:1.2;">' +
+            escapeHtml(employee.partner_name || "-") +
+            " • " +
+            escapeHtml(employee.division_name || "-") +
+            "</div>" +
+            "</div>" +
+            '<div style="display:inline-flex;align-items:center;justify-content:center;padding:4px 10px;border-radius:999px;background:' +
+            color +
+            ';color:#fff;font-size:10px;font-weight:700;white-space:nowrap;">Security Zone</div>' +
+            "</div>" +
+            '<div style="display:flex;gap:10px;align-items:stretch;">' +
+            '<div style="flex:1;min-width:0;border:1px solid rgba(13,110,253,.18);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 8px 20px rgba(15,23,42,.08);">' +
+            '<div style="padding:8px 10px;font-size:11px;font-weight:700;color:#213047;background:rgba(13,110,253,.08);">Check In</div>' +
+            '<img id="' +
+            leftImageId +
+            '" src="' +
+            escapeHtml(checkInPoint.image_url) +
+            '" alt="check in" style="width:100%;height:140px;object-fit:cover;display:block;">' +
+            '<div style="padding:8px 10px;font-size:10px;color:#5d6981;">' +
+            escapeHtml(formatDateTime(checkInPoint.date_time)) +
+            "</div>" +
+            "</div>" +
+            '<div id="' +
+            rightFrameId +
+            '" onclick="window.__monitoringSecurityZoneNext(\'' +
+            popupKey +
+            '\')" style="flex:1;min-width:0;border:1px solid rgba(13,110,253,.18);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 8px 20px rgba(15,23,42,.08);cursor:pointer;position:relative;">' +
+            '<div style="padding:8px 10px;font-size:11px;font-weight:700;color:#213047;background:rgba(13,110,253,.08);display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+            "<span>Checkpoint</span>" +
+            '<span style="font-size:10px;color:' +
+            color +
+            ';font-weight:700;">+' +
+            rightExtraCount +
+            "</span>" +
+            "</div>" +
+            '<img id="' +
+            rightImageId +
+            '" src="' +
+            escapeHtml(rightPhotos[0].image_url) +
+            '" alt="checkpoint" style="width:100%;height:140px;object-fit:cover;display:block;">' +
+            '<div style="padding:8px 10px;font-size:10px;color:#5d6981;display:flex;justify-content:space-between;gap:8px;">' +
+            '<span id="' +
+            rightCaptionId +
+            '">Checkpoint 1 of ' +
+            rightPhotos.length +
+            "</span>" +
+            '<span id="' +
+            rightCountId +
+            '" style="font-weight:700;color:' +
+            color +
+            ';">' +
+            rightPhotos.length +
+            " photo</span>" +
+            "</div>" +
+            "</div>" +
+            "</div>" +
+            '<div style="margin-top:8px;font-size:10px;color:#6c757d;">Klik frame kanan untuk melihat checkpoint berikutnya.</div>' +
+            "</div>";
+
+        return popupHtml;
     }
 
     function employeeIdsByFilter() {
@@ -456,20 +748,34 @@ $(function () {
 
         var filtered = $.grep(employees, function (employee) {
             if (userType !== "SUPERADMIN") {
-                if (adminDepartmentId !== "all" && String(employee.department_id || "") !== adminDepartmentId) {
+                if (
+                    adminDepartmentId !== "all" &&
+                    String(employee.department_id || "") !== adminDepartmentId
+                ) {
                     return false;
                 }
             }
 
-            if (selectedDepartmentId !== "all" && String(employee.department_id || "") !== String(selectedDepartmentId)) {
+            if (
+                selectedDepartmentId !== "all" &&
+                String(employee.department_id || "") !==
+                    String(selectedDepartmentId)
+            ) {
                 return false;
             }
 
-            if (selectedPartnerId !== "all" && String(employee.partner_id || "") !== String(selectedPartnerId)) {
+            if (
+                selectedPartnerId !== "all" &&
+                String(employee.partner_id || "") !== String(selectedPartnerId)
+            ) {
                 return false;
             }
 
-            if (selectedDivisionId !== "all" && String(employee.division_id || "") !== String(selectedDivisionId)) {
+            if (
+                selectedDivisionId !== "all" &&
+                String(employee.division_id || "") !==
+                    String(selectedDivisionId)
+            ) {
                 return false;
             }
 
@@ -484,121 +790,432 @@ $(function () {
         return map;
     }
 
+    function normalizePointType(point) {
+        return String(point && point.type ? point.type : "")
+            .trim()
+            .toLowerCase();
+    }
+
     function isSecurityEmployee(employee) {
-        return String(employee && employee.job_name ? employee.job_name : "").toUpperCase() === "TENAGA KEAMANAN";
+        return (
+            String(employee && employee.job_name ? employee.job_name : "")
+                .trim()
+                .toUpperCase() === "TENAGA KEAMANAN"
+        );
+    }
+
+    function getRequiredCheckpointCount(employee) {
+        return Number(
+            employee.required_checkpoint_count || 0
+        );
+    }
+
+    function isSecurityCheckpoint(point) {
+        var type = normalizePointType(point);
+        var sourceType = String(
+            point && point.source_type ? point.source_type : "",
+        )
+            .trim()
+            .toLowerCase();
+
+        return (
+            !point.is_live &&
+            sourceType !== "live" &&
+            (type === "check_in" || type === "checkpoint")
+        );
+    }
+
+    function sortPointsByDate(points) {
+        return points.slice().sort(function (a, b) {
+            return (
+                new Date(a.date_time || 0).getTime() -
+                new Date(b.date_time || 0).getTime()
+            );
+        });
+    }
+
+    function getUniqueCoordinates(points) {
+        var coordinates = [];
+        var seen = {};
+
+        $.each(points, function (_, point) {
+            var latitude = Number(point.lat);
+            var longitude = Number(point.lng);
+
+            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+                return;
+            }
+
+            var key = latitude.toFixed(7) + "," + longitude.toFixed(7);
+
+            if (seen[key]) {
+                return;
+            }
+
+            seen[key] = true;
+            coordinates.push([latitude, longitude]);
+        });
+
+        return coordinates;
+    }
+
+    function getSecurityPhotos(points) {
+        return $.map(points, function (point, index) {
+            if (!point.image_url) {
+                return null;
+            }
+
+            return {
+                image_url: point.image_url,
+                type: normalizePointType(point),
+                label:
+                    normalizePointType(point) === "check_in"
+                        ? "Check In"
+                        : "Checkpoint " + (index + 1),
+                date_time: point.date_time,
+            };
+        });
+    }
+
+    function getSecurityCheckInPhoto(photos) {
+        var checkInPhoto = null;
+
+        $.each(photos, function (_, photo) {
+            if (!checkInPhoto && photo.type === "check_in") {
+                checkInPhoto = photo;
+            }
+        });
+
+        return checkInPhoto || photos[0] || null;
+    }
+
+    function getSecurityCheckpointPhotos(photos, checkInPhoto) {
+        return $.grep(photos, function (photo) {
+            return photo !== checkInPhoto;
+        });
+    }
+
+    function ensureSecurityGalleryModal() {
+        if (securityGalleryModal) {
+            return securityGalleryModal;
+        }
+
+        var html =
+            '<div class="modal fade" id="securityGalleryModal" tabindex="-1" aria-hidden="true">' +
+            '<div class="modal-dialog modal-dialog-centered modal-lg">' +
+            '<div class="modal-content border-0 rounded-4 security-gallery-modal">' +
+            '<div class="modal-header border-0">' +
+            "<div>" +
+            '<h5 class="modal-title fw-semibold mb-1" id="securityGalleryTitle"></h5>' +
+            '<div class="small text-secondary" id="securityGallerySubtitle"></div>' +
+            "</div>" +
+            '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+            "</div>" +
+            '<div class="modal-body pt-0">' +
+            '<div class="security-gallery-viewer">' +
+            '<button type="button" class="security-gallery-nav security-gallery-prev">' +
+            '<span class="material-symbols-outlined">chevron_left</span>' +
+            "</button>" +
+            '<img id="securityGalleryImage" class="security-gallery-image" src="" alt="Checkpoint">' +
+            '<button type="button" class="security-gallery-nav security-gallery-next">' +
+            '<span class="material-symbols-outlined">chevron_right</span>' +
+            "</button>" +
+            "</div>" +
+            '<div class="security-gallery-information">' +
+            "<div>" +
+            '<div class="fw-semibold" id="securityGalleryCaption"></div>' +
+            '<div class="small text-secondary" id="securityGalleryDate"></div>' +
+            "</div>" +
+            '<div class="security-gallery-counter" id="securityGalleryCounter"></div>' +
+            "</div>" +
+            '<div class="security-gallery-thumbnails" id="securityGalleryThumbnails"></div>' +
+            "</div>" +
+            "</div>" +
+            "</div>" +
+            "</div>";
+
+        $("body").append(html);
+
+        securityGalleryModal = new bootstrap.Modal(
+            document.getElementById("securityGalleryModal"),
+        );
+
+        $(document).on("click", ".security-gallery-prev", function () {
+            showSecurityGalleryPhoto(securityGalleryIndex - 1);
+        });
+
+        $(document).on("click", ".security-gallery-next", function () {
+            showSecurityGalleryPhoto(securityGalleryIndex + 1);
+        });
+
+        $(document).on("click", ".security-gallery-thumbnail", function () {
+            showSecurityGalleryPhoto(Number($(this).data("index")));
+        });
+
+        return securityGalleryModal;
+    }
+
+    function renderSecurityGalleryThumbnails() {
+        var html = "";
+
+        $.each(securityGalleryPhotos, function (index, photo) {
+            var activeClass = index === securityGalleryIndex ? "is-active" : "";
+
+            html +=
+                '<button type="button" class="security-gallery-thumbnail ' +
+                activeClass +
+                '" data-index="' +
+                index +
+                '">' +
+                '<img src="' +
+                escapeHtml(photo.image_url) +
+                '" alt="' +
+                escapeHtml(photo.label) +
+                '">' +
+                "</button>";
+        });
+
+        $("#securityGalleryThumbnails").html(html);
+    }
+
+    function showSecurityGalleryPhoto(index) {
+        if (!securityGalleryPhotos.length) {
+            return;
+        }
+
+        if (index < 0) {
+            index = securityGalleryPhotos.length - 1;
+        }
+
+        if (index >= securityGalleryPhotos.length) {
+            index = 0;
+        }
+
+        securityGalleryIndex = index;
+
+        var photo = securityGalleryPhotos[index];
+
+        $("#securityGalleryImage").attr("src", photo.image_url);
+
+        $("#securityGalleryCaption").text(photo.label);
+
+        $("#securityGalleryDate").text(formatDateTime(photo.date_time));
+
+        $("#securityGalleryCounter").text(
+            index + 1 + " / " + securityGalleryPhotos.length,
+        );
+
+        $(".security-gallery-prev, .security-gallery-next").toggle(
+            securityGalleryPhotos.length > 1,
+        );
+
+        renderSecurityGalleryThumbnails();
+    }
+
+    function openSecurityGallery(employee, photos, selectedIndex) {
+        if (!photos.length) {
+            return;
+        }
+
+        securityGalleryEmployee = employee;
+        securityGalleryPhotos = photos;
+        securityGalleryIndex = Number(selectedIndex || 0);
+
+        $("#securityGalleryTitle").text(employee.name || "-");
+
+        $("#securityGallerySubtitle").text(
+            (employee.partner_name || "-") +
+                " • " +
+                (employee.division_name || "-"),
+        );
+
+        showSecurityGalleryPhoto(securityGalleryIndex);
+        ensureSecurityGalleryModal().show();
+    }
+
+    function buildSecurityZoneLabel(
+        employee,
+        photos,
+        checkInPhoto,
+        checkpointPhotos,
+        color,
+    ) {
+        var checkpointPreview = checkpointPhotos[0] || checkInPhoto;
+        var remainingPhotos = Math.max(checkpointPhotos.length - 1, 0);
+
+        var checkInFrame = checkInPhoto
+            ? '<img src="' +
+              escapeHtml(checkInPhoto.image_url) +
+              '" alt="Check In">'
+            : '<div class="security-zone-empty">No Photo</div>';
+
+        var checkpointFrame = checkpointPreview
+            ? '<img src="' +
+              escapeHtml(checkpointPreview.image_url) +
+              '" alt="Checkpoint">'
+            : '<div class="security-zone-empty">No Photo</div>';
+
+        return (
+            '<div class="security-zone-label" style="--security-zone-color:' +
+            escapeHtml(color) +
+            ';">' +
+            '<div class="security-zone-header">' +
+            '<div class="security-zone-employee">' +
+            '<div class="security-zone-name">' +
+            escapeHtml(employee.name || "-") +
+            "</div>" +
+            '<div class="security-zone-partner">' +
+            escapeHtml(employee.partner_name || "-") +
+            " • " +
+            escapeHtml(employee.division_name || "-") +
+            "</div>" +
+            "</div>" +
+            '<span class="security-zone-badge">Security Area</span>' +
+            "</div>" +
+            '<div class="security-zone-frames">' +
+            '<button type="button" class="security-zone-frame security-zone-checkin" data-gallery-index="0">' +
+            checkInFrame +
+            '<span class="security-zone-frame-label">Check In</span>' +
+            "</button>" +
+            '<button type="button" class="security-zone-frame security-zone-more" data-gallery-index="' +
+            Math.min(1, photos.length - 1) +
+            '">' +
+            checkpointFrame +
+            (remainingPhotos > 0
+                ? '<span class="security-zone-more-count">+' +
+                  remainingPhotos +
+                  "</span>"
+                : "") +
+            '<span class="security-zone-frame-label">Checkpoint</span>' +
+            "</button>" +
+            "</div>" +
+            "</div>"
+        );
+    }
+
+    function bindSecurityZoneEvents(zoneMarker, polygon, employee, photos) {
+        zoneMarker.on("add", function () {
+            var element = zoneMarker.getElement();
+
+            if (!element) {
+                return;
+            }
+
+            $(element)
+                .off(".securityZone")
+                .on(
+                    "click.securityZone",
+                    ".security-zone-frame",
+                    function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        var selectedIndex = Number(
+                            $(this).data("gallery-index") || 0,
+                        );
+
+                        openSecurityGallery(employee, photos, selectedIndex);
+                    },
+                );
+        });
+
+        polygon.on("click", function () {
+            openSecurityGallery(employee, photos, 0);
+        });
     }
 
     function renderSecurityZone(filteredPoints, employeeMap) {
-        var grouped = {};
+        var groupedPoints = {};
 
         $.each(filteredPoints, function (_, point) {
             var employee = employeeMap[String(point.employee_id)];
+
             if (!employee || !isSecurityEmployee(employee)) {
                 return;
             }
 
-            if (!grouped[String(point.employee_id)]) {
-                grouped[String(point.employee_id)] = [];
+            if (!isSecurityCheckpoint(point)) {
+                return;
             }
 
-            grouped[String(point.employee_id)].push(point);
+            var employeeId = String(point.employee_id);
+
+            if (!groupedPoints[employeeId]) {
+                groupedPoints[employeeId] = [];
+            }
+
+            groupedPoints[employeeId].push(point);
         });
 
-        $.each(grouped, function (employeeId, employeePoints) {
-            var checkOutExists = $.grep(employeePoints, function (point) {
-                return point.type === "check_out";
-            }).length > 0;
+        $.each(groupedPoints, function (employeeId, employeePoints) {
+            var employee = employeeMap[employeeId];
 
-            if (!checkOutExists) {
+            if (!employee) {
                 return;
             }
 
-            var zonePoints = $.grep(employeePoints, function (point) {
-                return point.type === "check_in" || point.type === "checkpoint";
-            });
+            var orderedPoints = sortPointsByDate(employeePoints);
+            var requiredCheckpointCount = getRequiredCheckpointCount(employee);
 
-            if (zonePoints.length < 2) {
+            if (
+                requiredCheckpointCount <= 0 ||
+                orderedPoints.length < requiredCheckpointCount
+            ) {
                 return;
             }
 
-            var photoPoints = $.grep(zonePoints, function (point) {
-                return !!point.image_url;
-            });
+            var completedPoints = orderedPoints.slice(
+                0,
+                requiredCheckpointCount,
+            );
 
-            if (!photoPoints.length) {
+            var coordinates = getUniqueCoordinates(completedPoints);
+
+            if (coordinates.length < 3) {
                 return;
             }
 
-            var sumLat = 0;
-            var sumLng = 0;
+            var photos = getSecurityPhotos(completedPoints);
+            var checkInPhoto = getSecurityCheckInPhoto(photos);
+            var checkpointPhotos = getSecurityCheckpointPhotos(
+                photos,
+                checkInPhoto,
+            );
 
-            $.each(zonePoints, function (_, point) {
-                sumLat += Number(point.lat) || 0;
-                sumLng += Number(point.lng) || 0;
+            var color = getSecurityZoneColor(employee);
+
+            var polygon = L.polygon(coordinates, {
+                color: color,
+                weight: 3,
+                opacity: 0.95,
+                fillColor: color,
+                fillOpacity: 0.16,
             });
 
-            var centerLat = sumLat / zonePoints.length;
-            var centerLng = sumLng / zonePoints.length;
-            var centerLatLng = L.latLng(centerLat, centerLng);
-
-            var maxDistance = 0;
-            $.each(zonePoints, function (_, point) {
-                var pointLatLng = L.latLng(point.lat, point.lng);
-                var distance = monitoringMap.distance(centerLatLng, pointLatLng);
-                if (distance > maxDistance) {
-                    maxDistance = distance;
-                }
-            });
-
-            var radius = Math.max(40, Math.min(maxDistance + 35, 500));
-
-            var circle = L.circle(centerLatLng, {
-                radius: radius,
-                color: "#0d6efd",
-                fillColor: "#0d6efd",
-                fillOpacity: 0.12,
-                weight: 2,
-            });
-
-            areaLayer.addLayer(circle);
-
-            var firstPhoto = photoPoints[0].image_url;
-            var extraCount = Math.max(photoPoints.length - 1, 0);
-            var badgeText = extraCount > 0 ? "+" + extraCount : "";
+            var center = polygon.getBounds().getCenter();
 
             var zoneIcon = L.divIcon({
-                className: "",
-                html: '<div style="display:flex;align-items:center;gap:4px;">' +
-                    '<img src="' + escapeHtml(firstPhoto) + '" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,.25);">' +
-                    (extraCount > 0
-                        ? '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:22px;padding:0 8px;border-radius:999px;background:#0d6efd;color:#fff;font-size:11px;font-weight:600;">' + badgeText + '</span>'
-                        : "") +
-                '</div>',
-                iconSize: [78, 32],
-                iconAnchor: [20, 16],
+                className: "monitoring-security-zone-icon",
+                html: buildSecurityZoneLabel(
+                    employee,
+                    photos,
+                    checkInPhoto,
+                    checkpointPhotos,
+                    color,
+                ),
+                iconSize: [270, 150],
+                iconAnchor: [135, 75],
             });
 
-            var zoneMarker = L.marker(centerLatLng, {
+            var zoneMarker = L.marker(center, {
                 icon: zoneIcon,
+                zIndexOffset: 2000,
+                keyboard: false,
             });
 
-            var galleryHtml = '<div style="min-width:220px;">';
-            $.each(photoPoints, function (index, photoPoint) {
-                if (!photoPoint.image_url) {
-                    return;
-                }
+            bindSecurityZoneEvents(zoneMarker, polygon, employee, photos);
 
-                galleryHtml += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-                    '<img src="' + escapeHtml(photoPoint.image_url) + '" alt="" style="width:48px;height:48px;border-radius:8px;object-fit:cover;">' +
-                    '<div>' +
-                        '<div style="font-size:12px;font-weight:600;">' + escapeHtml(index === 0 ? "Check In" : "Checkpoint " + (index + 1)) + '</div>' +
-                        '<div style="font-size:11px;color:#6c757d;">' + escapeHtml(formatDateTime(photoPoint.date_time)) + '</div>' +
-                    '</div>' +
-                '</div>';
-            });
-            galleryHtml += '</div>';
-
-            zoneMarker.bindPopup(galleryHtml);
+            areaLayer.addLayer(polygon);
             areaLayer.addLayer(zoneMarker);
         });
     }
@@ -633,22 +1250,45 @@ $(function () {
 
             var departmentColor = getDepartmentColor(employee);
             var marker = L.marker([lat, lng], {
-                icon: createStickmanIcon(departmentColor, point.type, point.source_type, point.is_live),
+                icon: createStickmanIcon(
+                    departmentColor,
+                    point.type,
+                    point.source_type,
+                    point.is_live,
+                ),
             });
 
-            var popupHtml = '<div style="min-width:170px;">' +
-                '<div style="font-weight:700;">' + escapeHtml(employee.name || "-") + '</div>' +
-                '<div style="font-size:12px;color:#6c757d;">' + escapeHtml(employee.department_name || "-") + ' • ' + escapeHtml(employee.division_name || "-") + '</div>' +
+            var popupHtml =
+                '<div style="min-width:170px;">' +
+                '<div style="font-weight:700;">' +
+                escapeHtml(employee.name || "-") +
+                "</div>" +
+                '<div style="font-size:12px;color:#6c757d;">' +
+                escapeHtml(employee.department_name || "-") +
+                " • " +
+                escapeHtml(employee.division_name || "-") +
+                "</div>" +
                 '<div style="margin-top:6px;font-size:12px;"><span class="badge ' +
-                    (point.type === "check_out" ? "bg-danger" : point.type === "check_in" ? "bg-success" : "bg-warning") +
-                '">' + escapeHtml(pointTypeLabel(point)) + '</span></div>' +
-                '<div style="font-size:12px;color:#495057;margin-top:4px;">' + escapeHtml(formatDateTime(point.date_time)) + '</div>';
+                (point.type === "check_out"
+                    ? "bg-danger"
+                    : point.type === "check_in"
+                      ? "bg-success"
+                      : "bg-warning") +
+                '">' +
+                escapeHtml(pointTypeLabel(point)) +
+                "</span></div>" +
+                '<div style="font-size:12px;color:#495057;margin-top:4px;">' +
+                escapeHtml(formatDateTime(point.date_time)) +
+                "</div>";
 
             if (point.image_url) {
-                popupHtml += '<div style="margin-top:8px;"><img src="' + escapeHtml(point.image_url) + '" alt="" style="width:100%;max-width:200px;max-height:120px;object-fit:cover;border-radius:8px;"></div>';
+                popupHtml +=
+                    '<div style="margin-top:8px;"><img src="' +
+                    escapeHtml(point.image_url) +
+                    '" alt="" style="width:100%;max-width:200px;max-height:120px;object-fit:cover;border-radius:8px;"></div>';
             }
 
-            popupHtml += '</div>';
+            popupHtml += "</div>";
 
             marker.bindPopup(popupHtml);
 

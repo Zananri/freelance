@@ -1442,6 +1442,13 @@ async function saveNewShift(formId = "addShiftForm") {
 function addCheckpoint($modalBody) {
     const container = $modalBody.find(".checkpoint-wrapper");
     const items = container.find(".checkpoint-item");
+    const maxCheckpoints = 7;
+
+    if (items.length >= maxCheckpoints) {
+        showFloatingAlert("Maximum of 7 checkpoints allowed.", "warning");
+        return;
+    }
+
     const index = items.length + 1;
 
     container.append(`

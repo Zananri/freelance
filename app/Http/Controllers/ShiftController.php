@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class ShiftController extends Controller
 {
+    private const MAX_CHECKPOINTS = 7;
+
     public function showShiftPage(Request $request)
     {
         return view('shift/shift');
@@ -246,7 +248,7 @@ class ShiftController extends Controller
                 'time_start' => 'required|date_format:H:i',
                 'time_end' => 'required|date_format:H:i',
 
-                'checkpoints' => 'nullable|array',
+                'checkpoints' => 'nullable|array|max:' . self::MAX_CHECKPOINTS,
                 'checkpoints.*' => 'date_format:H:i',
             ]);
 
@@ -382,7 +384,7 @@ class ShiftController extends Controller
                 'time_start' => 'required|date_format:H:i',
                 'time_end' => 'required|date_format:H:i',
 
-                'checkpoints' => 'nullable|array',
+                'checkpoints' => 'nullable|array|max:' . self::MAX_CHECKPOINTS,
                 'checkpoints.*' => 'date_format:H:i',
             ]);
 

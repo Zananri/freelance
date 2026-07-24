@@ -590,7 +590,7 @@ class AttendanceController extends Controller
             $this->validateHsnDistanceRule($employee, (float) $latitude, (float) $longitude, $totalCheckIn);
 
             if ($totalCheckIn >= $requiredCheckpoint) {
-                throw new \Exception('Maximum checkpoint limit is 8 including check-in.');
+                throw new \Exception('You have reached the maximum number of check-ins for today.');
             }
 
             $attendanceTracking = AttendanceTracking::create([

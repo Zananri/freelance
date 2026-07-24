@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use App\Models\AttendanceTracking;
 use App\Models\Division;
 use App\Models\Employee;
+use App\Models\EmployeeShift;
 use App\Models\EmployeeLocation;
 use App\Models\Partner;
 use App\Models\Department;
@@ -28,11 +29,21 @@ class MonitoringController extends Controller
             abort(403);
         }
 
-        $employeeQuery = Employee::with(['division', 'job', 'partner', 'department'])
+        $employeeQuery = Employee::with([
+            'division',
+            'job',
+            'partner',
+            'department',
+            'shift'
+        ])
             ->where('status', 'ACTIVE')
             ->whereHas('user', function ($query) {
-                $query->whereNotIn('user_role', ['GENERAL_MANAGER', 'CEO'])
-                    ->whereNotIn('user_type', ['ADMINISTRATOR']);
+                $query->whereNotIn('user_role', [
+                    'GENERAL_MANAGER',
+                    'CEO'
+                ])->whereNotIn('user_type', [
+                    'ADMINISTRATOR'
+                ]);
             });
 
         if ($userType === 'ADMINISTRATOR') {
@@ -59,7 +70,39 @@ class MonitoringController extends Controller
                 'job_name' => optional($employee->job)->job_name,
                 'department_id' => $employee->department_id,
                 'department_name' => optional($employee->department)->name_department,
+                'default_checkpoint_count' => (int) optional($employee->shift)->total_checkpoint,
+                'default_shift_title' => optional($employee->shift)->title,
             ];
+        });
+
+        $employeeShifts = EmployeeShift::with('shift')
+            ->whereDate('date_shift', Carbon::today())
+            ->whereIn('employee_id', $employees->pluck('id')->all())
+            ->orderByDesc('id')
+            ->get()
+            ->unique('employee_id')
+            ->keyBy('employee_id');
+
+        $employees = $employees->map(function ($employee) use ($employeeShifts) {
+            $employeeShift = $employeeShifts->get($employee['id']);
+            $scheduledShift = $employeeShift?->shift;
+
+            $employee['required_checkpoint_count'] = (int) (
+                $scheduledShift?->total_checkpoint
+                ?? $employee['default_checkpoint_count']
+                ?? 0
+            );
+
+            $employee['shift_title'] = $scheduledShift?->title
+                ?? $employee['default_shift_title']
+                ?? null;
+
+            unset(
+                $employee['default_checkpoint_count'],
+                $employee['default_shift_title']
+            );
+
+            return $employee;
         });
 
         $departmentIds = $employees->pluck('department_id')->filter()->unique()->values();
@@ -153,10 +196,21 @@ class MonitoringController extends Controller
 
             $latestStatusByEmployee[$employeeId] = $record->type;
 
-            $firstImage = null;
-            if (is_array($record->image) && isset($record->image[0])) {
-                $firstImage = $record->image[0];
+            $images = $record->image;
+
+            if (is_string($images)) {
+                $decodedImages = json_decode($images, true);
+
+                $images = json_last_error() === JSON_ERROR_NONE
+                    ? $decodedImages
+                    : [$images];
             }
+
+            if (!is_array($images)) {
+                $images = [];
+            }
+
+            $firstImage = $images[0] ?? null;
 
             if ($firstImage && !preg_match('/^(https?:)?\/\//i', $firstImage)) {
                 $firstImage = asset(ltrim($firstImage, '/'));
