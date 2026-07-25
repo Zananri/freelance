@@ -479,6 +479,15 @@ class DashboardController extends Controller
         } catch (\Throwable $_) {
         }
 
+        $canAttendance = $user->can_attendance;
+
+        $shiftTime = '';
+        if ($employeeShift && $employeeShift->shift) {
+            $shiftTime = substr($employeeShift->shift->time_start, 0, 5) . ' - ' . substr($employeeShift->shift->time_end, 0, 5);
+        } elseif ($employee->shift) {
+            $shiftTime = substr($employee->shift->time_start, 0, 5) . ' - ' . substr($employee->shift->time_end, 0, 5);
+        }
+
         return view('dashboard', compact(
             'employee',
             'office',
@@ -489,7 +498,9 @@ class DashboardController extends Controller
             'timeIn',
             'timeOut',
             'attendanceTrackingCheckins',
-            'atendanceTrackingCheckout'
+            'atendanceTrackingCheckout',
+            'canAttendance',
+            'shiftTime'
         ));
     }
 }

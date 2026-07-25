@@ -243,6 +243,47 @@ table.table tbody td {
     }
 }
 
+/* Attendance Toggle Group - Yes/No toggle buttons */
+.attendance-toggle-group {
+    display: inline-flex;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+    background-color: #f5f5f5;
+}
+
+.attendance-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 14px;
+    border: none;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    color: #888;
+    background-color: transparent;
+}
+
+.attendance-toggle-btn .toggle-icon {
+    font-size: 16px;
+}
+
+.attendance-toggle-btn.toggle-yes.active {
+    background-color: #444;
+    color: #fff;
+}
+
+.attendance-toggle-btn.toggle-no.active {
+    background-color: #444;
+    color: #fff;
+}
+
+.attendance-toggle-btn:hover:not(.active) {
+    background-color: #ebebeb;
+}
+
 /* Custom modal header to position close button top right */
 .custom-modal-header {
     position: relative;
@@ -351,4 +392,97 @@ table.table tbody td {
     font-size: 24px;
     color: #888;
     pointer-events: none;
+}
+
+/* Pagination - styled identical to employee page pagination */
+.user-pagination-info {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.user-pagination {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.employee-page-btn {
+    border: 1px solid #d9dce8;
+    background: #ffffff;
+    color: #2e3441;
+    border-radius: 10px;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease-in-out;
+}
+
+.employee-page-btn:hover:not(:disabled) {
+    background: #f5f7fb;
+    border-color: #c7ccdd;
+}
+
+.employee-page-btn.active {
+    background: #2f333a;
+    border-color: #2f333a;
+    color: #ffffff;
+}
+
+.employee-page-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (max-width: 576px) {
+    .user-pagination {
+        width: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+}
+
+.user-list-table-wrapper {
+    max-height: calc(100vh - 350px);
+    overflow-y: auto;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #b8bec7 transparent;
+}
+
+.user-list-table-wrapper::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.user-list-table-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.user-list-table-wrapper::-webkit-scrollbar-thumb {
+    background-color: #b8bec7;
+    border-radius: 10px;
+}
+
+.user-list-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #8f96a1;
+}
+
+.user-list-table-wrapper table {
+    margin-bottom: 0;
+}
+
+/* .user-list-table-wrapper thead {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+} */
+
+.user-list-table-wrapper thead th {
+    background-color: #fff;
 }

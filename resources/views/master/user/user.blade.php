@@ -19,7 +19,7 @@
         <h2 class="m-0">User</h2>
     </div>
 
-    <div class="body-content scrollable-container rounded-4 px-3 py-3">
+    <div class="body-content scrollable-container rounded-4 px-3 py-3 mb-3">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="mb-0 table-title">List User</h5>
             <div class="search-input-container position-relative me-3">
@@ -29,13 +29,14 @@
             </div>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive user-list-table-wrapper">
             <table class="table table-borderless align-middle table-transparent">
                 <thead>
                     <tr>
                         <th scope="col">User</th>
                         <th scope="col">User Type</th>
                         <th scope="col">User Role</th>
+                        <th scope="col">Can Attendance</th>
                         <th scope="col"></th>
                     </tr>
                 </thead>
@@ -43,6 +44,12 @@
                     <!-- Data will be populated by AJAX -->
                 </tbody>
             </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2"
+            id="userPaginationWrap">
+            <div class="user-pagination-info" id="userPaginationInfo"></div>
+            <div class="user-pagination" id="userPagination"></div>
         </div>
 
         <!-- User Detail Modal -->

@@ -201,6 +201,7 @@ Route::middleware('auth', 'management')->group(function () {
     Route::post('/user/store', [UserController::class, 'store'])->name('user.store');
     Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
     Route::delete('/user/{id}', [UserController::class, 'destroy'])->name('user.destroy');
+    Route::post('/user/{id}/toggle-attendance', [UserController::class, 'toggleAttendance'])->name('user.toggleAttendance');
     Route::get('/user/ajax/data', [UserController::class, 'getUsersAjax'])->name('user.ajax.data');
 
 

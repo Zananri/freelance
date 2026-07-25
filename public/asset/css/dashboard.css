@@ -1803,6 +1803,12 @@ input[type="file"]::file-selector-button {
     transform: scale(1);
 }
 
+.calendar-fullscreen {
+    height: calc(100vh - 150px) !important;
+    min-height: calc(100vh - 150px) !important;
+    max-height: calc(100vh - 150px) !important;
+}
+
 .checkin-detail-dialog {
     max-width: 480px;
 }

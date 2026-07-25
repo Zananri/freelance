@@ -1,10 +1,7 @@
-/* Employee CSS - copied from division.css for consistent table styling */
-
 .mb-0 {
     font-size: 20px;
 }
 
-/* Success Alert Styling for Delete Employee - Positioned at bottom right */
 .alert-delete-container .alert-success {
     position: fixed;
     bottom: 20px;

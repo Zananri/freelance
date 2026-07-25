@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\EmployeeShift;
-// ActivityTracking removed per request; rely on UserAuthLog only
 use App\Helpers\DeviceHelper;
 use App\Models\UserAuthLog;
 use App\Helpers\RequestHelper;
@@ -26,18 +25,16 @@ class UserController extends Controller
             $received_encrypted_data = $request->input('token_data');
             $received_iv = $request->input('iv');
 
-            // Decode from URL and Base64
-            
             $decoded_encrypted_data = base64_decode(urldecode($received_encrypted_data));
             $decoded_iv = base64_decode(urldecode($received_iv));
             $key = env('APP_KEY');
-            $cipher_method = "aes-256-cbc"; // Choose a strong cipher method
-                                
+            $cipher_method = "aes-256-cbc";
+
             $decrypted_data = openssl_decrypt($decoded_encrypted_data, $cipher_method, $key, 0, $decoded_iv);
 
             if($decrypted_data){
                 $explodeData = explode(',', $decrypted_data);
-                
+
                 $user = User::where('id',$explodeData[0])
                     ->where('email',$explodeData[1])
                 ->first();
@@ -45,19 +42,17 @@ class UserController extends Controller
                 if($user){
                     Auth::login($user);
                     return redirect('/project');
-                    //echo Auth::check(). $user->name.'<br>'.$user->email.'<br><hr><br>';
                 }
             }
 
             return redirect('/login');
-            
+
         }catch(\Exception $e){
             return redirect('/login');
         }
 
-        
-    
-        
+
+
     }
 
     public function showUserPage()
@@ -99,14 +94,6 @@ class UserController extends Controller
         $email = $request->input('email');
         $password = $request->input('password');
 
-        // Temporarily disable work email domain check for testing
-        /*
-        $workEmailDomain = '@company.com'; // Change this to your actual work email domain
-        if (!str_ends_with($email, $workEmailDomain)) {
-            return back()->withErrors(['email' => 'Please use your work email address.'])->withInput();
-        }
-        */
-
         $user = User::where('email', $email)->with('employee')->first();
         if ($user && $user->employee) {
             $status = strtoupper((string) $user->employee->status);
@@ -121,7 +108,6 @@ class UserController extends Controller
                 $user = auth()->user();
                 $employee = Employee::where('user_id', $user->id)->first();
                 if ($employee) {
-                    // Record user auth log (LOGIN SUCCESS) only. ActivityTracking table removed.
                     try {
                         UserAuthLog::create([
                             'user_id' => $user->id,
@@ -141,7 +127,6 @@ class UserController extends Controller
             }
             return redirect()->intended('/dashboard')->with('success', 'Login successful!');
         }
-        // Log failed login attempt (record attempt even when credentials incorrect)
         try {
             $maybeUser = User::where('email', $email)->with('employee')->first();
             UserAuthLog::create([
@@ -159,79 +144,104 @@ class UserController extends Controller
         return back()->withErrors(['email' => 'The provided credentials do not match our records.'])->withInput();
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         //
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         $user = User::with('employee.department', 'employee.division', 'employee.job')->find($id);
         if (!$user) {
             return response()->json(['message' => 'User not found'], 404);
         }
+        $user->makeVisible('can_attendance');
         return response()->json($user);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(string $id)
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         //
     }
 
-    /**
-     * Return users data as JSON for AJAX.
-     */
-    public function getUsersAjax()
+    public function getUsersAjax(Request $request)
     {
-        $users = User::with(['employee:id,user_id,photo,division_id'])
-            ->select('id', 'name', 'email', 'user_type', 'user_role')
-            ->get();
-        return response()->json(['data' => $users]);
+        $query = User::with(['employee:id,user_id,photo,division_id'])
+            ->select('id', 'name', 'email', 'user_type', 'user_role', 'can_attendance')
+            ->whereNotIn('user_type', ['SUPERADMIN', 'ADMINISTRATOR'])
+            ->whereNotIn('user_role', ['ADMINISTRATOR', 'SUPERADMIN']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('user_type', 'like', "%{$search}%")
+                    ->orWhere('user_role', 'like', "%{$search}%");
+            });
+        }
+
+        $page = max((int) $request->input('page', 1), 1);
+        $perPage = (int) $request->input('per_page', 10);
+        if (!in_array($perPage, [10, 20, 50, 100], true)) $perPage = 10;
+
+        $paginated = $query->orderBy('id', 'desc')->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $paginated->items(),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+                'from' => $paginated->firstItem(),
+                'to' => $paginated->lastItem(),
+            ],
+        ]);
     }
 
-    /**
-     * Show dashboard with user photo.
-     */
+    public function toggleAttendance(Request $request, $id)
+    {
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        $request->validate([
+            'can_attendance' => 'required|boolean',
+        ]);
+
+        $user->can_attendance = $request->can_attendance;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Attendance permission updated successfully',
+            'can_attendance' => $user->can_attendance
+        ]);
+    }
+
     public function dashboard()
     {
         $user = auth()->user();
         $photo = null;
         $employee = null;
         $attendance = null;
-        $shift = null; // per-date shift if available
+        $shift = null;
         $timeIn = null;
         $attendanceStatus = [
             'check_in' => 'pending',
@@ -246,17 +256,14 @@ class UserController extends Controller
             if ($employee) {
                 $photo = $employee->profile_picture ?? $employee->photo;
 
-                // Get today's per-date shift (EmployeeShift)
                 $shift = EmployeeShift::where('employee_id', $employee->id)
                     ->where('date_shift', $today)
                     ->first();
 
-                // Get today's attendance records
                 $attendances = Attendance::where('employee_id', $employee->id)
                     ->where('date_attendance', $today)
                     ->orderBy('time_in', 'asc')
                     ->get();
-                // Determine attendance status similar to AttendanceController@showAttendancePage
                 $attendance = $attendances->where('type_attendance', 'check_in')->last();
                 if ($attendance) {
                     $attendanceStatus['check_in'] = 'completed';
@@ -269,9 +276,8 @@ class UserController extends Controller
                     }
                 }
 
-                // Calculate if late using per-date shift or fallback to base shift (employee->shift)
                 $employee->loadMissing('shift');
-                $baseShift = $employee->shift; // may be null
+                $baseShift = $employee->shift;
                 $timeIn = $attendance ? $attendance->time_in : null;
                 $timeStart = $shift->time_start ?? ($baseShift->time_start ?? null);
 
@@ -287,7 +293,6 @@ class UserController extends Controller
                 }
             }
 
-            // If photo is a relative path, convert to asset URL
             if ($photo) {
                 $photo = asset($photo);
             }
@@ -305,14 +310,11 @@ class UserController extends Controller
         return view('dashboard', compact('photo', 'employee', 'attendance', 'attendanceStatus', 'shift', 'isLate', 'timeIn'));
     }
 
-    /**
-     * Expose selected route URLs for client-side as JSON (to avoid inline Blade <script>).
-     */
     public function clientRoutes(Request $request)
     {
-        $base = rtrim($request->getBaseUrl(), '/'); // e.g., /nsa-office/public or ''
-        $tasksTodayPath = route('task.dashboard.today', [], false); // relative path, e.g., /task/dashboard/today
-        $tasksTodayUrl = ($base ? $base : '') . $tasksTodayPath; // prepend base if exists
+        $base = rtrim($request->getBaseUrl(), '/');
+        $tasksTodayPath = route('task.dashboard.today', [], false);
+        $tasksTodayUrl = ($base ? $base : '') . $tasksTodayPath;
         $tasksTomorrowPath = route('task.dashboard.tomorrow', [], false);
         $tasksTomorrowUrl = ($base ? $base : '') . $tasksTomorrowPath;
 
@@ -323,22 +325,17 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Log the user out of the application.
-     */
     public function logout(Request $request)
     {
         try {
             $user = auth()->user();
             if ($user) {
                 $employee = Employee::where('user_id', $user->id)->first();
-                // ActivityTracking is removed. We no longer update activity tracking on logout.
             }
         } catch (\Exception $e) {
             \Log::error('Failed to update activity tracking on logout: ' . $e->getMessage());
         }
 
-        // Record user auth log (LOGOUT)
         try {
             if (isset($user)) {
                 UserAuthLog::create([
@@ -364,9 +361,6 @@ class UserController extends Controller
         return redirect('/login')->with('success', 'Logout successful!');
     }
 
-    /**
-     * Reset the password of a user to the default "office_2025".
-     */
     public function resetPassword($id)
     {
         $user = User::find($id);

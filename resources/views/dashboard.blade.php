@@ -19,9 +19,10 @@
     <div class="dashboard-container justify-content-center align-items-center">
         <div class="row">
             {{-- KIRI --}}
-            <div class="col-md-8 above-content d-flex flex-column">
+            <div class="{{ $canAttendance }} col-md-8 above-content d-flex flex-column">
                 <div class="row flex-grow-1" style="flex: 1;">
                     {{-- Profile --}}
+                    @if($canAttendance)
                     <div class="col-md-6 profile-calendar-card mb-5">
                         <div class="rounded-4 p-4 body-card h-100 position-relative">
                             <div class="profile-image-container">
@@ -58,20 +59,6 @@
                                     {{ $todayDate }}
                                 </div>
                                 <div class="text-shift-time">
-
-                                    @php
-                                        $shiftTime =
-                                            substr($employee->shift->time_start, 0, 5) .
-                                            ' - ' .
-                                            substr($employee->shift->time_end, 0, 5);
-                                        if ($employeeShift) {
-                                            $shiftTime =
-                                                substr($employeeShift->shift->time_start, 0, 5) .
-                                                ' - ' .
-                                                substr($employeeShift->shift->time_end, 0, 5);
-                                        }
-                                    @endphp
-
                                     {{ $shiftTime }}
                                 </div>
                             </div>
@@ -150,11 +137,12 @@
                             </div>
                         </div>
                     </div>
+                    @endif
 
                     {{-- Calendar --}}
 
-                    <div class="col-md-6 calendar-card-mobile mb-5">
-                        <div class="rounded-4 body-card h-100 calendar-attendance position-relative"
+                    <div class="{{ $canAttendance ? 'col-md-6' : 'col-md-12 ' }} calendar-card-mobile mb-5">
+                        <div class="rounded-4 body-card h-100 calendar-attendance position-relative {{ $canAttendance ? '' : 'calendar-fullscreen' }}"
                             style="padding-bottom: 0px !important;">
                             <div class="d-flex card-container">
                                 <div class="fixed-row">
@@ -241,6 +229,7 @@
                 </div>
 
                 {{-- Attendance Summary Card --}}
+                @if($canAttendance)
                 <div class="row" style="flex: 1;">
                     <div class="col-12 card-fill">
                         <div class="rounded-4 p-4 body-card">
@@ -325,6 +314,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
 
                 <div class="timeline-overlay"></div>
             </div>
