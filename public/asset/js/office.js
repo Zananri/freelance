@@ -130,9 +130,14 @@ $(function () {
             const readLabel = n.is_read ? '<div class="notification-read-label">Read</div>' : '';
             const unreadDot = n.is_read ? '' : '<div class="notification-unread-dot"></div>';
 
+            const leaveKeywords = /absen|leave|late|telat|sick|sakit|izin|cuti/i;
+            const isLeaveNotif = leaveKeywords.test(n.type || '') || leaveKeywords.test(n.title || '');
+
             return `
                 <div class="notification-item position-relative d-flex align-items-start"
-                     data-notification-id="${n.id}">
+                    data-notification-id="${n.id}"
+                    data-redirect="${isLeaveNotif ? '/leave' : ''}"
+                    style="${isLeaveNotif ? 'cursor:pointer;' : ''}">
                     ${unreadDot}
                     <div class="notification-content" style="position:relative;width:100%;">
                         <div class="notification-title">${n.title}</div>
@@ -146,6 +151,19 @@ $(function () {
                 </div>
             `;
         }
+
+        $(document).on('click', '.notification-item', function (e) {
+            if ($(e.target).closest('.btn-delete-notification').length) return;
+
+            const redirectPath = $(this).data('redirect');
+            const id = $(this).data('notification-id');
+
+            if (redirectPath) {
+                api('POST', `/notifications/${id}/read`).always(() => {
+                    window.location.href = `${APP_URL}${redirectPath}`;
+                });
+            }
+        });
 
         function emptyState(message, isError = false) {
             const color = isError ? '#dc3545' : '#dee2e6';
