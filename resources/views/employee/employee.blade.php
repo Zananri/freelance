@@ -6,7 +6,7 @@
         <link href="{{ asset('asset/css/employee.css') }}?v={{ date('YmdHi') }}" rel="stylesheet">
     </x-slot>
 
-      <!-- SVG Symbols -->
+    <!-- SVG Symbols -->
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
         <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
             <path
@@ -22,12 +22,31 @@
         </symbol>
     </svg>
 
-    <div class="title-content d-flex align-items-center gap-2">
+    <div class="title-content d-flex justify-content-between align-items-center flex-wrap gap-2">
         <h2 class="m-0">Employee</h2>
+
+        <div class="d-flex gap-1">
+            <a href="{{ route('employee.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd add-btn">
+                <span class="material-symbols-outlined icon">add</span><span class="text-btn">Add Data</span>
+            </a>
+            <button type="button" class="btn btn-icon-toggle border-dddd add-btn" data-bs-toggle="modal"
+                data-bs-target="#importEmployeeModal">
+                <span class="material-symbols-outlined icon">upload</span><span class="text-btn">Import Excel</span>
+            </button>
+            <a href="{{ route('employee.download-template') }}" class="btn btn-icon-toggle border-dddd add-btn">
+                <span class="material-symbols-outlined icon">description</span><span class="text-btn">
+                    Template</span>
+            </a>
+            <a href="{{ url('/employee/export-employee-active') }}" target="_blank"
+                class="btn btn-icon-toggle border-dddd add-btn" style="width: auto; min-width: 20px;">
+                <span class="material-symbols-outlined icon">download</span>
+            </a>
+        </div>
     </div>
 
     @if (session('employee_import_message'))
-        <div class="alert alert-{{ session('employee_import_status', 'info') }} alert-dismissible fade show mt-3" role="alert">
+        <div class="alert alert-{{ session('employee_import_status', 'info') }} alert-dismissible fade show mt-3"
+            role="alert">
             {{ session('employee_import_message') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -42,14 +61,15 @@
                     <input type="text" id="searchInput" class="form-control border-dddd height-38"
                         placeholder="Search" />
                 </div>
-                <!-- Filter Dropdown -->
                 <div class="dropdown">
-                    <button class="btn btn-icon-toggle border-dddd filter-btn dropdown-toggle" type="button" id="filterDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span class="material-symbols-outlined icon">filter_list</span><span class="text-btn">Filter</span>
+                    <button class="btn btn-icon-toggle border-dddd filter-btn dropdown-toggle" type="button"
+                        id="filterDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="material-symbols-outlined icon">filter_list</span><span
+                            class="text-btn">Filter</span>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end border-0" aria-labelledby="filterDropdownBtn" style="min-width: 300px; padding: 15px;">
+                    <ul class="dropdown-menu dropdown-menu-end border-0" aria-labelledby="filterDropdownBtn"
+                        style="min-width: 300px; padding: 15px;">
                         <form id="filterForm">
-                            
                             <div class="mb-3 custom-input">
                                 <label for="sortBy" class="form-label small">Sort By</label>
                                 <select id="sortBy" class="form-select form-select-sm">
@@ -87,22 +107,14 @@
                                 </select>
                             </div>
                             <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-submit-black flex-grow-1" id="applyFilterBtn">Apply</button>
-                                <button type="button" class="btn btn-custom-close flex-grow-1" id="clearFilterBtn">Clear</button>
+                                <button type="button" class="btn btn-submit-black flex-grow-1"
+                                    id="applyFilterBtn">Apply</button>
+                                <button type="button" class="btn btn-custom-close flex-grow-1"
+                                    id="clearFilterBtn">Clear</button>
                             </div>
                         </form>
                     </ul>
                 </div>
-
-                <a href="{{ route('employee.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd add-btn">
-                    <span class="material-symbols-outlined icon">add</span><span class="text-btn">Add Data</span>
-                </a>
-                <button type="button" class="btn btn-icon-toggle border-dddd add-btn" data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
-                    <span class="material-symbols-outlined icon">upload</span><span class="text-btn">Import Excel</span>
-                </button>
-                <a href="{{ url('/employee/export-employee-active')}}" target="_blank" class="btn btn-icon-toggle border-dddd add-btn" style="width: auto; min-width: 20px;">
-                    <span class="material-symbols-outlined icon">download</span>
-                </a>
             </div>
         </div>
 
@@ -129,16 +141,19 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2" id="employeePaginationWrap">
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2"
+            id="employeePaginationWrap">
             <div class="employee-pagination-info" id="employeePaginationInfo"></div>
             <div class="employee-pagination" id="employeePagination"></div>
         </div>
     </div>
 
 
-    <div class="modal fade" id="importEmployeeModal" tabindex="-1" aria-labelledby="importEmployeeModalLabel" aria-hidden="true">
+    <div class="modal fade" id="importEmployeeModal" tabindex="-1" aria-labelledby="importEmployeeModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form id="importEmployeeForm" action="{{ route('employee.import') }}" method="POST" enctype="multipart/form-data" class="modal-content position-relative">
+            <form id="importEmployeeForm" action="{{ route('employee.import') }}" method="POST"
+                enctype="multipart/form-data" class="modal-content position-relative">
                 @csrf
                 <div class="modal-header modal-header-custom mb-3">
                     <h5 class="modal-title" id="importEmployeeModalLabel">Import Employee Excel</h5>
@@ -147,7 +162,8 @@
                 <div class="modal-body modal-body-custom mb-3">
                     <div class="mb-3">
                         <label for="employee_file" class="form-label">File Excel</label>
-                        <input class="form-control" type="file" id="employee_file" name="employee_file" accept=".xlsx,.xls" required>
+                        <input class="form-control" type="file" id="employee_file" name="employee_file"
+                            accept=".xlsx,.xls" required>
                         <div class="form-text">Upload 1 file Excel berisi data employee. Maksimal 20MB.</div>
                     </div>
                 </div>
@@ -156,7 +172,8 @@
                     <button type="submit" id="importEmployeeSubmitBtn" class="btn btn-submit-black">Import</button>
                 </div>
                 <div id="importEmployeeLoader" class="loader d-none">
-                    <div class="box-loader rounded-4 bg-body bg-opacity-50 position-absolute top-0 start-0 w-100 h-100">
+                    <div
+                        class="box-loader rounded-4 bg-body bg-opacity-50 position-absolute top-0 start-0 w-100 h-100">
                         <div class="text-center">
                             <div class="spinner-border text-secondary" role="status">
                                 <span class="visually-hidden">Loading...</span>
@@ -205,7 +222,7 @@
         </div>
     </div>
 
-     <!-- Employee Detail Modal -->
+    <!-- Employee Detail Modal -->
     <div class="modal fade" id="employeeDetailModal" tabindex="-1" aria-labelledby="employeeDetailModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">

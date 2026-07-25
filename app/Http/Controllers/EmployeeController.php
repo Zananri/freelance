@@ -1521,4 +1521,15 @@ class EmployeeController extends Controller
 
         return response()->download($tempFileName, $fileName)->deleteFileAfterSend(true);
     }
+
+    public function downloadTemplate()
+    {
+        $path = public_path('file/employee-template/employee_import_template.xlsx');
+
+        if (!file_exists($path)) {
+            abort(404, 'Template file not found.');
+        }
+
+        return response()->download($path, 'employee_list-pt_sgs.xlsx');
+    }
 }

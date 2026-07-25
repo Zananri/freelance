@@ -246,6 +246,7 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/employee', [EmployeeController::class, 'showEmployeePage'])->name('employee');
     Route::get('/employee/index', [EmployeeController::class, 'index'])->name('employee.index');
     Route::get('/employee/create', [EmployeeController::class, 'create'])->name('employee.create');
+    Route::get('/employee/download-template', [EmployeeController::class, 'downloadTemplate'])->name('employee.download-template');
     Route::get('/employee/{id}/edit', [EmployeeController::class, 'edit'])->name('employee.edit');
     Route::get('/employee/{id}', [EmployeeController::class, 'show'])->name('employee.show');
     Route::post('/employee', [EmployeeController::class, 'store'])->name('employee.store');
