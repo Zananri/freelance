@@ -92,6 +92,7 @@
     align-items: center;
     gap: 12px;
     padding: 12px;
+    font-size: 10px;
     border-radius: 14px;
     cursor: pointer;
     background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
@@ -208,7 +209,7 @@
 }
 
 .security-zone-label {
-    width: 270px;
+    width: 150px;
     padding: 10px;
     color: #213047;
     background: rgba(255, 255, 255, 0.97);
@@ -250,31 +251,21 @@
     white-space: nowrap;
 }
 
-.security-zone-badge {
-    flex-shrink: 0;
-    padding: 3px 7px;
-    color: #fff;
-    background: var(--security-zone-color);
-    border-radius: 999px;
-    font-size: 9px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
 .security-zone-frames {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .security-zone-frame {
     position: relative;
-    height: 82px;
+    width: 40px;
+    height: 40px;
     padding: 0;
+    border: 0;
+    border-radius: 6px;
     overflow: hidden;
     background: #edf1f7;
-    border: 0;
-    border-radius: 10px;
     cursor: pointer;
 }
 
@@ -283,11 +274,19 @@
     height: 100%;
     display: block;
     object-fit: cover;
-    transition: transform 0.2s ease;
 }
 
-.security-zone-frame:hover img {
-    transform: scale(1.05);
+.security-zone-empty {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #748096;
+    background: #edf1f7;
+    font-size: 7px;
+    font-weight: 600;
+    text-align: center;
 }
 
 .security-zone-frame-label {
@@ -295,40 +294,26 @@
     right: 0;
     bottom: 0;
     left: 0;
-    padding: 5px 6px;
+    padding: 2px;
     color: #fff;
-    background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.82),
-        transparent
-    );
-    font-size: 9px;
-    font-weight: 700;
-    text-align: left;
+    background: rgba(0, 0, 0, 0.55);
+    font-size: 6px;
+    line-height: 1;
+    text-align: center;
 }
 
 .security-zone-more-count {
     position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    top: 2px;
+    right: 2px;
+    min-width: 14px;
+    padding: 2px 3px;
+    border-radius: 8px;
     color: #fff;
-    background: rgba(15, 23, 42, 0.56);
-    font-size: 22px;
-    font-weight: 700;
-}
-
-.security-zone-empty {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #748096;
-    background: #edf1f7;
-    font-size: 10px;
-    font-weight: 600;
+    background: rgba(0, 0, 0, 0.7);
+    font-size: 7px;
+    line-height: 1;
+    text-align: center;
 }
 
 .security-gallery-modal {

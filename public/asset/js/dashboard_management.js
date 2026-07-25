@@ -12,6 +12,10 @@ function escapeHtml(text) {
         .replace(/'/g, "&#039;");
 }
 
+
+let widgetAreaLayer = null;
+let widgetSecurityColorMap = {};
+window.__widgetSecurityZoneState = window.__widgetSecurityZoneState || {};
 let widgetMonitoringMap = null;
 let widgetMarkerLayer = null;
 let widgetUserLocationMarker = null;
@@ -131,21 +135,19 @@ function buildMarkerTooltip(employee, checkin) {
 
     if (checkin.image_url) {
         return '<div style="display:flex;align-items:center;gap:8px;min-width:190px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
-            '<img src="' + escapeHtml(checkin.image_url) + '" alt="" style="width:60px;height:60px;aspect-ratio:1/1;object-fit:cover;border-radius:8px;display:block;">' +
+            '<img src="' + escapeHtml(checkin.image_url) + '" alt="" style="width:20px;height:20px;aspect-ratio:1/1;object-fit:cover;border-radius:8px;display:block;">' +
             '<div style="min-width:0;">' +
-                '<div style="font-size:12px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.name || "-") + '</div>' +
-                '<div style="font-size:11px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.partner_name || "-") + '</div>' +
-                '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' + statusClass + ';color:#fff;font-size:10px;font-weight:700;">' + escapeHtml(statusText) + '</span></div>' +
+                '<div style="font-size:8px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.name || "-") + '</div>' +
+                '<div style="font-size:8px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.partner_name || "-") + '</div>' +
             '</div>' +
             '</div>';
     }
 
     return '<div style="display:flex;align-items:center;gap:8px;min-width:170px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
-        '<div style="width:60px;height:60px;aspect-ratio:1/1;border-radius:8px;background:#edf1ff;display:flex;align-items:center;justify-content:center;color:#4e5a75;font-size:10px;font-weight:700;">No Photo</div>' +
+        '<div style="width:20px;height:20px;aspect-ratio:1/1;border-radius:8px;background:#edf1ff;display:flex;align-items:center;justify-content:center;color:#4e5a75;font-size:10px;font-weight:700;">No Photo</div>' +
         '<div style="min-width:0;">' +
-            '<div style="font-size:12px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.name || "-") + '</div>' +
-            '<div style="font-size:11px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.partner_name || "-") + '</div>' +
-            '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' + statusClass + ';color:#fff;font-size:10px;font-weight:700;">' + escapeHtml(statusText) + '</span></div>' +
+            '<div style="font-size:8px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.name || "-") + '</div>' +
+            '<div style="font-size:8px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.partner_name || "-") + '</div>' +
         '</div>' +
     '</div>';
 }
@@ -228,6 +230,7 @@ function initWidgetMonitoringMap() {
     }).addTo(widgetMonitoringMap);
 
     widgetMarkerLayer = L.layerGroup().addTo(widgetMonitoringMap);
+    widgetAreaLayer = L.layerGroup().addTo(widgetMonitoringMap);
 
     [100, 400, 1000].forEach(function (delay) {
         setTimeout(function () {
@@ -323,12 +326,307 @@ function renderMonitoringLegend(employees) {
     legendContainer.innerHTML = html;
 }
 
+function hashToHue(value) {
+    const text = String(value ?? "");
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+        hash = (hash * 31 + text.charCodeAt(i)) % 360;
+    }
+    return hash;
+}
+
+function getSecurityZoneColor(employee) {
+    const key = String(employee?.id ?? employee?.name ?? "unknown");
+    if (!widgetSecurityColorMap[key]) {
+        widgetSecurityColorMap[key] = "hsl(" + hashToHue(key) + ", 72%, 50%)";
+    }
+    return widgetSecurityColorMap[key];
+}
+
+function isSecurityEmployee(employee) {
+    return String(employee?.job_name || "").trim().toUpperCase() === "TENAGA KEAMANAN";
+}
+
+function getRequiredCheckpointCount(employee) {
+    return Number(employee.required_checkpoint_count || 0);
+}
+
+function normalizePointType(point) {
+    return String(point?.type || "").trim().toLowerCase();
+}
+
+function isSecurityCheckpoint(point) {
+    const type = normalizePointType(point);
+    const sourceType = String(point?.source_type || "").trim().toLowerCase();
+    return !point.is_live && sourceType !== "live" && (type === "check_in" || type === "checkpoint");
+}
+
+function sortPointsByDate(points) {
+    return points.slice().sort(function (a, b) {
+        return new Date(a.date_time || 0).getTime() - new Date(b.date_time || 0).getTime();
+    });
+}
+
+function getUniqueCoordinates(points) {
+    const coordinates = [];
+    const seen = {};
+    points.forEach(function (point) {
+        const lat = Number(point.lat);
+        const lng = Number(point.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        const key = lat.toFixed(7) + "," + lng.toFixed(7);
+        if (seen[key]) return;
+        seen[key] = true;
+        coordinates.push([lat, lng]);
+    });
+    return coordinates;
+}
+
+function getSecurityPhotos(points) {
+    return points
+        .map(function (point, index) {
+            if (!point.image_url) return null;
+            return {
+                image_url: point.image_url,
+                type: normalizePointType(point),
+                label: normalizePointType(point) === "check_in" ? "Check In" : "Checkpoint " + (index + 1),
+                date_time: point.date_time,
+            };
+        })
+        .filter(Boolean);
+}
+
+function getSecurityCheckInPhoto(photos) {
+    let checkInPhoto = null;
+    photos.forEach(function (photo) {
+        if (!checkInPhoto && photo.type === "check_in") checkInPhoto = photo;
+    });
+    return checkInPhoto || photos[0] || null;
+}
+
+function getSecurityCheckpointPhotos(photos, checkInPhoto) {
+    return photos.filter(function (photo) {
+        return photo !== checkInPhoto;
+    });
+}
+
+let widgetSecurityGalleryModal = null;
+let widgetSecurityGalleryPhotos = [];
+let widgetSecurityGalleryIndex = 0;
+
+function ensureWidgetSecurityGalleryModal() {
+    if (widgetSecurityGalleryModal) return widgetSecurityGalleryModal;
+
+    const html =
+        '<div class="modal fade" id="widgetSecurityGalleryModal" tabindex="-1" aria-hidden="true">' +
+        '<div class="modal-dialog modal-dialog-centered modal-lg">' +
+        '<div class="modal-content border-0 rounded-4 security-gallery-modal">' +
+        '<div class="modal-header border-0">' +
+        '<div>' +
+        '<h5 class="modal-title fw-semibold mb-1" id="widgetSecurityGalleryTitle"></h5>' +
+        '<div class="small text-secondary" id="widgetSecurityGallerySubtitle"></div>' +
+        '</div>' +
+        '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+        '</div>' +
+        '<div class="modal-body pt-0">' +
+        '<div class="security-gallery-viewer">' +
+        '<button type="button" class="security-gallery-nav widget-security-gallery-prev">' +
+        '<span class="material-symbols-outlined">chevron_left</span></button>' +
+        '<img id="widgetSecurityGalleryImage" class="security-gallery-image" src="" alt="Checkpoint">' +
+        '<button type="button" class="security-gallery-nav widget-security-gallery-next">' +
+        '<span class="material-symbols-outlined">chevron_right</span></button>' +
+        '</div>' +
+        '<div class="security-gallery-information">' +
+        '<div>' +
+        '<div class="fw-semibold" id="widgetSecurityGalleryCaption"></div>' +
+        '<div class="small text-secondary" id="widgetSecurityGalleryDate"></div>' +
+        '</div>' +
+        '<div class="security-gallery-counter" id="widgetSecurityGalleryCounter"></div>' +
+        '</div>' +
+        '<div class="security-gallery-thumbnails" id="widgetSecurityGalleryThumbnails"></div>' +
+        '</div></div></div></div>';
+
+    $("body").append(html);
+    widgetSecurityGalleryModal = new bootstrap.Modal(document.getElementById("widgetSecurityGalleryModal"));
+
+    $(document).on("click", ".widget-security-gallery-prev", function () {
+        showWidgetSecurityGalleryPhoto(widgetSecurityGalleryIndex - 1);
+    });
+    $(document).on("click", ".widget-security-gallery-next", function () {
+        showWidgetSecurityGalleryPhoto(widgetSecurityGalleryIndex + 1);
+    });
+    $(document).on("click", ".widget-security-gallery-thumbnail", function () {
+        showWidgetSecurityGalleryPhoto(Number($(this).data("index")));
+    });
+
+    return widgetSecurityGalleryModal;
+}
+
+function renderWidgetSecurityGalleryThumbnails() {
+    let html = "";
+    widgetSecurityGalleryPhotos.forEach(function (photo, index) {
+        const activeClass = index === widgetSecurityGalleryIndex ? "is-active" : "";
+        html +=
+            '<button type="button" class="security-gallery-thumbnail widget-security-gallery-thumbnail ' +
+            activeClass + '" data-index="' + index + '">' +
+            '<img src="' + escapeHtml(photo.image_url) + '" alt="' + escapeHtml(photo.label) + '"></button>';
+    });
+    $("#widgetSecurityGalleryThumbnails").html(html);
+}
+
+function showWidgetSecurityGalleryPhoto(index) {
+    if (!widgetSecurityGalleryPhotos.length) return;
+    if (index < 0) index = widgetSecurityGalleryPhotos.length - 1;
+    if (index >= widgetSecurityGalleryPhotos.length) index = 0;
+    widgetSecurityGalleryIndex = index;
+
+    const photo = widgetSecurityGalleryPhotos[index];
+    $("#widgetSecurityGalleryImage").attr("src", photo.image_url);
+    $("#widgetSecurityGalleryCaption").text(photo.label);
+    $("#widgetSecurityGalleryDate").text(formatWidgetCheckinTime(photo.date_time));
+    $("#widgetSecurityGalleryCounter").text(index + 1 + " / " + widgetSecurityGalleryPhotos.length);
+    $(".widget-security-gallery-prev, .widget-security-gallery-next").toggle(widgetSecurityGalleryPhotos.length > 1);
+    renderWidgetSecurityGalleryThumbnails();
+}
+
+function openWidgetSecurityGallery(employee, photos, selectedIndex) {
+    if (!photos.length) return;
+    widgetSecurityGalleryPhotos = photos;
+    widgetSecurityGalleryIndex = Number(selectedIndex || 0);
+
+    $("#widgetSecurityGalleryTitle").text(employee.name || "-");
+    $("#widgetSecurityGallerySubtitle").text((employee.partner_name || "-") + " • " + (employee.division_name || "-"));
+
+    showWidgetSecurityGalleryPhoto(widgetSecurityGalleryIndex);
+    ensureWidgetSecurityGalleryModal().show();
+}
+
+function buildWidgetSecurityZoneLabel(employee, photos, checkInPhoto, checkpointPhotos, color) {
+    const checkpointPreview = checkpointPhotos[0] || checkInPhoto;
+    const remainingPhotos = Math.max(checkpointPhotos.length - 1, 0);
+
+    const checkInFrame = checkInPhoto
+        ? '<img src="' + escapeHtml(checkInPhoto.image_url) + '" alt="Check In">'
+        : '<div class="security-zone-empty">No Photo</div>';
+
+    const checkpointFrame = checkpointPreview
+        ? '<img src="' + escapeHtml(checkpointPreview.image_url) + '" alt="Checkpoint">'
+        : '<div class="security-zone-empty">No Photo</div>';
+
+    return (
+        '<div class="security-zone-label" style="--security-zone-color:' + escapeHtml(color) + ';">' +
+        '<div class="security-zone-header">' +
+        '<div class="security-zone-employee">' +
+        '<div class="security-zone-name fs-8">' + escapeHtml(employee.name || "-") + '</div>' +
+        '<div class="security-zone-partner fs-8">' + escapeHtml(employee.partner_name || "-") + '</div>' +
+        '</div>' +
+        '</div>' +
+        '<div class="security-zone-frames">' +
+        '<button type="button" class="security-zone-frame" data-gallery-index="0">' +
+        checkInFrame +
+        '<span class="security-zone-frame-label">Check In</span>' +
+        '</button>' +
+        '<button type="button" class="security-zone-frame" data-gallery-index="' + Math.min(1, photos.length - 1) + '">' +
+        checkpointFrame +
+        (remainingPhotos > 0 ? '<span class="security-zone-more-count">+' + remainingPhotos + '</span>' : "") +
+        '<span class="security-zone-frame-label">Checkpoint</span>' +
+        '</button>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
+function bindWidgetSecurityZoneEvents(zoneMarker, polygon, employee, photos) {
+    zoneMarker.on("add", function () {
+        const element = zoneMarker.getElement();
+        if (!element) return;
+
+        $(element)
+            .off(".widgetSecurityZone")
+            .on("click.widgetSecurityZone", ".security-zone-frame", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                const selectedIndex = Number($(this).data("gallery-index") || 0);
+                openWidgetSecurityGallery(employee, photos, selectedIndex);
+            });
+    });
+
+    polygon.on("click", function () {
+        openWidgetSecurityGallery(employee, photos, 0);
+    });
+}
+
+function renderWidgetSecurityZone(filteredPoints, employeeMap) {
+    const groupedPoints = {};
+
+    filteredPoints.forEach(function (point) {
+        const employee = employeeMap[String(point.employee_id)];
+        if (!employee || !isSecurityEmployee(employee)) return;
+        if (!isSecurityCheckpoint(point)) return;
+
+        const employeeId = String(point.employee_id);
+        groupedPoints[employeeId] = groupedPoints[employeeId] || [];
+        groupedPoints[employeeId].push(point);
+    });
+
+    Object.keys(groupedPoints).forEach(function (employeeId) {
+        const employee = employeeMap[employeeId];
+        if (!employee) return;
+
+        const orderedPoints = sortPointsByDate(groupedPoints[employeeId]);
+        const requiredCheckpointCount = getRequiredCheckpointCount(employee);
+
+        if (requiredCheckpointCount <= 0 || orderedPoints.length < requiredCheckpointCount) {
+            return;
+        }
+
+        const completedPoints = orderedPoints.slice(0, requiredCheckpointCount);
+        const coordinates = getUniqueCoordinates(completedPoints);
+
+        if (coordinates.length < 3) return;
+
+        const photos = getSecurityPhotos(completedPoints);
+        const checkInPhoto = getSecurityCheckInPhoto(photos);
+        const checkpointPhotos = getSecurityCheckpointPhotos(photos, checkInPhoto);
+        const color = getSecurityZoneColor(employee);
+
+        const polygon = L.polygon(coordinates, {
+            color: color,
+            weight: 3,
+            opacity: 0.95,
+            fillColor: color,
+            fillOpacity: 0.16,
+        });
+
+        const center = polygon.getBounds().getCenter();
+
+        const zoneIcon = L.divIcon({
+            className: "monitoring-security-zone-icon",
+            html: buildWidgetSecurityZoneLabel(employee, photos, checkInPhoto, checkpointPhotos, color),
+            iconSize: [150, 100],
+            iconAnchor: [75, 50],
+        });
+
+        const zoneMarker = L.marker(center, {
+            icon: zoneIcon,
+            zIndexOffset: 2000,
+            keyboard: false,
+        });
+
+        bindWidgetSecurityZoneEvents(zoneMarker, polygon, employee, photos);
+
+        widgetAreaLayer.addLayer(polygon);
+        widgetAreaLayer.addLayer(zoneMarker);
+    });
+}
+
 function renderWidgetMonitoringMap(employees, checkins) {
     if (!widgetMonitoringMap || !widgetMarkerLayer) {
         return;
     }
 
     widgetMarkerLayer.clearLayers();
+    widgetAreaLayer.clearLayers();
 
     const employeeById = {};
     employees.forEach(function (employee) {
@@ -342,22 +640,13 @@ function renderWidgetMonitoringMap(employees, checkins) {
         const lat = Number(checkin.lat);
         const lng = Number(checkin.lng);
 
-        if (
-            !employee ||
-            !Number.isFinite(lat) ||
-            !Number.isFinite(lng)
-        ) {
+        if (!employee || !Number.isFinite(lat) || !Number.isFinite(lng)) {
             return;
         }
 
         const markerColor = getDepartmentColor(employee);
         const marker = L.marker([lat, lng], {
-            icon: createStickmanIcon(
-                markerColor,
-                checkin.type,
-                checkin.source_type,
-                checkin.is_live
-            ),
+            icon: createStickmanIcon(markerColor, checkin.type, checkin.source_type, checkin.is_live),
         });
 
         const labelMarker = L.marker([lat, lng], {
@@ -374,6 +663,8 @@ function renderWidgetMonitoringMap(employees, checkins) {
         widgetMarkerLayer.addLayer(labelMarker);
         bounds.push([lat, lng]);
     });
+
+    renderWidgetSecurityZone(checkins || [], employeeById);
 
     if (bounds.length) {
         widgetMonitoringMap.fitBounds(bounds, {
@@ -417,7 +708,6 @@ function loadDashboardMonitoringWidget() {
         success: function (response) {
             const employees = (response.data && response.data.employees) || [];
             const checkins = (response.data && (response.data.points || response.data.checkins)) || [];
-
             buildDepartmentColorMap(employees);
             renderWidgetMonitoringMap(employees, checkins);
             renderMonitoringLegend(employees);

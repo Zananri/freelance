@@ -120,6 +120,14 @@ class DashboardController extends Controller
         $employeeIds = $employees->pluck('id')->toArray();
         $today = Carbon::today();
 
+        $employeeShifts = EmployeeShift::with('shift')
+            ->whereDate('date_shift', $today)
+            ->whereIn('employee_id', $employeeIds)
+            ->orderByDesc('id')
+            ->get()
+            ->unique('employee_id')
+            ->keyBy('employee_id');
+
         $checkins = collect();
         $locations = collect();
         $points = collect();
@@ -237,7 +245,7 @@ class DashboardController extends Controller
 
         $locationByEmployeeId = $locations->keyBy('employee_id');
 
-        $employees = $employees->map(function ($employee) use ($points, $checkedInEmployeeIds, $locationByEmployeeId) {
+        $employees = $employees->map(function ($employee) use ($points, $checkedInEmployeeIds, $locationByEmployeeId, $employeeShifts) {
             $lastCheckin = $points
                 ->where('employee_id', $employee->id)
                 ->where('type', 'check_in')
@@ -250,6 +258,14 @@ class DashboardController extends Controller
 
             $location = $locationByEmployeeId->get($employee->id);
 
+            $employeeShift = $employeeShifts->get($employee->id);
+            $scheduledShift = $employeeShift?->shift;
+            $requiredCheckpointCount = (int) (
+                $scheduledShift?->total_checkpoint
+                ?? optional($employee->shift)->total_checkpoint
+                ?? 0
+            );
+
             return [
                 'id' => $employee->id,
                 'name' => $employee->name,
@@ -261,6 +277,7 @@ class DashboardController extends Controller
                 'division_name' => optional($employee->division)->name_division,
                 'job_id' => $employee->job_id,
                 'job_name' => optional($employee->job)->job_name,
+                'required_checkpoint_count' => $requiredCheckpointCount,
                 'checked_in' => in_array($employee->id, $checkedInEmployeeIds),
                 'checkin_time' => $lastCheckin['time'] ?? null,
                 'checkout_time' => $lastCheckout['time'] ?? null,

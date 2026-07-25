@@ -557,44 +557,20 @@ $(function () {
         if (point.image_url) {
             return (
                 '<div style="display:flex;align-items:center;gap:8px;min-width:190px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
-                '<img src="' +
-                escapeHtml(point.image_url) +
-                '" alt="" style="width:60px;height:60px;aspect-ratio:1/1;object-fit:cover;border-radius:8px;display:block;">' +
-                '<div style="min-width:0;">' +
-                '<div style="font-size:12px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
-                escapeHtml(employee.name || "-") +
-                "</div>" +
-                '<div style="font-size:11px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
-                escapeHtml(employee.partner_name || "-") +
-                "</div>" +
-                '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' +
-                statusColor +
-                ';color:#fff;font-size:10px;font-weight:700;">' +
-                escapeHtml(statusText) +
-                "</span></div>" +
-                "</div>" +
+                    '<img src="' +
+                    escapeHtml(point.image_url) +
+                    '" alt="" style="width:20px;height:20px;aspect-ratio:1/1;object-fit:cover;border-radius:8px;display:block;">' +
+                    '<div style="min-width:0;">' +
+                        '<div style="font-size:10px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+                            escapeHtml(employee.name || "-") +
+                        "</div>" +
+                        '<div style="font-size:8px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+                            escapeHtml(employee.partner_name || "-") +
+                        "</div>" +
+                    "</div>" +
                 "</div>"
             );
         }
-
-        return (
-            '<div style="display:flex;align-items:center;gap:8px;min-width:170px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
-            '<div style="width:60px;height:60px;aspect-ratio:1/1;border-radius:8px;background:#edf1ff;display:flex;align-items:center;justify-content:center;color:#4e5a75;font-size:10px;font-weight:700;">No Photo</div>' +
-            '<div style="min-width:0;">' +
-            '<div style="font-size:12px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
-            escapeHtml(employee.name || "-") +
-            "</div>" +
-            '<div style="font-size:11px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
-            escapeHtml(employee.partner_name || "-") +
-            "</div>" +
-            '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' +
-            statusColor +
-            ';color:#fff;font-size:10px;font-weight:700;">' +
-            escapeHtml(statusText) +
-            "</span></div>" +
-            "</div>" +
-            "</div>"
-        );
     }
 
     function createPointLabelIcon(employee, point) {
@@ -678,10 +654,10 @@ $(function () {
             '<div style="min-width:320px;max-width:420px;">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">' +
             '<div style="min-width:0;">' +
-            '<div style="font-size:14px;font-weight:700;color:#213047;line-height:1.2;">' +
+            '<div style="font-size:8px;font-weight:700;color:#213047;line-height:1.2;">' +
             escapeHtml(employee.name || "-") +
             "</div>" +
-            '<div style="font-size:11px;color:#5d6981;line-height:1.2;">' +
+            '<div style="font-size:8px;color:#5d6981;line-height:1.2;">' +
             escapeHtml(employee.partner_name || "-") +
             " • " +
             escapeHtml(employee.division_name || "-") +
@@ -693,13 +669,13 @@ $(function () {
             "</div>" +
             '<div style="display:flex;gap:10px;align-items:stretch;">' +
             '<div style="flex:1;min-width:0;border:1px solid rgba(13,110,253,.18);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 8px 20px rgba(15,23,42,.08);">' +
-            '<div style="padding:8px 10px;font-size:11px;font-weight:700;color:#213047;background:rgba(13,110,253,.08);">Check In</div>' +
+            '<div style="padding:8px 10px;font-size:8px;font-weight:700;color:#213047;background:rgba(13,110,253,.08);">Check In</div>' +
             '<img id="' +
             leftImageId +
             '" src="' +
             escapeHtml(checkInPoint.image_url) +
             '" alt="check in" style="width:100%;height:140px;object-fit:cover;display:block;">' +
-            '<div style="padding:8px 10px;font-size:10px;color:#5d6981;">' +
+            '<div style="padding:8px 10px;font-size:8px;color:#5d6981;">' +
             escapeHtml(formatDateTime(checkInPoint.date_time)) +
             "</div>" +
             "</div>" +
@@ -805,9 +781,7 @@ $(function () {
     }
 
     function getRequiredCheckpointCount(employee) {
-        return Number(
-            employee.required_checkpoint_count || 0
-        );
+        return Number(employee.required_checkpoint_count || 0);
     }
 
     function isSecurityCheckpoint(point) {
@@ -1061,16 +1035,13 @@ $(function () {
             ';">' +
             '<div class="security-zone-header">' +
             '<div class="security-zone-employee">' +
-            '<div class="security-zone-name">' +
+            '<div class="security-zone-name fs-8">' +
             escapeHtml(employee.name || "-") +
             "</div>" +
-            '<div class="security-zone-partner">' +
+            '<div class="security-zone-partner fs-8">' +
             escapeHtml(employee.partner_name || "-") +
-            " • " +
-            escapeHtml(employee.division_name || "-") +
             "</div>" +
             "</div>" +
-            '<span class="security-zone-badge">Security Area</span>' +
             "</div>" +
             '<div class="security-zone-frames">' +
             '<button type="button" class="security-zone-frame security-zone-checkin" data-gallery-index="0">' +
