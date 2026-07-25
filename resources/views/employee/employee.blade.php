@@ -23,19 +23,19 @@
     </svg>
 
     <div class="title-content d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h2 class="m-0">Employee</h2>
+        <h2 class="m-0">{{ __('employee.employee') }}</h2>
 
         <div class="d-flex gap-1">
             <a href="{{ route('employee.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd add-btn">
-                <span class="material-symbols-outlined icon">add</span><span class="text-btn">Add Data</span>
+                <span class="material-symbols-outlined icon">add</span><span class="text-btn">{{ __('employee.add_data') }}</span>
             </a>
             <button type="button" class="btn btn-icon-toggle border-dddd add-btn" data-bs-toggle="modal"
                 data-bs-target="#importEmployeeModal">
-                <span class="material-symbols-outlined icon">upload</span><span class="text-btn">Import Excel</span>
+                <span class="material-symbols-outlined icon">upload</span><span class="text-btn">{{ __('employee.import_excel') }}</span>
             </button>
             <a href="{{ route('employee.download-template') }}" class="btn btn-icon-toggle border-dddd add-btn">
                 <span class="material-symbols-outlined icon">description</span><span class="text-btn">
-                    Template</span>
+                    {{ __('employee.download_template') }}</span>
             </a>
             <a href="{{ url('/employee/export-employee-active') }}" target="_blank"
                 class="btn btn-icon-toggle border-dddd add-btn" style="width: auto; min-width: 20px;">
@@ -54,63 +54,63 @@
 
     <div class="body-content scrollable-container rounded-4 px-3 py-3">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="mb-0 table-title">List Employee</h5>
+            <h5 class="mb-0 table-title">{{ __('employee.list_employee') }}</h5>
 
             <div class="d-flex gap-1">
                 <div class="input-group search-input-container">
                     <input type="text" id="searchInput" class="form-control border-dddd height-38"
-                        placeholder="Search" />
+                        placeholder="{{ __('general.search') }}" />
                 </div>
                 <div class="dropdown">
                     <button class="btn btn-icon-toggle border-dddd filter-btn dropdown-toggle" type="button"
                         id="filterDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="material-symbols-outlined icon">filter_list</span><span
-                            class="text-btn">Filter</span>
+                            class="text-btn">{{ __('general.filter') }}</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end border-0" aria-labelledby="filterDropdownBtn"
                         style="min-width: 300px; padding: 15px;">
                         <form id="filterForm">
                             <div class="mb-3 custom-input">
-                                <label for="sortBy" class="form-label small">Sort By</label>
+                                <label for="sortBy" class="form-label small">{{ __('employee.sort_by') }}</label>
                                 <select id="sortBy" class="form-select form-select-sm">
-                                    <option value="">Select Sort</option>
-                                    <option value="name_asc">Name (A-Z)</option>
-                                    <option value="name_desc">Name (Z-A)</option>
-                                    <option value="hire_date_newest">Hire Date (Newest)</option>
-                                    <option value="hire_date_oldest">Hire Date (Oldest)</option>
-                                    <option value="contract_date_newest">Contract Date (Newest)</option>
-                                    <option value="contract_date_oldest">Contract Date (Oldest)</option>
-                                    <option value="department_asc">Partner (A-Z)</option>
-                                    <option value="department_desc">Partner (Z-A)</option>
-                                    <option value="division_asc">Site (A-Z)</option>
-                                    <option value="division_desc">Site (Z-A)</option>
+                                    <option value="">{{ __('employee.select_sort') }}</option>
+                                    <option value="name_asc">{{ __('employee.name_asc') }}</option>
+                                    <option value="name_desc">{{ __('employee.name_desc') }}</option>
+                                    <option value="hire_date_newest">{{ __('employee.hire_date_newest') }}</option>
+                                    <option value="hire_date_oldest">{{ __('employee.hire_date_oldest') }}</option>
+                                    <option value="contract_date_newest">{{ __('employee.contract_date_newest') }}</option>
+                                    <option value="contract_date_oldest">{{ __('employee.contract_date_oldest') }}</option>
+                                    <option value="department_asc">{{ __('employee.partner_asc') }}</option>
+                                    <option value="department_desc">{{ __('employee.partner_desc') }}</option>
+                                    <option value="division_asc">{{ __('employee.site_asc') }}</option>
+                                    <option value="division_desc">{{ __('employee.site_desc') }}</option>
                                 </select>
                             </div>
 
                             <div class="mb-3 custom-input">
-                                <label for="filterDepartment" class="form-label small">Partner</label>
+                                <label for="filterDepartment" class="form-label small">{{ __('employee.partner') }}</label>
                                 <select id="filterDepartment" class="form-select form-select-sm">
-                                    <option value="">Select Partner</option>
+                                    <option value="">{{ __('employee.select_partner') }}</option>
                                 </select>
                             </div>
 
                             <div class="mb-3 custom-input">
-                                <label for="filterDivision" class="form-label small">Site</label>
+                                <label for="filterDivision" class="form-label small">{{ __('employee.site') }}</label>
                                 <select id="filterDivision" class="form-select form-select-sm" disabled>
-                                    <option value="">Select Site</option>
+                                    <option value="">{{ __('employee.select_site') }}</option>
                                 </select>
                             </div>
                             <div class="mb-3 custom-input">
-                                <label for="filterJob" class="form-label small">Job</label>
+                                <label for="filterJob" class="form-label small">{{ __('employee.job') }}</label>
                                 <select id="filterJob" class="form-select form-select-sm" disabled>
-                                    <option value="">Select Job</option>
+                                    <option value="">{{ __('employee.select_job') }}</option>
                                 </select>
                             </div>
                             <div class="d-flex gap-2">
                                 <button type="button" class="btn btn-submit-black flex-grow-1"
-                                    id="applyFilterBtn">Apply</button>
+                                    id="applyFilterBtn">{{ __('general.apply') }}</button>
                                 <button type="button" class="btn btn-custom-close flex-grow-1"
-                                    id="clearFilterBtn">Clear</button>
+                                    id="clearFilterBtn">{{ __('general.clear') }}</button>
                             </div>
                         </form>
                     </ul>
@@ -123,15 +123,15 @@
                 <table class="table-employee table table-borderless align-middle table-transparent">
                     <thead>
                         <tr>
-                            <th scope="col" style="text-align: left;">Employee</th>
-                            <th scope="col" style="text-align: left;">Hire Date</th>
-                            <th scope="col" style="text-align: left;">Contract Date</th>
-                            <th scope="col" style="text-align: left;">Working Period</th>
-                            <th scope="col" style="text-align: left;">Department Name</th>
-                            <th scope="col" style="text-align: left;">Partner Name</th>
-                            <th scope="col" style="text-align: left;">Site Name</th>
-                            <th scope="col" style="text-align: left;">Office</th>
-                            <th scope="col" style="text-align: center;">Status</th>
+                            <th scope="col" style="text-align: left;">{{ __('employee.employee_col') }}</th>
+                            <th scope="col" style="text-align: left;">{{ __('employee.hire_date_col') }}</th>
+                            <th scope="col" style="text-align: left;">{{ __('employee.contract_date_col') }}</th>
+                            <th scope="col" style="text-align: left;">{{ __('employee.working_period') }}</th>
+                            <th scope="col" style="text-align: left;">{{ __('employee.department_name') }}</th>
+                            <th scope="col" style="text-align: left;">{{ __('employee.partner_name') }}</th>
+                            <th scope="col" style="text-align: left;">{{ __('employee.site_name') }}</th>
+                            <th scope="col" style="text-align: left;">{{ __('employee.office') }}</th>
+                            <th scope="col" style="text-align: center;">{{ __('employee.status') }}</th>
                             <th scope="col" style="text-align: right;"></th>
                         </tr>
                     </thead>
@@ -156,20 +156,20 @@
                 enctype="multipart/form-data" class="modal-content position-relative">
                 @csrf
                 <div class="modal-header modal-header-custom mb-3">
-                    <h5 class="modal-title" id="importEmployeeModalLabel">Import Employee Excel</h5>
+<h5 class="modal-title" id="importEmployeeModalLabel">{{ __('employee.import_employee_excel') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-body-custom mb-3">
                     <div class="mb-3">
-                        <label for="employee_file" class="form-label">File Excel</label>
+                    <label for="employee_file" class="form-label">{{ __('employee.file_excel') }}</label>
                         <input class="form-control" type="file" id="employee_file" name="employee_file"
                             accept=".xlsx,.xls" required>
-                        <div class="form-text">Upload 1 file Excel berisi data employee. Maksimal 20MB.</div>
+                        <div class="form-text">{{ __('employee.upload_excel_hint') }}</div>
                     </div>
                 </div>
                 <div class="modal-footer modal-footer-custom px-2 py-2">
-                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" id="importEmployeeSubmitBtn" class="btn btn-submit-black">Import</button>
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">{{ __('general.cancel') }}</button>
+                    <button type="submit" id="importEmployeeSubmitBtn" class="btn btn-submit-black">{{ __('general.import') }}</button>
                 </div>
                 <div id="importEmployeeLoader" class="loader d-none">
                     <div
@@ -194,7 +194,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <form id="deleteEmployeeForm" class="modal-content">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="deleteEmployeeModalLabel">Confirm Delete Employee</h5>
+<h5 class="modal-title" id="deleteEmployeeModalLabel">{{ __('employee.confirm_delete_employee') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center">
@@ -202,18 +202,18 @@
                     <h5 id="deleteEmployeeName" class="fw-semibold"></h5>
                     <div id="deleteEmployeeEmail" class="text-muted small mb-3"></div>
                     <div class="text-start mx-4">
-                        <p class="mb-1"><strong>Partner:</strong> <span id="deleteEmployeeDepartment"></span></p>
-                        <p class="mb-1"><strong>Site:</strong> <span id="deleteEmployeeDivision"></span></p>
-                        <p class="mb-1"><strong>Office:</strong> <span id="deleteEmployeeOffice"></span></p>
-                        <p class="mb-1"><strong>Status:</strong> <span id="deleteEmployeeStatus"></span></p>
+<p class="mb-1"><strong>{{ __('employee.partner') }}:</strong> <span id="deleteEmployeeDepartment"></span></p>
+                        <p class="mb-1"><strong>{{ __('employee.site') }}:</strong> <span id="deleteEmployeeDivision"></span></p>
+                        <p class="mb-1"><strong>{{ __('employee.office') }}:</strong> <span id="deleteEmployeeOffice"></span></p>
+                        <p class="mb-1"><strong>{{ __('employee.status') }}:</strong> <span id="deleteEmployeeStatus"></span></p>
                     </div>
                 </div>
                 <div class="modal-footer modal-footer-custom modal-footer-delete">
-                    <button type="submit"
-                        class="btn-submit-black btn-submit-custom btn-delete-modal btn-delete-small btn-delete-red">Delete</button>
-                    <button type="button"
-                        class="btn-cancel-delete btn-submit-black btn-submit-custom btn-cancel-small"
-                        data-bs-dismiss="modal">Cancel</button>
+<button type="submit"
+        class="btn-submit-black btn-submit-custom btn-delete-modal btn-delete-small btn-delete-red">{{ __('general.delete') }}</button>
+    <button type="button"
+        class="btn-cancel-delete btn-submit-black btn-submit-custom btn-cancel-small"
+        data-bs-dismiss="modal">{{ __('general.cancel') }}</button>
                 </div>
                 <div id="deleteModalLoader" class="modal-loading-overlay d-none">
                     <div class="loader-spinner"></div>
@@ -228,7 +228,7 @@
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="employeeDetailModalLabel">Employee Detail</h5>
+<h5 class="modal-title modal-title-custom" id="employeeDetailModalLabel">{{ __('employee.employee_detail') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -240,18 +240,18 @@
                         </div>
                         <div class="employee-detail-columns">
                             <div class="employee-detail-left">
-                                <p><strong>Birth Date:</strong> <span id="detailBirthDate"></span></p>
-                                <p><strong>Phone:</strong> <span id="detailPhone"></span></p>
-                                <p><strong>Address:</strong> <span id="detailAddress"></span></p>
+                                <p><strong>{{ __('employee.birth_date') }}:</strong> <span id="detailBirthDate"></span></p>
+                                <p><strong>{{ __('employee.phone') }}:</strong> <span id="detailPhone"></span></p>
+                                <p><strong>{{ __('employee.address') }}:</strong> <span id="detailAddress"></span></p>
                             </div>
                             <div class="employee-detail-right">
-                                <p><strong>Partner:</strong> <span id="detailDepartment"></span></p>
-                                <p><strong>Site:</strong> <span id="detailDivision"></span></p>
-                                <p><strong>Job:</strong> <span id="detailJob"></span></p>
-                                <p><strong>Hire Date:</strong> <span id="detailHireDate"></span></p>
-                                <p><strong>Grade:</strong> <span id="detailGrade"></span></p>
-                                <p><strong>Office:</strong> <span id="detailOffice"></span></p>
-                                <p><strong>Status:</strong> <span id="detailStatus"></span></p>
+                                <p><strong>{{ __('employee.partner') }}:</strong> <span id="detailDepartment"></span></p>
+                                <p><strong>{{ __('employee.site') }}:</strong> <span id="detailDivision"></span></p>
+                                <p><strong>{{ __('employee.job') }}:</strong> <span id="detailJob"></span></p>
+                                <p><strong>{{ __('employee.hire_date_col') }}:</strong> <span id="detailHireDate"></span></p>
+                                <p><strong>{{ __('employee.grade') }}:</strong> <span id="detailGrade"></span></p>
+                                <p><strong>{{ __('employee.office') }}:</strong> <span id="detailOffice"></span></p>
+                                <p><strong>{{ __('employee.status') }}:</strong> <span id="detailStatus"></span></p>
                             </div>
                         </div>
                     </div>

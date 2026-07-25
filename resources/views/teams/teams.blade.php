@@ -12,7 +12,7 @@
     <div class="title-content">
         <div class="d-flex align-items-center">
             <div class="w-100">
-                <h2 class="text-title-content" >Teams</h2>
+                <h2 class="text-title-content" >{{ __('teams.teams') }}</h2>
             </div>
             <div>
                 <input type="text" class="input-card-action search-query">

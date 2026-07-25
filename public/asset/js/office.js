@@ -222,6 +222,7 @@ $(function () {
         function toggleDropdown() {
             const $dropdown = $('#notificationDropdownCard');
             Avatar.hide();
+            Language.hide();
             $dropdown.toggle();
 
             if ($dropdown.is(':visible')) {
@@ -279,8 +280,9 @@ $(function () {
 
     const Avatar = (function () {
         function toggle() {
-            $('#notificationDropdownCard').hide();
-            $('#avatarDropdownCard').toggle();
+            $("#notificationDropdownCard").hide();
+            $("#languageDropdownCard").hide();
+            $("#avatarDropdownCard").toggle();
         }
 
         function hide() {
@@ -309,7 +311,52 @@ $(function () {
         return { init: bindEvents, hide };
     })();
 
+    const Language = (function () {
+        function toggle() {
+            $("#notificationDropdownCard").hide();
+            $("#avatarDropdownCard").hide();
+            $("#languageDropdownCard").toggle();
+        }
+
+        function hide() {
+            $("#languageDropdownCard").hide();
+        }
+
+        function bindEvents() {
+            $(document).on("click", "#languageDropdownToggle", function (e) {
+                e.stopPropagation();
+                toggle();
+            });
+
+            $(document).on("click", "#closeLanguageDropdown", function (e) {
+                e.stopPropagation();
+                hide();
+            });
+
+            $(document).on("click", function (e) {
+                if ($(e.target).closest(".modal, .modal-backdrop").length) {
+                    return;
+                }
+
+                if (
+                    !$(e.target).closest(
+                        "#languageDropdownCard, #languageDropdownToggle",
+                    ).length
+                ) {
+                    hide();
+                }
+            });
+        }
+
+        return {
+            init: bindEvents,
+            hide,
+        };
+    })();
+
     Avatar.init();
     Notif.init();
+    Language.init();
+
     window.fetchNotifications = Notif.refresh;
 });

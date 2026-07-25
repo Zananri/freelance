@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ app()->getLocale() }}">
 
 <head>
 
@@ -27,9 +27,11 @@
 
     <script src="{{ asset('asset/js/office_nav.js?v=' . time()) }}"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     {{-- <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" /> --}}
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
@@ -42,7 +44,7 @@
                 'opsz' 24
         }
     </style>
-    
+
     <link href="{{ asset('asset/css/app.css?v=' . time()) }}" rel="stylesheet">
     <link href="{{ asset('asset/css/office.css?v=' . time()) }}" rel="stylesheet">
     <link href="{{ asset('asset/css/sidebar.css?v=' . time()) }}" rel="stylesheet">
@@ -64,10 +66,25 @@
             <div class="d-inline-block align-middle" id="sidebar-control">
                 <span class="material-symbols-outlined">menu</span>
             </div>
-            
+
         </div>
 
         <div class="box-user-nav d-inline-block pt-4 pe-4 float-end" style="">
+
+            <div class="nav-item d-inline-block me-3">
+                <div class="nav-icon">
+                    <div class="d-flex position-relative" style="cursor: pointer;" id="languageDropdownToggle">
+                        <span class="material-symbols-outlined">
+                            language
+                        </span>
+
+                        <span
+                            class="language-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                            {{ strtoupper(app()->getLocale()) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
 
             <div class="nav-item d-inline-block me-3" style="">
                 <div class="nav-icon">
@@ -117,50 +134,54 @@
                 @endphp
 
                 @if (Auth::check())
-                    <img src="{{ $avatarUrl }}" alt="User Avatar" class="rounded-circle" data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}"
-                        style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;" onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
+                    <img src="{{ $avatarUrl }}" alt="User Avatar" class="rounded-circle" data-global-avatar=""
+                        data-default="{{ asset('asset/img/avatar.png') }}"
+                        style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;"
+                        onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
                 @else
                     <div class="d-inline-block rounded-circle bg-secondary opacity-50"
                         style="width: 40px; height: 40px; cursor: pointer;"></div>
                 @endif
 
                 <div id="avatarDropdownCard" class="card shadow-sm rounded-5" style="display: none;">
-                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3 p-2" id="closeAvatarDropdown"
-                        aria-label="Close"></button>
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3 p-2"
+                        id="closeAvatarDropdown" aria-label="Close"></button>
                     <div class="card-body p-3 pt-2 text-center d-flex flex-column justify-content-center align-items-center"
                         style="min-height: 220px;">
                         <div class="mb-3 mt-3">
                             @if (Auth::check())
-                                <img src="{{ $avatarUrl }}" alt="User Avatar" class="rounded-circle" data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}"
-                                    style="width: 70px; height: 70px; object-fit: cover; " onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
+                                <img src="{{ $avatarUrl }}" alt="User Avatar" class="rounded-circle"
+                                    data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}"
+                                    style="width: 70px; height: 70px; object-fit: cover; "
+                                    onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
                             @else
                                 <div class="d-inline-block rounded-circle bg-secondary opacity-50"
                                     style="width: 70px; height: 70px;"></div>
                             @endif
                         </div>
-                        <div class="fw-semibold text-body mb-1">{{ Auth::check() ? Auth::user()->name : 'Guest' }}
-                        </div>
+            <div class="fw-semibold text-body mb-1">{{ Auth::check() ? Auth::user()->name : __('general.guest') }}
+            </div>
                         <div class="mb-1 text-body-secondary fs-12">
                             {{ Auth::check() ? Auth::user()->email : '' }}
                         </div>
                         <div class="mb-4 text-body-secondary fs-12">
-                            {{ Auth::check() ? optional(auth()->user()->employee->division)->name_division ?? 'No Division' : '' }}
+                    {{ Auth::check() ? optional(auth()->user()->employee->division)->name_division ?? __('general.no_division') : '' }}
                         </div>
 
                         <div class="w-100 p-3">
-                       <form method="POST" action="{{ route('logout') }}" id="form-logout-avatar">
-                           @csrf
-                           <div class="d-flex justify-content-center   align-items-center w-100" >
-                                        <a  class="btn btn-profile-left w-100" href="{{ route('profile') }}">
-                                            <span class="material-symbols-outlined">account_circle</span>
-                                            Profile
-                                        </a>
+                            <form method="POST" action="{{ route('logout') }}" id="form-logout-avatar">
+                                @csrf
+                                <div class="d-flex justify-content-center   align-items-center w-100">
+                                    <a class="btn btn-profile-left w-100" href="{{ route('profile') }}">
+                                        <span class="material-symbols-outlined">account_circle</span>
+                                        Profile
+                                    </a>
 
 
-                                        <button type="submit" class="btn btn-logout-right w-100" >
-                                            <span class="material-symbols-outlined">logout</span>
-                                            Logout
-                                        </button>
+                                    <button type="submit" class="btn btn-logout-right w-100">
+                                        <span class="material-symbols-outlined">logout</span>
+                                        Logout
+                                    </button>
 
                                 </div>
 
@@ -175,7 +196,7 @@
                 @if (Auth::check())
                     <div class="fs-14 fw-medium">{{ auth()->user()->name }}</div>
                     <div class="fs-12 fw-normal text-body text-opacity-75">
-                        {{ optional(auth()->user()->employee->division)->name_division ?? 'No Division' }}
+                        {{ optional(auth()->user()->employee->division)->name_division ?? __('general.no_division') }}
                     </div>
                 @else
                     <div class="fs-14 fw-medium">Guest</div>
@@ -195,9 +216,9 @@
 
     <script>
         // Listener untuk pembaruan foto profil universal
-        window.addEventListener('profilePictureUpdated', function(e){
+        window.addEventListener('profilePictureUpdated', function(e) {
             var newUrl = e.detail && e.detail.url; // bisa null (clear)
-            document.querySelectorAll('img[data-global-avatar], img[data-avatar-universal]').forEach(function(img){
+            document.querySelectorAll('img[data-global-avatar], img[data-avatar-universal]').forEach(function(img) {
                 var fallback = img.getAttribute('data-default');
                 if (newUrl) {
                     img.src = newUrl.indexOf('?t=') !== -1 ? newUrl : (newUrl + '?t=' + Date.now());
@@ -218,36 +239,40 @@
                     <li>
                         <a href="{{ url('dashboard') }}" class="{{ $menu_active == 'dashboard' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">home</span>
-                            <span class="text-menu">Dashboard</span>
+                            <span class="text-menu">{{ __('menu.dashboard') }}</span>
                         </a>
                     </li>
 
                     @php
                         $employeeDivision = strtoupper(auth()->user()->employee->division->name_division);
                         $accessManagementTHD = false;
-                        
+
                         //Management HR
-                        if(auth()->user()->employee->department_id == 1 && auth()->user()->employee->division_id == 1){
+                        if (
+                            auth()->user()->employee->department_id == 1 &&
+                            auth()->user()->employee->division_id == 1
+                        ) {
                             $accessManagementTHD = true;
                         }
                     @endphp
 
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['REGULAR']) && in_array(Auth::user()->user_role,['EMPLOYEE','PERSONAL_ASSISTANT'])) )
-
-                    <li>
-                        <a href="{{ url('attendance') }}"
-                            class="{{ $menu_active == 'attendance' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">today</span>
-                            <span class="text-menu">Attendance</span>
-                        </a>
-                    </li>
-                    
+                    @if (
+                        $accessManagementTHD ||
+                            (in_array(Auth::user()->user_type, ['REGULAR']) &&
+                                in_array(Auth::user()->user_role, ['EMPLOYEE', 'PERSONAL_ASSISTANT'])))
+                        <li>
+                            <a href="{{ url('attendance') }}"
+                                class="{{ $menu_active == 'attendance' ? 'active' : '' }}">
+                                <span class="material-symbols-outlined">today</span>
+                                <span class="text-menu">{{ __('menu.attendance') }}</span>
+                            </a>
+                        </li>
                     @endif
 
                     <li>
                         <a href="{{ route('teams') }}" class="{{ $menu_active == 'teams' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">group</span>
-                            <span class="text-menu">Teams</span>
+                            <span class="text-menu">{{ __('menu.teams') }}</span>
                         </a>
                     </li>
 
@@ -268,146 +293,169 @@
                             <li><a href="#"><span class="status-indicator project-on-hold"></span> Grade</a></li>
                         </ul>
                     </li> --}}
-                    
+
                     <li>
                         <a href="{{ route('calendar') }}" class="{{ $menu_active == 'calendar' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">calendar_month</span>
-                            <span class="text-menu">Calendar</span>
+                            <span class="text-menu">{{ __('menu.calendar') }}</span>
                         </a>
                     </li>
 
                     <li>
                         <a href="{{ route('profile') }}" class="{{ $menu_active == 'profile' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">account_circle</span>
-                            <span class="text-menu">Profile</span>
+                            <span class="text-menu">{{ __('menu.profile') }}</span>
                         </a>
                     </li>
 
                     <li>
                         <a href="{{ route('document') }}" class="{{ $menu_active == 'document' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">folder</span>
-                            <span class="text-menu">Document</span>
+                            <span class="text-menu">{{ __('menu.documents') }}</span>
                         </a>
                     </li>
-                    
 
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
-                    <li>
-                        <a href="{{ route('monitoring') }}" class="{{ $menu_active == 'monitoring' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">monitor</span>
-                            <span class="text-menu">Monitoring</span>
-                        </a>
-                    </li>
-                    @endif
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
-                    <li>
-                        <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">schedule</span>
-                            <span class="text-menu">Shift</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('weekday_off') }}" class="{{ $menu_active == 'weekday_off' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">date_range</span>
-                            <span class="text-menu">Weekday Off</span>
-                        </a>
-                    </li>
-                    @endif
 
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
-                    <li>
-                        <a href="{{ route('employee') }}" class="{{ $menu_active == 'employee' ? 'active' : '' }}  menu-employee ">
-                            <span class="material-symbols-outlined">groups</span>
-                            <span class="text-menu">Employee</span>
-                            <div class="pill-new-request d-none"></div>
-                        </a>
-                    </li>
+                    @if (
+                        $accessManagementTHD ||
+                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
+                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'HR_MANAGER'])))
+                        <li>
+                            <a href="{{ route('monitoring') }}"
+                                class="{{ $menu_active == 'monitoring' ? 'active' : '' }}">
+                                <span class="material-symbols-outlined">monitor</span>
+                                <span class="text-menu">{{ __('menu.monitoring') }}</span>
+                            </a>
+                        </li>
                     @endif
-                    
-
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
-                    
-                    <li>
-                        <a href="{{ route('salary_payslip') }}" class="{{ $menu_active == 'salary_payslip' ? 'active' : '' }}  menu-salary-payslip ">
-                            <span class="material-symbols-outlined">attach_money</span>
-                            <span class="text-menu">Salary & Payslip</span>
-                            <div class="pill-new-request d-none"></div>
-                        </a>
-                    </li>
-                    
-                    @endif
-                    
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
-                    
-                    <li>
-                        <a href="{{ route('recruitment') }}" class="{{ $menu_active == 'recruitment' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">badge</span>
-                            <span class="text-menu">Recruitment</span>
-                        </a>
-                    </li>
+                    @if (
+                        $accessManagementTHD ||
+                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
+                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'HR_MANAGER'])))
+                        <li>
+                            <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">
+                                <span class="material-symbols-outlined">schedule</span>
+                                <span class="text-menu">{{ __('menu.shift') }}</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('weekday_off') }}"
+                                class="{{ $menu_active == 'weekday_off' ? 'active' : '' }}">
+                                <span class="material-symbols-outlined">date_range</span>
+                                <span class="text-menu">{{ __('menu.weekday_off') }}</span>
+                            </a>
+                        </li>
                     @endif
 
-                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
-                    
-                    <li>
-                        <a href="{{ route('attendance_tracking') }}" class="{{ $menu_active == 'attendance_tracking' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">calendar_clock</span>
-                            <span class="text-menu">Attendance Tracking</span>
-                        </a>
-                    </li>
+                    @if (
+                        $accessManagementTHD ||
+                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
+                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'HR_MANAGER'])))
+                        <li>
+                            <a href="{{ route('employee') }}"
+                                class="{{ $menu_active == 'employee' ? 'active' : '' }}  menu-employee ">
+                                <span class="material-symbols-outlined">groups</span>
+                                <span class="text-menu">{{ __('menu.employee') }}</span>
+                                <div class="pill-new-request d-none"></div>
+                            </a>
+                        </li>
                     @endif
 
-                    @if ($accessManagementTHD ||(in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
-                    <li>
-                        <a href="{{ route('leave') }}" class="{{ $menu_active == 'leave' ? 'active' : '' }} menu-leave">
-                            <span class="material-symbols-outlined">free_cancellation</span>
-                            <span class="text-menu">Leave</span>
-                            <div class="pill-new-request d-none"></div>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('overtime') }}" class="{{ $menu_active == 'overtime' ? 'active' : '' }} menu-overtime">
-                            <span class="material-symbols-outlined">more_time</span>
-                            <span class="text-menu">Overtime</span>
-                            <div class="pill-new-request d-none"></div>
-                        </a>
-                    </li>
-                    {{-- <li>
+
+                    @if (
+                        $accessManagementTHD ||
+                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
+                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'HR_MANAGER'])))
+                        <li>
+                            <a href="{{ route('salary_payslip') }}"
+                                class="{{ $menu_active == 'salary_payslip' ? 'active' : '' }}  menu-salary-payslip ">
+                                <span class="material-symbols-outlined">attach_money</span>
+                                <span class="text-menu">{{ __('menu.salary_payslip') }}</span>
+                                <div class="pill-new-request d-none"></div>
+                            </a>
+                        </li>
+                    @endif
+
+                    @if (
+                        $accessManagementTHD ||
+                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
+                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'HR_MANAGER'])))
+                        <li>
+                            <a href="{{ route('recruitment') }}"
+                                class="{{ $menu_active == 'recruitment' ? 'active' : '' }}">
+                                <span class="material-symbols-outlined">badge</span>
+                                <span class="text-menu">{{ __('menu.recruitment') }}</span>
+                            </a>
+                        </li>
+                    @endif
+
+                    @if (
+                        $accessManagementTHD ||
+                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
+                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'HR_MANAGER'])))
+                        <li>
+                            <a href="{{ route('attendance_tracking') }}"
+                                class="{{ $menu_active == 'attendance_tracking' ? 'active' : '' }}">
+                                <span class="material-symbols-outlined">calendar_clock</span>
+                                <span class="text-menu">{{ __('menu.attendance_tracking') }}</span>
+                            </a>
+                        </li>
+                    @endif
+
+                    @if (
+                        $accessManagementTHD ||
+                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
+                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'HR_MANAGER'])))
+                        <li>
+                            <a href="{{ route('leave') }}"
+                                class="{{ $menu_active == 'leave' ? 'active' : '' }} menu-leave">
+                                <span class="material-symbols-outlined">free_cancellation</span>
+                                <span class="text-menu">{{ __('menu.leave') }}</span>
+                                <div class="pill-new-request d-none"></div>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('overtime') }}"
+                                class="{{ $menu_active == 'overtime' ? 'active' : '' }} menu-overtime">
+                                <span class="material-symbols-outlined">more_time</span>
+                                <span class="text-menu">{{ __('menu.overtime') }}</span>
+                                <div class="pill-new-request d-none"></div>
+                            </a>
+                        </li>
+                        {{-- <li>
                         <a href="#">
                             <span class="material-symbols-outlined">notifications</span> Notification
                             <span class="notification-badge">4</span>
                         </a>
                     </li> --}}
-                    
                     @endif
 
                     @if (Auth::user()->user_type === 'SUPERADMIN')
-                    
+                        <li>
+                            <a href="{{ route('master') }}" class="{{ $menu_active == 'master' ? 'active' : '' }}">
+                                <span class="material-symbols-outlined">database</span>
+                                <span class="text-menu">{{ __('menu.master') }}</span>
+                            </a>
+                        </li>
 
-                    <li>
-                        <a href="{{ route('master') }}" class="{{ $menu_active == 'master' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">database</span>
-                            <span class="text-menu">Master</span>
-                        </a>
-                    </li>
-                    
-                    <li>
-                        <a href="{{ route('settings') }}" class="{{ $menu_active == 'settings' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">settings</span>
-                            <span class="text-menu">Settings</span>
-                        </a>
-                    </li>
-
+                        <li>
+                            <a href="{{ route('settings') }}"
+                                class="{{ $menu_active == 'settings' ? 'active' : '' }}">
+                                <span class="material-symbols-outlined">settings</span>
+                                <span class="text-menu">{{ __('menu.settings') }}</span>
+                            </a>
+                        </li>
                     @endif
 
                     <li>
-                        <form method="POST" action="{{ route('logout') }}" class="d-none" id="form-logout-sidebar"  >
+                        <form method="POST" action="{{ route('logout') }}" class="d-none"
+                            id="form-logout-sidebar">
                             @csrf
                             <button type="submit" class="" id="btn-sidebar-logout">SUBMIT</button>
                         </form>
                         <a href="#" class="" onclick="$('#btn-sidebar-logout').click();">
                             <span class="material-symbols-outlined">logout</span>
-                            <span class="text-menu">Logout</span>
+                            <span class="text-menu">{{ __('menu.logout') }}</span>
                         </a>
                     </li>
 
@@ -433,33 +481,101 @@
         </div>
     </div>
 
-    <!-- Notification Dropdown Card -->
-    <div id="notificationDropdownCard" class="card shadow-sm rounded-5" style="display: none;">
-        
-
-        <div class="position-absolute top-0 end-0" id="closeNotificationDropdown">
+    <div id="languageDropdownCard" class="card shadow-sm rounded-5" style="display: none;">
+        <div class="position-absolute top-0 end-0" id="closeLanguageDropdown">
             <span class="material-symbols-outlined">
-            close
+                close
             </span>
         </div>
-        
+
         <div class="card-body p-0">
             <div class="p-3 border-bottom">
                 <div class="d-flex w-100 align-items-center">
                     <div class="icon-notification">
-                        <span class="material-symbols-outlined me-2 align-middle fs-18 text-secondary">notifications</span>
+                        <span class="material-symbols-outlined me-2 align-middle fs-18 text-secondary">
+                            language
+                        </span>
+                    </div>
+
+                    <div class="text-notification">
+                        <span class="fs-14 fw-medium">
+                            {{ app()->isLocale('id') ? 'Pilih Bahasa' : 'Choose Language' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="language-list p-2">
+                <a href="{{ route('language.change', 'id') }}"
+                    class="language-item d-flex align-items-center justify-content-between text-decoration-none rounded-4 px-3 py-3
+                    {{ app()->isLocale('id') ? 'active' : '' }}">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="language-code">ID</span>
+
+                        <div>
+                            <div class="language-name">Indonesia</div>
+                            <div class="language-description">Bahasa Indonesia</div>
+                        </div>
+                    </div>
+
+                    @if (app()->isLocale('id'))
+                        <span class="material-symbols-outlined language-selected-icon">
+                            check_circle
+                        </span>
+                    @endif
+                </a>
+
+                <a href="{{ route('language.change', 'en') }}"
+                    class="language-item d-flex align-items-center justify-content-between text-decoration-none rounded-4 px-3 py-3
+                    {{ app()->isLocale('en') ? 'active' : '' }}">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="language-code">EN</span>
+
+                        <div>
+                            <div class="language-name">English</div>
+                            <div class="language-description">English Language</div>
+                        </div>
+                    </div>
+
+                    @if (app()->isLocale('en'))
+                        <span class="material-symbols-outlined language-selected-icon">
+                            check_circle
+                        </span>
+                    @endif
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Dropdown Card -->
+    <div id="notificationDropdownCard" class="card shadow-sm rounded-5" style="display: none;">
+
+
+        <div class="position-absolute top-0 end-0" id="closeNotificationDropdown">
+            <span class="material-symbols-outlined">
+                close
+            </span>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="p-3 border-bottom">
+                <div class="d-flex w-100 align-items-center">
+                    <div class="icon-notification">
+                        <span
+                            class="material-symbols-outlined me-2 align-middle fs-18 text-secondary">notifications</span>
                     </div>
                     <div class="text-notification">
                         <span class="fs-14 fw-medium">
-                            Notification
+                            {{ __('general.notification') }}
                         </span>
                     </div>
                 </div>
             </div>
             <div class="px-3 pt-2 pb-2 border-bottom">
-                <label for="notificationSelectAll" class="nsa-selectall-chip">
-                    <input class="form-check-input me-2" type="checkbox" value="1" id="notificationSelectAll" />
-                    <span>Accept all</span>
+                    <label for="notificationSelectAll" class="nsa-selectall-chip">
+                    <input class="form-check-input me-2" type="checkbox" value="1"
+                        id="notificationSelectAll" />
+                    <span>{{ __('general.accept_all') }}</span>
                 </label>
             </div>
             <div class="notification-list" id="notificationList">
@@ -485,7 +601,7 @@
     </svg>
 
 
-    
+
     <script src="{{ asset('asset/js/jquery-3.7.1.min.js') }}"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
@@ -498,12 +614,12 @@
     <script src="{{ asset('asset/js/app.js?v=' . time()) }}"></script>
     <script src="{{ asset('asset/js/office.js?v=' . time()) }}"></script>
 
-    @if (in_array(Auth::user()->user_type,['SUPERADMIN','ADMINISTRATOR']))
-    <script src="{{ asset('asset/js/hr_info.js')}}?v={{time() }}"></script>
+    @if (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']))
+        <script src="{{ asset('asset/js/hr_info.js') }}?v={{ time() }}"></script>
     @endif
 
     @isset($script_slot)
-    {{ $script_slot }}
+        {{ $script_slot }}
     @endisset
 
 

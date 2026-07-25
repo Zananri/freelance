@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'leave' => 'Cuti',
+    'leave_request' => 'Permohonan Cuti',
+    'annual_leave' => 'Cuti Tahunan',
+    'use_annual_leave' => 'Penggunaan Cuti Tahunan',
+    'sick' => 'Sakit',
+    'employee' => 'Karyawan',
+    'search' => 'Cari',
+    'approve_leave_request' => 'Setujui Permohonan Cuti',
+    'reject_leave_request' => 'Tolak Permohonan Cuti',
+    'approve' => 'Setujui',
+    'reject' => 'Tolak',
+    'cancel' => 'Batal',
+    'are_you_sure_approve' => 'Apakah Anda yakin menyetujui permohonan cuti ini?',
+    'are_you_sure_reject' => 'Apakah Anda yakin menolak permohonan cuti ini?',
+    'reject_reason' => 'Alasan Penolakan',
+    'please_input_reason' => 'Silakan masukkan alasan',
+    'close' => 'Tutup',
+    'submit' => 'Kirim',
+    'annual_leave_quota' => 'Cuti Tahunan :year',
+    'edit_annual_leave' => 'Ubah Cuti Tahunan',
+    'please_input_quota' => 'Silakan masukkan kuota cuti tahunan',
+];
+

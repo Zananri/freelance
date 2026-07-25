@@ -7,7 +7,7 @@
     </x-slot>
 
     <div class="title-content d-flex align-items-center mb-4">
-        <h2 class="m-0">Profile</h2>
+        <h2 class="m-0">{{ __('profile.profile') }}</h2>
     </div>
 
     <div class="scrollable rounded-4">        

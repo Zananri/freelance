@@ -1,6 +1,6 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('dashboard') }}
+        {{ __('dashboard.dashboard') }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/dashboard_management.css') }}?v={{ time() }}" rel="stylesheet">
@@ -11,7 +11,7 @@
     </x-slot>
 
     <div class="title-content">
-        <h2>Dashboard</h2>
+        <h2>{{ __('menu.dashboard') }}</h2>
     </div>
 
     <div class="content-container scrollbar-transparent pe-3">
@@ -21,7 +21,7 @@
             <div class="col-md-9 pb-4">
                 <div class="card-content p-3 dashboard-widget-card">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3 class="fs-18 fw-normal text-body text-opacity-75 mb-0">Monitoring</h3>
+                        <h3 class="fs-18 fw-normal text-body text-opacity-75 mb-0">{{ __('menu.monitoring') }}</h3>
                         <a href="{{ url('/monitoring') }}" class="widget-link">
                             View All
                             <span class="material-symbols-outlined">chevron_right</span>
@@ -55,7 +55,7 @@
                 <div class="card-content p-3 dashboard-widget-card document-widget-card">
                     <div class="d-flex justify-content-between align-items-center mb-3 document-widget-header">
                         <h3 class="fs-18 fw-normal text-body text-opacity-75 mb-0">
-                            Document
+                            {{ __('menu.documents') }}
                         </h3>
 
                         <a href="{{ url('/document') }}" class="widget-link">

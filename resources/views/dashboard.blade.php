@@ -1,6 +1,6 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('dashboard') }}
+        {{ __('dashboard.dashboard') }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/dashboard.css') . '?v=' . time() }}" rel="stylesheet">
@@ -13,7 +13,7 @@
     </x-slot>
 
     <div class="title-content mx-4">
-        <h2>Dashboard</h2>
+        <h2>{{ __('menu.dashboard') }}</h2>
     </div>
 
     <div class="dashboard-container justify-content-center align-items-center">
@@ -234,7 +234,7 @@
                     <div class="col-12 card-fill">
                         <div class="rounded-4 p-4 body-card">
                             <div class="header-card d-flex justify-content-between mb-3">
-                                <h5 class="mb-3 fw-normal" style="color: #454545;">Attendance Summary</h5>
+                            <h5 class="mb-3 fw-normal" style="color: #454545;">{{ __('general.attendance_summary') }}</h5>
 
                                 <div class="dropdown dropdown-attendance">
                                     <button class="btn attendance-month-btn dropdown-toggle" type="button"
@@ -323,7 +323,7 @@
             <div class="col-md-4 mb-3">
                 <div class="rounded-4 p-4 body-card d-flex flex-column ">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-normal" style="color: #454545">My Documents</h5>
+                        <h5 class="fw-normal" style="color: #454545">{{ __('menu.documents') }}</h5>
                         <a class="btn btn-link p-0" href="{{ route('document') }}">
                             <span class="material-symbols-outlined text-secondary">chevron_right</span>
                         </a>

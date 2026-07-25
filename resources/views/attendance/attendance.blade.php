@@ -1,6 +1,6 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('attendance') }}
+        {{ __('attendance.attendance') }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/attendance.css') }}?v={{ time() }}" rel="stylesheet">
@@ -8,7 +8,7 @@
     </x-slot>
 
     <div class="title-content">
-        <h2 class="text-title-content">Attendance</h2>
+        <h2 class="text-title-content">{{ __('attendance.attendance') }}</h2>
         <input type="hidden" name="employee_id" value="{{ $employee->id }}">
         <input type="hidden" name="employee_office" value="{{$office->location}}">
                                

@@ -12,7 +12,7 @@
     <div class="title-content">
         <div class="d-flex align-items-center gap-3">
             <div class="w-100">
-                <h2 class="text-title-content" >Calendar</h2>
+                <h2 class="text-title-content" >{{ __('calendar.calendar') }}</h2>
                 <input type="hidden" name="current_employee" value="{{ $current_employee->id }}">
             </div>
             <div>

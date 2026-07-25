@@ -528,25 +528,65 @@ function updateSortIcon() {
 }
 
 function renderBreadcrumb(breadcrumb = []) {
+    const documentsLabel =
+        breadcrumbContainer.dataset.documentsLabel || "Documents";
+
     let html = "";
+
     if (breadcrumb.length === 0) {
-        breadcrumbContainer.innerHTML =
-            '<span class="breadcrumb-root">Documents</span>';
+        breadcrumbContainer.innerHTML = `
+            <span class="breadcrumb-root">
+                ${documentsLabel}
+            </span>
+        `;
+
         return;
     }
+
     const items =
-        breadcrumb.length > 3 ? [...breadcrumb.slice(-3)] : [...breadcrumb];
+        breadcrumb.length > 3
+            ? [...breadcrumb.slice(-3)]
+            : [...breadcrumb];
+
     if (breadcrumb.length > 3) {
-        items.unshift({ id: null, folder_name: "Documents" });
+        items.unshift({
+            id: null,
+            folder_name: documentsLabel,
+            is_root: true,
+        });
     }
+
     items.forEach((item, index) => {
-        const isRoot = item.folder_name === "Documents";
-        html += `<span class="${isRoot ? "breadcrumb-root breadcrumb-clickable" : "breadcrumb-folder"}" data-id="${item.id ?? ""}">${item.folder_name}</span>`;
+        const isRoot =
+            item.is_root === true ||
+            item.folder_name === "Documents";
+
+        const folderName = isRoot
+            ? documentsLabel
+            : item.folder_name;
+
+        html += `
+            <span
+                class="${
+                    isRoot
+                        ? "breadcrumb-root breadcrumb-clickable"
+                        : "breadcrumb-folder"
+                }"
+                data-id="${item.id ?? ""}"
+            >
+                ${folderName}
+            </span>
+        `;
+
         if (index !== items.length - 1) {
-            html +=
-                '<span class="material-symbols-outlined breadcrumb-arrow">chevron_right</span>';
+            html += `
+                <span class="material-symbols-outlined breadcrumb-arrow">
+                    chevron_right
+                </span>
+            `;
         }
     });
+
     breadcrumbContainer.innerHTML = html;
 }
 

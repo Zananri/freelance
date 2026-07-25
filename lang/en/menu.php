@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'dashboard' => 'Dashboard',
+    'employees' => 'Employees',
+    'teams' => 'Teams',
+    'calendar' => 'Calendar',
+    'profile' => 'Profile',
+    'salary_payslip' => 'Salary Payslip',
+    'monitoring' => 'Monitoring',
+    'recruitment' => 'Recruitment',
+    'payroll' => 'Payroll',
+    'documents' => 'Documents',
+    'settings' => 'Settings',
+    'logout' => 'Logout',
+    'language' => 'Language',
+    'shift' => 'Shift',
+    'leave' => 'Leave',
+    'overtime' => 'Overtime',
+    'master' => 'Master',
+    'attendance' => 'Attendance',
+    'employee' => 'Employee',
+    'weekday_off' => 'Weekday Off',
+    'attendance_tracking' => 'Attendance Tracking',
+];

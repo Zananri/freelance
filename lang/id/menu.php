@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'dashboard' => 'Dasbor',
+    'employees' => 'Karyawan',
+    'teams' => 'Tim',
+    'calendar' => 'Kalendar',
+    'profile' => 'Profil',
+    'documents' => 'Dokumen',
+    'salary_payslip' => 'Slip Gaji',
+    'attendance' => 'Kehadiran',
+    'monitoring' => 'Pemantauan',
+    'recruitment' => 'Rekrutmen',
+    'payroll' => 'Penggajian',
+    'settings' => 'Pengaturan',
+    'logout' => 'Keluar',
+    'language' => 'Bahasa',
+    'weekday_off' => 'Hari Libur',
+    'shift' => 'Shift',
+    'leave' => 'Cuti',
+    'overtime' => 'Lembur',
+    'master' => 'Master',
+    'employee' => 'Karyawan',
+    'attendance_tracking' => 'Pelacakan Kehadiran',
+];

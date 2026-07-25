@@ -1,6 +1,6 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('document') }}
+        {{ __('document.documents') }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/document.css') }}?v={{ date('YmdHi') }}" rel="stylesheet">
@@ -15,7 +15,8 @@
         <meta name="current-user-role" content="{{ $currentUserRole }}">
         <meta name="current-employee-id" content="{{ $currentEmployee?->id ?? '' }}">
         <meta name="current-employee-department-id" content="{{ $currentEmployee?->department_id ?? '' }}">
-        <meta name="current-employee-department-name" content="{{ $currentEmployee?->department?->name_department ?? '' }}">
+        <meta name="current-employee-department-name"
+            content="{{ $currentEmployee?->department?->name_department ?? '' }}">
     </x-slot>
 
     <!-- SVG Symbols -->
@@ -37,7 +38,7 @@
     <div class="title-content mb-3">
         <div class="d-flex align-items-center">
             <div class="w-100">
-                <h2 id="breadcrumbDocument" class="text-title-content"></h2>
+                <h2 id="breadcrumbDocument" class="text-title-content" data-documents-label="{{ __('document.documents') }}"></h2>
             </div>
             <div class="view-switcher me-2">
                 <div class="switch-indicator"></div>
@@ -66,7 +67,8 @@
                             <div class="filter-panel-title">Quick Filters</div>
                             <div class="filter-panel-subtitle">Refine documents without leaving the page</div>
                         </div>
-                        <button type="button" class="btn btn-link p-0 filter-reset-btn" id="btnResetDocumentFilters">Reset</button>
+                        <button type="button" class="btn btn-link p-0 filter-reset-btn"
+                            id="btnResetDocumentFilters">Reset</button>
                     </div>
                     <div class="filter-section mb-3">
                         <div class="filter-section-title">Access</div>
@@ -227,7 +229,7 @@
                     <div class="modal-body modal-footer-custom">
 
                         <input type="hidden" id="parent_folder_id" name="parent_folder_id">
-                        
+
                         <div class="mb-3">
 
                             <label class="form-label label-custom">
@@ -312,7 +314,8 @@
                                 Folder Name
                             </label>
 
-                            <input type="text" class="form-control input-text border-0" id="edit_folder_name" name="folder_name" placeholder="Enter folder name">
+                            <input type="text" class="form-control input-text border-0" id="edit_folder_name"
+                                name="folder_name" placeholder="Enter folder name">
 
                         </div>
 
@@ -378,7 +381,8 @@
                         <input type="hidden" id="edit_file_id" name="file_id">
                         <div class="mb-3">
                             <label class="form-label label-custom">File Name</label>
-                            <input type="text" class="form-control input-text border-0" id="edit_file_name" name="file_name" placeholder="Enter file name">
+                            <input type="text" class="form-control input-text border-0" id="edit_file_name"
+                                name="file_name" placeholder="Enter file name">
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
@@ -427,7 +431,11 @@
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>
 
     <x-slot name="script_slot">
-
+        <script>
+            window.documentTranslations = {
+                documents: @json(__('document.documents')),
+            };
+        </script>
         <script src="{{ asset('asset/js/document.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/date_helper.js') }}"></script>
 

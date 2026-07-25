@@ -1,6 +1,6 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('monitoring') }}
+        {{ __('monitoring.monitoring') }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/monitoring.css') }}?v={{ date('YmdHi') }}" rel="stylesheet">
@@ -29,7 +29,7 @@
     <div class="title-content mb-3">
         <div class="d-flex align-items-center">
             <div class="w-100">
-                <h2 class="text-title-content">Monitoring</h2>
+                <h2 class="text-title-content">{{ __('monitoring.monitoring') }}</h2>
             </div>
         </div>
     </div>
