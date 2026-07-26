@@ -32,6 +32,7 @@ $('#btn-new-event').click(function(){
 
 
 let currentDate = new Date();
+const appLocale = $('meta[name="app-locale"]').attr('content') || 'en';
 
 async function renderCalendar(year, month) {
     
@@ -40,12 +41,18 @@ async function renderCalendar(year, month) {
 
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
-    const monthNames = new Date(year,month);
 
+    const monthLocale = appLocale === "id" ? "id-ID" : "en-US";
+    const calendarDate = new Date(year, month, 1);
 
-    $('.calendar-month').text(`${currentDate.toLocaleString('default', { month: 'long' })}`);
-    $('.calendar-year').text(`${year}`);
+    $(".calendar-month").text(
+        calendarDate.toLocaleString(monthLocale, {
+            month: "long",
+        })
+    );
 
+    $(".calendar-year").text(year);
+    
     let day = 1;
     let row = $('<tr>');
     const pad = (n, len = 2) => String(n).padStart(len, '0');
@@ -104,14 +111,16 @@ $('.calendar-next-month').click(function() {
     renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
 });
 
-$(document).on('click','.dropdown-month .month-item',function(){
-    let monthNum = $(this).attr('data-month');
-    
-    currentDate.setMonth(parseInt(monthNum));
+$(document).on("click", ".dropdown-month .month-item", function () {
+    const monthNum = Number($(this).data("month"));
 
-    renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    currentDate.setDate(1);
+    currentDate.setMonth(monthNum - 1);
 
-    //$('.dropdown-month.show').removeClass('show');
+    renderEventCalendar(
+        currentDate.getFullYear(),
+        currentDate.getMonth()
+    );
 });
 
 let ARR_DATA_CALENDAR = [];

@@ -8,6 +8,8 @@ $(function () {
         exportExcel: "/recruitment/export",
     };
 
+    const lang = window.recruitmentLang || {};
+
     const today = new Date();
 
     const start = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -121,13 +123,13 @@ $(function () {
                                 <li>
                                     <a class="dropdown-item candidate-action-next ${nextStatus ? "" : "disabled"}" href="#" data-id="${candidate.id}" data-target-status="${nextStatus || ""}">
                                         <span class="material-symbols-outlined">arrow_forward</span>
-                                        Next${nextStatus ? `: ${nextStatus}` : ""}
+                                        ${lang.next || "Next"}${nextStatus ? `: ${nextStatus}` : ""}
                                     </a>
                                 </li>
                                 <li>
                                     <a class="dropdown-item candidate-action-prev ${prevStatus ? "" : "disabled"}" href="#" data-id="${candidate.id}" data-target-status="${prevStatus || ""}">
                                         <span class="material-symbols-outlined">arrow_back</span>
-                                        Prev${prevStatus ? `: ${prevStatus}` : ""}
+                                        ${lang.prev || "Prev"}${prevStatus ? `: ${prevStatus}` : ""}
                                     </a>
                                 </li>
                                 <li>
@@ -136,13 +138,13 @@ $(function () {
                                 <li>
                                     <a class="dropdown-item candidate-action-edit" href="#" data-id="${candidate.id}">
                                         <span class="material-symbols-outlined">edit</span>
-                                        Edit
+                                        ${lang.edit || "Edit"}
                                     </a>
                                 </li>
                                 <li>
                                     <a class="dropdown-item text-danger candidate-action-delete" href="#" data-id="${candidate.id}">
                                         <span class="material-symbols-outlined">delete</span>
-                                        Delete
+                                        ${lang.delete || "Delete"}
                                     </a>
                                 </li>
                             </ul>
@@ -161,7 +163,7 @@ $(function () {
                             </div>
                         </div>
                         <div class="pipeline-body">
-                            ${cards || '<div class="text-muted small">No candidates</div>'}
+                            ${cards || `<div class="text-muted small">${lang.no_candidates || "No candidates"}</div>`}
                         </div>
                     </div>
                 </div>
@@ -288,7 +290,7 @@ $(function () {
                 .join("");
 
             $(targetSelector).html(
-                `<option value="">Select Position</option>${options}`,
+                `<option value="">${lang.select_position || "Select Position"}</option>${options}`,
             );
 
             if (selectedId) {
@@ -307,7 +309,7 @@ $(function () {
             `).join("");
 
             $("#scheduleCandidateId").html(
-                `<option value="">Select Candidate</option>${options}`
+                `<option value="">${lang.select_candidate || "Select Candidate"}</option>${options}`
             );
 
             if (selectedId) {
@@ -319,7 +321,7 @@ $(function () {
     function resetScheduleForm() {
         $("#scheduleForm")[0].reset();
         $("#scheduleForm").data("mode", "create").data("id", null);
-        $("#scheduleModalLabel").text("Add Schedule");
+        $("#scheduleModalLabel").text(lang.add_schedule_title || "Add Schedule");
         $("#deleteScheduleBtn").addClass("d-none");
     }
 
@@ -370,7 +372,7 @@ $(function () {
                 );
             })
             .fail((xhr) =>
-                showFloatingAlert("Something went wrong, please try again"),
+                showFloatingAlert(lang.something_wrong || "Something went wrong, please try again"),
             );
     }
 
@@ -405,17 +407,18 @@ $(function () {
                     data: payload,
                 })
                     .done((response) => {
-                        showFloatingAlert(`Candidate moved to ${targetStatus}`);
+                        const message = (lang.candidate_moved_to || "Candidate moved to :status").replace(":status", targetStatus);
+                        showFloatingAlert(message);
                         refreshDashboard();
                     })
                     .fail((xhr) =>
                         showFloatingAlert(
-                            "Something went wrong please try again",
+                            lang.something_wrong || "Something went wrong please try again",
                         ),
                     );
             })
             .fail((xhr) =>
-                showFloatingAlert("Something went wrong please try again"),
+                showFloatingAlert(lang.something_wrong || "Something went wrong please try again"),
             );
     }
 
@@ -426,7 +429,7 @@ $(function () {
             if (id) {
                 $.get(`${routes.schedules}/${id}`).done((schedule) => {
                     $("#scheduleForm").data("mode", "edit").data("id", id);
-                    $("#scheduleModalLabel").text("Edit Schedule");
+                    $("#scheduleModalLabel").text(lang.edit_schedule || "Edit Schedule");
 
                     $("#deleteScheduleBtn")
                         .removeClass("d-none")
@@ -515,7 +518,7 @@ $(function () {
 
         if (!schedules.length) {
             body.append(
-                '<li class="list-group-item text-muted small border-0">No schedules found.</li>',
+                `<li class="list-group-item text-muted small border-0">${lang.no_schedules_found || "No schedules found."}</li>`,
             );
             return;
         }
@@ -566,7 +569,7 @@ $(function () {
             month: "long",
             year: "numeric",
         });
-        $("#scheduleMonthListTitle").text(`Schedule List - ${label}`);
+        $("#scheduleMonthListTitle").text(`${lang.schedule_list || "Schedule List"} - ${label}`);
         $("#scheduleSearchModeGroup button").removeClass("active");
         $('#scheduleSearchModeGroup button[data-mode="monthly"]').addClass(
             "active",
@@ -673,12 +676,12 @@ $(function () {
 
         $.post(routes.candidates, payload)
             .done((response) => {
-                showFloatingAlert("success", response.message);
+                showFloatingAlert(response.message);
                 $("#candidateAddModal").modal("hide");
                 refreshDashboard();
             })
             .fail((xhr) =>
-                showFloatingAlert("Something went wrong please try again"),
+                showFloatingAlert(lang.something_wrong || "Something went wrong please try again"),
             );
     });
 
@@ -707,12 +710,12 @@ $(function () {
             data: payload,
         })
             .done((response) => {
-                showFloatingAlert("success", response.message);
+                showFloatingAlert(response.message);
                 $("#candidateEditModal").modal("hide");
                 refreshDashboard();
             })
             .fail((xhr) =>
-                showFloatingAlert("Something went wrong please try again"),
+                showFloatingAlert(lang.something_wrong || "Something went wrong please try again"),
             );
     });
 
@@ -729,13 +732,13 @@ $(function () {
 
         $.ajax({ url: `${routes.candidates}/${id}`, method: "DELETE" })
             .done((response) => {
-                showFloatingAlert("success", response.message);
+                showFloatingAlert(response.message);
                 $("#confirmDeleteCandidateModal").modal("hide");
                 refreshDashboard();
             })
             .fail((xhr) => {
                 $("#confirmDeleteCandidateModal").modal("hide");
-                showFloatingAlert("Something went wrong please try again");
+                showFloatingAlert(lang.something_wrong || "Something went wrong please try again");
             });
     });
 
@@ -767,41 +770,41 @@ $(function () {
 
         request
             .done((response) => {
-                showFloatingAlert("success", response.message);
+                showFloatingAlert(response.message);
                 $("#scheduleModal").modal("hide");
                 refreshDashboard();
             })
             .fail((xhr) =>
-                showFloatingAlert("Something went wrong please try again"),
+                showFloatingAlert(lang.something_wrong || "Something went wrong please try again"),
             );
     });
 
     $("#deleteScheduleBtn").on("click", function () {
         const id = $(this).data("id");
-        if (!id || !confirm("Delete this schedule?")) return;
+        if (!id || !confirm(lang.delete_schedule_confirm || "Delete this schedule?")) return;
 
         $.ajax({ url: `${routes.schedules}/${id}`, method: "DELETE" })
             .done((response) => {
-                showFloatingAlert("success", response.message);
+                showFloatingAlert(response.message);
                 $("#scheduleModal").modal("hide");
                 refreshDashboard();
             })
             .fail((xhr) =>
-                showFloatingAlert("Something went wrong please try again"),
+                showFloatingAlert(lang.something_wrong || "Something went wrong please try again"),
             );
     });
 
     $(document).on("click", ".delete-schedule-btn", function () {
         const id = $(this).data("id");
-        if (!confirm("Delete this schedule?")) return;
+        if (!confirm(lang.delete_schedule_confirm || "Delete this schedule?")) return;
 
         $.ajax({ url: `${routes.schedules}/${id}`, method: "DELETE" })
             .done((response) => {
-                showFloatingAlert("success", response.message);
+                showFloatingAlert(response.message);
                 refreshDashboard();
             })
             .fail((xhr) =>
-                showFloatingAlert("Something went wrong please try again"),
+                showFloatingAlert(lang.something_wrong || "Something went wrong please try again"),
             );
     });
 
@@ -906,7 +909,7 @@ $(function () {
         const query = $.param(params);
 
         btn.prop("disabled", true).html(
-            `<span class="material-symbols-outlined me-2">hourglass_top</span><small>Generating...</small>`,
+            `<span class="material-symbols-outlined me-2">hourglass_top</span><small>${lang.generating || "Generating..."}</small>`,
         );
 
         const url = `${routes.exportExcel}?${query}`;

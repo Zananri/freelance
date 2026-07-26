@@ -1,9 +1,9 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('leave') }}
+        {{ 'leave' }}
     </x-slot>
     <x-slot name="head_stitle_slot">
-        {{ __('Leave') }}
+        {{ 'Leave' }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/leave.css')}}?v={{ time() }}" rel="stylesheet">

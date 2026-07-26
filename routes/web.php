@@ -86,6 +86,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard/monitoring-widget', [DashboardController::class, 'dashboardMonitoringWidget'])
         ->name('dashboard.monitoringWidget');
+    Route::get('/get-employees-by-division', [DashboardController::class, 'getEmployeesByDivision'])
+        ->name('dashboard.getEmployeesByDivision');
 
     Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
     Route::post('/profile/edit-password', [ProfileController::class, 'editPassword'])->name('profile.editPassword');
@@ -282,12 +284,13 @@ Route::middleware('auth', 'management')->group(function () {
 
     Route::get('/overtime', [OvertimeController::class, 'showOvertimePage'])->name('overtime');
     Route::get('/overtime/employee-overtime-request', [OvertimeController::class, 'employeeOvertimeRequest'])->name('overtime.employeeOvertimeRequest');
-
+    Route::get('/overtime/employee-overtime-by-month', [OvertimeController::class, 'employeeOvertimeByMonth'])->name('overtime.employee-overtime-by-month');
     Route::post('/overtime/approve-employee-overtime-request', [OvertimeController::class, 'approveEmployeeOvertimeRequest'])->name('overtime.approveEmployeeOvertimeRequest');
     Route::post('/overtime/reject-employee-overtime-request', [OvertimeController::class, 'rejectEmployeeOvertimeRequest'])->name('overtime.rejectEmployeeOvertimeRequest');
 
     Route::get('/weekdays_off', [WeekdayOffController::class, 'showWeekdayOffPage'])->name('weekday_off');
     Route::post('/weekday_off/save-employee-weekday-off', [WeekdayOffController::class, 'saveEmployeeWeekdayoff'])->name('weekday_off.saveEmployeeWeekdayoff');
+    Route::get('/weekday_off/get-employee', [WeekdayOffController::class, 'getEmployeeWeekdayOff'])->name('weekday_off.get-employee');
 
     Route::get('/recruitment', [RecruitmentController::class, 'showRecruitmentPage'])->name('recruitment');
     Route::get('/recruitment/data', [RecruitmentController::class, 'getRecruitmentData'])->name('recruitment.data');

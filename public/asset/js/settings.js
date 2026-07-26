@@ -143,30 +143,56 @@ function setPageData(i){
 }
 
 function dataPagination(totalDt,perPage){
-
-    var htmlPage = '<div class="btn-group me-2 mb-3" role="group" aria-label="First group">';
     var totalPage = Math.ceil(totalDt/perPage);
-    
-    for (let i = 1; i <= totalPage; i++) {
 
-        if(i == PAGE_DATA){
-            htmlPage +='<button type="button" class="active btn btn-sm btn-outline-secondary ">'+i+'</button>';
-        }else{
-            htmlPage +='<button type="button" onclick="setPageData('+i+')" class="btn btn-sm btn-outline-secondary">'+i+'</button>';
-        }
-        
-    }
-
-    htmlPage += '</div>';
-
-    if(totalPage > 1){
-        $('#box-pagination').html(htmlPage);
-    }else{
+    if(totalPage <= 1){
         $('#box-pagination').html(' ');
+        return;
     }
-    
 
+    var from = ((PAGE_DATA - 1) * perPage) + 1;
+    var to = Math.min(PAGE_DATA * perPage, totalDt);
+    var summaryText = 'Showing ' + from + '-' + to + ' of ' + totalDt;
+
+    var htmlPage = '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">';
+    htmlPage += '<div class="pagination-summary">' + summaryText + '</div>';
+    htmlPage += '<div class="pagination-controls">';
+
+    htmlPage += '<button type="button" class="page-btn" data-page="' + Math.max(PAGE_DATA - 1, 1) + '" ' + (PAGE_DATA <= 1 ? 'disabled' : '') + '>Prev</button>';
+
+    var pages = [];
+    if(totalPage <= 7){
+        for(var i = 1; i <= totalPage; i++) pages.push(i);
+    } else {
+        pages.push(1);
+        if(PAGE_DATA > 3) pages.push('...');
+        var start = Math.max(2, PAGE_DATA - 1);
+        var end = Math.min(totalPage - 1, PAGE_DATA + 1);
+        for(var i = start; i <= end; i++) pages.push(i);
+        if(PAGE_DATA < totalPage - 2) pages.push('...');
+        pages.push(totalPage);
+    }
+
+    for(var i = 0; i < pages.length; i++){
+        if(pages[i] === '...'){
+            htmlPage += '<span style="font-size:11px;padding:0 4px;">...</span>';
+        } else {
+            htmlPage += '<button type="button" class="page-btn ' + (pages[i] === PAGE_DATA ? 'is-active' : '') + '" data-page="' + pages[i] + '">' + pages[i] + '</button>';
+        }
+    }
+
+    htmlPage += '<button type="button" class="page-btn" data-page="' + Math.min(PAGE_DATA + 1, totalPage) + '" ' + (PAGE_DATA >= totalPage ? 'disabled' : '') + '>Next</button>';
+
+    htmlPage += '</div></div>';
+    $('#box-pagination').html(htmlPage);
 }
+
+$(document).on('click', '#box-pagination .page-btn', function(){
+    var page = parseInt($(this).data('page'));
+    if(!page || page < 1) return;
+    PAGE_DATA = page;
+    showAllData();
+});
 
 $('#form-edit-user').submit(function(e){
   e.preventDefault();

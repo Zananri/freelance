@@ -36,9 +36,8 @@ class OvertimeController extends Controller
         }
 
         $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-        ->whereNotIn('users.user_type',["ADMINISTRATOR"])
+        ->whereNotIn('users.user_type',["ADMINISTRATOR","SUPERADMIN"])
         ->get();
-
 
         return view('overtime.overtime',[
             'employee' => $employee
@@ -75,7 +74,7 @@ class OvertimeController extends Controller
         }
 
         $employeeIds = $employeeIds->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
+            ->whereNotIn('users.user_type',["ADMINISTRATOR","SUPERADMIN"])
             ->orderBy('id','DESC')
         ->pluck('id');
 
@@ -114,9 +113,16 @@ class OvertimeController extends Controller
     
     public function employeeOvertimeByMonth(Request $request)
     {
+        $user = auth()->user();        
+        $currentEmployee = Employee::where('user_id', $user->id)->first();
+        
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
 
         $year = Carbon::today()->format('Y');
         $month = Carbon::today()->format('m');
+        $page = (int)($request->PAGE ?? 1);
+        $perPage = 10;
 
         if(isset($request->YEAR)){
             $year = $request->YEAR;
@@ -126,37 +132,54 @@ class OvertimeController extends Controller
             $month = $request->MONTH;
         }
 
-        $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
-        $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
-
-        $employee = Employee::select('employees.id')
+        $employeeQuery = Employee::select('employees.id','employees.name','employees.photo','employees.department_id','employees.division_id')
             ->join('users','employees.user_id','=','users.id')
             ->where('employees.status',"ACTIVE")
             ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
-            ->orderBy('id','DESC')
-        ->pluck('id');
+            ->whereNotIn('users.user_type',["ADMINISTRATOR","SUPERADMIN"])
+            ->orderBy('employees.id','DESC');
 
-        $employeeOvertime = EmployeeOvertime::where('date_overtime',$year)
-            ->whereIn('employee_id',$employeeIds)
-            ->where('status','<>','DELETED')
-        ->get();
+        if(!in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) || !in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            $employeeQuery = $employeeQuery->where('employees.department_id',$currentEmployee->department_id);
+        }
 
-        $employeeTotalOvertime = Employee::select('id',
-            DB::raw('(SELECT SUM(TIME_TO_SEC(`total_overtime`)) FROM `employee_overtimes` WHERE `employee_id` = employees.id AND date_overtime >= $firstDayOfMonth AND date_overtime <= $lastDayOfMonth AND status = "APPROVED") AS total_hours'),
-            DB::raw('(SELECT COUNT(employee_id) FROM `employee_overtimes` WHERE `employee_id` = employees.id AND date_overtime >= $firstDayOfMonth AND date_overtime <= $lastDayOfMonth AND status = "APPROVED") AS total_days')
+        $totalEmployees = $employeeQuery->count();
+        $employeeIds = $employeeQuery->pluck('employees.id');
+        $employees = $employeeQuery->skip(($page - 1) * $perPage)->take($perPage)->get();
+
+        if($month === 'all'){
+            $firstDayOfMonth = Carbon::create($year, 1, 1)->startOfYear()->toDateString();
+            $lastDayOfMonth = Carbon::create($year, 12, 1)->endOfYear()->toDateString();
+        } else {
+            $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
+            $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+        }
+
+        $employeeTotalOvertime = Employee::select('employees.id',
+            DB::raw('(SELECT COALESCE(SUM(TIME_TO_SEC(total_overtime)),0) FROM employee_overtimes WHERE employee_id = employees.id AND date_overtime >= "'.$firstDayOfMonth.'" AND date_overtime <= "'.$lastDayOfMonth.'" AND status = "APPROVED") AS total_hours'),
+            DB::raw('(SELECT COALESCE(COUNT(employee_id),0) FROM employee_overtimes WHERE employee_id = employees.id AND date_overtime >= "'.$firstDayOfMonth.'" AND date_overtime <= "'.$lastDayOfMonth.'" AND status = "APPROVED") AS total_days')
         )
-        ->where('id',$employeeIds)
+        ->whereIn('employees.id',$employeeIds->toArray())
         ->get();
+
+        $lastPage = max(1, (int)ceil($totalEmployees / $perPage));
 
         return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'data' => [
-                    'employee_overtime' => $employeeLave,
-                    'overtime_total_overtime' => $employeeTotalOvertime,
+                    'employees' => $employees,
+                    'total_overtime' => $employeeTotalOvertime,
+                    'pagination' => [
+                        'current_page' => $page,
+                        'last_page' => $lastPage,
+                        'total' => $totalEmployees,
+                        'per_page' => $perPage,
+                        'from' => ($page - 1) * $perPage + 1,
+                        'to' => min($page * $perPage, $totalEmployees),
+                    ]
                 ],
-                'message' => 'Get employee leave successfully'
+                'message' => 'Get employee overtime successfully'
         ]);
     }
 

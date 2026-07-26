@@ -1,6 +1,9 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('dashboard.dashboard') }}
+        {{ 'dashboard' }}
+    </x-slot>
+    <x-slot name="head_stitle_slot">
+        {{ 'Dashboard' }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/dashboard.css') . '?v=' . time() }}" rel="stylesheet">
@@ -82,27 +85,27 @@
                                         <button class="btn btn-attendance {{ $timeIn != '' ? 'active' : '' }}"
                                             data-check-active="checkIn" id="checkInBtn" data-status="">
                                             <span class="material-symbols-outlined check-icon">check</span>
-                                            Check In
+                                            {{ __('general.check_in') }}
                                         </button>
                                     </div>
                                     <div class="w-100">
                                         <button class="btn btn-attendance {{ $timeOut != '' ? 'active' : '' }}"
                                             data-check-active="checkOut" id="checkOutBtn" data-status="">
                                             <span class="material-symbols-outlined check-icon">done_all</span>
-                                            Check Out
+                                            {{ __('general.check_out') }}
                                         </button>
                                     </div>
                                 </div>
                             </div>
                             <div class="attendance-logs">
                                 <div class="justify-content-start mt-3">
-                                    <h6 class="logs-title">Attendance Logs</h6>
+                                    <h6 class="logs-title">{{ __('dashboard.attendance_logs') }}</h6>
                                 </div>
 
                                 <div class="box-time-in">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <span class="label-check-in-out">Check In</span>
+                                            <span class="label-check-in-out">{{ __('general.check_in') }}</span>
                                         </div>
                                         <div>
                                             <div
@@ -119,7 +122,7 @@
                                 <div class="box-time-out">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <span class="label-check-in-out">Check Out</span>
+                                            <span class="label-check-in-out">{{ __('general.check_out') }}</span>
                                         </div>
                                         <div>
                                             <div class="d-flex align-items-center time-log time-out">
@@ -192,13 +195,13 @@
                                         <table class="table-calendar h-100">
                                             <thead>
                                                 <tr>
-                                                    <th>Sun</th>
-                                                    <th>Mon</th>
-                                                    <th>Tue</th>
-                                                    <th>Wed</th>
-                                                    <th>Thu</th>
-                                                    <th>Fri</th>
-                                                    <th>Sat</th>
+                                                    <th>{{ __('general.sun') }}</th>
+                                                    <th>{{ __('general.mon') }}</th>
+                                                    <th>{{ __('general.tue') }}</th>
+                                                    <th>{{ __('general.wed') }}</th>
+                                                    <th>{{ __('general.thu') }}</th>
+                                                    <th>{{ __('general.fri') }}</th>
+                                                    <th>{{ __('general.sat') }}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -279,35 +282,35 @@
 
 
                             <div class="d-flex align-items-center justify-content-between">
-                                <div class="legend-container">
+                            <div class="legend-container">
                                     <div class="present-container rounded">
-                                        <p class="attendance-status">Present</p>
-                                        <p class="attendance-status-day" id="attendancePresentDay">0 Days</p>
+                                        <p class="attendance-status">{{ __('general.present') }}</p>
+                                        <p class="attendance-status-day" id="attendancePresentDay">0 {{ __('general.days') }}</p>
                                     </div>
                                     <div class="sick-container rounded">
-                                        <p class="attendance-status">Sick</p>
-                                        <p class="attendance-status-day" id="attendanceSickDay">0 Days</p>
+                                        <p class="attendance-status">{{ __('general.sick') }}</p>
+                                        <p class="attendance-status-day" id="attendanceSickDay">0 {{ __('general.days') }}</p>
                                     </div>
                                     <div class="leave-container rounded">
-                                        <p class="attendance-status">Annual Leave</p>
-                                        <p class="attendance-status-day" id="attendanceLeaveDay">0 Days</p>
+                                        <p class="attendance-status">{{ __('general.annual_leave') }}</p>
+                                        <p class="attendance-status-day" id="attendanceLeaveDay">0 {{ __('general.days') }}</p>
                                     </div>
                                     <div class="absent-container rounded">
-                                        <p class="attendance-status">Absent</p>
-                                        <p class="attendance-status-day" id="attendanceAbsentDay">0 Days</p>
+                                        <p class="attendance-status">{{ __('general.absent') }}</p>
+                                        <p class="attendance-status-day" id="attendanceAbsentDay">0 {{ __('general.days') }}</p>
                                     </div>
                                 </div>
                                 <div class="chart-container position-relative" style="height: 250px; width: 250px;">
                                     <canvas id="attendanceChart"></canvas>
                                     <div id="attendanceChartCenter" class="attendance-chart-center">
                                         <div class="attendance-chart-center-value">0</div>
-                                        <div class="attendance-chart-center-label">Total Days</div>
+                                        <div class="attendance-chart-center-label">{{ __('general.total_days') }}</div>
                                     </div>
                                     <div id="attendanceChartLoading" class="attendance-chart-loading d-none">
                                         <div class="spinner-border spinner-border-sm" role="status"></div>
                                     </div>
                                     <div id="attendanceChartEmpty" class="attendance-chart-empty d-none">
-                                        No attendance data
+                                        {{ __('general.no_data_attendance') }}
                                     </div>
                                 </div>
                             </div>
@@ -339,29 +342,29 @@
 
                         <button class="btn btn-toggle-filter" id="toggleFilterTask">
                             <span class="material-symbols-outlined icon me-2">filter_list</span>
-                            <span class="text-icon">Filter</span>
+                            <span class="text-icon">{{ __('general.filter') }}</span>
                         </button>
 
                         <div class="custom-filter-dropdown shadow-sm" id="customFilterDropdown">
                             <div class="p-3">
                                 <div class="mb-2 input-custom position-relative">
-                                    <label class="form-label label-custom">Date</label>
+                                    <label class="form-label label-custom">{{ __('general.date') }}</label>
                                     <input type="text" class="form-control input-text border-0"
-                                        id="filterDateRange" placeholder="Select a date range">
+                                        id="filterDateRange" placeholder="{{ __('dashboard.search_events') }}">
                                     <div id="hiddenDateInputs" class="d-none">
                                         <input type="date" id="filterStartDate">
                                         <input type="date" id="filterEndDate">
                                     </div>
                                 </div>
                                 <div class="mb-2 input-custom">
-                                    <label class="form-label label-custom">Site</label>
+                                    <label class="form-label label-custom">{{ __('general.site') }}</label>
                                     <select class="form-select input-text border-0">
-                                        <option value="">All Sites</option>
+                                        <option value="">{{ __('dashboard.all_sites') }}</option>
                                     </select>
                                 </div>
                                 <div class="modal-footer modal-footer-custom">
-                                    <button class="btn btn-submit-black" id="btnApplyFilter">Apply</button>
-                                    <button class="btn btn-custom-close" id="btnClearFilter">Clear</button>
+                                    <button class="btn btn-submit-black" id="btnApplyFilter">{{ __('general.apply') }}</button>
+                                    <button class="btn btn-custom-close" id="btnClearFilter">{{ __('general.clear') }}</button>
                                 </div>
                             </div>
                         </div>
@@ -369,7 +372,7 @@
 
                     <div class="d-flex align-items-center justify-content-between mb-3" id="mydocBreadcrumbRow">
                         <div class="mydoc-breadcrumb" style="min-height: 24px;">
-                            <span class="text-body-secondary fs-12" id="mydocBreadcrumbText">Documents</span>
+                        <span class="text-body-secondary fs-12" id="mydocBreadcrumbText">{{ __('dashboard.documents') }}</span>
                         </div>
 
                     </div>
@@ -377,10 +380,10 @@
                     <!-- Document List -->
                     <div class="grid-wrapper mt-2" id="mydocGridWrapper">
                         {{-- Rendered by AJAX --}}
-                        <div class="text-body text-opacity-50 fs-12 text-center py-4" id="mydocLoading">Loading...
+                        <div class="text-body text-opacity-50 fs-12 text-center py-4" id="mydocLoading">{{ __('general.loading') }}
                         </div>
                         <div class="d-none" id="mydocEmptyState">
-                            <div class="text-body text-opacity-50 fs-12 text-center py-4">No documents</div>
+                            <div class="text-body text-opacity-50 fs-12 text-center py-4">{{ __('dashboard.no_documents') }}</div>
                         </div>
                     </div>
                 </div>
@@ -442,8 +445,7 @@
                     <!-- Modal Header -->
                     <div class="modal-header border-0 z-1  d-flex justify-content-center">
                         <h5 class="modal-title modal-title-custom border-0 text-center w-100" id="checkInModalLabel">
-                            Check
-                            In
+                            {{ __('general.check_in') }}
                         </h5>
                         <button type="button" class="btn-close position-absolute" style="right: 1rem;"
                             data-bs-dismiss="modal" aria-label="Close"></button>
@@ -501,8 +503,7 @@
                                                                 <span
                                                                     class="material-symbols-outlined fs-4 opacity-50">photo_camera</span>
                                                                 <div>
-                                                                    <span class="fs-14 text-secondary">Take
-                                                                        Photo</span>
+                                                            <span class="fs-14 text-secondary">{{ __('general.take_photo') }}</span>
                                                                 </div>
                                                             </div>
                                                             <img id="photoResult"
@@ -538,7 +539,7 @@
 
                         <div class="mb-4 box-btn-submit pt-4 ">
                             <button type="submit" class="btn btn-submit-black w-100" id="submitCheckInBtn">
-                                Check In
+                                {{ __('general.check_in') }}
                             </button>
                         </div>
                     </div>
@@ -592,8 +593,7 @@
 
                     <!-- Modal Header -->
                     <div class="modal-header border-0 z-1  d-flex justify-content-center">
-                        <h5 class="modal-title modal-title-custom text-center w-100" id="checkInModalLabel">Check
-                            Out
+                        <h5 class="modal-title modal-title-custom text-center w-100" id="checkInModalLabel">{{ __('general.check_out') }}
                         </h5>
                         <button type="button" class="btn-close position-absolute" style="right: 1rem;"
                             data-bs-dismiss="modal" aria-label="Close"></button>
@@ -654,8 +654,7 @@
                                                                 <span
                                                                     class="material-symbols-outlined fs-4 opacity-50">photo_camera</span>
                                                                 <div>
-                                                                    <span class="fs-14 text-secondary">Take
-                                                                        Photo</span>
+                                                            <span class="fs-14 text-secondary">{{ __('general.take_photo') }}</span>
                                                                 </div>
                                                             </div>
                                                             <img id="photoResultCheckout"
@@ -690,7 +689,7 @@
 
                         <div class="mb-4 box-btn-submit pt-4 ">
                             <button type="submit" class="btn btn-submit-black w-100" id="submitCheckOutBtn">
-                                Check Out
+                                {{ __('general.check_out') }}
                             </button>
                         </div>
                     </div>
@@ -742,8 +741,8 @@
             <div class="modal-dialog modal-dialog-centered checkin-detail-dialog" role="document">
                 <div class="modal-content checkin-detail-content border-0">
                     <div class="modal-header checkin-detail-header border-0">
-                        <h5 class="modal-title checkin-detail-title text-center w-100" id="checkInDetailModalLabel">
-                            Check In</h5>
+        <h5 class="modal-title checkin-detail-title text-center w-100" id="checkInDetailModalLabel">
+                            {{ __('general.check_in') }}</h5>
                         <button type="button" class="btn-close checkin-detail-close" data-bs-dismiss="modal"
                             aria-label="Close"></button>
                     </div>
@@ -756,21 +755,21 @@
 
                             <div class="checkin-detail-info mb-4">
                                 <div class="checkin-detail-row">
-                                    <div class="checkin-detail-label">Date</div>
+                                    <div class="checkin-detail-label">{{ __('general.date') }}</div>
                                     <div class="checkin-detail-value">
                                         {{ date('l, j F Y', strtotime($firstCheckin->date_time)) }}
                                     </div>
                                 </div>
 
                                 <div class="checkin-detail-row">
-                                    <div class="checkin-detail-label">Time In</div>
+                                    <div class="checkin-detail-label">{{ __('general.time_in') }}</div>
                                     <div class="checkin-detail-value">
                                         {{ date('H:i', strtotime($firstCheckin->date_time)) }}
                                     </div>
                                 </div>
 
                                 <div class="checkin-detail-row">
-                                    <div class="checkin-detail-label">Shift</div>
+                                    <div class="checkin-detail-label">{{ __('general.shift_time') }}</div>
                                     <div class="checkin-detail-value">
                                         {{ $shiftTime }}
                                     </div>
@@ -815,14 +814,14 @@
                             </div>
                         @else
                             <div class="p-5 text-center fs-14 text-secondary">
-                                No Data Check In
+                                {{ __('general.no_data_check_in') }}
                             </div>
                         @endif
 
                         <div class="checkin-detail-footer">
                             <button type="button" class="btn btn-submit-black checkin-detail-close-btn w-100"
                                 data-bs-dismiss="modal">
-                                Close
+                                {{ __('general.close') }}
                             </button>
                         </div>
 
@@ -837,8 +836,8 @@
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content rounded-4 border-0">
                     <div class="modal-header border-0 py-4">
-                        <h5 class="modal-title modal-title-custom text-center w-100" id="checkOutDetailModalLabel">
-                            Check Out</h5>
+        <h5 class="modal-title modal-title-custom text-center w-100" id="checkOutDetailModalLabel">
+                            {{ __('general.check_out') }}</h5>
                         <button type="button" class="btn-close me-2" data-bs-dismiss="modal"
                             aria-label="Close"></button>
                     </div>
@@ -847,7 +846,7 @@
                         @if ($atendanceTrackingCheckout)
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="fs-14 text-secondary">Date :</div>
+                                    <div class="fs-14 text-secondary">{{ __('general.date_colon') }}</div>
                                     <div class="fs-14">
                                         {{ date('l, j F Y', strtotime($atendanceTrackingCheckout->date_time)) }}</div>
                                 </div>
@@ -855,7 +854,7 @@
 
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="fs-14 text-secondary">Time Out :</div>
+                                    <div class="fs-14 text-secondary">{{ __('general.time_out_colon') }}</div>
                                     <div class="fs-14">
                                         {{ date('H:i', strtotime($atendanceTrackingCheckout->date_time)) }}</div>
                                 </div>
@@ -863,7 +862,7 @@
 
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="fs-14 text-secondary">Shift :</div>
+                                    <div class="fs-14 text-secondary">{{ __('general.shift_colon') }}</div>
                                     <div class="fs-14">{{ $shiftTime }}</div>
                                 </div>
                             </div>
@@ -916,13 +915,13 @@
                             </div>
                         @else
                             <div class="p-5 text-center fs-14 text-secondary">
-                                No Data Check Out
+                                {{ __('general.no_data_check_out') }}
                             </div>
                         @endif
 
                         <div class="mt-5 mb-3">
                             <button type="button" class="btn btn-submit-black w-100"
-                                data-bs-dismiss="modal">Close</button>
+                                data-bs-dismiss="modal">{{ __('general.close') }}</button>
                         </div>
 
 

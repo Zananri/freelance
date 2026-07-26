@@ -111,6 +111,10 @@ class DashboardController extends Controller
             $query->where('division_id', $request->division_id);
         }
 
+        if ($request->employee_id && $request->employee_id !== 'all') {
+            $query->where('id', $request->employee_id);
+        }
+
         if ($request->job_id && $request->job_id !== 'all') {
             $query->where('job_id', $request->job_id);
         }
@@ -294,6 +298,40 @@ class DashboardController extends Controller
                 'locations' => $locations,
                 'points' => $points,
             ],
+        ]);
+    }
+
+    public function getEmployeesByDivision(Request $request)
+    {
+        $user = auth()->user();
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $currentEmployee = Employee::where('user_id', $user->id)->first();
+
+        $query = Employee::select('id', 'name', 'department_id', 'division_id')
+            ->where('status', 'ACTIVE')
+            ->whereHas('user', function ($q) {
+                $q->whereNotIn('user_role', ['GENERAL_MANAGER', 'CEO'])
+                    ->whereNotIn('user_type', ['ADMINISTRATOR', 'SUPERADMIN']);
+            });
+
+        if ($userType !== 'SUPERADMIN' && $currentEmployee) {
+            $query->where('department_id', $currentEmployee->department_id);
+        }
+
+        if ($request->department_id && $request->department_id !== 'all') {
+            $query->where('department_id', $request->department_id);
+        }
+
+        if ($request->division_id && $request->division_id !== 'all') {
+            $query->where('division_id', $request->division_id);
+        }
+
+        $employees = $query->orderBy('name')->get();
+
+        return response()->json([
+            'code' => 200,
+            'status' => 'success',
+            'data' => $employees,
         ]);
     }
 

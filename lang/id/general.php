@@ -1,7 +1,7 @@
 <?php
 
 return [
-    // Common actions
+// Common actions
     'save' => 'Simpan',
     'cancel' => 'Batal',
     'submit' => 'Kirim',
@@ -34,6 +34,11 @@ return [
     'required' => 'Wajib',
     'status' => 'Status',
     'actions' => 'Aksi',
+    'all_department' => 'Semua Departemen',
+    'all_site' => 'Semua Lokasi',
+    'all_employee' => 'Semua Karyawan',
+    'all_partner' => 'Semua Mitra',
+    'all_month' => 'Semua Bulan',
 
     // Weekdays (short)
     'sun' => 'Min',

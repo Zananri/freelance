@@ -23,26 +23,48 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3 class="fs-18 fw-normal text-body text-opacity-75 mb-0">{{ __('menu.monitoring') }}</h3>
                         <a href="{{ url('/monitoring') }}" class="widget-link">
-                            View All
+                            {{ __('general.view_all') }}
                             <span class="material-symbols-outlined">chevron_right</span>
                         </a>
                     </div>
 
-                    <div class="d-flex gap-2 mb-3">
-                        <select class="form-select form-select-sm widget-filter border-0" id="widgetDepartmentFilter">
-                            <option value="all">All Department</option>
+                    <div class="d-flex flex-nowrap gap-2 mb-3 w-100">
+                        <select
+                            class="form-select form-select-sm widget-filter border-0 flex-fill"
+                            id="widgetDepartmentFilter"
+                        >
+                            <option value="all">{{ __('general.all_department') }}</option>
+
                             @foreach ($widget_departments as $department)
-                                <option value="{{ $department->id }}">{{ $department->name_department }}</option>
+                                <option value="{{ $department->id }}">
+                                    {{ $department->name_department }}
+                                </option>
                             @endforeach
                         </select>
 
-                        <select class="form-select form-select-sm widget-filter border-0" id="widgetDivisionFilter">
-                            <option value="all">All Site</option>
+                        <select
+                            class="form-select form-select-sm widget-filter border-0 flex-fill"
+                            id="widgetDivisionFilter"
+                            disabled
+                        >
+                            <option value="all">{{ __('general.all_site') }}</option>
+
                             @foreach ($widget_divisions as $division)
-                                <option value="{{ $division->id }}" data-department-id="{{ $division->department_id }}">
+                                <option
+                                    value="{{ $division->id }}"
+                                    data-department-id="{{ $division->department_id }}"
+                                >
                                     {{ $division->name_division }}
                                 </option>
                             @endforeach
+                        </select>
+
+                        <select
+                            class="form-select form-select-sm widget-filter border-0 flex-fill"
+                            id="widgetEmployeeFilter"
+                            disabled
+                        >
+                            <option value="all">{{ __('general.all_employee') }}</option>
                         </select>
                     </div>
 
@@ -75,7 +97,7 @@
                             type="text"
                             class="form-control widget-search-input border-0"
                             id="widgetDocumentSearch"
-                            placeholder="Search document"
+                            placeholder="{{ __('document.search_document') }}"
                         >
                     </div>
 
@@ -87,12 +109,12 @@
                         <span class="material-symbols-outlined">
                             arrow_back
                         </span>
-                        Back
+                        {{ __('general.back') }}
                     </button>
 
                     <div id="widgetDocumentGrid" class="widget-document-grid">
                         <div class="text-body text-opacity-50 fs-12 text-center py-4">
-                            Loading...
+                            {{ __('general.loading') }}
                         </div>
                     </div>
 

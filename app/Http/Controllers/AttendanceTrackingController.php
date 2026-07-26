@@ -54,7 +54,7 @@ class AttendanceTrackingController extends Controller
         }
 
         $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
+            ->whereNotIn('users.user_type',["ADMINISTRATOR", "SUPERADMIN"])
         ->get();
 
         return view('attendance_tracking.attendance_tracking',[
@@ -82,7 +82,7 @@ class AttendanceTrackingController extends Controller
             ->join('users','employees.user_id','=','users.id')
             ->where('employees.status',"ACTIVE")
             ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
+            ->whereNotIn('users.user_type',["ADMINISTRATOR", "SUPERADMIN"])
         ->get();
 
         $employeeIds = $employee->pluck('id');
@@ -140,8 +140,12 @@ class AttendanceTrackingController extends Controller
             ->first();
  
 
-            $employee = Employee::with('department','division','job','grade','shift')
-                ->where('id', $employeeId)->first();
+            $employee = Employee::with('department', 'division', 'job', 'grade', 'shift')
+                ->select('employees.*')
+                ->join('users', 'employees.user_id', '=', 'users.id')
+                ->where('employees.id', $employeeId)
+                ->whereNotIn('users.user_type', ['ADMINISTRATOR', 'SUPERADMIN'])
+                ->first();
 
             if(!$employee){
                 throw new \Exception('Employee not found');
@@ -210,7 +214,7 @@ class AttendanceTrackingController extends Controller
         }
 
         $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
+            ->whereNotIn('users.user_type',["ADMINISTRATOR", "SUPERADMIN"])
         ->get();
 
         $employeeIds = $employee->pluck('id');

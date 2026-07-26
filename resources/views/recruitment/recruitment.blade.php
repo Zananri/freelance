@@ -1,6 +1,6 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('recruitment') }}
+        {{ __('recruitment.recruitment') }}
     </x-slot>
     <x-slot name="head_slot">
         <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -27,7 +27,7 @@
     <div class="title-content mb-3">
         <div class="d-flex align-items-center flex-wrap gap-2">
             <div class="me-auto">
-                <h2 class="text-title-content mb-0">Recruitment</h2>
+                <h2 class="text-title-content mb-0">{{ __('recruitment.recruitment') }}</h2>
             </div>
 
             <div class="date-filter-wrapper position-relative">
@@ -62,7 +62,7 @@
 
                     <div class="col">
                         <div class="title-total-employees fw-semibold ">
-                            Total Employees
+                            {{ __('recruitment.total_employees') }}
                         </div>
 
                         <div id="totalEmployeesValue" class="total-employees fw-bold display-4 mt-2">
@@ -100,7 +100,7 @@
                         </span>
                     @endif
 
-                    <small class="tranding-text text-muted ms-2">Compared to last month</small>
+                    <small class="tranding-text text-muted ms-2">{{ __('recruitment.compared_to_last_month') }}</small>
                 </div>
 
                 <div class="mt-4" style="height:100px;">
@@ -125,7 +125,7 @@
 
                     <div class="col">
                         <div class="title-total-employees fw-semibold ">
-                            Hired Employee
+                            {{ __('recruitment.hired_employee') }}
                         </div>
 
                         <div class="total-employees fw-bold display-4 mt-2">
@@ -163,7 +163,7 @@
                         </span>
                     @endif
 
-                    <small class="tranding-text text-muted ms-2">Compared to last month</small>
+                    <small class="tranding-text text-muted ms-2">{{ __('recruitment.compared_to_last_month') }}</small>
                 </div>
 
                 <div class="mt-4" style="height:100px;">
@@ -188,7 +188,7 @@
 
                     <div class="col">
                         <div class="title-total-employees fw-semibold ">
-                            New Applicants
+                            {{ __('recruitment.new_applicants') }}
                         </div>
 
                         <div class="total-employees fw-bold display-4 mt-2">
@@ -226,7 +226,7 @@
                         </span>
                     @endif
 
-                    <small class="tranding-text text-muted ms-2">Compared to last month</small>
+                    <small class="tranding-text text-muted ms-2">{{ __('recruitment.compared_to_last_month') }}</small>
                 </div>
 
                 <div class="mt-4" style="height:100px;">
@@ -251,7 +251,7 @@
 
                     <div class="col">
                         <div class="title-total-employees fw-semibold ">
-                            Interview Scheduled
+                            {{ __('recruitment.interview_scheduled') }}
                         </div>
 
                         <div class="total-employees fw-bold display-4 mt-2" id="totalSchedulesValue">
@@ -289,7 +289,7 @@
                         </span>
                     @endif
 
-                    <small class="tranding-text text-muted ms-2">Compared to last month</small>
+                    <small class="tranding-text text-muted ms-2">{{ __('recruitment.compared_to_last_month') }}</small>
                 </div>
 
                 <div class="mt-4" style="height:100px;">
@@ -305,7 +305,7 @@
             <div class="body-content rounded-4 p-4 pipeline-section">
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0 fw-bold">Recruitment Pipeline</h5>
+                    <h5 class="mb-0 fw-bold">{{ __('recruitment.recruitment_pipeline') }}</h5>
                 </div>
 
                 <div class="pipeline-wrapper"></div>
@@ -318,9 +318,9 @@
         <div class="col-lg-9">
             <div class="body-content rounded-4 p-4">
 
-                <h5 class="dashboard-card-title mb-1">New Candidate Trend</h5>
+                <h5 class="dashboard-card-title mb-1">{{ __('recruitment.new_candidate_trend') }}</h5>
                 <p class="dashboard-card-subtitle text-muted fs-8 mb-0">
-                    Daily incoming candidates during the selected period.
+                    {{ __('recruitment.daily_incoming_candidates') }}
                 </p>
 
                 <div style="height: 250px;">
@@ -333,7 +333,7 @@
         <div class="col-lg-3">
             <div class="body-content rounded-4 p-3 h-100 d-flex flex-column">
                 <h5 class="fw-semibold mb-3">
-                    Quick Actions
+                    {{ __('recruitment.quick_actions') }}
                 </h5>
                 <div class="flex-grow-1">
                     <div class="d-flex flex-column gap-2">
@@ -343,7 +343,7 @@
                             <span class="material-symbols-outlined me-2">
                                 person_add
                             </span>
-                            <small>Add Candidate</small>
+                            <small>{{ __('recruitment.add_candidate') }}</small>
                         </button>
 
                         <button type="button" id="openScheduleCalendarBtn"
@@ -351,7 +351,7 @@
                             <span class="material-symbols-outlined me-2">
                                 calendar_month
                             </span>
-                            <small>Recruitment Schedule</small>
+                            <small>{{ __('recruitment.recruitment_schedule') }}</small>
                         </button>
 
                         <button type="button" id="generateReportBtn"
@@ -359,7 +359,7 @@
                             <span class="material-symbols-outlined me-2">
                                 description
                             </span>
-                            <small>Generate Report</small>
+                            <small>{{ __('recruitment.generate_report') }}</small>
                         </button>
 
                     </div>
@@ -375,7 +375,7 @@
             <div class="modal-content modal-content-custom">
                 <form id="candidateAddForm">
                     <div class="modal-header">
-                        <h6 class="modal-title modal-title-custom mb-0">Add Candidate</h6>
+                        <h6 class="modal-title modal-title-custom mb-0">{{ __('recruitment.add_candidate_title') }}</h6>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body modal-body-custom">
@@ -384,27 +384,27 @@
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Position <span class="text-danger">*</span>
+                                    {{ __('recruitment.position') }} <span class="text-danger">*</span>
                                 </label>
 
                                 <select id="addCandidateJobId" class="form-select border-0" required>
 
-                                    <option value="">Select Position</option>
+                                    <option value="">{{ __('recruitment.select_position') }}</option>
 
                                 </select>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Full Name <span class="text-danger">*</span>
+                                    {{ __('recruitment.full_name') }} <span class="text-danger">*</span>
                                 </label>
                                 <input type="text" id="addCandidateName" class="form-control border-0"
-                                    placeholder="Enter full name" required>
+                                    placeholder="{{ __('recruitment.enter_full_name') }}" required>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Email <span class="text-danger">*</span>
+                                    {{ __('recruitment.email') }} <span class="text-danger">*</span>
                                 </label>
                                 <input type="email" id="addCandidateEmail" class="form-control border-0"
                                     placeholder="example@email.com" required>
@@ -412,7 +412,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Phone Number
+                                    {{ __('recruitment.phone_number') }}
                                 </label>
                                 <input type="text" id="addCandidatePhone" class="form-control border-0"
                                     placeholder="08xxxxxxxxxx">
@@ -420,21 +420,21 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Gender
+                                    {{ __('recruitment.gender') }}
                                 </label>
 
                                 <select id="addCandidateGender" class="form-select border-0">
 
-                                    <option value="">Select Gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
+                                    <option value="">{{ __('recruitment.select_gender') }}</option>
+                                    <option value="male">{{ __('recruitment.male') }}</option>
+                                    <option value="female">{{ __('recruitment.female') }}</option>
 
                                 </select>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Birthdate
+                                    {{ __('recruitment.birthdate') }}
                                 </label>
 
                                 <input type="date" id="addCandidateBirthdate" class="form-control border-0">
@@ -442,16 +442,16 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Last Education
+                                    {{ __('recruitment.last_education') }}
                                 </label>
 
                                 <input type="text" id="addCandidateEducation" class="form-control border-0"
-                                    placeholder="Bachelor Degree">
+                                    placeholder="{{ __('recruitment.bachelor_degree') }}">
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Experience (Years)
+                                    {{ __('recruitment.experience_years') }}
                                 </label>
 
                                 <input type="number" id="addCandidateExperience" class="form-control border-0"
@@ -460,7 +460,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Expected Salary
+                                    {{ __('recruitment.expected_salary') }}
                                 </label>
 
                                 <input type="number" id="addCandidateSalary" class="form-control border-0"
@@ -469,24 +469,24 @@
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Address
+                                    {{ __('recruitment.address') }}
                                 </label>
 
-                                <textarea id="addCandidateAddress" rows="3" class="form-control border-0" placeholder="Candidate address"></textarea>
+                                <textarea id="addCandidateAddress" rows="3" class="form-control border-0" placeholder="{{ __('recruitment.candidate_address') }}"></textarea>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Recruitment Source
+                                    {{ __('recruitment.recruitment_source') }}
                                 </label>
 
                                 <input type="text" id="addCandidateSource" class="form-control border-0"
-                                    placeholder="LinkedIn, Jobstreet, Referral">
+                                    placeholder="{{ __('recruitment.source_placeholder') }}">
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Status
+                                    {{ __('recruitment.status') }}
                                 </label>
 
                                 <select id="addCandidateStatus" class="form-select border-0">
@@ -502,7 +502,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    CV
+                                    {{ __('recruitment.cv') }}
                                 </label>
 
                                 <input type="file" id="addCandidateCv" class="form-control border-0"
@@ -511,7 +511,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Photo
+                                    {{ __('recruitment.photo') }}
                                 </label>
 
                                 <input type="file" id="addCandidatePhoto" class="form-control border-0"
@@ -522,8 +522,8 @@
 
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn submit-candidate-btn">Save</button>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('recruitment.cancel') }}</button>
+                        <button type="submit" class="btn submit-candidate-btn">{{ __('recruitment.save') }}</button>
                     </div>
                 </form>
             </div>
@@ -535,7 +535,7 @@
             <div class="modal-content modal-content-custom">
                 <form id="candidateEditForm">
                     <div class="modal-header">
-                        <h6 class="modal-title modal-title-custom mb-0">Edit Candidate</h6>
+                        <h6 class="modal-title modal-title-custom mb-0">{{ __('recruitment.edit_candidate_title') }}</h6>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body modal-body-custom">
@@ -544,27 +544,27 @@
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Position <span class="text-danger">*</span>
+                                    {{ __('recruitment.position') }} <span class="text-danger">*</span>
                                 </label>
 
                                 <select id="editCandidateJobId" class="form-select border-0" required>
 
-                                    <option value="">Select Position</option>
+                                    <option value="">{{ __('recruitment.select_position') }}</option>
 
                                 </select>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Full Name <span class="text-danger">*</span>
+                                    {{ __('recruitment.full_name') }} <span class="text-danger">*</span>
                                 </label>
                                 <input type="text" id="editCandidateName" class="form-control border-0"
-                                    placeholder="Enter full name" required>
+                                    placeholder="{{ __('recruitment.enter_full_name') }}" required>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Email <span class="text-danger">*</span>
+                                    {{ __('recruitment.email') }} <span class="text-danger">*</span>
                                 </label>
                                 <input type="email" id="editCandidateEmail" class="form-control border-0"
                                     placeholder="example@email.com" required>
@@ -572,7 +572,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Phone Number
+                                    {{ __('recruitment.phone_number') }}
                                 </label>
                                 <input type="text" id="editCandidatePhone" class="form-control border-0"
                                     placeholder="08xxxxxxxxxx">
@@ -580,21 +580,21 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Gender
+                                    {{ __('recruitment.gender') }}
                                 </label>
 
                                 <select id="editCandidateGender" class="form-select border-0">
 
-                                    <option value="">Select Gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
+                                    <option value="">{{ __('recruitment.select_gender') }}</option>
+                                    <option value="male">{{ __('recruitment.male') }}</option>
+                                    <option value="female">{{ __('recruitment.female') }}</option>
 
                                 </select>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Birthdate
+                                    {{ __('recruitment.birthdate') }}
                                 </label>
 
                                 <input type="date" id="editCandidateBirthdate" class="form-control border-0">
@@ -602,16 +602,16 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Last Education
+                                    {{ __('recruitment.last_education') }}
                                 </label>
 
                                 <input type="text" id="editCandidateEducation" class="form-control border-0"
-                                    placeholder="Bachelor Degree">
+                                    placeholder="{{ __('recruitment.bachelor_degree') }}">
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Experience (Years)
+                                    {{ __('recruitment.experience_years') }}
                                 </label>
 
                                 <input type="number" id="editCandidateExperience" class="form-control border-0"
@@ -620,7 +620,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Expected Salary
+                                    {{ __('recruitment.expected_salary') }}
                                 </label>
 
                                 <input type="number" id="editCandidateSalary" class="form-control border-0"
@@ -629,24 +629,24 @@
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Address
+                                    {{ __('recruitment.address') }}
                                 </label>
 
-                                <textarea id="editCandidateAddress" rows="3" class="form-control border-0" placeholder="Candidate address"></textarea>
+                                <textarea id="editCandidateAddress" rows="3" class="form-control border-0" placeholder="{{ __('recruitment.candidate_address') }}"></textarea>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Recruitment Source
+                                    {{ __('recruitment.recruitment_source') }}
                                 </label>
 
                                 <input type="text" id="editCandidateSource" class="form-control border-0"
-                                    placeholder="LinkedIn, Jobstreet, Referral">
+                                    placeholder="{{ __('recruitment.source_placeholder') }}">
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Status
+                                    {{ __('recruitment.status') }}
                                 </label>
 
                                 <select id="editCandidateStatus" class="form-select border-0">
@@ -662,7 +662,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    CV
+                                    {{ __('recruitment.cv') }}
                                 </label>
 
                                 <input type="file" id="editCandidateCv" class="form-control border-0"
@@ -671,7 +671,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Photo
+                                    {{ __('recruitment.photo') }}
                                 </label>
 
                                 <input type="file" id="editCandidatePhoto" class="form-control border-0"
@@ -682,8 +682,8 @@
 
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn submit-candidate-btn">Save</button>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('recruitment.cancel') }}</button>
+                        <button type="submit" class="btn submit-candidate-btn">{{ __('recruitment.save') }}</button>
                     </div>
                 </form>
             </div>
@@ -697,14 +697,13 @@
                     <div class="confirm-modal-icon">
                         <span class="material-symbols-outlined">delete</span>
                     </div>
-                    <h6>Delete Candidate?</h6>
-                    <p>This action cannot be undone. This candidate and related schedules info will be permanently
-                        removed.</p>
+                    <h6>{{ __('recruitment.delete_candidate') }}</h6>
+                    <p>{{ __('recruitment.delete_candidate_confirm') }}</p>
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('recruitment.cancel') }}</button>
                     <button type="button" class="btn btn-danger text-white"
-                        id="confirmDeleteCandidateBtn">Delete</button>
+                        id="confirmDeleteCandidateBtn">{{ __('recruitment.delete') }}</button>
                 </div>
             </div>
         </div>
@@ -730,7 +729,7 @@
 
                     <div class="d-flex align-items-center gap-2 ms-auto">
                         <button type="button" class="btn btn-sm calendar-nav-btn bg-0" id="openMonthListBtn"
-                            title="View all schedules this month">
+                            title="{{ __('recruitment.view_all') }}">
                             <span class="material-symbols-outlined">list</span>
                         </button>
 
@@ -753,7 +752,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header schedule-day-header">
-                    <h6 class="modal-title fw-bold mb-0" id="scheduleDayListTitle">Schedule</h6>
+                    <h6 class="modal-title fw-bold mb-0" id="scheduleDayListTitle">{{ __('recruitment.schedule_day') }}</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -761,9 +760,8 @@
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
-                        id="scheduleDayCancelBtn" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-dark rounded-pill px-4" id="scheduleDayAddBtn">+ Add
-                        Schedule</button>
+                        id="scheduleDayCancelBtn" data-bs-dismiss="modal">{{ __('recruitment.cancel') }}</button>
+                    <button type="button" class="btn btn-dark rounded-pill px-4" id="scheduleDayAddBtn">{{ __('recruitment.add_schedule') }}</button>
                 </div>
             </div>
         </div>
@@ -773,20 +771,20 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title fw-bold mb-0" id="scheduleMonthListTitle">Schedule List</h6>
+                    <h6 class="modal-title fw-bold mb-0" id="scheduleMonthListTitle">{{ __('recruitment.schedule_list') }}</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="d-flex align-items-center flex-wrap gap-2 mb-3 schedule-search-bar">
                         <div class="btn-group btn-group-sm" role="group" id="scheduleSearchModeGroup">
                             <button type="button" class="btn btn-outline-secondary active"
-                                data-mode="monthly">Monthly</button>
-                            <button type="button" class="btn btn-outline-secondary" data-mode="daily">Daily</button>
+                                data-mode="monthly">{{ __('recruitment.monthly') }}</button>
+                            <button type="button" class="btn btn-outline-secondary" data-mode="daily">{{ __('recruitment.daily') }}</button>
                         </div>
                         <input type="date" class="form-control form-control-sm d-none" id="scheduleSearchDate"
                             style="max-width:170px;">
                         <input type="text" class="form-control form-control-sm flex-grow-1"
-                            id="scheduleSearchKeyword" placeholder="Search title / candidate / position...">
+                            id="scheduleSearchKeyword" placeholder="{{ __('recruitment.search_title_candidate') }}">
                     </div>
                     <ul class="list-group list-group-flush schedule-month-list" id="scheduleMonthListBody"></ul>
                 </div>
@@ -801,7 +799,7 @@
 
                     <div class="modal-header modal-header-custom">
                         <h6 class="modal-title modal-title-custom" id="scheduleModalLabel">
-                            Add Schedule
+                            {{ __('recruitment.add_schedule_title') }}
                         </h6>
 
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -813,67 +811,67 @@
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Candidate <span class="text-danger">*</span>
+                                    {{ __('recruitment.candidate') }} <span class="text-danger">*</span>
                                 </label>
 
                                 <select id="scheduleCandidateId" class="form-select border-0" required>
-                                    <option value="">Select Candidate</option>
+                                    <option value="">{{ __('recruitment.select_candidate') }}</option>
                                 </select>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Schedule Type <span class="text-danger">*</span>
+                                    {{ __('recruitment.schedule_type') }} <span class="text-danger">*</span>
                                 </label>
 
                                 <select id="scheduleType" class="form-select border-0" required>
-                                    <option value="">Select Type</option>
-                                    <option value="interview">Interview</option>
-                                    <option value="tech_test">Tech Test</option>
-                                    <option value="offering">Offering</option>
-                                    <option value="other">Other</option>
+                                    <option value="">{{ __('recruitment.select_type') }}</option>
+                                    <option value="interview">{{ __('recruitment.interview') }}</option>
+                                    <option value="tech_test">{{ __('recruitment.tech_test') }}</option>
+                                    <option value="offering">{{ __('recruitment.offering') }}</option>
+                                    <option value="other">{{ __('recruitment.other') }}</option>
                                 </select>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Location <span class="text-danger">*</span>
+                                    {{ __('recruitment.location') }} <span class="text-danger">*</span>
                                 </label>
 
                                 <select id="scheduleLocation" class="form-select border-0" required>
-                                    <option value="online">Online</option>
-                                    <option value="onsite">Onsite</option>
+                                    <option value="online">{{ __('recruitment.online') }}</option>
+                                    <option value="onsite">{{ __('recruitment.onsite') }}</option>
                                 </select>
                             </div>
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Title <span class="text-danger">*</span>
+                                    {{ __('recruitment.title') }} <span class="text-danger">*</span>
                                 </label>
 
                                 <input
                                     type="text"
                                     id="scheduleTitle"
                                     class="form-control border-0"
-                                    placeholder="Interview with Candidate"
+                                    placeholder="{{ __('recruitment.interview_title') }}"
                                     required>
                             </div>
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Description
+                                    {{ __('recruitment.description') }}
                                 </label>
 
                                 <textarea
                                     id="scheduleDescription"
                                     rows="3"
                                     class="form-control border-0"
-                                    placeholder="Additional notes"></textarea>
+                                    placeholder="{{ __('recruitment.additional_notes') }}"></textarea>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    Start Time <span class="text-danger">*</span>
+                                    {{ __('recruitment.start_time') }} <span class="text-danger">*</span>
                                 </label>
 
                                 <input
@@ -885,7 +883,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-semibold">
-                                    End Time <span class="text-danger">*</span>
+                                    {{ __('recruitment.end_time') }} <span class="text-danger">*</span>
                                 </label>
 
                                 <input
@@ -897,14 +895,14 @@
 
                             <div class="col-md-12 mb-1">
                                 <label class="form-label small fw-semibold">
-                                    Meeting Link
+                                    {{ __('recruitment.meeting_link') }}
                                 </label>
 
                                 <input
                                     type="text"
                                     id="scheduleMeetingLink"
                                     class="form-control border-0"
-                                    placeholder="https://meet.google.com/...">
+                                    placeholder="{{ __('recruitment.meeting_link_placeholder') }}">
                             </div>
 
                         </div>
@@ -916,20 +914,20 @@
                             type="button"
                             id="deleteScheduleBtn"
                             class="btn btn-outline-danger d-none me-auto">
-                            Delete
+                            {{ __('recruitment.delete_schedule') }}
                         </button>
 
                         <button
                             type="button"
                             class="btn btn-light"
                             data-bs-dismiss="modal">
-                            Cancel
+                            {{ __('recruitment.cancel') }}
                         </button>
 
                         <button
                             type="submit"
                             class="btn submit-candidate-btn">
-                            Save
+                            {{ __('recruitment.save') }}
                         </button>
                     </div>
 
@@ -939,6 +937,10 @@
     </div>
 
     <x-slot name="script_slot">
+
+        <script>
+            window.recruitmentLang = @json(__('recruitment'));
+        </script>
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>

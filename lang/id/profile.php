@@ -9,7 +9,7 @@ return [
     'partner_not_assigned' => 'Mitra belum ditentukan',
     'site_not_assigned' => 'Lokasi belum ditentukan',
     'job' => 'Pekerjaan',
-    'job_not_assigned' => 'Divisi belum ditentukan',
+    'job_not_assigned' => 'Pekerjaan belum ditentukan',
     'address' => 'Alamat',
     'salary' => 'Gaji',
     'payslip' => 'Slip Gaji',
@@ -28,9 +28,9 @@ return [
     'take_home_pay' => 'Gaji bersih',
     'basic_salary' => 'Gaji Pokok',
     'positional_allowance' => 'Tunj. Jabatan',
-    'transportation_allowance' => 'Tunj. Transportasi',
-    'meal_allowance' => 'Tunj. Makan',
-    'internet_phone_allowance' => 'Tunj. Internet & Telp',
+    'bpjs_allowance' => 'Tunj. BPJS',
+    'bpjs_tenaga_kerja_allowance' => 'Tunj. BPJS Tenaga Kerja',
+    'pension_allowance' => 'Tunj. Pensiun',
     'grade' => 'Golongan',
 ];
 

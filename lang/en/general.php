@@ -1,7 +1,7 @@
 <?php
 
 return [
-    // Common actions
+// Common actions
     'save' => 'Save',
     'cancel' => 'Cancel',
     'submit' => 'Submit',
@@ -34,6 +34,11 @@ return [
     'required' => 'Required',
     'status' => 'Status',
     'actions' => 'Actions',
+    'all_department' => 'All Department',
+    'all_site' => 'All Site',
+    'all_employee' => 'All Employee',
+    'all_partner' => 'All Partner',
+    'all_month' => 'All Month',
 
     // Weekdays (short)
     'sun' => 'Sun',

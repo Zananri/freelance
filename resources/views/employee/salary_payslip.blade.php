@@ -1,9 +1,9 @@
 <x-office-layout>
-    <x-slot name="menu_active">
-        {{ __('salary_payslip') }}
+<x-slot name="menu_active">
+        {{ __('menu.salary_payslip') }}
     </x-slot>
     <x-slot name="head_stitle_slot">
-        {{ __('Salary Payslip') }}
+        {{ __('menu.salary_payslip') }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/salary_payslip.css')}}?v{{ time() }}" rel="stylesheet">
@@ -14,8 +14,8 @@
             $selectedDepartmentId = $selectedDepartmentId ?? 'all';
             $selectedDivisionId = $selectedDivisionId ?? 'all';
             $searchQuery = $searchQuery ?? '';
-            $selectedDepartmentName = 'All Department';
-            $selectedDivisionName = 'All Site';
+$selectedDepartmentName = __('general.all_department');
+$selectedDivisionName = __('general.all_site');
 
             if ($selectedDepartmentId !== 'all' && $selectedDepartmentId !== '0' && $selectedDepartmentId !== 0) {
                 $selectedDepartment = $department->firstWhere('id', (int) $selectedDepartmentId);
@@ -30,7 +30,7 @@
 
         <div class="row">
             <div class="col-12 col-md-9">
-                <h2 class="text-title-content mb-3" >Salary & Payslip</h2>
+                <h2 class="text-title-content mb-3" >{{ __('menu.salary_payslip') }}</h2>
             </div>
             <div class="col-12 col-md-3">
                 <div class="d-flex gap-2 justify-content-end align-items-center">
@@ -88,7 +88,7 @@
                                                     <li class="dropdown-item department-item"
                                                         data-department-id="0"
                                                         data-department-name="All Department">
-                                                        <div class="dropdown-item fs-14">All Department</div>
+                                                        <div class="dropdown-item fs-14">{{ __('general.all_department') }}</div>
                                                     </li>
                                                 @endif
 
@@ -118,7 +118,7 @@
 
                                             <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
                                                 <li data-department-id="0" data-division-id="0" data-division-name="All Site" class="dropdown-item division-item fs-14">
-                                                    <div class="dropdown-item fs-14">All Site</div>
+                                                    <div class="dropdown-item fs-14">{{ __('general.all_site') }}</div>
                                                 </li>
                                                 @foreach ($division as $itemDivision)
                                                     <li data-department-id="{{ $itemDivision->department_id }}" data-division-id="{{ $itemDivision->id }}" data-division-name="{{ $itemDivision->name_division }}" class="dropdown-item division-item fs-14">
@@ -169,53 +169,53 @@
                             <table class="table-data">
                                 <thead>
                                     <tr>
-                                        <th>Employee</th>
+                                        <th>{{ __('general.employee') }}</th>
                                         <th>
-                                            <div>Salary</div>
+                                            <div>{{ __('general.salary') }}</div>
                                             <div class="fs-10 fw-normal white-space-nowrap">
-                                                Take Home Pay
+                                                {{ __('general.take_home_pay') }}
                                             </div>
 
                                         </th>
                                         <th>
-                                            <div class="white-space-nowrap">Hari Bln</div>
+                                            <div class="white-space-nowrap">{{ __('salary.active_day_short') }}</div>
                                             <div class="">
                                                 <span class="calendar-month fs-10 fw-normal white-space-nowrap">{{ date('F') }}</span>
                                             </div>
                                         </th>
 
                                         <th>
-                                            <div class="white-space-nowrap">Hari Kerja</div>
+                                            <div class="white-space-nowrap">{{ __('salary.working_day_short') }}</div>
                                             <span class="calendar-month fs-10 fw-normal white-space-nowrap">{{ date('F') }}</span>
                                         </th>
 
                                         <th>
-                                            <div class="white-space-nowrap">Hari UM</div>
+                                            <div class="white-space-nowrap">{{ __('salary.meal_day_short') }}</div>
                                             <span class="calendar-month fs-10 fw-normal white-space-nowrap">{{ date('F') }}</span>
                                         </th>
 
                                         <th>
-                                            <div class="white-space-nowrap">Gaji Pokok</div>
+<div class="white-space-nowrap">{{ __('salary.gaji_pokok') }}</div>
                                         </th>
 
                                         <th>
-                                            <div class="white-space-nowrap">Jabatan</div>
+<div class="white-space-nowrap">{{ __('salary.jabatan') }}</div>
                                         </th>
 
                                         <th>
-                                            <div class="white-space-nowrap">Tunj. BPJS Kesehatan</div>
+<div class="white-space-nowrap">{{ __('salary.tunj_bpjs_kesehatan') }}</div>
                                         </th>
 
                                         <th>
-                                            <div class="white-space-nowrap">Tunj. BPJS Ketenagakerjaan</div>
+<div class="white-space-nowrap">{{ __('salary.tunj_bpjs_ketenagakerjaan') }}</div>
                                         </th>
 
                                         <th>
-                                            <div class="white-space-nowrap">Tunj. Dana Pensiun</div>
+<div class="white-space-nowrap">{{ __('salary.tunj_dana_pensiun') }}</div>
                                         </th>
 
                                         <th>
-                                            <div class="white-space-nowrap">Kompensasi PKWT</div>
+<div class="white-space-nowrap">{{ __('salary.kompensasi_pkwt_table') }}</div>
                                         </th>
 
                                         <th>
@@ -223,7 +223,7 @@
                                         </th>
 
                                         <th>
-                                            <div>Potongan</div>
+<div>{{ __('salary.potongan') }}</div>
                                         </th>
 
                                     </tr>
@@ -273,8 +273,8 @@
                                                 <div class="gaji pt-2 pb-1 text-center fw-bold">
                                                 </div>
                                                 <div class="text-center">
-                                                    <div class="payslip-sent text-center d-none" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Terkirim :">
-                                                        Payslip terkirim
+<div class="payslip-sent text-center d-none" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Terkirim :">
+                                                        {{ __('salary.payslip_sent') }}
                                                     </div>
                                                 </div>
                                                 
@@ -299,7 +299,7 @@
                                                 <div class="">
                                                     <div class="d-flex align-items-center justify-content-between ">
                                                         <div class=" w-100">
-                                                            Perhitungan
+{{ __('salary.perhitungan') }}
                                                         </div>
                                                         <div>
                                                             <div class="d-flex">
@@ -370,9 +370,9 @@
                         <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                             <div>
                                 <div class="spinner-border opacity-50" style="width: 2.5rem; height: 2.5rem;" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <div class="fs-10">Loading...</div>
+                                        <span class="visually-hidden">{{ __('general.loading') }}</span>
+                                    </div>
+                                    <div class="fs-10">{{ __('general.loading') }}</div>
                             </div>
                             
                         </div>
@@ -407,293 +407,293 @@
 
                             <div class="p-4 pb-0">
                                 <div class="text-center">
-                                        <div class="fw-light fs-24">Salary</div>
-                                        <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
-                                        <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
-                                </div>
-                                <div class="mb-4 text-center">
-                                    <span class="fw-normal fs-14 text-secondary attendance-date"></span>
-                                </div>
-
-                                <div class="mb-3 pb-2 border-bottom border-3">
-
-                                    <div class="d-flex mb-2 justify-content-between align-items-center w-100">
-                                        <div>
-                                            <div class="fs-14 text-secondary fw-normal">Employee</div>
-                                        </div>
-                                        <div>
-                                            <div class="employee-name fw-medium fs-14"></div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-2">
-                                        <div class="d-flex justify-content-between align-items-center w-100">
-                                            <div>
-                                                <div class="fs-14 text-secondary fw-normal">Site</div>
-                                            </div>
-                                            <div>
-                                                <div class="employee-division fs-14 fw-normal"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-2">
-                                        <div class="d-flex justify-content-between align-items-start w-100">
-                                            <div>
-                                                <div class="fs-14 text-secondary fw-normal">Salary</div>
-                                                <div class="fs-8 text-secondary fw-normal">(Take Home Pay)</div>
-                                            </div>
-                                            <div>
-                                                <div class="employee-salary-thp fs-14 fw-normal"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                </div>
+                                    <div class="fw-light fs-24">{{ __('salary.salary_title') }}</div>
+                                    <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
+                                    <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
+                            </div>
+                            <div class="mb-4 text-center">
+                                <span class="fw-normal fs-14 text-secondary attendance-date"></span>
                             </div>
 
+                            <div class="mb-3 pb-2 border-bottom border-3">
 
-                            <div class="form-block-salary scrollbar-transparent pt-1 p-4">
-
-                                <div class="mb-3">
-
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <label for="active_day" class="fs-14 text-secondary fw-normal">
-                                                Hari Aktif
-                                            </label>
-                                            <input type="number" class="form-control  border-0 fs-14" name="active_day" id="active_day">
-                                        </div>
-                                        <div class="col-4">
-                                            <label for="working_day" class="fs-14 text-secondary fw-normal">
-                                                Hari Kerja
-                                            </label>
-                                            <span class="fs-12 ms-2 info_working_day" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top" data-bs-title="0">
-                                                <i class="bi bi-info-circle"></i>
-                                            </span>
-                                            <input type="number" class="form-control border-0 fs-14" name="working_day" id="working_day">
-                                        </div>
-                                        <div class="col-4">
-                                            <label for="meal_day" class="fs-14 text-secondary fw-normal">
-                                                Hari UM
-                                            </label>
-                                            <input type="number" class="form-control  border-0 fs-14" name="meal_day" id="meal_day">
-                                        </div>
+                                <div class="d-flex mb-2 justify-content-between align-items-center w-100">
+                                    <div>
+                                        <div class="fs-14 text-secondary fw-normal">{{ __('salary.employee') }}</div>
                                     </div>
-                                    
-                                </div>
-
-                                <div class="mb-3">
-
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <label for="basic_salary" class="fs-14 text-secondary fw-normal">
-                                                Gaji Pokok
-                                            </label>
-
-                                            <span class="fs-12 ms-2 info_basic_salary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
-                                                <i class="bi bi-info-circle"></i>
-                                            </span>
-                                            
-                                            <input type="text" class="form-control border-0 fs-14" name="basic_salary" id="basic_salary">
-                                        </div>
-                                        
-                                        <div class="col-6">
-                                            <label for="basic_salary" class="fs-14 text-secondary fw-normal">
-                                                Absensi Tidak Lengkap 
-                                                <span class="jumlah_absensi_tidak_lengkap"></span>
-                                            </label>
-                                            
-                                            <div class="">
-                                                <span class="hitungan_absensi_tidak_lengkap fs-14"></span>
-                                                <span class="fs-12 ms-2 info_absensi_tidak_lengkap" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="hari * 50.000">
-                                                <i class="bi bi-info-circle"></i>
-                                            </span>
-                                            </div>
-                                        </div>
-                                        
-                                        
+                                    <div>
+                                        <div class="employee-name fw-medium fs-14"></div>
                                     </div>
-                                    
                                 </div>
                                 
-
-                                <div class="mb-3">
-
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <label for="positional_allowance" class="fs-14 text-secondary fw-normal">
-                                                Tunjangan Jabatan
-                                            </label>
-
-                                            <span class="fs-12 ms-2 info_positional_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
-                                                <i class="bi bi-info-circle"></i>
-                                            </span>
-
-                                            <input type="text" class="form-control border-0 fs-14" name="positional_allowance" id="positional_allowance">
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('salary.site') }}</div>
                                         </div>
-
-                                        <div class="col-6">
-                                            <label for="bpjs_allowance" class="fs-14 text-secondary fw-normal">
-                                                Tunjangan BPJS Kesehatan
-                                            </label>
-
-                                            <span class="fs-12 ms-2 info_bpjs_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
-                                                <i class="bi bi-info-circle"></i>
-                                            </span>
-
-                                            <input type="text" class="form-control border-0 fs-14" name="bpjs_allowance" id="bpjs_allowance">
+                                        <div>
+                                            <div class="employee-division fs-14 fw-normal"></div>
                                         </div>
-                                        
                                     </div>
-                                    
                                 </div>
-
-                                <div class="mb-3">
-
-                                    <div class="row">
-                                        
-                                        <div class="col-6">
-                                            <label for="bpjs_tenaga_kerja_allowance" class="fs-14 text-secondary fw-normal">
-                                                Tunjangan BPJS Ketenagakerjaan
-                                            </label>
-                                            <span class="fs-12 ms-2 info_bpjs_tenaga_kerja_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
-                                                <i class="bi bi-info-circle"></i>
-                                            </span>
-                                            <input type="text" class="form-control border-0 fs-14" name="bpjs_tenaga_kerja_allowance" id="bpjs_tenaga_kerja_allowance">
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-start w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('salary.salary') }}</div>
+                                            <div class="fs-8 text-secondary fw-normal">({{ __('salary.take_home_pay') }})</div>
                                         </div>
-
-                                        <div class="col-6">
-                                            <label for="pension_allowance" class="fs-14 text-secondary fw-normal">
-                                                Tunjangan BPJS Dana Pensiun
-                                            </label>
-                                            <span class="fs-12 ms-2 info_pension_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
-                                                <i class="bi bi-info-circle"></i>
-                                            </span>
-                                            <input type="text" class="form-control border-0 fs-14" name="pension_allowance" id="pension_allowance">
-                                        </div>
-                                        
-                                    </div>
-                                    
-                                </div>
-                                
-                                <div class="mb-3">
-
-                                    <div class="row mb-3">
-                                        <div class="col-6">
-                                            <label for="kompensasi_pkwt" class="fs-14 text-secondary fw-normal">
-                                                Kompensasi PKWT
-                                            </label>
-                                            <input type="text" class="form-control border-0 fs-14" name="kompensasi_pkwt" id="kompensasi_pkwt" value="0">
-                                        </div>
-
-                                        <div class="col-6">
-                                            <label for="thr" class="fs-14 text-secondary fw-normal">
-                                                THR
-                                            </label>
-                                            <input type="text" class="form-control border-0 fs-14" name="thr" id="thr" value="0">
+                                        <div>
+                                            <div class="employee-salary-thp fs-14 fw-normal"></div>
                                         </div>
                                     </div>
-
-                                    <div class="mb-2">
-                                        <div class="fs-14 text-secondary fw-normal">Rincian Potongan</div>
-                                    </div>
-
-                                    <div class="row mb-3">
-                                        <div class="col-6">
-                                            <label for="deduction_absent" class="fs-12 text-secondary fw-normal">
-                                                Potongan Absen
-                                            </label>
-                                            <input type="text" class="form-control border-0 fs-14" name="deduction_absent" id="deduction_absent" value="0">
-                                        </div>
-                                        <div class="col-6">
-                                            <label for="deduction_late" class="fs-12 text-secondary fw-normal">
-                                                Potongan Terlambat
-                                            </label>
-                                            <input type="text" class="form-control border-0 fs-14" name="deduction_late" id="deduction_late" value="0">
-                                        </div>
-                                    </div>
-
-                                    <div class="row mb-3">
-                                        <div class="col-6">
-                                            <label for="deduction_bpjs_kesehatan" class="fs-12 text-secondary fw-normal">
-                                                Potongan BPJS Kesehatan
-                                            </label>
-                                            <input type="text" class="form-control border-0 fs-14" name="deduction_bpjs_kesehatan" id="deduction_bpjs_kesehatan" value="0">
-                                        </div>
-                                        <div class="col-6">
-                                            <label for="deduction_bpjs_tenaga_kerja" class="fs-12 text-secondary fw-normal">
-                                                Potongan BPJS Ketenagakerjaan
-                                            </label>
-                                            <input type="text" class="form-control border-0 fs-14" name="deduction_bpjs_tenaga_kerja" id="deduction_bpjs_tenaga_kerja" value="0">
-                                        </div>
-                                    </div>
-
-                                    <div class="row mb-3">
-                                        <div class="col-6">
-                                            <label for="deduction_bpjs_dana_pensiun" class="fs-12 text-secondary fw-normal">
-                                                Potongan BPJS TK Dana Pensiun
-                                            </label>
-                                            <input type="text" class="form-control border-0 fs-14" name="deduction_bpjs_dana_pensiun" id="deduction_bpjs_dana_pensiun" value="0">
-                                        </div>
-                                        <div class="col-6">
-                                            <label for="deduction_pph21" class="fs-12 text-secondary fw-normal">
-                                                Potongan Pajak PPh21
-                                            </label>
-                                            <input type="text" class="form-control border-0 fs-14" name="deduction_pph21" id="deduction_pph21" value="0">
-                                        </div>
-                                    </div>
-
-                                    <div class="row mb-3">
-                                        <div class="col-6">
-                                            <label for="deduction_cooperative" class="fs-12 text-secondary fw-normal">
-                                                Potongan Koperasi
-                                            </label>
-                                            <input type="text" class="form-control border-0 fs-14" name="deduction_cooperative" id="deduction_cooperative" value="0">
-                                        </div>
-                                        <div class="col-6">
-                                            <label for="deduction_other" class="fs-12 text-secondary fw-normal">
-                                                Potongan Lainnya
-                                            </label>
-                                            <input type="text" class="form-control border-0 fs-14" name="deduction_other" id="deduction_other" value="0">
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <label for="note" class="fs-14 text-secondary fw-normal">
-                                                Note
-                                            </label>
-                                            <textarea name="note" id="note" cols="3" rows="3" class="form-control border-0 fs-14"></textarea>
-                                        </div>
-                                        
-                                    </div>
-                                    
                                 </div>
 
                             </div>
-                            
-                            <div class="p-4 pt-2">
+                        </div>
+
+
+                        <div class="form-block-salary scrollbar-transparent pt-1 p-4">
+
+                            <div class="mb-3">
+
+                                <div class="row">
+                                    <div class="col-4">
+                                        <label for="active_day" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.hari_aktif') }}
+                                        </label>
+                                        <input type="number" class="form-control  border-0 fs-14" name="active_day" id="active_day">
+                                    </div>
+                                    <div class="col-4">
+                                        <label for="working_day" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.hari_kerja') }}
+                                        </label>
+                                        <span class="fs-12 ms-2 info_working_day" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top" data-bs-title="0">
+                                            <i class="bi bi-info-circle"></i>
+                                        </span>
+                                        <input type="number" class="form-control border-0 fs-14" name="working_day" id="working_day">
+                                    </div>
+                                    <div class="col-4">
+                                        <label for="meal_day" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.hari_um') }}
+                                        </label>
+                                        <input type="number" class="form-control  border-0 fs-14" name="meal_day" id="meal_day">
+                                    </div>
+                                </div>
+                                
+                            </div>
+
+                            <div class="mb-3">
+
                                 <div class="row">
                                     <div class="col-6">
-                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">Cancel</div>
+                                        <label for="basic_salary" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.gaji_pokok') }}
+                                        </label>
+
+                                        <span class="fs-12 ms-2 info_basic_salary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                            <i class="bi bi-info-circle"></i>
+                                        </span>
+                                        
+                                        <input type="text" class="form-control border-0 fs-14" name="basic_salary" id="basic_salary">
                                     </div>
+                                    
                                     <div class="col-6">
-                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-save-salary">Save</div>
+                                        <label for="basic_salary" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.absensi_tidak_lengkap') }} 
+                                            <span class="jumlah_absensi_tidak_lengkap"></span>
+                                        </label>
+                                        
+                                        <div class="">
+                                            <span class="hitungan_absensi_tidak_lengkap fs-14"></span>
+                                            <span class="fs-12 ms-2 info_absensi_tidak_lengkap" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="hari * 50.000">
+                                            <i class="bi bi-info-circle"></i>
+                                        </span>
+                                        </div>
                                     </div>
+                                    
+                                    
                                 </div>
+                                
+                            </div>
+                            
+
+                            <div class="mb-3">
+
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label for="positional_allowance" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.jabatan') }}
+                                        </label>
+
+                                        <span class="fs-12 ms-2 info_positional_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                            <i class="bi bi-info-circle"></i>
+                                        </span>
+
+                                        <input type="text" class="form-control border-0 fs-14" name="positional_allowance" id="positional_allowance">
+                                    </div>
+
+                                    <div class="col-6">
+                                        <label for="bpjs_allowance" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.tunj_bpjs_kesehatan') }}
+                                        </label>
+
+                                        <span class="fs-12 ms-2 info_bpjs_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                            <i class="bi bi-info-circle"></i>
+                                        </span>
+
+                                        <input type="text" class="form-control border-0 fs-14" name="bpjs_allowance" id="bpjs_allowance">
+                                    </div>
+                                    
+                                </div>
+                                
                             </div>
 
-                            
-                        </form>
+                            <div class="mb-3">
 
-                        <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
-
-                            <div class="w-100 h-100 d-flex justify-content-center align-items-center">
-                                <div>
-                                    <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
-                                        <span class="visually-hidden">Loading...</span>
+                                <div class="row">
+                                    
+                                    <div class="col-6">
+                                        <label for="bpjs_tenaga_kerja_allowance" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.tunj_bpjs_ketenagakerjaan') }}
+                                        </label>
+                                        <span class="fs-12 ms-2 info_bpjs_tenaga_kerja_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                            <i class="bi bi-info-circle"></i>
+                                        </span>
+                                        <input type="text" class="form-control border-0 fs-14" name="bpjs_tenaga_kerja_allowance" id="bpjs_tenaga_kerja_allowance">
                                     </div>
-                                    <div class="fs-14">Loading...</div>
+
+                                    <div class="col-6">
+                                        <label for="pension_allowance" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.tunj_dana_pensiun') }}
+                                        </label>
+                                        <span class="fs-12 ms-2 info_pension_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                            <i class="bi bi-info-circle"></i>
+                                        </span>
+                                        <input type="text" class="form-control border-0 fs-14" name="pension_allowance" id="pension_allowance">
+                                    </div>
+                                    
+                                </div>
+                                
+                            </div>
+                            
+                            <div class="mb-3">
+
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label for="kompensasi_pkwt" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.kompensasi_pkwt') }}
+                                        </label>
+                                        <input type="text" class="form-control border-0 fs-14" name="kompensasi_pkwt" id="kompensasi_pkwt" value="0">
+                                    </div>
+
+                                    <div class="col-6">
+                                        <label for="thr" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.thr') }}
+                                        </label>
+                                        <input type="text" class="form-control border-0 fs-14" name="thr" id="thr" value="0">
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <div class="fs-14 text-secondary fw-normal">{{ __('salary.rincian_potongan') }}</div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label for="deduction_absent" class="fs-12 text-secondary fw-normal">
+                                            {{ __('salary.deduction_absent') }}
+                                        </label>
+                                        <input type="text" class="form-control border-0 fs-14" name="deduction_absent" id="deduction_absent" value="0">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="deduction_late" class="fs-12 text-secondary fw-normal">
+                                            {{ __('salary.deduction_late') }}
+                                        </label>
+                                        <input type="text" class="form-control border-0 fs-14" name="deduction_late" id="deduction_late" value="0">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label for="deduction_bpjs_kesehatan" class="fs-12 text-secondary fw-normal">
+                                            {{ __('salary.deduction_bpjs_kesehatan') }}
+                                        </label>
+                                        <input type="text" class="form-control border-0 fs-14" name="deduction_bpjs_kesehatan" id="deduction_bpjs_kesehatan" value="0">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="deduction_bpjs_tenaga_kerja" class="fs-12 text-secondary fw-normal">
+                                            {{ __('salary.deduction_bpjs_tenaga_kerja') }}
+                                        </label>
+                                        <input type="text" class="form-control border-0 fs-14" name="deduction_bpjs_tenaga_kerja" id="deduction_bpjs_tenaga_kerja" value="0">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label for="deduction_bpjs_dana_pensiun" class="fs-12 text-secondary fw-normal">
+                                            {{ __('salary.deduction_bpjs_dana_pensiun') }}
+                                        </label>
+                                        <input type="text" class="form-control border-0 fs-14" name="deduction_bpjs_dana_pensiun" id="deduction_bpjs_dana_pensiun" value="0">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="deduction_pph21" class="fs-12 text-secondary fw-normal">
+                                            {{ __('salary.deduction_pph21') }}
+                                        </label>
+                                        <input type="text" class="form-control border-0 fs-14" name="deduction_pph21" id="deduction_pph21" value="0">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label for="deduction_cooperative" class="fs-12 text-secondary fw-normal">
+                                            {{ __('salary.deduction_cooperative') }}
+                                        </label>
+                                        <input type="text" class="form-control border-0 fs-14" name="deduction_cooperative" id="deduction_cooperative" value="0">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="deduction_other" class="fs-12 text-secondary fw-normal">
+                                            {{ __('salary.deduction_other') }}
+                                        </label>
+                                        <input type="text" class="form-control border-0 fs-14" name="deduction_other" id="deduction_other" value="0">
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-12">
+                                        <label for="note" class="fs-14 text-secondary fw-normal">
+                                            {{ __('salary.note') }}
+                                        </label>
+                                        <textarea name="note" id="note" cols="3" rows="3" class="form-control border-0 fs-14"></textarea>
+                                    </div>
+                                    
+                                </div>
+                                
+                            </div>
+
+                        </div>
+                        
+                        <div class="p-4 pt-2">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">{{ __('salary.cancel') }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-save-salary">{{ __('salary.save') }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        
+                    </form>
+
+                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                            <div>
+                                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                    <span class="visually-hidden">{{ __('general.loading') }}</span>
+                                </div>
+                                <div class="fs-14">{{ __('general.loading') }}</div>
                                 </div>
                                 
                             </div>
@@ -721,7 +721,7 @@
 
                             <div class="p-4 pb-0">
                                 <div class="text-center">
-                                        <div class="fw-light fs-24">Payslip</div>
+                                        <div class="fw-light fs-24">{{ __('salary.payslip') }}</div>
                                         <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
                                         <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
                                 </div>
@@ -733,7 +733,7 @@
 
                                     <div class="d-flex mb-2 justify-content-between align-items-center w-100">
                                         <div>
-                                            <div class="fs-14 text-secondary fw-normal">Employee</div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('salary.employee') }}</div>
                                         </div>
                                         <div>
                                             <div class="employee-name fw-medium fs-14"></div>
@@ -743,7 +743,7 @@
                                     <div class="mb-2">
                                         <div class="d-flex justify-content-between align-items-center w-100">
                                             <div>
-                                                <div class="fs-14 text-secondary fw-normal">Site</div>
+                                                <div class="fs-14 text-secondary fw-normal">{{ __('salary.site') }}</div>
                                             </div>
                                             <div>
                                                 <div class="employee-division fs-14 fw-normal"></div>
@@ -753,8 +753,8 @@
                                     <div class="mb-2">
                                         <div class="d-flex justify-content-between align-items-start w-100">
                                             <div>
-                                                <div class="fs-14 text-secondary fw-normal">Salary</div>
-                                                <div class="fs-8 text-secondary fw-normal">(Take Home Pay)</div>
+                                                <div class="fs-14 text-secondary fw-normal">{{ __('salary.salary') }}</div>
+                                                <div class="fs-8 text-secondary fw-normal">({{ __('salary.take_home_pay') }})</div>
                                             </div>
                                             <div>
                                                 <div class="employee-salary-thp fs-14 fw-normal"></div>
@@ -767,12 +767,10 @@
 
                             <div class="p-4 pt-0">
                                 <div class="fs-12 tex-body text-opacity-50">
-                                    Please make sure to double-check all employee salary data before distributing the payslips. 
-                                    A thorough review of the entire payroll dataset is essential to guarantee that every employee's payment is accurate and correct. 
-                                    
+                                    {{ __('salary.confirm_send_payslip') }}
                                 </div>
                                 <div class="fw-bold fs-12 mt-3">
-                                        Do you confirm that the payslips are ready to be sent ?
+                                    {{ __('salary.confirm_send_payslip_question') }}
                                 </div>
                             </div>
 
@@ -785,10 +783,10 @@
                             <div class="p-4 pt-2">
                                 <div class="row">
                                     <div class="col-6">
-                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">Cancel</div>
+                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">{{ __('salary.cancel') }}</div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-send-payslip">Send</div>
+                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-send-payslip">{{ __('salary.send') }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -801,9 +799,9 @@
                             <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                                 <div>
                                     <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <div class="fs-14">Loading...</div>
+<span class="visually-hidden">{{ __('general.loading') }}</span>
+                                </div>
+                                <div class="fs-14">{{ __('general.loading') }}</div>
                                 </div>
                                 
                             </div>
@@ -831,7 +829,7 @@
 
                             <div class="p-4 pb-0">
                                 <div class="text-center">
-                                        <div class="fw-light fs-24">Payslip</div>
+                                        <div class="fw-light fs-24">{{ __('salary.payslip') }}</div>
                                         <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
                                         <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
                                 </div>
@@ -843,7 +841,7 @@
 
                                     <div class="d-flex mb-2 justify-content-between align-items-center w-100">
                                         <div>
-                                            <div class="fs-14 text-secondary fw-normal">Employee</div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('salary.employee') }}</div>
                                         </div>
                                         <div>
                                             <div class="employee-name fw-medium fs-14"></div>
@@ -853,7 +851,7 @@
                                     <div class="mb-2">
                                         <div class="d-flex justify-content-between align-items-center w-100">
                                             <div>
-                                                <div class="fs-14 text-secondary fw-normal">Site</div>
+                                                <div class="fs-14 text-secondary fw-normal">{{ __('salary.site') }}</div>
                                             </div>
                                             <div>
                                                 <div class="employee-division fs-14 fw-normal"></div>
@@ -863,8 +861,8 @@
                                     <div class="mb-2">
                                         <div class="d-flex justify-content-between align-items-start w-100">
                                             <div>
-                                                <div class="fs-14 text-secondary fw-normal">Salary</div>
-                                                <div class="fs-8 text-secondary fw-normal">(Take Home Pay)</div>
+                                                <div class="fs-14 text-secondary fw-normal">{{ __('salary.salary') }}</div>
+                                                <div class="fs-8 text-secondary fw-normal">({{ __('salary.take_home_pay') }})</div>
                                             </div>
                                             <div>
                                                 <div class="employee-salary-thp fs-14 fw-normal"></div>
@@ -878,7 +876,7 @@
                             <div class="p-4 pt-0">
                                 
                                 <div class="fw-bold fs-12 mt-3">
-                                    Are You want recalled employee payslip ?
+                                    {{ __('salary.confirm_recall_payslip') }}
                                 </div>
                             </div>
 
@@ -891,10 +889,10 @@
                             <div class="p-4 pt-2">
                                 <div class="row">
                                     <div class="col-6">
-                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">Cancel</div>
+                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">{{ __('salary.cancel') }}</div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-recalled-payslip">Recall</div>
+                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-recalled-payslip">{{ __('salary.recall') }}</div>
                                     </div>
                                 </div>
                             </div>

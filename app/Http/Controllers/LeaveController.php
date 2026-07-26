@@ -35,9 +35,10 @@ class LeaveController extends Controller
             $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
         }
 
-        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-        ->whereNotIn('users.user_type',["ADMINISTRATOR"])
-        ->get();
+        $employee = $employee
+            ->whereNotIn('users.user_role', ["ADMINISTRATOR", "SUPERADMIN", "GENERAL_MANAGER", "CEO"])
+            ->whereNotIn('users.user_type', ["ADMINISTRATOR", "SUPERADMIN"])
+            ->get();
 
         return view('leave.leave',[
             'employee' => $employee
@@ -70,9 +71,10 @@ class LeaveController extends Controller
             $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
         }
 
-        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
-        ->get();
+        $employee = $employee
+            ->whereNotIn('users.user_role', ["ADMINISTRATOR", "SUPERADMIN", "GENERAL_MANAGER", "CEO"])
+            ->whereNotIn('users.user_type', ["ADMINISTRATOR", "SUPERADMIN"])
+            ->get();
 
         $employeeIds = $employee->pluck('id');
 
@@ -114,9 +116,10 @@ class LeaveController extends Controller
             $employeeActive = $employeeActive->where('employees.department_id',$currentEmployee->department_id);
         }
 
-        $employeeActive = $employeeActive->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
-        ->get();
+        $employeeActive = $employeeActive
+            ->whereNotIn('users.user_role', ["ADMINISTRATOR", "SUPERADMIN", "GENERAL_MANAGER", "CEO"])
+            ->whereNotIn('users.user_type', ["ADMINISTRATOR", "SUPERADMIN"])
+            ->get();
 
         $employeeLeaveRequest = EmployeeLeaveRequest::with('employee')
             ->whereIn('employee_id',$employeeActive->pluck('id'))

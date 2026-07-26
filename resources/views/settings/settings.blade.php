@@ -1,9 +1,9 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('settings') }}
+        {{ 'settings' }}
     </x-slot>
     <x-slot name="head_stitle_slot">
-        {{ __('Settings') }}
+        {{ 'Settings' }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/settings.css?v'.time()) }}" rel="stylesheet">
@@ -92,7 +92,7 @@
                         
                     </div>
 
-                    <div id="box-pagination"></div>
+                    <div id="box-pagination" class="px-3 pb-3"></div>
 
                 </div>
             </di>

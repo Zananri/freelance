@@ -1,6 +1,6 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('profile') }}
+        {{ 'profile' }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/profile.css?v='.time()) }}" rel="stylesheet">
@@ -39,12 +39,12 @@
                             
                         @endphp
                         
-                        <div class="btn-copy-link-auth z-3" data-copied-link="{{ $linkCopied }}" data-bs-toggle="tooltip" data-bs-trigger="focus" data-bs-title="Link Copied !">
+                        <div class="btn-copy-link-auth z-3" data-copied-link="{{ $linkCopied }}" data-bs-toggle="tooltip" data-bs-trigger="focus" data-bs-title="{{ __('profile.link_copied') }}">
                             <div>
                                 <span class="material-symbols-outlined fs-14 cursor-pointer">content_copy</span>
                             </div>
                             <div class="fs-10">
-                                Link Auth
+                                {{ __('profile.link_auth') }}
                             </div>
                         </div>  
                                                
@@ -92,27 +92,27 @@
                                 <!-- Current Password -->
                                 <div class="mb-3 text-start">
                                     <input type="password" id="current_password" name="current_password"
-                                        placeholder="Current password"
+                                        placeholder="{{ __('profile.current_password') }}"
                                         class="current custom-password-btn form-control input-text" required />
-                                        <div class="valid-feedback">Current password is correct.</div>
-                                        <div class="invalid-feedback">Current password is incorrect.</div>
+                                        <div class="valid-feedback">{{ __('profile.current_password_correct') }}</div>
+                                        <div class="invalid-feedback">{{ __('profile.current_password_incorrect') }}</div>
                                 </div>
 
                                 <!-- New Password -->
                                 <div class="mb-3 text-start">
-                                    <input type="password" id="new_password" name="new_password" placeholder="New password" class="current custom-password-btn form-control input-text" required />
-                                    <div class="invalid-feedback">Please enter a new password.</div>
+                                    <input type="password" id="new_password" name="new_password" placeholder="{{ __('profile.new_password') }}" class="current custom-password-btn form-control input-text" required />
+                                    <div class="invalid-feedback">{{ __('profile.enter_new_password') }}</div>
                                 </div>
 
                                 <div class="mb-3 text-start">
-                                    <input type="password" id="new_password_confirmation" name="new_password_confirmation" placeholder="Confirm password" class="current custom-password-btn form-control input-text" required />
-                                    <div class="invalid-feedback">Password does not match.</div>
+                                    <input type="password" id="new_password_confirmation" name="new_password_confirmation" placeholder="{{ __('profile.confirm_password') }}" class="current custom-password-btn form-control input-text" required />
+                                    <div class="invalid-feedback">{{ __('profile.password_not_match') }}</div>
                                 </div>
 
                                 <!-- Change Password Button -->
                                 <div class="mb-3 text-center">
                                     <div class="custom-submit" id="btnChangePassword">
-                                        Change Password
+                                        {{ __('profile.change_password') }}
                                     </div>
                                 </div>
 
@@ -139,7 +139,7 @@
                 <div class="col-md-4  mb-5">
                     <div class="personal-info bg-card-1 rounded-4 p-5 pt-4 pe-3">
 
-                        <h5 class="fw-light fs-24 mb-4">Personal Info</h5>
+                        <h5 class="fw-light fs-24 mb-4">{{ __('profile.personal_info') }}</h5>
 
                         
 
@@ -148,7 +148,7 @@
                                 <span class="material-symbols-outlined">mail</span>
                             </div>
                             <div>
-                                <div class="label">Email</div>
+                                <div class="label">{{ __('profile.email') }}</div>
                                 <div class="value">{{ $employee->email_work }}</div>
                             </div>
                         </div>
@@ -158,7 +158,7 @@
                                 <span class="material-symbols-outlined">call</span>
                             </div>
                             <div>
-                                <p class="label">Phone Number</p>
+                                <p class="label">{{ __('profile.phone_number') }}</p>
                                 <div class="value">{{ $employee->phone }}</div>
                             </div>
                         </div>
@@ -168,18 +168,18 @@
                                 <span class="material-symbols-outlined">work</span>
                             </div>
                             <div>
-                                <p class="label">Partner & Site</p>
+                                <p class="label">{{ __('profile.partner_site') }}</p>
                                 <div class="value">
                                     @if ($employee && $employee->department)
                                         {{ $employee->department->name_department }}
                                     @else
-                                        <span style="color:red;">Partner not assigned</span>
+                                        <span style="color:red;">{{ __('profile.partner_not_assigned') }}</span>
                                     @endif
                                     <span>/</span>
                                     @if ($employee && $employee->division)
                                         {{ $employee->division->name_division }}
                                     @else
-                                        <span style="color:red;">Site not assigned</span>
+                                        <span style="color:red;">{{ __('profile.site_not_assigned') }}</span>
                                     @endif
                                 </div>
 
@@ -191,12 +191,12 @@
                                 <span class="material-symbols-outlined">assignment</span>
                             </div>
                             <div>
-                                <p class="label">Job</p>
+                                <p class="label">{{ __('profile.job') }}</p>
                                 <div class="value">
                                     @if ($employee && $employee->job)
                                         {{ $employee->job->job_name }}
                                     @else
-                                        <span style="color:red;">Division not assigned</span>
+                                        <span style="color:red;">{{ __('profile.job_not_assigned') }}</span>
                                     @endif
                                 </div>
                             </div>
@@ -207,7 +207,7 @@
                                 <span class="material-symbols-outlined">location_on</span>
                             </div>
                             <div>
-                                <p class="label">Address</p>
+                                <p class="label">{{ __('profile.address') }}</p>
                                 <div class="value">{{ $employee->address }}</div>
                             </div>
                         </div>
@@ -230,7 +230,7 @@
                                 </span>
                             </div>
                             
-                            <h5 class="fw-light fs-18 m-0">Salary</h5>
+                            <h5 class="fw-light fs-18 m-0">{{ __('profile.salary') }}</h5>
 
                             <div class="border mt-2"></div>
                         </div>
@@ -243,7 +243,7 @@
                                 <div class="d-flex justify-content-between w-100">
                                     
                                     <div>
-                                        <span class="fs-14 text-secondary">Take home pay</span>
+                                        <span class="fs-14 text-secondary">{{ __('profile.take_home_pay') }}</span>
                                     </div>
                                     <div>
                                         <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->take_home_pay }}">Rp *</span>
@@ -254,7 +254,7 @@
                                 <div class="d-flex justify-content-between w-100">
                                     
                                     <div>
-                                        <span class="fs-14 text-secondary">Basic Salary</span>
+                                        <span class="fs-14 text-secondary">{{ __('profile.basic_salary') }}</span>
                                     </div>
                                     <div>
                                         <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->basic_salary }}">Rp *</span>
@@ -267,7 +267,7 @@
                                 <div class="d-flex justify-content-between w-100">
                                     
                                     <div>
-                                        <span class="fs-14 text-secondary">Positional Allowance</span>
+                                        <span class="fs-14 text-secondary">{{ __('profile.positional_allowance') }}</span>
                                     </div>
                                     <div>
                                         <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->positional_allowance }}">Rp *</span>
@@ -276,43 +276,43 @@
                             </div>
                             @endif
 
-                            @if ($employeeSalary->transportation_allowance > 0)
+                            @if ($employeeSalary->bpjs_allowance > 0)
                             <div class="mb-2">
                                 <div class="d-flex justify-content-between w-100">
                                     
                                     <div>
-                                        <span class="fs-14 text-secondary">Transportation Allowance</span>
+                                        <span class="fs-14 text-secondary">{{ __('profile.bpjs_allowance') }}</span>
                                     </div>
                                     <div>
-                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->transportation_allowance }}">Rp *</span>
+                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->bpjs_allowance }}">Rp *</span>
                                     </div>
                                 </div>
                             </div>
                             @endif
 
-                            @if ($employeeSalary->meal_allowance > 0)
+                            @if ($employeeSalary->bpjs_tenaga_kerja_allowance > 0)
                             <div class="mb-2">
                                 <div class="d-flex justify-content-between w-100">
                                     
                                     <div>
-                                        <span class="fs-14 text-secondary">Meal Allowance</span>
+                                        <span class="fs-14 text-secondary">{{ __('profile.bpjs_tenaga_kerja_allowance') }}</span>
                                     </div>
                                     <div>
-                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->meal_allowance }}">Rp *</span>
+                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->bpjs_tenaga_kerja_allowance }}">Rp *</span>
                                     </div>
                                 </div>
                             </div>
                             @endif
 
-                            @if ($employeeSalary->internet_phone_allowance > 0)
+                            @if ($employeeSalary->pension_allowance > 0)
                             <div class="mb-2">
                                 <div class="d-flex justify-content-between w-100">
                                     
                                     <div>
-                                        <span class="fs-14 text-secondary">Internet phone Allowance</span>
+                                        <span class="fs-14 text-secondary">{{ __('profile.pension_allowance') }}</span>
                                     </div>
                                     <div>
-                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->internet_phone_allowance }}">Rp *</span>
+                                        <span class="fs-14 text-body value-salary" data-salary="{{ $employeeSalary->pension_allowance }}">Rp *</span>
                                     </div>
                                 </div>
                             </div>
@@ -325,7 +325,7 @@
                         </div>
 
                         <div class="p-4 pt-0 pb-2">
-                            <h5 class="fw-light fs-18 m-0">Payslip</h5>
+                            <h5 class="fw-light fs-18 m-0">{{ __('profile.payslip') }}</h5>
                             <div class="border mt-2"></div>
                         </div>
 

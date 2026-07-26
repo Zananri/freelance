@@ -1,9 +1,9 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('teams') }}
+        {{ 'teams' }}
     </x-slot>
     <x-slot name="head_stitle_slot">
-        {{ __('Teams') }}
+        {{ 'Teams' }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/teams.css?v'.time()) }}" rel="stylesheet">
@@ -124,7 +124,7 @@
                                         <span class="material-symbols-outlined">mail</span>
                                     </div>
                                     <div class="col-label-value">
-                                        <div class="label">Email</div>
+                                        <div class="label">{{ __('general.email') }}</div>
                                         <div class="value employee-email"></div>
                                     </div>
                                 </div>
@@ -134,7 +134,7 @@
                                         <span class="material-symbols-outlined">call</span>
                                     </div>
                                     <div class="col-label-value">
-                                        <p class="label">Phone Number</p>
+                                        <p class="label">{{ __('general.phone_number') }}</p>
                                         <div class="value employee-phone"></div>
                                     </div>
                                 </div>
@@ -144,7 +144,7 @@
                                         <span class="material-symbols-outlined">work</span>
                                     </div>
                                     <div class="col-label-value">
-                                        <p class="label">Division</p>
+                                        <p class="label">{{ __('general.division') }}</p>
                                         <div class="value">
                                             <span class="employee-division"></span>
                                         </div>
@@ -157,7 +157,7 @@
                                         <span class="material-symbols-outlined">assignment</span>
                                     </div>
                                     <div class="col-label-value">
-                                        <p class="label">Job</p>
+                                        <p class="label">{{ __('general.job') }}</p>
                                         <div class="value employee-job"></div>
                                     </div>
                                 </div>
@@ -169,7 +169,7 @@
                         <div class="p-3">
                             <div class="row">
                                 <div class="col-12">
-                                    <div class="btn border-0 btn-default w-100 p-2" data-bs-dismiss="modal">Close</div>
+                                    <div class="btn border-0 btn-default w-100 p-2" data-bs-dismiss="modal">{{ __('general.close') }}</div>
                                 </div>
                             </div>
                         </div>

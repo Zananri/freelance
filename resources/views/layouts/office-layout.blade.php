@@ -174,13 +174,13 @@
                                 <div class="d-flex justify-content-center   align-items-center w-100">
                                     <a class="btn btn-profile-left w-100" href="{{ route('profile') }}">
                                         <span class="material-symbols-outlined">account_circle</span>
-                                        Profile
+                                        {{ __('general.profile') }}
                                     </a>
 
 
                                     <button type="submit" class="btn btn-logout-right w-100">
                                         <span class="material-symbols-outlined">logout</span>
-                                        Logout
+                                        {{ __('general.logout') }}
                                     </button>
 
                                 </div>
@@ -199,9 +199,9 @@
                         {{ optional(auth()->user()->employee->division)->name_division ?? __('general.no_division') }}
                     </div>
                 @else
-                    <div class="fs-14 fw-medium">Guest</div>
+                    <div class="fs-14 fw-medium">{{ __('general.guest') }}</div>
                     <div class="fs-12 fw-normal text-body text-opacity-75">
-                        No Division
+                        {{ __('general.no_division') }}
                     </div>
                 @endif
             </div>
@@ -498,8 +498,8 @@
                     </div>
 
                     <div class="text-notification">
-                        <span class="fs-14 fw-medium">
-                            {{ app()->isLocale('id') ? 'Pilih Bahasa' : 'Choose Language' }}
+                    <span class="fs-14 fw-medium">
+                            {{ __('general.choose_language') }}
                         </span>
                     </div>
                 </div>
@@ -513,7 +513,7 @@
                         <span class="language-code">ID</span>
 
                         <div>
-                            <div class="language-name">Indonesia</div>
+                            <div class="language-name">{{ __('general.lang_id') }}</div>
                             <div class="language-description">Bahasa Indonesia</div>
                         </div>
                     </div>
@@ -532,7 +532,7 @@
                         <span class="language-code">EN</span>
 
                         <div>
-                            <div class="language-name">English</div>
+                            <div class="language-name">{{ __('general.lang_en') }}</div>
                             <div class="language-description">English Language</div>
                         </div>
                     </div>

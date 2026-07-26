@@ -692,6 +692,7 @@ function loadDashboardMonitoringWidget() {
         ? departmentFilter.val() || "all"
         : "all";
     const divisionId = $("#widgetDivisionFilter").val() || "all";
+    const employeeId = $("#widgetEmployeeFilter").val() || "all";
     const $jobFilter = $("#widgetJobFilter");
     const jobId = $jobFilter.length ? ($jobFilter.val() || "all") : "all";
 
@@ -703,6 +704,7 @@ function loadDashboardMonitoringWidget() {
         data: {
             department_id: departmentId,
             division_id: divisionId,
+            employee_id: employeeId,
             job_id: jobId,
         },
         success: function (response) {
@@ -732,50 +734,77 @@ function startWidgetMonitoringPolling() {
 
 $(document).on("change", "#widgetDepartmentFilter", function () {
     const departmentId = $(this).val();
-    const $jobFilter = $("#widgetJobFilter");
+    const $divisionFilter = $("#widgetDivisionFilter");
+    const $employeeFilter = $("#widgetEmployeeFilter");
 
-    $("#widgetDivisionFilter option").each(
-        function () {
-            if ($(this).val() === "all") {
-                $(this).show();
-                return;
-            }
+    // Filter division options based on department
+    $divisionFilter.find("option").each(function () {
+        if ($(this).val() === "all") {
+            $(this).show();
+            return;
+        }
+        const optionDepartmentId = $(this).data("department-id");
+        const visible = departmentId === "all" || String(optionDepartmentId) === String(departmentId);
+        $(this).toggle(visible);
+    });
 
-            const optionDepartmentId = $(this).data("department-id");
-            const visible =
-                departmentId === "all" ||
-                String(optionDepartmentId) === String(departmentId);
-            $(this).toggle(visible);
-        },
-    );
-
-    if ($jobFilter.length) {
-        $jobFilter.find("option").each(function () {
-            if ($(this).val() === "all") {
-                $(this).show();
-                return;
-            }
-
-            const optionDepartmentId = $(this).data("department-id");
-            const visible =
-                departmentId === "all" ||
-                String(optionDepartmentId) === String(departmentId);
-            $(this).toggle(visible);
-        });
+    // Reset and disable division/employee if no department selected
+    if (departmentId === "all") {
+        $divisionFilter.val("all").prop("disabled", true);
+        $employeeFilter.val("all").prop("disabled", true);
+        $employeeFilter.find('option:not([value="all"])').remove();
+    } else {
+        $divisionFilter.val("all").prop("disabled", false);
+        $employeeFilter.val("all").prop("disabled", true);
+        $employeeFilter.find('option:not([value="all"])').remove();
     }
 
-    $("#widgetDivisionFilter").val("all");
-    if ($jobFilter.length) {
-        $jobFilter.val("all");
-    }
     loadDashboardMonitoringWidget();
 });
 
 $(document).on("change", "#widgetDivisionFilter", function () {
+    const $employeeFilter = $("#widgetEmployeeFilter");
+    const divisionId = $(this).val();
+    const departmentId = $("#widgetDepartmentFilter").val();
+
+    // Clear employee options
+    $employeeFilter.find('option:not([value="all"])').remove();
+
+    if (divisionId === "all") {
+        $employeeFilter.val("all").prop("disabled", true);
+        loadDashboardMonitoringWidget();
+        return;
+    }
+
+    // Fetch employees for this department+division
+    $.ajax({
+        url: appUrl + "/get-employees-by-division",
+        type: "GET",
+        data: {
+            department_id: departmentId,
+            division_id: divisionId,
+        },
+        success: function (response) {
+            if (response.data && response.data.length) {
+                response.data.forEach(function (emp) {
+                    $employeeFilter.append(
+                        '<option value="' + emp.id + '">' + escapeHtml(emp.name) + '</option>'
+                    );
+                });
+                $employeeFilter.prop("disabled", false).val("all");
+            } else {
+                $employeeFilter.val("all").prop("disabled", true);
+            }
+        },
+        error: function () {
+            $employeeFilter.val("all").prop("disabled", true);
+        },
+    });
+
     loadDashboardMonitoringWidget();
 });
 
-$(document).on("change", "#widgetJobFilter", function () {
+$(document).on("change", "#widgetEmployeeFilter", function () {
     loadDashboardMonitoringWidget();
 });
 
