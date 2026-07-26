@@ -22,5 +22,18 @@ return [
     'annual_leave_quota' => 'Annual Leave :year',
     'edit_annual_leave' => 'Edit Annual Leave',
     'please_input_quota' => 'Please input quota annual leave',
+    'loading' => 'Loading...',
+    'no_data' => 'No data',
+    'day' => 'Day',
+    'days' => 'Days',
+    'request' => 'Request',
+    'approved' => 'Approved',
+    'rejected' => 'Rejected',
+    'annual_leave_type' => 'Annual Leave',
+    'sick_type' => 'Sick',
+    'not_found' => 'Not found',
+    'showing' => 'Showing :from-:to of :total',
+    'previous' => 'Prev',
+    'next' => 'Next',
 ];
 

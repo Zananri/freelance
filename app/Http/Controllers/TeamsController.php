@@ -16,7 +16,9 @@ class TeamsController extends Controller
 
     public function showTeamsPage()
     {
-        $userId = auth()->user()->id;
+        $user = auth()->user();
+        $userId = $user->id;
+        $isSuperadmin = strtoupper((string) ($user->user_type ?? '')) === 'SUPERADMIN';
 
         $currentEmployee = Employee::where('user_id', $userId)->first();
 
@@ -37,11 +39,15 @@ class TeamsController extends Controller
         ->join('users','employees.user_id','=','users.id')
         ->where('employees.status',"ACTIVE")
         ->where('users.user_type','<>',"ADMINISTRATOR")
-        ->where('employees.department_id',$currentEmployee->department_id)
+        ->when(!$isSuperadmin, fn ($query) => $query->where('employees.department_id', $currentEmployee?->department_id ?? 0))
         ->get();
 
-        $department = Department::where('status',"ACTIVE")->get();
-        $division = Division::where('status',"ACTIVE")->where('department_id',$currentEmployee->department_id)->get();
+        $department = Department::where('status',"ACTIVE")
+            ->when(!$isSuperadmin, fn ($query) => $query->where('id', $currentEmployee?->department_id ?? 0))
+            ->get();
+        $division = Division::where('status',"ACTIVE")
+            ->when(!$isSuperadmin, fn ($query) => $query->where('department_id', $currentEmployee?->department_id ?? 0))
+            ->get();
         $job = Job::where('status',"ACTIVE")->get();
 
         try {
@@ -64,7 +70,9 @@ class TeamsController extends Controller
     }
 
     public function getTeamsDetail(Request $request){
-        
+        $user = auth()->user();
+        $currentEmployee = $user?->employee;
+        $isSuperadmin = strtoupper((string) ($user?->user_type ?? '')) === 'SUPERADMIN';
 
         $idEmployee = 0;
 
@@ -75,6 +83,7 @@ class TeamsController extends Controller
         $employee = Employee::with('division', 'department', 'job','grade','user')
             ->where('status',"ACTIVE")
             ->where('id', $idEmployee)
+            ->when(!$isSuperadmin, fn ($query) => $query->where('department_id', $currentEmployee?->department_id ?? 0))
             ->first();
 
         if(!$employee){
@@ -96,4 +105,3 @@ class TeamsController extends Controller
     }
 
 }
-

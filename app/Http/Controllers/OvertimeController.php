@@ -29,10 +29,8 @@ class OvertimeController extends Controller
         ->join('users','employees.user_id','=','users.id')
         ->where('employees.status',"ACTIVE");
 
-        if(in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-            //show all
-        }else{
-            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
+        if ($userType !== 'SUPERADMIN') {
+            $employee->where('employees.department_id', $currentEmployee?->department_id ?? 0);
         }
 
         $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
@@ -67,10 +65,8 @@ class OvertimeController extends Controller
             ->join('users','employees.user_id','=','users.id')
         ->where('employees.status',"ACTIVE");
         
-        if(in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-            //show all
-        }else{
-            $employeeIds = $employeeIds->where('employees.department_id',$currentEmployee->department_id);
+        if ($userType !== 'SUPERADMIN') {
+            $employeeIds->where('employees.department_id', $currentEmployee?->department_id ?? 0);
         }
 
         $employeeIds = $employeeIds->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
@@ -139,8 +135,8 @@ class OvertimeController extends Controller
             ->whereNotIn('users.user_type',["ADMINISTRATOR","SUPERADMIN"])
             ->orderBy('employees.id','DESC');
 
-        if(!in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) || !in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-            $employeeQuery = $employeeQuery->where('employees.department_id',$currentEmployee->department_id);
+        if ($userType !== 'SUPERADMIN') {
+            $employeeQuery->where('employees.department_id', $currentEmployee?->department_id ?? 0);
         }
 
         $totalEmployees = $employeeQuery->count();

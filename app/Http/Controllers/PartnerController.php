@@ -55,10 +55,8 @@ class PartnerController extends Controller
             $partnersQuery->where('office_id', $officeId);
         }
 
-        if (!(in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER']))) {
-            if ($currentEmployee?->department_id) {
-                $partnersQuery->where('department_id', $currentEmployee->department_id);
-            }
+        if ($userType !== 'SUPERADMIN') {
+            $partnersQuery->where('department_id', $currentEmployee?->department_id ?? 0);
         }
 
         $partners = $partnersQuery->get()->map(function (Partner $partner) {
@@ -265,7 +263,14 @@ class PartnerController extends Controller
     public function getPartnersForProjects(Request $request)
     {
         try {
+            $user = auth()->user();
+            $currentEmployee = $user?->employee;
+
             $partners = Partner::where('status', 'ACTIVE')
+                ->when(
+                    strtoupper((string) ($user?->user_type ?? '')) !== 'SUPERADMIN',
+                    fn ($query) => $query->where('department_id', $currentEmployee?->department_id ?? 0)
+                )
                 ->orderBy('partner_name')
                 ->get(['id', 'partner_name', 'department_id', 'office_id', 'description']);
 
@@ -285,7 +290,12 @@ class PartnerController extends Controller
 
     public function options()
     {
+        $user = auth()->user();
+        $currentEmployee = $user?->employee;
+        $isSuperadmin = strtoupper((string) ($user?->user_type ?? '')) === 'SUPERADMIN';
+
         $departments = Department::where('status', '!=', 'DELETED')
+            ->when(!$isSuperadmin, fn ($query) => $query->where('id', $currentEmployee?->department_id ?? 0))
             ->orderBy('name_department')
             ->get(['id', 'name_department']);
 

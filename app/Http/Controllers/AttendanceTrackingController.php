@@ -47,15 +47,17 @@ class AttendanceTrackingController extends Controller
         ->where('employees.status',"ACTIVE");
 
 
-        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-            //show all
-        }else{
-            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
+        if ($userType !== 'SUPERADMIN') {
+            $employee->where('employees.department_id', $currentEmployee?->department_id ?? 0);
         }
 
-        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR", "SUPERADMIN"])
-        ->get();
+        $employee = $employee
+            ->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO"])
+            ->where(function ($query) {
+                $query->whereNull('users.user_type')
+                    ->orWhereNotIn(DB::raw('UPPER(TRIM(users.user_type))'), ["ADMIN", "ADMINISTRATOR", "SUPERADMIN"]);
+            })
+            ->get();
 
         return view('attendance_tracking.attendance_tracking',[
             'employee' => $employee
@@ -63,6 +65,9 @@ class AttendanceTrackingController extends Controller
     }
 
     public function getAttendanceTrackingData(Request $request){
+        $user = auth()->user();
+        $currentEmployee = $user?->employee;
+        $userType = strtoupper((string) ($user?->user_type ?? ''));
 
         $month = Carbon::today()->format('n');
         $year = Carbon::today()->format('Y');
@@ -81,9 +86,16 @@ class AttendanceTrackingController extends Controller
         $employee = Employee::select('employees.id')
             ->join('users','employees.user_id','=','users.id')
             ->where('employees.status',"ACTIVE")
-            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR", "SUPERADMIN"])
-        ->get();
+            ->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO"])
+            ->where(function ($query) {
+                $query->whereNull('users.user_type')
+                    ->orWhereNotIn(DB::raw('UPPER(TRIM(users.user_type))'), ["ADMIN", "ADMINISTRATOR", "SUPERADMIN"]);
+            })
+            ->when(
+                $userType !== 'SUPERADMIN',
+                fn ($query) => $query->where('employees.department_id', $currentEmployee?->department_id ?? 0)
+            )
+            ->get();
 
         $employeeIds = $employee->pluck('id');
 
@@ -108,7 +120,7 @@ class AttendanceTrackingController extends Controller
                     'attendance' => $attendance,
                     'employeeLeave' => $employeeLeave,
                 ],
-                'message' => 'Get attendance tracking data successfully'
+                'message' => __('attendance_tracking.messages.data_loaded')
         ]);
 
     }
@@ -116,6 +128,9 @@ class AttendanceTrackingController extends Controller
     public function getAttendanceDetail(Request $request){
 
         try{
+            $user = auth()->user();
+            $currentEmployee = $user?->employee;
+            $userType = strtoupper((string) ($user?->user_type ?? ''));
             
             $employeeId = 0;
             $dateAttendance = Carbon::now()->toDateString();
@@ -144,11 +159,18 @@ class AttendanceTrackingController extends Controller
                 ->select('employees.*')
                 ->join('users', 'employees.user_id', '=', 'users.id')
                 ->where('employees.id', $employeeId)
-                ->whereNotIn('users.user_type', ['ADMINISTRATOR', 'SUPERADMIN'])
+                ->when(
+                    $userType !== 'SUPERADMIN',
+                    fn ($query) => $query->where('employees.department_id', $currentEmployee?->department_id ?? 0)
+                )
+                ->where(function ($query) {
+                    $query->whereNull('users.user_type')
+                        ->orWhereNotIn(DB::raw('UPPER(TRIM(users.user_type))'), ['ADMIN', 'ADMINISTRATOR', 'SUPERADMIN']);
+                })
                 ->first();
 
             if(!$employee){
-                throw new \Exception('Employee not found');
+                throw new \Exception(__('attendance_tracking.messages.employee_not_found'));
             }
 
             $attendanceTracking = [];
@@ -168,7 +190,7 @@ class AttendanceTrackingController extends Controller
                         'attendance' => $attendance,
                         'attendance_tracking' => $attendanceTracking
                     ],
-                    'message' => 'Succeess get attendance detail'
+                    'message' => __('attendance_tracking.messages.detail_loaded')
             ]);
 
         }catch (\Exception $e){
@@ -207,15 +229,17 @@ class AttendanceTrackingController extends Controller
             ->join('users','employees.user_id','=','users.id')
             ->where('employees.status',"ACTIVE");
             
-        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-            //show all
-        }else{
-            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
+        if ($userType !== 'SUPERADMIN') {
+            $employee->where('employees.department_id', $currentEmployee?->department_id ?? 0);
         }
 
-        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR", "SUPERADMIN"])
-        ->get();
+        $employee = $employee
+            ->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO"])
+            ->where(function ($query) {
+                $query->whereNull('users.user_type')
+                    ->orWhereNotIn(DB::raw('UPPER(TRIM(users.user_type))'), ["ADMIN", "ADMINISTRATOR", "SUPERADMIN"]);
+            })
+            ->get();
 
         $employeeIds = $employee->pluck('id');
 
@@ -230,41 +254,41 @@ class AttendanceTrackingController extends Controller
         $activeWorksheet->mergeCells('A1:J1');
         
         $activeWorksheet->mergeCells('K1:R1');
-        $activeWorksheet->setCellValue('K1', 'Off & Lateness');
+        $activeWorksheet->setCellValue('K1', __('attendance_tracking.export.off_and_lateness'));
         $activeWorksheet->getStyle('K1')->getFont()->setBold(true)->setSize(44);
         $activeWorksheet->getStyle('K1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         
         $activeWorksheet->mergeCells('S1:BB1');
-        $activeWorksheet->setCellValue('S1', 'Present List ACER Team');
+        $activeWorksheet->setCellValue('S1', __('attendance_tracking.export.present_list'));
 
         $activeWorksheet->getStyle('S1')->getFont()->setBold(true)->setSize(44);
         $activeWorksheet->getStyle('S1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         //No	NAMA KARYAWAN	NSAID	Department	Division	Job Position	Grade/Rank	Join Date	Periode Kerja	Penempatan	Time Lateness 1 Hour	Time Lateness 1 > Hour	Overtime off work day	Overtime on Work day	Sick	Permit	Absen	Leave	Shift 2	Total Work half Day This Month	Amount Work half Day This Month	Total Work Day This Month (23 Days)	Total Day Off This Month
         
-        $activeWorksheet->setCellValue('A2', 'No');
-        $activeWorksheet->setCellValue('B2', 'NAMA KARYAWAN');
+        $activeWorksheet->setCellValue('A2', __('attendance_tracking.export.number'));
+        $activeWorksheet->setCellValue('B2', __('attendance_tracking.export.employee_name'));
         $activeWorksheet->setCellValue('C2', 'NSAID');
-        $activeWorksheet->setCellValue('D2', 'Department');
-        $activeWorksheet->setCellValue('E2', 'Division');
-        $activeWorksheet->setCellValue('F2', 'Job Position');
-        $activeWorksheet->setCellValue('G2', 'Grade/Rank');
-        $activeWorksheet->setCellValue('H2', 'Join Date');
-        $activeWorksheet->setCellValue('I2', 'Periode Kerja');
-        $activeWorksheet->setCellValue('J2', 'Penempatan');
-        $activeWorksheet->setCellValue('K2', 'Time Lateness 1 Hour');
-        $activeWorksheet->setCellValue('L2', 'Time Lateness 1 > Hour');
-        $activeWorksheet->setCellValue('M2', 'Overtime off work day');
-        $activeWorksheet->setCellValue('N2', 'Overtime on Work day');
-        $activeWorksheet->setCellValue('O2', 'Sick');
-        $activeWorksheet->setCellValue('P2', 'Permit');
-        $activeWorksheet->setCellValue('Q2', 'Absen');
-        $activeWorksheet->setCellValue('R2', 'Leave');
-        $activeWorksheet->setCellValue('S2', 'Shift 2');
-        $activeWorksheet->setCellValue('T2', 'Total Work half Day This Month');
-        $activeWorksheet->setCellValue('U2', 'Amount Work half Day This Month');
-        $activeWorksheet->setCellValue('V2', 'Total Work Day This Month');//Total Work Day This Month (23 Days)
-        $activeWorksheet->setCellValue('W2', 'Total Day Off This Month');
+        $activeWorksheet->setCellValue('D2', __('attendance_tracking.export.department'));
+        $activeWorksheet->setCellValue('E2', __('attendance_tracking.export.division'));
+        $activeWorksheet->setCellValue('F2', __('attendance_tracking.export.job_position'));
+        $activeWorksheet->setCellValue('G2', __('attendance_tracking.export.grade_rank'));
+        $activeWorksheet->setCellValue('H2', __('attendance_tracking.export.join_date'));
+        $activeWorksheet->setCellValue('I2', __('attendance_tracking.export.work_period'));
+        $activeWorksheet->setCellValue('J2', __('attendance_tracking.export.placement'));
+        $activeWorksheet->setCellValue('K2', __('attendance_tracking.export.late_under_one_hour'));
+        $activeWorksheet->setCellValue('L2', __('attendance_tracking.export.late_over_one_hour'));
+        $activeWorksheet->setCellValue('M2', __('attendance_tracking.export.overtime_off_day'));
+        $activeWorksheet->setCellValue('N2', __('attendance_tracking.export.overtime_work_day'));
+        $activeWorksheet->setCellValue('O2', __('attendance_tracking.sick'));
+        $activeWorksheet->setCellValue('P2', __('attendance_tracking.export.permit'));
+        $activeWorksheet->setCellValue('Q2', __('attendance_tracking.absent'));
+        $activeWorksheet->setCellValue('R2', __('attendance_tracking.leave'));
+        $activeWorksheet->setCellValue('S2', __('attendance_tracking.export.shift_two'));
+        $activeWorksheet->setCellValue('T2', __('attendance_tracking.export.total_half_days'));
+        $activeWorksheet->setCellValue('U2', __('attendance_tracking.export.half_day_amount'));
+        $activeWorksheet->setCellValue('V2', __('attendance_tracking.export.total_work_days'));
+        $activeWorksheet->setCellValue('W2', __('attendance_tracking.export.total_days_off'));
 
         // add border 
         $headerStyle = [
@@ -284,7 +308,7 @@ class AttendanceTrackingController extends Controller
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)
         ->setVertical(Alignment::VERTICAL_CENTER);
         
-        $arrDayID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+        $localizedWeekdays = __('attendance_tracking.export.weekdays');
 
         
 
@@ -292,8 +316,11 @@ class AttendanceTrackingController extends Controller
             $newAddDate = Carbon::parse($firstDayOfMonth)->copy()->addDays($i);
             $column = Coordinate::stringFromColumnIndex($i + 24); // Mengubah indeks menjadi huruf kolom (1=A, 2=B, ...)
             
-            $activeWorksheet->setCellValue($column.'2', $newAddDate->format('d-M'));
-            $activeWorksheet->setCellValue($column.'3', $arrDayID[$newAddDate->format('w')]);
+            $activeWorksheet->setCellValue(
+                $column.'2',
+                $newAddDate->copy()->locale(app()->getLocale())->translatedFormat('d-M')
+            );
+            $activeWorksheet->setCellValue($column.'3', $localizedWeekdays[$newAddDate->format('w')]);
 
             if($newAddDate->isSunday()) {
                 $activeWorksheet->getStyle($column.'3')
@@ -502,7 +529,7 @@ class AttendanceTrackingController extends Controller
                         ->getStartColor()
                     ->setARGB('ff00ff00');
 
-                    $activeWorksheet->setCellValue('X'.$row, 'NEW EMPLOYEE');
+                    $activeWorksheet->setCellValue('X'.$row, __('attendance_tracking.export.new_employee'));
 
                     $activeWorksheet->mergeCells('X'.$row.':'.$column.$row);
                 }
@@ -544,7 +571,7 @@ class AttendanceTrackingController extends Controller
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
  
-        $fileName = 'ABSENSI ACER '.$monthFull.' '.$year.'.xlsx';
+        $fileName = __('attendance_tracking.export.filename').' '.$monthFull.' '.$year.'.xlsx';
         $tempFileName = tempnam(sys_get_temp_dir(), $fileName);
 
         $writer = new Xlsx($spreadsheet);
@@ -569,7 +596,7 @@ class AttendanceTrackingController extends Controller
             $userRole = auth()->user()->user_role;
 
             if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER'])){
-                throw new \Exception('Only HR Manager can update attendance');
+                throw new \Exception(__('attendance_tracking.messages.only_hr_manager'));
             }
 
             $userId = auth()->user()->id;
@@ -678,7 +705,7 @@ class AttendanceTrackingController extends Controller
                 'data' => [
                     'attendance' => $attendanceData
                 ],
-                'message' => 'Edit attendance successfully'
+                'message' => __('attendance_tracking.messages.attendance_updated')
             ]);
 
         }catch (\Exception $e) {

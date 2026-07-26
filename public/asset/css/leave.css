@@ -178,7 +178,7 @@
     background-color: #9ca3af7e;
     border-radius: 4px;
 }
- 
+
 
 .dropdown-year .dropdown-toggle::after {
     margin-left: 10px;
@@ -602,4 +602,52 @@
     font-weight: 500;
     color: #42484F;
 }
- 
+
+.pagination-summary {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.page-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid #d9dce8;
+    border-radius: 10px;
+    background: #fff;
+    color: #33425f;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-btn:hover:not(:disabled) {
+    background: #f5f7fb;
+    border-color: #c7ccdd;
+}
+
+.page-btn.is-active {
+    background: #2f333a;
+    border-color: #2f333a;
+    color: #fff;
+}
+
+.page-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+    padding: 0 4px;
+    font-size: 11px;
+}

@@ -9,6 +9,18 @@ const __deriveBaseFromPath = () => {
 const __metaAppUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/+$/,'');
 const APP_URL = __metaAppUrl || __deriveBaseFromPath();
 const DEFAULT_AVATAR = APP_URL + '/asset/img/avatar.png';
+const shiftText = window.shiftTranslations || {};
+const shiftLocale = window.shiftLocale || 'en';
+const translateShift = (key, replacements = {}) => {
+    let value = shiftText[key] || key;
+    $.each(replacements, function (name, replacement) {
+        value = value.replace(`:${name}`, replacement);
+    });
+    return value;
+};
+const shiftMonthNames = Array.from({ length: 12 }, (_, month) =>
+    new Intl.DateTimeFormat(shiftLocale, { month: 'long' }).format(new Date(2024, month, 1))
+);
 function toAbsoluteUrl(p){
     const raw = (p == null ? '' : String(p));
     if (!raw) return DEFAULT_AVATAR;
@@ -34,12 +46,12 @@ function populateFilterDepartmentDropdown(departments) {
     const filterDepartmentDropdown = document.getElementById("filterDepartment");
     if (!filterDepartmentDropdown) return;
 
-    filterDepartmentDropdown.innerHTML = '<option value="">Select Department</option>';
+    filterDepartmentDropdown.innerHTML = `<option value="">${translateShift('select_department')}</option>`;
 
     departments.forEach((d) => {
         const option = document.createElement("option");
         option.value = d.id;
-        option.textContent = d.name_department || "(No name)";
+        option.textContent = d.name_department || translateShift('no_name');
         filterDepartmentDropdown.appendChild(option);
     });
 }
@@ -56,7 +68,7 @@ function loadDepartments() {
         success: function (response) {
             const data = response.data || response;
             filterDepartmentSelect.innerHTML =
-                '<option value="">Department</option>';
+                `<option value="">${translateShift('department')}</option>`;
             data.forEach((dept) => {
                 const option = document.createElement("option");
                 option.value = dept.id;
@@ -64,11 +76,11 @@ function loadDepartments() {
                 filterDepartmentSelect.appendChild(option);
             });
             filterDivisionSelect.innerHTML =
-                '<option value="">Division</option>';
+                `<option value="">${translateShift('site')}</option>`;
             filterDivisionSelect.disabled = true;
         },
         error: function () {
-            showFloatingAlert("Failed to load departments.", 'warning', 3000);
+            showFloatingAlert(translateShift('failed_load_departments'), 'warning', 3000);
         },
     });
 }
@@ -80,12 +92,12 @@ function populateFilterDivisionDropdown(divisions) {
     const filterDivisionDropdown = document.getElementById("filterDivision");
     if (!filterDivisionDropdown) return;
 
-    filterDivisionDropdown.innerHTML = '<option value="">Select Division</option>';
+    filterDivisionDropdown.innerHTML = `<option value="">${translateShift('select_division')}</option>`;
 
     divisions.forEach((d) => {
         const option = document.createElement("option");
         option.value = d.id;
-        option.textContent = d.name_division || "(No name)";
+        option.textContent = d.name_division || translateShift('no_name');
         filterDivisionDropdown.appendChild(option);
     });
 
@@ -96,7 +108,7 @@ function populateFilterDivisionDropdown(divisions) {
 async function loadDivisions(departmentId) {
     try {
         const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        const endpoint = `${basePath}/divisions-for-projects?department_id=${departmentId}`;
+        const endpoint = `${basePath}/divisions-for-projects?business_department_id=${encodeURIComponent(departmentId)}`;
 
         const res = await fetch(endpoint);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -109,7 +121,7 @@ async function loadDivisions(departmentId) {
             // Clear division dropdown
             const filterDivision = document.getElementById("filterDivision");
             if (filterDivision) {
-                filterDivision.innerHTML = '<option value="">Select Division</option>';
+                filterDivision.innerHTML = `<option value="">${translateShift('select_division')}</option>`;
                 filterDivision.disabled = true;
                 filterDivision.value = '';
             }
@@ -119,7 +131,7 @@ async function loadDivisions(departmentId) {
         // Clear division dropdown on error
         const filterDivision = document.getElementById("filterDivision");
         if (filterDivision) {
-            filterDivision.innerHTML = '<option value="">Select Division</option>';
+            filterDivision.innerHTML = `<option value="">${translateShift('select_division')}</option>`;
             filterDivision.disabled = true;
             filterDivision.value = '';
         }
@@ -129,6 +141,8 @@ async function loadDivisions(departmentId) {
 // Global variables
 let currentDate = new Date();
 let employees = [];
+let shiftCurrentPage = 1;
+const shiftPerPage = 10;
 window.shifts = window.shifts || [];
 // Global variable untuk menyimpan filter saat ini
 let currentFilters = {
@@ -169,7 +183,7 @@ async function loadEmployeeData(filters = {}) {
 
         const basePath =
             window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        let endpoint = `${basePath}/shift/employees-basic?month=${month}&year=${year}`;
+        let endpoint = `${basePath}/shift/employees-basic?month=${month}&year=${year}&page=${shiftCurrentPage}&per_page=${shiftPerPage}`;
 
         // Merge current filters with new filters
         currentFilters = { ...currentFilters, ...filters };
@@ -198,35 +212,24 @@ async function loadEmployeeData(filters = {}) {
 
         if (data.success && data.data) {
             employees = data.data;
+            shiftCurrentPage = data.pagination?.current_page || 1;
             renderHeader(month, year);
             renderEmployeeTable(employees, month, year);
+            renderShiftPagination(data.pagination || null);
         } else {
             console.error("Invalid data format:", data);
-            renderError("Failed to load employee data");
+            renderError(translateShift('failed_load_employees'));
         }
     } catch (error) {
         console.error("Error loading employee data:", error);
-        renderError(error.message || "Failed to load employee data");
+        renderError(error.message || translateShift('failed_load_employees'));
     }
 }
 
 // Month Dropdown
 function populateMonthDropdown() {
     const monthDropdownMenu = document.getElementById("monthDropdownMenu");
-    const monthNames = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-    ];
+    const monthNames = shiftMonthNames;
 
     if (monthDropdownMenu) {
         monthDropdownMenu.innerHTML = "";
@@ -238,6 +241,7 @@ function populateMonthDropdown() {
             btn.textContent = `${name}`;
             btn.addEventListener("click", () => {
                 currentDate.setMonth(i);
+                shiftCurrentPage = 1;
                 loadEmployeeData();
             });
             li.appendChild(btn);
@@ -249,20 +253,7 @@ function populateMonthDropdown() {
 // Modal Month Dropdown
 function populateMonthDropdownModal() {
     const monthDropdownMenuModal = document.getElementById("monthDropdownMenuModal");
-    const monthNames = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-    ];
+    const monthNames = shiftMonthNames;
 
     if (monthDropdownMenuModal) {
         monthDropdownMenuModal.innerHTML = "";
@@ -274,6 +265,7 @@ function populateMonthDropdownModal() {
             btn.textContent = `${name}`;
             btn.addEventListener("click", () => {
                 currentDate.setMonth(i);
+                shiftCurrentPage = 1;
                 loadEmployeeData();
             });
             li.appendChild(btn);
@@ -285,11 +277,13 @@ function populateMonthDropdownModal() {
 // Event tombol prev/next bulan
 document.getElementById("prevMonthBtn").addEventListener("click", () => {
     currentDate.setMonth(currentDate.getMonth() - 1);
+    shiftCurrentPage = 1;
     loadEmployeeData();
 });
 
 document.getElementById("nextMonthBtn").addEventListener("click", () => {
     currentDate.setMonth(currentDate.getMonth() + 1);
+    shiftCurrentPage = 1;
     loadEmployeeData();
 });
 
@@ -307,7 +301,7 @@ function renderHeader(month, year) {
 
     // Render main table header
     if (headerRow) {
-        headerRow.innerHTML = `<th class="sticky-col fw-semiboled text-center">Employee</th>`;
+        headerRow.innerHTML = `<th class="sticky-col fw-semiboled text-center">${translateShift('employee')}</th>`;
         const daysInMonth = new Date(year, month, 0).getDate();
         for (let i = 1; i <= daysInMonth; i++) {
             const th = document.createElement("th");
@@ -330,10 +324,10 @@ function renderEmployeeTable(employees, month, year) {
 
         if (!employees || employees.length === 0) {
             tableBody.innerHTML =
-                '<tr><td colspan="32" class="text-center">No employees found</td></tr>';
+                `<tr><td colspan="32" class="text-center">${translateShift('no_employees')}</td></tr>`;
         } else {
             const daysInMonth = new Date(year, month, 0).getDate();
-            const monthName = new Date(year, month - 1, 1).toLocaleString("en-US", {
+            const monthName = new Date(year, month - 1, 1).toLocaleString(shiftLocale, {
                 month: "long",
             });
             monthTitle.textContent = `${monthName} ${year}`;
@@ -561,20 +555,7 @@ function setAddShiftModal(btn) {
 
         const day = String(dateObj.getDate()).padStart(2, "0");
 
-        const monthNames = [
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-        ];
+        const monthNames = shiftMonthNames;
         const month = monthNames[dateObj.getMonth()];
 
         const year = dateObj.getFullYear();
@@ -628,20 +609,7 @@ function setEditShiftModal(btn) {
 
         const day = String(dateObj.getDate()).padStart(2, "0");
 
-        const monthNames = [
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-        ];
+        const monthNames = shiftMonthNames;
         const month = monthNames[dateObj.getMonth()];
 
         const year = dateObj.getFullYear();
@@ -740,7 +708,7 @@ function renderTimeline(start, checkpoints, end) {
     $("#shiftTimeline").html(html);
 
     $("#editCheckpointCount").text(
-        `${checkpoints.length} Point${checkpoints.length>1?"s":""}`
+        `${checkpoints.length} ${checkpoints.length > 1 ? translateShift('points') : translateShift('point')}`
     );
 
 }
@@ -758,7 +726,7 @@ function renderShiftConfigTable(shifts) {
     tbody.innerHTML = "";
     if (!Array.isArray(shifts) || shifts.length === 0) {
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="3" class="text-center text-muted">No shifts found</td>`;
+        tr.innerHTML = `<td colspan="3" class="text-center text-muted">${translateShift('no_shifts')}</td>`;
         tbody.appendChild(tr);
         return;
     }
@@ -766,7 +734,7 @@ function renderShiftConfigTable(shifts) {
     shifts.forEach(s => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td data-field="title">${s.title || "(No title)"}</td>
+            <td data-field="title">${s.title || translateShift('no_title')}</td>
             <td data-field="description">${s.description || ""}</td>
             <td data-field="time">${formatTime(s.time_start || "")}</td>
             <td data-field="time">${formatTime(s.time_end || "")}</td>
@@ -890,7 +858,7 @@ document.addEventListener("click", async (e) => {
         };
 
         deleteModalEl.querySelector("#deleteShiftTime").textContent =
-            `Time: ${formatTime(shiftStart)} - ${formatTime(shiftEnd)}`;
+            `${translateShift('time')}: ${formatTime(shiftStart)} - ${formatTime(shiftEnd)}`;
 
         deleteModal.show();
     }
@@ -1182,7 +1150,7 @@ function setupEventListeners() {
             } else {
                 // Clear division dropdown if no department selected
                 if (filterDivision) {
-                    filterDivision.innerHTML = '<option value="">Select Division</option>';
+                    filterDivision.innerHTML = `<option value="">${translateShift('select_division')}</option>`;
                     filterDivision.disabled = true;
                     filterDivision.value = ''; // Reset value
                 }
@@ -1212,6 +1180,7 @@ function applyFilters() {
         filters.search = currentFilters.search;
     }
 
+    shiftCurrentPage = 1;
     loadEmployeeData(filters);
 
     // Close dropdown after applying filters
@@ -1232,7 +1201,7 @@ function resetFilters() {
     // Clear division dropdown and disable it
     const filterDivision = document.getElementById("filterDivision");
     if (filterDivision) {
-        filterDivision.innerHTML = '<option value="">Select Division</option>';
+        filterDivision.innerHTML = `<option value="">${translateShift('select_division')}</option>`;
         filterDivision.disabled = true;
     }
 
@@ -1244,6 +1213,7 @@ function resetFilters() {
         search: currentFilters.search || ''
     };
 
+    shiftCurrentPage = 1;
     loadEmployeeData(currentFilters);
 
     // Close dropdown after resetting filters
@@ -1666,7 +1636,7 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
     if (!Array.isArray(shifts) || shifts.length === 0) {
         const li = document.createElement("li");
         li.innerHTML =
-            '<div class="dropdown-item text-muted">No shifts available</div>';
+            `<div class="dropdown-item text-muted">${translateShift('no_shifts_available')}</div>`;
         menu.appendChild(li);
         return;
     }
@@ -1703,7 +1673,7 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
         btn.dataset.timeStart = s.time_start || "";
         btn.dataset.timeEnd = s.time_end || "";
         btn.innerHTML = `<span>${
-            s.title || "(No title)"
+            s.title || translateShift('no_title')
         }</span><span>${formatTime(s.time_start)} - ${formatTime(
             s.time_end
         )}</span>`;
@@ -1715,7 +1685,7 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
             if (timeStartInput) timeStartInput.value = s.time_start || "";
             if (timeEndInput) timeEndInput.value = s.time_end || "";
             button.firstChild &&
-                (button.firstChild.textContent = "Select Shift");
+                (button.firstChild.textContent = translateShift('select_shift'));
             button.click();
         });
         li.appendChild(btn);
@@ -1739,12 +1709,12 @@ function populateFilterShiftDropdown(shifts) {
     const filterShiftDropdown = document.getElementById("filterShift");
     if (!filterShiftDropdown) return;
 
-    filterShiftDropdown.innerHTML = '<option value="">Select Shift</option>';
+    filterShiftDropdown.innerHTML = `<option value="">${translateShift('select_shift')}</option>`;
 
     shifts.forEach((s) => {
         const option = document.createElement("option");
         option.value = s.id;
-        option.textContent = s.title || "(No title)";
+        option.textContent = s.title || translateShift('no_title');
         filterShiftDropdown.appendChild(option);
     });
 }
@@ -1761,7 +1731,7 @@ function populateEditEmployeeDropdown(modalEl, shifts, selectedId = null) {
     if (!Array.isArray(shifts) || shifts.length === 0) {
         const li = document.createElement("li");
         li.innerHTML =
-            '<div class="dropdown-item text-muted">No shifts available</div>';
+            `<div class="dropdown-item text-muted">${translateShift('no_shifts_available')}</div>`;
         menu.appendChild(li);
         return;
     }
@@ -1789,7 +1759,7 @@ function populateEditEmployeeDropdown(modalEl, shifts, selectedId = null) {
         btn.dataset.timeEnd = s.time_end || "";
         btn.dataset.title = s.title || "";
         btn.innerHTML = `<span>${
-            s.title || "(No title)"
+            s.title || translateShift('no_title')
         }</span><span>${formatTime(s.time_start)} - ${formatTime(
             s.time_end
         )}</span>`;
@@ -1801,7 +1771,7 @@ function populateEditEmployeeDropdown(modalEl, shifts, selectedId = null) {
             if (timeEndDisplay) timeEndDisplay.textContent = formatTime(s.time_end);
             if (titleDisplay) titleDisplay.textContent = s.title || "--";
             button.firstChild &&
-                (button.firstChild.textContent = "Select Shift");
+                (button.firstChild.textContent = translateShift('select_shift'));
             button.click();
         });
         li.appendChild(btn);
@@ -1909,6 +1879,7 @@ $(document).ready(function () {
         debounceTimer = setTimeout(function () {
             if (query.length >= 2 || query.length === 0) {
                 currentFilters.search = query;
+                shiftCurrentPage = 1;
                 loadEmployeeData(currentFilters);
             }
         }, 500);
@@ -1918,4 +1889,44 @@ $(document).ready(function () {
 $(document).on('click','.data-fullscreen, .data-fullscreen-exit',function(){
     $('.shift-container').toggleClass('fullscreen');
     $('.data-fullscreen').toggleClass('d-none');
+});
+
+function buildShiftPaginationPages(current, last) {
+    if (last <= 7) return Array.from({ length: last }, (_, index) => index + 1);
+    const pages = [1];
+    if (current > 3) pages.push('...');
+    for (let page = Math.max(2, current - 1); page <= Math.min(last - 1, current + 1); page++) pages.push(page);
+    if (current < last - 2) pages.push('...');
+    pages.push(last);
+    return pages;
+}
+
+function renderShiftPagination(pagination) {
+    const $info = $('#shiftPaginationInfo');
+    const $controls = $('#shiftPagination');
+    if (!pagination || !pagination.total) {
+        $info.empty();
+        $controls.empty();
+        return;
+    }
+    $info.text(translateShift('showing', {
+        from: pagination.from || 0,
+        to: pagination.to || 0,
+        total: pagination.total || 0
+    }));
+    const current = pagination.current_page || 1;
+    const last = pagination.last_page || 1;
+    let buttons = `<button type="button" class="page-btn" data-page="${Math.max(current - 1, 1)}" ${current <= 1 ? 'disabled' : ''}>${translateShift('previous')}</button>`;
+    $.each(buildShiftPaginationPages(current, last), function (_, page) {
+        buttons += page === '...'
+            ? '<span class="pagination-ellipsis">...</span>'
+            : `<button type="button" class="page-btn ${page === current ? 'is-active' : ''}" data-page="${page}">${page}</button>`;
+    });
+    buttons += `<button type="button" class="page-btn" data-page="${Math.min(current + 1, last)}" ${current >= last ? 'disabled' : ''}>${translateShift('next')}</button>`;
+    $controls.html(buttons);
+}
+
+$(document).on('click', '#shiftPagination .page-btn', function () {
+    shiftCurrentPage = Number($(this).data('page')) || 1;
+    loadEmployeeData();
 });

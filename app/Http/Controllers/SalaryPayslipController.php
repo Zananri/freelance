@@ -34,6 +34,9 @@ class SalaryPayslipController extends Controller
     private function getSalaryPayslipEmployeeIds()
     {
         $employeeActiveIds = EmployeeHelper::EmployeeActiveIds();
+        $user = auth()->user();
+        $currentEmployee = $user?->employee;
+        $isSuperadmin = strtoupper((string) ($user?->user_type ?? '')) === 'SUPERADMIN';
 
         return Employee::select('employees.id')
             ->join('users', 'employees.user_id', '=', 'users.id')
@@ -41,14 +44,20 @@ class SalaryPayslipController extends Controller
             ->whereNotIn('users.user_role', self::EXCLUDED_SALARY_PAYSLIP_USER_ROLES)
             ->whereNotIn('users.user_type', self::EXCLUDED_SALARY_PAYSLIP_USER_TYPES)
             ->whereNotIn('department_id', self::EXCLUDED_SALARY_PAYSLIP_DEPARTMENT_IDS)
+            ->when(!$isSuperadmin, fn ($query) => $query->where('employees.department_id', $currentEmployee?->department_id ?? 0))
             ->pluck('employees.id');
     }
 
     private function findSalaryPayslipEmployee(int $employeeId)
     {
+        $user = auth()->user();
+        $currentEmployee = $user?->employee;
+        $isSuperadmin = strtoupper((string) ($user?->user_type ?? '')) === 'SUPERADMIN';
+
         return Employee::with('department', 'division', 'job', 'grade')
             ->where('id', $employeeId)
             ->whereNotIn('department_id', self::EXCLUDED_SALARY_PAYSLIP_DEPARTMENT_IDS)
+            ->when(!$isSuperadmin, fn ($query) => $query->where('department_id', $currentEmployee?->department_id ?? 0))
             ->first();
     }
 

@@ -16,33 +16,7 @@ class LeaveController extends Controller
 {
     public function showLeavePage()
     {
-        $user = auth()->user();        
-        $currentEmployee = Employee::where('user_id', $user->id)->first();
-        
-        $userType = strtoupper((string) ($user->user_type ?? ''));
-        $userRole = strtoupper((string) ($user->user_role ?? ''));
-
-        $employee = Employee::select('employees.id','employees.user_id','employees.department_id','employees.division_id','employees.name','employees.status','employees.photo',
-            'job_list.job_name'
-        )
-        ->join('job_list','employees.job_id','=','job_list.id')
-        ->join('users','employees.user_id','=','users.id')
-        ->where('employees.status',"ACTIVE");
-
-        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-            //show all
-        }else{
-            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
-        }
-
-        $employee = $employee
-            ->whereNotIn('users.user_role', ["ADMINISTRATOR", "SUPERADMIN", "GENERAL_MANAGER", "CEO"])
-            ->whereNotIn('users.user_type', ["ADMINISTRATOR", "SUPERADMIN"])
-            ->get();
-
-        return view('leave.leave',[
-            'employee' => $employee
-        ]);
+        return view('leave.leave');
     }
 
     public function getEmployeeLeaveByYear(Request $request)
@@ -61,31 +35,52 @@ class LeaveController extends Controller
             $year = $request->YEAR;
         }
 
-        $employee = Employee::select('employees.id')
+        $search = trim((string) $request->input('search', ''));
+        $perPage = min(max((int) $request->input('per_page', 10), 1), 100);
+
+        $employee = Employee::select(
+                'employees.id',
+                'employees.name',
+                'employees.photo',
+                'employees.department_id',
+                'employees.division_id'
+            )
             ->join('users','employees.user_id','=','users.id')
             ->where('employees.status',"ACTIVE");
 
-        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-            //show all
-        }else{
-            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
+        if ($userType !== 'SUPERADMIN') {
+            $employee->where('employees.department_id', $currentEmployee?->department_id ?? 0);
+        }
+
+        if ($search !== '') {
+            $employee->where('employees.name', 'like', '%' . $search . '%');
         }
 
         $employee = $employee
-            ->whereNotIn('users.user_role', ["ADMINISTRATOR", "SUPERADMIN", "GENERAL_MANAGER", "CEO"])
+            ->whereNotIn('users.user_role', ["ADMINISTRATOR", "SUPERADMIN"])
             ->whereNotIn('users.user_type', ["ADMINISTRATOR", "SUPERADMIN"])
-            ->get();
-
-        $employeeIds = $employee->pluck('id');
+            ->orderBy('employees.name')
+            ->paginate($perPage);
 
         $employeeLave = EmployeeLeave::where('year',$year)
-            ->whereIn('employee_id',$employeeIds)
+            ->whereIn('employee_id',$employee->getCollection()->pluck('id'))
             ->get();
 
         return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $employeeLave,
+                'data' => [
+                    'employees' => $employee->items(),
+                    'leaves' => $employeeLave,
+                    'pagination' => [
+                        'current_page' => $employee->currentPage(),
+                        'last_page' => $employee->lastPage(),
+                        'per_page' => $employee->perPage(),
+                        'total' => $employee->total(),
+                        'from' => $employee->firstItem(),
+                        'to' => $employee->lastItem(),
+                    ],
+                ],
                 'message' => 'Get employee leave successfully'
         ]);
     }
@@ -110,14 +105,12 @@ class LeaveController extends Controller
             ->join('users','employees.user_id','=','users.id')
             ->whereIn('employees.status',["ACTIVE","RESIGN"]);
 
-        if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-            //show all
-        }else{
-            $employeeActive = $employeeActive->where('employees.department_id',$currentEmployee->department_id);
+        if ($userType !== 'SUPERADMIN') {
+            $employeeActive->where('employees.department_id', $currentEmployee?->department_id ?? 0);
         }
 
         $employeeActive = $employeeActive
-            ->whereNotIn('users.user_role', ["ADMINISTRATOR", "SUPERADMIN", "GENERAL_MANAGER", "CEO"])
+            ->whereNotIn('users.user_role', ["ADMINISTRATOR", "SUPERADMIN"])
             ->whereNotIn('users.user_type', ["ADMINISTRATOR", "SUPERADMIN"])
             ->get();
 
@@ -144,7 +137,7 @@ class LeaveController extends Controller
         }
 
         $employeeLeaveRequest = $employeeLeaveRequest->orderBy('end_date','desc')
-        ->paginate(30);
+        ->paginate(min(max((int) $request->input('per_page', 10), 1), 100));
     
         
         return response()->json([

@@ -147,10 +147,11 @@ class EmployeeExcelImportService
                 $divisionId = $this->resolveDivisionId($record['division'], $departmentId, $partnerId);
                 $jobId = $this->resolveJobId($record['job'], $departmentId, $partnerId, $divisionId);
 
-                $workEmail = $this->resolveWorkEmail($record['email_work'], $employeeEmail, $record['employee_niks'], $record['name']);
+                $workEmail = $this->resolveWorkEmail($record['email_work'], $record['employee_niks'], $record['name']);
                 $resolvedPhone = $this->resolveEmployeePhone($record['phone'], $employeeEmail);
                 $hireDate = $record['hire_date'] ?? now()->toDateString();
                 $birthDate = $record['birth_date'] ?? $hireDate;
+                $profilePicture = $record['photo'] ?: 'asset/img/logo/logo.png';
 
                 $user = $this->upsertUser($workEmail, $record['name']);
 
@@ -166,6 +167,7 @@ class EmployeeExcelImportService
                         'job_id' => $jobId,
                         'shift_id' => $this->defaultShiftId,
                         'weekday_off' => $record['weekday_off'],
+                        'profile_picture' => $profilePicture,
                         'name' => $record['name'],
                         'employee_niks' => $record['employee_niks'],
                         'email_work' => $workEmail,
@@ -481,7 +483,7 @@ class EmployeeExcelImportService
         return $this->jobCache[$key];
     }
 
-    private function resolveWorkEmail(?string $preferred, string $fallbackEmail, ?string $nik, string $name): string
+    private function resolveWorkEmail(?string $preferred, ?string $nik, string $name): string
     {
         if ($preferred !== null && isset($this->userEmailIndex[strtolower($preferred)])) {
             return $preferred;
@@ -491,16 +493,12 @@ class EmployeeExcelImportService
             return $this->reserveEmail($preferred);
         }
 
-        $localBase = $nik !== null ? Str::lower(Str::slug($nik, '.')) : Str::lower(Str::slug($name, '.'));
-        $localBase = trim($localBase, '.');
-        if ($localBase === '') {
-            $localBase = 'employee';
-        }
-
-        $candidate = $localBase . '@office.local';
-        if (strtolower($candidate) === strtolower($fallbackEmail)) {
-            $candidate = $localBase . '.work@office.local';
-        }
+        $firstName = Str::of($name)->trim()->explode(' ')->filter()->first();
+        $namePart = Str::lower(Str::slug((string) $firstName, '_'));
+        $nikPart = Str::lower(Str::slug((string) $nik, '_'));
+        $namePart = $namePart !== '' ? $namePart : 'employee';
+        $nikPart = $nikPart !== '' ? $nikPart : 'unknown';
+        $candidate = $namePart . '_' . $nikPart . '@gmail.com';
 
         return $this->reserveEmail($candidate);
     }

@@ -210,25 +210,25 @@ class OfficeBasicSeeder extends Seeder
                     ]
                 );
 
-                $adminEmail = "admin.{$slug}@office.local";
+                $adminEmail = "admin.{$slug}@gmail.com";
+                $legacyAdminEmail = "admin.{$slug}@office.local";
                 $adminPassword = "admin_{$slug}_2026";
                 $adminPhone = '0812345' . str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT);
 
-                $deptAdminUser = User::updateOrCreate(
-                    ['email' => $adminEmail],
-                    [
-                        'name' => "Admin {$deptName}",
-                        'user_type' => 'ADMIN',
-                        'user_role' => 'ADMIN',
-                        'password' => $adminPassword,
-                        'photo' => 'asset/img/avatar.png',
-                    ]
-                );
+                $deptAdminUser = User::whereIn('email', [$adminEmail, $legacyAdminEmail])->first() ?? new User();
+                $deptAdminUser->fill([
+                    'email' => $adminEmail,
+                    'name' => "Admin {$deptName}",
+                    'user_type' => 'ADMINISTRATOR',
+                    'user_role' => 'ADMINISTRATOR',
+                    'password' => $adminPassword,
+                    'photo' => 'asset/img/avatar.png',
+                ])->save();
 
                 Employee::updateOrCreate(
-                    ['email' => $adminEmail],
+                    ['user_id' => $deptAdminUser->id],
                     [
-                        'user_id' => $deptAdminUser->id,
+                        'email' => $adminEmail,
                         'region' => 'DKI JAKARTA',
                         'department_id' => $dept->id,
                         'partner_id' => $deptPartner->id,

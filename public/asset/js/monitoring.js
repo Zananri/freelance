@@ -1,4 +1,10 @@
 $(function () {
+    var monitoringText = window.monitoringTranslations || {};
+    var monitoringLocale = window.monitoringLocale || "en";
+    function translateMonitoring(key) {
+        return monitoringText[key] || key;
+    }
+
     var $wrapper = $(".monitoring-wrapper");
     var $mapElement = $("#monitoringMap");
 
@@ -88,14 +94,20 @@ $(function () {
 
         if (captionEl) {
             captionEl.textContent =
-                "Checkpoint " +
+                translateMonitoring("checkpoint") +
+                " " +
                 (state.index + 1) +
-                " of " +
+                " " +
+                translateMonitoring("of") +
+                " " +
                 state.photos.length;
         }
 
         if (countEl) {
-            countEl.textContent = state.photos.length + " photo";
+            countEl.textContent =
+                state.photos.length +
+                " " +
+                translateMonitoring(state.photos.length > 1 ? "photos" : "photo");
         }
     };
 
@@ -118,7 +130,7 @@ $(function () {
             return "-";
         }
 
-        return date.toLocaleString("en-US", {
+        return date.toLocaleString(monitoringLocale, {
             year: "numeric",
             month: "short",
             day: "numeric",
@@ -155,7 +167,7 @@ $(function () {
                 seen[key] = true;
                 uniqueDepartments.push({
                     key: key,
-                    name: employee.department_name || "Unknown Department",
+                    name: employee.department_name || translateMonitoring("unknown_department"),
                 });
             }
         });
@@ -356,7 +368,9 @@ $(function () {
     function renderList($container, items, selectedId, itemType) {
         if (!items.length) {
             $container.html(
-                '<div class="text-muted small p-2">No data found</div>',
+                '<div class="text-muted small p-2">' +
+                    translateMonitoring("no_data_found") +
+                    "</div>",
             );
             return;
         }
@@ -369,11 +383,11 @@ $(function () {
             var subtitle = "";
 
             if (itemType === "department") {
-                subtitle = "Department";
+                subtitle = translateMonitoring("department");
             } else if (itemType === "partner") {
-                subtitle = "Partner";
+                subtitle = translateMonitoring("partner");
             } else {
-                subtitle = "Site";
+                subtitle = translateMonitoring("site");
             }
 
             html +=
@@ -475,8 +489,8 @@ $(function () {
         ensureActiveFiltersValid();
 
         if (userType === "SUPERADMIN") {
-            $topTitle.text("Department List");
-            $bottomTitle.text("Partner List");
+            $topTitle.text(translateMonitoring("department_list"));
+            $bottomTitle.text(translateMonitoring("partner_list"));
             renderList(
                 $topList,
                 filteredTopItems(),
@@ -492,8 +506,8 @@ $(function () {
             return;
         }
 
-        $topTitle.text("Partner List");
-        $bottomTitle.text("Site List");
+        $topTitle.text(translateMonitoring("partner_list"));
+        $bottomTitle.text(translateMonitoring("site_list"));
         renderList($topList, filteredTopItems(), selectedPartnerId, "partner");
         renderList(
             $bottomList,
@@ -505,15 +519,15 @@ $(function () {
 
     function pointTypeLabel(point) {
         if (point.type === "check_out") {
-            return "Check Out";
+            return translateMonitoring("check_out");
         }
         if (point.type === "check_in") {
-            return "Check In";
+            return translateMonitoring("check_in");
         }
         if (point.is_live || point.source_type === "live") {
-            return "Checkpoint Live";
+            return translateMonitoring("checkpoint_live");
         }
-        return "Checkpoint";
+        return translateMonitoring("checkpoint");
     }
 
     function ensurePointModal() {
@@ -530,8 +544,12 @@ $(function () {
             '  <div class="modal-dialog modal-dialog-centered">' +
             '    <div class="modal-content border-0 rounded-4">' +
             '      <div class="modal-header border-0 pb-0">' +
-            '        <h5 class="modal-title fw-semibold">Employee Point Detail</h5>' +
-            '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+            '        <h5 class="modal-title fw-semibold">' +
+            translateMonitoring("employee_point_detail") +
+            "</h5>" +
+            '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' +
+            translateMonitoring("close") +
+            '"></button>' +
             "      </div>" +
             '      <div class="modal-body pt-2" id="monitoringPointModalBody"></div>' +
             "    </div>" +
@@ -665,11 +683,15 @@ $(function () {
             "</div>" +
             '<div style="display:inline-flex;align-items:center;justify-content:center;padding:4px 10px;border-radius:999px;background:' +
             color +
-            ';color:#fff;font-size:10px;font-weight:700;white-space:nowrap;">Security Zone</div>' +
+            ';color:#fff;font-size:10px;font-weight:700;white-space:nowrap;">' +
+            translateMonitoring("security_activity") +
+            "</div>" +
             "</div>" +
             '<div style="display:flex;gap:10px;align-items:stretch;">' +
             '<div style="flex:1;min-width:0;border:1px solid rgba(13,110,253,.18);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 8px 20px rgba(15,23,42,.08);">' +
-            '<div style="padding:8px 10px;font-size:8px;font-weight:700;color:#213047;background:rgba(13,110,253,.08);">Check In</div>' +
+            '<div style="padding:8px 10px;font-size:8px;font-weight:700;color:#213047;background:rgba(13,110,253,.08);">' +
+            translateMonitoring("check_in") +
+            "</div>" +
             '<img id="' +
             leftImageId +
             '" src="' +
@@ -685,7 +707,9 @@ $(function () {
             popupKey +
             '\')" style="flex:1;min-width:0;border:1px solid rgba(13,110,253,.18);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 8px 20px rgba(15,23,42,.08);cursor:pointer;position:relative;">' +
             '<div style="padding:8px 10px;font-size:11px;font-weight:700;color:#213047;background:rgba(13,110,253,.08);display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
-            "<span>Checkpoint</span>" +
+            "<span>" +
+            translateMonitoring("checkpoint") +
+            "</span>" +
             '<span style="font-size:10px;color:' +
             color +
             ';font-weight:700;">+' +
@@ -700,7 +724,11 @@ $(function () {
             '<div style="padding:8px 10px;font-size:10px;color:#5d6981;display:flex;justify-content:space-between;gap:8px;">' +
             '<span id="' +
             rightCaptionId +
-            '">Checkpoint 1 of ' +
+            '">' +
+            translateMonitoring("checkpoint") +
+            " 1 " +
+            translateMonitoring("of") +
+            " " +
             rightPhotos.length +
             "</span>" +
             '<span id="' +
@@ -709,11 +737,15 @@ $(function () {
             color +
             ';">' +
             rightPhotos.length +
-            " photo</span>" +
+            " " +
+            translateMonitoring(rightPhotos.length > 1 ? "photos" : "photo") +
+            "</span>" +
             "</div>" +
             "</div>" +
             "</div>" +
-            '<div style="margin-top:8px;font-size:10px;color:#6c757d;">Klik frame kanan untuk melihat checkpoint berikutnya.</div>' +
+            '<div style="margin-top:8px;font-size:10px;color:#6c757d;">' +
+            translateMonitoring("checkpoint_hint") +
+            "</div>" +
             "</div>";
 
         return popupHtml;
@@ -844,8 +876,8 @@ $(function () {
                 type: normalizePointType(point),
                 label:
                     normalizePointType(point) === "check_in"
-                        ? "Check In"
-                        : "Checkpoint " + (index + 1),
+                        ? translateMonitoring("check_in")
+                        : translateMonitoring("checkpoint") + " " + (index + 1),
                 date_time: point.date_time,
             };
         });
@@ -883,7 +915,9 @@ $(function () {
             '<h5 class="modal-title fw-semibold mb-1" id="securityGalleryTitle"></h5>' +
             '<div class="small text-secondary" id="securityGallerySubtitle"></div>' +
             "</div>" +
-            '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+            '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' +
+            translateMonitoring("close") +
+            '"></button>' +
             "</div>" +
             '<div class="modal-body pt-0">' +
             '<div class="security-gallery-viewer">' +
@@ -1020,14 +1054,22 @@ $(function () {
         var checkInFrame = checkInPhoto
             ? '<img src="' +
               escapeHtml(checkInPhoto.image_url) +
-              '" alt="Check In">'
-            : '<div class="security-zone-empty">No Photo</div>';
+              '" alt="' +
+              translateMonitoring("check_in") +
+              '">'
+            : '<div class="security-zone-empty">' +
+              translateMonitoring("no_photo") +
+              "</div>";
 
         var checkpointFrame = checkpointPreview
             ? '<img src="' +
               escapeHtml(checkpointPreview.image_url) +
-              '" alt="Checkpoint">'
-            : '<div class="security-zone-empty">No Photo</div>';
+              '" alt="' +
+              translateMonitoring("checkpoint") +
+              '">'
+            : '<div class="security-zone-empty">' +
+              translateMonitoring("no_photo") +
+              "</div>";
 
         return (
             '<div class="security-zone-label" style="--security-zone-color:' +
@@ -1046,7 +1088,9 @@ $(function () {
             '<div class="security-zone-frames">' +
             '<button type="button" class="security-zone-frame security-zone-checkin" data-gallery-index="0">' +
             checkInFrame +
-            '<span class="security-zone-frame-label">Check In</span>' +
+            '<span class="security-zone-frame-label">' +
+            translateMonitoring("check_in") +
+            "</span>" +
             "</button>" +
             '<button type="button" class="security-zone-frame security-zone-more" data-gallery-index="' +
             Math.min(1, photos.length - 1) +
@@ -1057,7 +1101,9 @@ $(function () {
                   remainingPhotos +
                   "</span>"
                 : "") +
-            '<span class="security-zone-frame-label">Checkpoint</span>' +
+            '<span class="security-zone-frame-label">' +
+            translateMonitoring("checkpoint") +
+            "</span>" +
             "</button>" +
             "</div>" +
             "</div>"

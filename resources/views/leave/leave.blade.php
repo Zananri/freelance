@@ -3,7 +3,7 @@
         {{ 'leave' }}
     </x-slot>
     <x-slot name="head_stitle_slot">
-        {{ 'Leave' }}
+        {{ __('leave.leave') }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/leave.css')}}?v={{ time() }}" rel="stylesheet">
@@ -12,7 +12,7 @@
     <div class="title-content">
         <div class="row">
             <div class="col-12 col-md-9">
-                <h2 class="text-title-content mb-3" >Leave</h2>
+                <h2 class="text-title-content mb-3">{{ __('leave.leave') }}</h2>
             </div>
             <div class="col-12 col-md-3">
                 
@@ -33,7 +33,7 @@
 
                         <div class="d-flex align-items-center">
                             <div class="w-100">
-                                <div class="fs-16 p-2 ps-4">Leave Request</div>
+                                <div class="fs-16 p-2 ps-4">{{ __('leave.leave_request') }}</div>
                             </div>
                             <div class="me-3">
                                 <input type="text" class="input-search-query-request w-100">
@@ -47,6 +47,10 @@
 
                     <div class="box-data p-4 pt-0 scrollbar-transparent">
                         
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center px-4 pb-3 flex-wrap gap-2">
+                        <div class="pagination-summary" id="leaveRequestPaginationInfo"></div>
+                        <div class="pagination-controls" id="leaveRequestPagination"></div>
                     </div>
 
                 </div>
@@ -98,62 +102,18 @@
                             <table class="table-leave-employee">
                                 <thead>
                                     <tr>
-                                        <th>Employee</th>
-                                        <th>Annual Leave</th>
-                                        <th>Use Annual Leave</th>
-                                        <th>Sick</th>
+                                        <th>{{ __('leave.employee') }}</th>
+                                        <th>{{ __('leave.annual_leave') }}</th>
+                                        <th>{{ __('leave.use_annual_leave') }}</th>
+                                        <th>{{ __('leave.sick') }}</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-
-                                    @foreach ($employee as $itemEmployee)
-                                            
-                                        
-                                        <tr class="employee-row" data-employee-id="{{ $itemEmployee->id }}" data-employee-name="{{ $itemEmployee->name }}" data-employee-photo="{{$itemEmployee->photo}}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
-                                            
-                                            <td>
-                                                <div class="box-employee">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="col-photo">
-                                                            <div class="employee-photo">
-                                                                <img src="{{ asset($itemEmployee->photo) }}" class="rounded-circle w-100 h-100 object-fit-cover" alt="">
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-name w-100">
-                                                            <div class="employee-name">
-                                                                {{ $itemEmployee->name }}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    
-                                                </div>
-                                            </td>
-
-                                            <td class="text-center position-relative">
-                                                <span class="col-annual-leave"></span>
-                                                <div class="box-action h-100 top-0 end-0 position-absolute">
-                                                    <div class="d-flex h-100 flex-column justify-content-center align-items-center">
-                                                        <div>
-                                                            <span class="material-symbols-outlined fill fs-14 px-2">edit</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="col-use-annual-leave  text-center">
-                                            </td>
-
-                                            <td class="col-sick text-center">
-                                            </td>
- 
-
-                                        </tr>
-
-                                    @endforeach
-                                    <!-- Contoh data (lebih banyak data bisa ditambahkan untuk melihat efek sticky) -->
-                                    
-                                </tbody>
+                                <tbody id="leaveEmployeeTableBody"></tbody>
                             </table>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 px-2 flex-wrap gap-2">
+                            <div class="pagination-summary" id="leaveEmployeePaginationInfo"></div>
+                            <div class="pagination-controls" id="leaveEmployeePagination"></div>
                         </div>
                     </div>
 
@@ -178,7 +138,7 @@
                     <div class="modal-body px-4 border-0 ">
                         
                         <div class="form-header mb-4">
-                            <h5 class="modal-title fs-18 fw-light">Approve Leave Request</h5>
+                            <h5 class="modal-title fs-18 fw-light">{{ __('leave.approve_leave_request') }}</h5>
                         </div>
 
                         <div class="mb-2">
@@ -197,17 +157,17 @@
                         </div>
 
                         <div class="mb-3 fs-14 fw-normal">
-                            Are you sure to approve this leave request ?
+                            {{ __('leave.are_you_sure_approve') }}
                         </div>
 
                         <div class="mt-4 mb-2">
 
                             <div class="row">
                                 <div class="col-6">
-                                    <button type="button" class="btn btn-close-modal w-100">Cancel</button>
+                                    <button type="button" class="btn btn-close-modal w-100">{{ __('leave.cancel') }}</button>
                                 </div>
                                 <div class="col-6">
-                                    <button type="button" class="btn btn-submit-modal w-100" >Approve</button>
+                                    <button type="button" class="btn btn-submit-modal w-100">{{ __('leave.approve') }}</button>
                                 </div>
                             </div>
                             
@@ -221,9 +181,9 @@
                         <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                             <div>
                                 <div class="spinner-border opacity-50" style="width: 3rem; height: 3rem;" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+                                    <span class="visually-hidden">{{ __('leave.loading') }}</span>
                                 </div>
-                                <div class="fs-10">Loading...</div>
+                                <div class="fs-10">{{ __('leave.loading') }}</div>
                             </div>
                             
                         </div>
@@ -241,7 +201,7 @@
                     <div class="modal-body px-4 border-0 ">
                         
                         <div class="form-header mb-4">
-                            <h5 class="modal-title fs-18 fw-light">Reject Leave Request</h5>
+                            <h5 class="modal-title fs-18 fw-light">{{ __('leave.reject_leave_request') }}</h5>
                         </div>
 
                         <div class="mb-2">
@@ -256,9 +216,9 @@
                                 </div>
 
                                 <div class="input-reason">
-                                    <label for="reason-reject" class="form-label fs-14 fw-normal">Reject Reason</label>
+                                    <label for="reason-reject" class="form-label fs-14 fw-normal">{{ __('leave.reject_reason') }}</label>
                                     <textarea class="form-control" id="reason-reject" rows="3" name="reject_reason" attr-validation="required"></textarea>
-                                    <div class="invalid-feedback fs-12">Please input a reason</div>
+                                    <div class="invalid-feedback fs-12">{{ __('leave.please_input_reason') }}</div>
                                 </div>
 
 
@@ -266,17 +226,17 @@
                         </div>
 
                         <div class="mb-3 fs-14 fw-normal">
-                            Are you sure to reject this leave request ?
+                            {{ __('leave.are_you_sure_reject') }}
                         </div>
 
                         <div class="mt-4 mb-2">
 
                             <div class="row">
                                 <div class="col-6">
-                                    <button type="button" class="btn btn-close-modal w-100">Cancel</button>
+                                    <button type="button" class="btn btn-close-modal w-100">{{ __('leave.cancel') }}</button>
                                 </div>
                                 <div class="col-6">
-                                    <button type="button" class="btn btn-submit-modal  w-100" >Reject</button>
+                                    <button type="button" class="btn btn-submit-modal  w-100">{{ __('leave.reject') }}</button>
                                 </div>
                             </div>
                             
@@ -290,9 +250,9 @@
                         <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                             <div>
                                 <div class="spinner-border opacity-50" style="width: 3rem; height: 3rem;" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+                                    <span class="visually-hidden">{{ __('leave.loading') }}</span>
                                 </div>
-                                <div class="fs-10">Loading...</div>
+                                <div class="fs-10">{{ __('leave.loading') }}</div>
                             </div>
                             
                         </div>
@@ -335,10 +295,10 @@
 
                                 <div class="input-annual-leave">
                                     <label for="edit-annual-leaves" class="form-label fs-14 fw-normal">
-                                        Annual Leave <strong class="year-leave"></strong>
+                                        {{ __('leave.annual_leave') }} <strong class="year-leave"></strong>
                                     </label>
                                     <input type="number" name="annual_leave" id="edit-annual-leaves" class="form-control" min="0" attr-validation="required">
-                                    <div class="invalid-feedback fs-12">Please input quota annual leave</div>
+                                    <div class="invalid-feedback fs-12">{{ __('leave.please_input_quota') }}</div>
                                 </div>
 
 
@@ -350,10 +310,10 @@
 
                             <div class="row">
                                 <div class="col-6">
-                                    <button type="button" class="btn btn-close-modal w-100">Close</button>
+                                    <button type="button" class="btn btn-close-modal w-100">{{ __('leave.close') }}</button>
                                 </div>
                                 <div class="col-6">
-                                    <button type="button" class="btn btn-submit-modal  w-100" >Submit</button>
+                                    <button type="button" class="btn btn-submit-modal  w-100">{{ __('leave.submit') }}</button>
                                 </div>
                             </div>
                             
@@ -367,9 +327,9 @@
                         <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                             <div>
                                 <div class="spinner-border opacity-50" style="width: 3rem; height: 3rem;" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+                                    <span class="visually-hidden">{{ __('leave.loading') }}</span>
                                 </div>
-                                <div class="fs-10">Loading...</div>
+                                <div class="fs-10">{{ __('leave.loading') }}</div>
                             </div>
                             
                         </div>
@@ -384,6 +344,10 @@
 
 
     <x-slot name="script_slot"> 
+        <script>
+            window.leaveTranslations = @json(__('leave'));
+            window.leaveLocale = @json(app()->getLocale());
+        </script>
         <script src="{{ asset('asset/js/date_helper.js')}}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/leave.js')}}?v={{ time() }}"></script>
     </x-slot>

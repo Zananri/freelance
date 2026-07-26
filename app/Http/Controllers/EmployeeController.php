@@ -92,6 +92,14 @@ class EmployeeController extends Controller
             throw new \Exception('Selected partner has no wilayah mapping');
         }
 
+        $user = auth()->user();
+        if (
+            strtoupper((string) ($user?->user_type ?? '')) !== 'SUPERADMIN' &&
+            (int) ($user?->employee?->department_id ?? 0) !== (int) $partner->department_id
+        ) {
+            throw new \Exception('Selected partner is outside your department');
+        }
+
         return [
             'partner_id' => (int) $partner->id,
             'department_id' => (int) $partner->department_id,
@@ -215,10 +223,8 @@ class EmployeeController extends Controller
             $employees = Employee::with(['department', 'partner', 'division', 'job', 'user', 'grade', 'officeModel'])
                 ->where('status', '!=', 'DELETED');
 
-            if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
-                //show all
-            } else {
-                $employees = $employees->where('department_id', $currentEmployee->department_id);
+            if ($userType !== 'SUPERADMIN') {
+                $employees->where('department_id', $currentEmployee?->department_id ?? 0);
             }
 
             $employees = $employees->when($query, function ($q) use ($query) {
@@ -356,10 +362,8 @@ class EmployeeController extends Controller
         $employees = Employee::with(['department', 'division', 'job'])
             ->where('status', '!=', 'DELETED');
 
-        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
-            //show all
-        } else {
-            $employees = $employees->where('department_id', $currentEmployee->department_id);
+        if ($userType !== 'SUPERADMIN') {
+            $employees->where('department_id', $currentEmployee?->department_id ?? 0);
         }
 
         $employees = $employees->whereHas('user', function ($q) {
@@ -729,9 +733,8 @@ class EmployeeController extends Controller
 
         $employee = Employee::find($id);
 
-        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
-        } else {
-            $employee = Employee::where('department_id', $currentEmployee->department_id)->find($id);
+        if ($userType !== 'SUPERADMIN') {
+            $employee = Employee::where('department_id', $currentEmployee?->department_id ?? 0)->find($id);
         }
 
         if (!$employee) {
@@ -740,8 +743,12 @@ class EmployeeController extends Controller
 
         $employeeSalaries = EmployeeSalary::where('employee_id', $employee->id)->first();
 
-        $departments = Partner::where('status', '!=', 'DELETED')->get();
-        $divisions = Division::where('status', '!=', 'DELETED')->get();
+        $departments = Partner::where('status', '!=', 'DELETED')
+            ->when($userType !== 'SUPERADMIN', fn ($query) => $query->where('department_id', $currentEmployee?->department_id ?? 0))
+            ->get();
+        $divisions = Division::where('status', '!=', 'DELETED')
+            ->when($userType !== 'SUPERADMIN', fn ($query) => $query->where('department_id', $currentEmployee?->department_id ?? 0))
+            ->get();
 
         $jobs = Job::where('status', '!=', 'DELETED');
         if ($employee->partner_id) {
@@ -1118,9 +1125,13 @@ class EmployeeController extends Controller
         try {
             $query = $request->input('query', '');
             $excludeEmployeeId = $request->input('exclude_employee_id', null);
+            $user = auth()->user();
+            $currentEmployee = $user?->employee;
+            $isSuperadmin = strtoupper((string) ($user?->user_type ?? '')) === 'SUPERADMIN';
 
             $employees = Employee::with(['department', 'division', 'user'])
                 ->where('status', 'ACTIVE')
+                ->when(!$isSuperadmin, fn ($q) => $q->where('department_id', $currentEmployee?->department_id ?? 0))
                 ->whereHas('user', function ($q) use ($request) {
                     // Back-compat behaviour: exclude top-level managers and administrators when not explicitly requesting executor-only list
                     $q->whereNotIn('user_role', ["ADMINISTRATOR"]);
@@ -1292,11 +1303,9 @@ class EmployeeController extends Controller
             ->join('users', 'employees.user_id', '=', 'users.id')
             ->where('employees.status', "ACTIVE");
 
-        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
-            //show all
-        } else {
+        if ($userType !== 'SUPERADMIN') {
 
-            if ($currentEmployee->department_id == 1) {
+            if (!$currentEmployee || $currentEmployee->department_id == 1) {
                 return redirect('/employee');
             }
 

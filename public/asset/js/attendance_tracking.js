@@ -1,4 +1,22 @@
 const appUrl = $('meta[name=app-url]').attr("content");
+const attendanceI18n = window.attendanceTrackingI18n || {};
+const attendanceLocale = attendanceI18n.locale || 'en-US';
+const attendanceText = attendanceI18n.text || {};
+
+function attendanceTranslate(key, replacements = {}) {
+    let text = attendanceText[key] || key;
+
+    Object.entries(replacements).forEach(([name, value]) => {
+        text = text.replaceAll(`:${name}`, value);
+    });
+
+    return text;
+}
+
+function translateAttendanceValue(value) {
+    const key = String(value || '').toLowerCase();
+    return attendanceText[key] || capitalizeFirstLetter(String(value || ''));
+}
 
 const modalAttendance = new bootstrap.Modal('#modalAttendance', {
   keyboard: false
@@ -23,26 +41,7 @@ function capitalizeFirstLetter(str) {
 }
 
 
-$('.input-search-query').on('keyup',function(){
-    let searchQuery = $(this).val();
-    console.log(searchQuery);
-
-    if(searchQuery){
-        $('.employee-row').addClass('d-none');
-        
-         
-
-        $('.employee-row').each(function(){
-            let employeeName = $(this).find('.employee-name').text();
-            if(employeeName.toLowerCase().includes(searchQuery.toLowerCase())){
-                $(this).removeClass('d-none');
-            }
-        });
-
-    }else{
-        $('.employee-row').removeClass('d-none');
-    }
-});
+// Search handler moved to pagination section below
 
 
 
@@ -52,13 +51,16 @@ let CURRENT_DATE = new Date();
 function renderCalendar(year, month) {
     
     getAttendanceTrackingData(month+1,year);
-    const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
-    const monthNames = new Date(year,month);
+    const selectedMonth = new Date(year, month, 1);
 
 
-    $('.calendar-month').text(`${CURRENT_DATE.toLocaleString('default', { month: 'long' })}`);
-    $('.calendar-month-short').text(`${CURRENT_DATE.toLocaleString('default', { month: 'short' })}`);
+    $('.calendar-month').text(
+        new Intl.DateTimeFormat(attendanceLocale, { month: 'long' }).format(selectedMonth)
+    );
+    $('.calendar-month-short').text(
+        new Intl.DateTimeFormat(attendanceLocale, { month: 'short' }).format(selectedMonth)
+    );
     $('.calendar-year').text(`${year}`);
 
     $('.col-day').removeClass('d-none');
@@ -73,7 +75,10 @@ function renderCalendar(year, month) {
         const day = parseInt($(this).attr('data-day'));
         const newDateDay = new Date(year, month, day).getDay();
 
-        $(this).find('.calendar-week-short').text(arrWeekdayNameENMedium(newDateDay))
+        $(this).find('.calendar-week-short').text(
+            new Intl.DateTimeFormat(attendanceLocale, { weekday: 'short' })
+                .format(new Date(year, month, day))
+        );
         
 
         if(newDateDay == 0){
@@ -195,14 +200,14 @@ function getAttendanceTrackingData(month,year)
                     $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-in').text('');
                     $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-out').text('');
                     
-                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .description-leave').text('ABSENT');
+                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .description-leave').text(attendanceTranslate('absent'));
                 }
 
                 if(attendance.status == 'SICK'){
                     $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-in').text('');
                     $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-out').text('');
                     
-                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .description-leave').text('SICK');
+                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .description-leave').text(attendanceTranslate('sick'));
                 }
 
                 $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"]').addClass(attendance.status.toLowerCase());
@@ -221,10 +226,10 @@ function getAttendanceTrackingData(month,year)
                 let textLeave = '';
 
                 if(employeeLeaveRequest.leave_type == 'ANNUAL_LEAVE'){
-                    textLeave = 'LEAVE';
+                    textLeave = attendanceTranslate('leave');
                 }
                 else if(employeeLeaveRequest.leave_type == 'SICK'){
-                    textLeave = 'SICK';
+                    textLeave = attendanceTranslate('sick');
                 }
                 
                 $('[data-employee-id="'+employeeLeaveRequest.employee_id+'"] [data-day="'+startDatedayOfMonth+'"] .description-leave').text(textLeave);
@@ -266,7 +271,7 @@ function getAttendanceTrackingData(month,year)
 $(document).on('click','tbody .col-day',function(){
 
     if($(this).hasClass('off-day')){
-        showAlertMsg('Employee day off','error',5000);
+        showAlertMsg(attendanceTranslate('employee_day_off'),'error',5000);
     }else{
         let dayCalendar = $(this).attr('data-day');
         let employeeId = $(this).closest('.employee-row').attr('data-employee-id');
@@ -330,7 +335,7 @@ async function getAttendanceDetail(employeeId,dateAttendance)
 
 function htmlDataRequestTimeOff(dataRow){
 
-    let leaveType = capitalizeFirstLetter(dataRow.leave_type);
+    let leaveType = translateAttendanceValue(dataRow.leave_type);
     
     let file1 = '';
     let file2 = '';
@@ -386,14 +391,14 @@ function htmlDataRequestTimeOff(dataRow){
                                             ${dataRow.employee.name}
                                         </div>
                                         <div class="item-date">
-                                            ${formatDateENMedium(dataRow.start_date)} - ${formatDateENMedium(dataRow.end_date)}
+                                            ${formatDateMediumLocalized(dataRow.start_date)} - ${formatDateMediumLocalized(dataRow.end_date)}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-day-type">
-                            <div class="item-status ${dataRow.status.toLowerCase()}">${capitalizeFirstLetter(dataRow.status)}</div>
+                            <div class="item-status ${dataRow.status.toLowerCase()}">${translateAttendanceValue(dataRow.status)}</div>
                             
                         </div>
                     </div>
@@ -408,7 +413,7 @@ function htmlDataRequestTimeOff(dataRow){
                             <div class="item-type">${leaveType}</div>
                         </div>
                         <div class="">
-                            <div class="item-day">${dataRow.day_amount} Day</div>
+                            <div class="item-day">${dataRow.day_amount} ${Number(dataRow.day_amount) === 1 ? attendanceTranslate('day') : attendanceTranslate('days')}</div>
                         </div>
                     </div>
 
@@ -521,7 +526,7 @@ async function setAttendanceDetail(){
 
     $('#modalAttendance [name="attendance_id"],#modalAttendanceEdit [name="attendance_id"]').val(attendanceId);
 
-    $('#modalAttendance .attendance-status').text(attendanceStatus);
+    $('#modalAttendance .attendance-status').text(translateAttendanceValue(attendanceStatus));
     $('#modalAttendance .attendance-checkin').text(formatTimeShort(attendanceTimeIn));
     $('#modalAttendance .attendance-checkout').text(formatTimeShort(attendanceTimeOut));
     $('#modalAttendance .attendance-work-duration').text(formatTimeShort(attendanceTotalWorkDuration));
@@ -607,36 +612,30 @@ function formateDateFull(dateString){
 
     if (!dateString) return '';
 
-    const newDate = new Date(dateString); // Or your specific date object
-
-    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-    const dayOfWeek = weekdays[newDate.getDay()];
-    const dateNumber = newDate.getDate();
-    const monthName = months[newDate.getMonth()];
-    const year = newDate.getFullYear();
-
-    const formattedDate = `${dayOfWeek} ${dateNumber} ${monthName} ${year}`;
-
-    
-    return formattedDate;
+    return new Intl.DateTimeFormat(attendanceLocale, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    }).format(new Date(dateString));
 
 } 
 
-const formatDateIDMonthYear = (date) => {
+function formatDateMediumLocalized(dateString) {
+    if (!dateString) return '';
 
-    
-  const newDate = new Date(date);
-  const monthNames = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-  ];
-    
-  const m = monthNames[newDate.getMonth()];
-  const y = newDate.getFullYear();
-  
-  return `${m} ${y}`;
+    return new Intl.DateTimeFormat(attendanceLocale, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    }).format(new Date(dateString));
+}
+
+const formatDateIDMonthYear = (date) => {
+    return new Intl.DateTimeFormat(attendanceLocale, {
+        month: 'long',
+        year: 'numeric'
+    }).format(new Date(date));
 };
 
 
@@ -665,7 +664,7 @@ $('#modalAttendance .btn-edit-attendance').on('click',function(){
         modalAttendance.hide();
         modalAttendanceEdit.show();
     }else{
-        showAlertMsg('Attendance Not Complete Yet','error',5000);
+        showAlertMsg(attendanceTranslate('attendance_not_complete'),'error',5000);
     }
 
 
@@ -727,3 +726,123 @@ $('#modalLeave .btn-back-modal-leave').on('click',function(){
 $('#modalLeave .btn-close-modal-leave').on('click',function(){
     modalLeave.hide();
 });
+
+// Pagination for attendance tracking
+let TRACKING_PAGE = 1;
+const TRACKING_PER_PAGE = 15;
+
+function renderTrackingPagination() {
+    const rows = document.querySelectorAll('#attendance-tracking-tbody .employee-row');
+    const total = rows.length;
+    const last = Math.ceil(total / TRACKING_PER_PAGE) || 1;
+
+    if (total === 0) {
+        document.getElementById('trackingPaginationWrap')?.classList.add('d-none');
+        return;
+    }
+
+    const from = (TRACKING_PAGE - 1) * TRACKING_PER_PAGE + 1;
+    const to = Math.min(TRACKING_PAGE * TRACKING_PER_PAGE, total);
+
+    document.getElementById('trackingPaginationInfo').textContent = attendanceTranslate('showing', {
+        from,
+        to,
+        total
+    });
+
+    const pages = [];
+    pages.push(`<button type="button" class="page-btn tracking-page" data-page="${Math.max(TRACKING_PAGE - 1, 1)}" ${TRACKING_PAGE <= 1 ? 'disabled' : ''}>${attendanceTranslate('previous')}</button>`);
+
+    const pageNums = [];
+    if (last <= 7) {
+        for (let i = 1; i <= last; i++) pageNums.push(i);
+    } else {
+        pageNums.push(1);
+        if (TRACKING_PAGE > 3) pageNums.push('...');
+        const start = Math.max(2, TRACKING_PAGE - 1);
+        const end = Math.min(last - 1, TRACKING_PAGE + 1);
+        for (let i = start; i <= end; i++) pageNums.push(i);
+        if (TRACKING_PAGE < last - 2) pageNums.push('...');
+        pageNums.push(last);
+    }
+
+    pageNums.forEach(p => {
+        if (p === '...') {
+            pages.push('<span class="page-btn" style="pointer-events:none;border:none;box-shadow:none;">...</span>');
+        } else {
+            pages.push(`<button type="button" class="page-btn tracking-page ${p === TRACKING_PAGE ? 'is-active' : ''}" data-page="${p}">${p}</button>`);
+        }
+    });
+
+    pages.push(`<button type="button" class="page-btn tracking-page" data-page="${Math.min(TRACKING_PAGE + 1, last)}" ${TRACKING_PAGE >= last ? 'disabled' : ''}>${attendanceTranslate('next')}</button>`);
+
+    document.getElementById('trackingPagination').innerHTML = pages.join('');
+    showTrackingPage(TRACKING_PAGE);
+}
+
+function showTrackingPage(page) {
+    const rows = document.querySelectorAll('#attendance-tracking-tbody .employee-row');
+    const start = (page - 1) * TRACKING_PER_PAGE;
+    const end = start + TRACKING_PER_PAGE;
+
+    rows.forEach((row, i) => {
+        row.style.display = (i >= start && i < end) ? '' : 'none';
+    });
+}
+
+$(document).on('click', '.tracking-page', function() {
+    const page = parseInt($(this).data('page'));
+    if (!page || page === TRACKING_PAGE || $(this).prop('disabled')) return;
+    TRACKING_PAGE = page;
+    renderTrackingPagination();
+});
+
+$('.input-search-query').on('keyup', function() {
+    const query = $(this).val().toLowerCase();
+    const rows = document.querySelectorAll('#attendance-tracking-tbody .employee-row');
+    rows.forEach(row => {
+        const name = row.getAttribute('data-employee-name')?.toLowerCase() || '';
+        row.dataset.filterMatch = name.includes(query) ? '1' : '0';
+    });
+    TRACKING_PAGE = 1;
+    const filteredRows = Array.from(rows).filter(r => r.dataset.filterMatch === '1');
+    const totalFiltered = filteredRows.length;
+
+    if (query) {
+        rows.forEach(row => {
+            row.style.display = row.dataset.filterMatch === '1' ? '' : 'none';
+        });
+        const last = Math.ceil(totalFiltered / TRACKING_PER_PAGE) || 1;
+        const from = totalFiltered > 0 ? 1 : 0;
+        const to = Math.min(TRACKING_PER_PAGE, totalFiltered);
+        document.getElementById('trackingPaginationInfo').textContent = attendanceTranslate('showing', {
+            from: totalFiltered > 0 ? from : 0,
+            to: totalFiltered > 0 ? to : 0,
+            total: totalFiltered
+        });
+        
+        const pages = [];
+        pages.push(`<button type="button" class="page-btn tracking-page" data-page="1" disabled>${attendanceTranslate('previous')}</button>`);
+        const pageNums = [];
+        if (last <= 7) {
+            for (let i = 1; i <= last; i++) pageNums.push(i);
+        } else {
+            pageNums.push(1);
+            if (last > 2) pageNums.push('...');
+            pageNums.push(last);
+        }
+        pageNums.forEach(p => {
+            if (p === '...') {
+                pages.push('<span class="page-btn" style="pointer-events:none;border:none;box-shadow:none;">...</span>');
+            } else {
+                pages.push(`<button type="button" class="page-btn tracking-page ${p === 1 ? 'is-active' : ''}" data-page="${p}">${p}</button>`);
+            }
+        });
+        pages.push(`<button type="button" class="page-btn tracking-page" data-page="${Math.min(2, last)}" ${last <= 1 ? 'disabled' : ''}>${attendanceTranslate('next')}</button>`);
+        document.getElementById('trackingPagination').innerHTML = pages.join('');
+    } else {
+        renderTrackingPagination();
+    }
+});
+
+renderTrackingPagination();

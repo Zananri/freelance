@@ -50,7 +50,7 @@ class WeekdayOffController extends Controller
             ->distinct()
             ->pluck('employees.division_id');
 
-        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
+        if ($userType === 'SUPERADMIN') {
             $department = Department::where('status', 'ACTIVE')
                 ->whereIn('id', $activeEmployeeDeptIds)
                 ->get();
@@ -59,11 +59,11 @@ class WeekdayOffController extends Controller
                 ->get();
         } else {
             $department = Department::where('status', 'ACTIVE')
-                ->where('id', $currentEmployee->department_id)
+                ->where('id', $currentEmployee?->department_id ?? 0)
                 ->whereIn('id', $activeEmployeeDeptIds)
                 ->get();
             $division = Division::where('status', 'ACTIVE')
-                ->where('department_id', $currentEmployee->department_id)
+                ->where('department_id', $currentEmployee?->department_id ?? 0)
                 ->whereIn('id', $activeEmployeeDivIds)
                 ->get();
         }
@@ -106,8 +106,8 @@ class WeekdayOffController extends Controller
             ->where('users.user_role', 'EMPLOYEE')
             ->whereNotIn('users.user_type', ['ADMINISTRATOR', 'SUPERADMIN']);
 
-        if (!in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) || !in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
-            $employeeQuery->where('employees.department_id', $currentEmployee->department_id);
+        if ($userType !== 'SUPERADMIN') {
+            $employeeQuery->where('employees.department_id', $currentEmployee?->department_id ?? 0);
         }
 
         if ($departmentId) {

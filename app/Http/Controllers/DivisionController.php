@@ -37,7 +37,15 @@ class DivisionController extends Controller
                 })
                 ->when($businessDepartmentId, function ($q) use ($businessDepartmentId) {
                     $q->where('department_id', $businessDepartmentId);
-                })
+                });
+
+            $user = auth()->user();
+            $currentEmployee = $user?->employee;
+            if (strtoupper((string) ($user?->user_type ?? '')) !== 'SUPERADMIN') {
+                $divisions->where('department_id', $currentEmployee?->department_id ?? 0);
+            }
+
+            $divisions = $divisions
                 ->get();
 
             $divisions = $divisions->map(function ($division) {
@@ -306,9 +314,18 @@ class DivisionController extends Controller
         try {
             $user = auth()->user();
             $employee = $user ? $user->employee : null;
+            $businessDepartmentId = $request->input('business_department_id');
             $partnerId = $request->input('partner_id', $request->input('department_id', $employee?->partner_id));
+            $isSuperadmin = strtoupper((string) ($user?->user_type ?? '')) === 'SUPERADMIN';
 
-            if (!$partnerId) {
+            if (!$isSuperadmin) {
+                $businessDepartmentId = $employee?->department_id;
+                if ($partnerId && !Partner::whereKey($partnerId)->where('department_id', $businessDepartmentId ?? 0)->exists()) {
+                    $partnerId = null;
+                }
+            }
+
+            if (!$businessDepartmentId && !$partnerId) {
                 return response()->json([
                     'code' => 404,
                     'status' => 'error',
@@ -317,7 +334,15 @@ class DivisionController extends Controller
             }
 
             $divisions = Division::where('status', 'ACTIVE')
-                ->where('partner_id', $partnerId)
+                ->when(
+                    $businessDepartmentId,
+                    fn ($query) => $query
+                        ->where('department_id', $businessDepartmentId)
+                        ->whereHas('partner', fn ($partnerQuery) => $partnerQuery
+                            ->where('partner_name', 'not like', 'ADMIN %')
+                            ->where('partner_name', 'not like', 'SUPERADMIN %')),
+                    fn ($query) => $query->where('partner_id', $partnerId)
+                )
                 ->orderBy('name_division')
                 ->get(['id', 'name_division', 'partner_id', 'description']);
 

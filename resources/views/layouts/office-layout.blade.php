@@ -24,6 +24,8 @@
 
     <meta name="app-url" content="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="user-type" content="{{ Auth::user()->user_type }}">
+    <meta name="user-department-id" content="{{ Auth::user()->employee?->department_id }}">
 
     <script src="{{ asset('asset/js/office_nav.js?v=' . time()) }}"></script>
 
@@ -617,6 +619,39 @@
     @if (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']))
         <script src="{{ asset('asset/js/hr_info.js') }}?v={{ time() }}"></script>
     @endif
+
+    <script>
+        $(function () {
+            const userType = $('meta[name="user-type"]').attr('content');
+            const departmentId = $('meta[name="user-department-id"]').attr('content');
+            const selectors = [
+                '#filterDepartment',
+                '#filter_department',
+                '#business_department_id',
+                '#edit_business_department_id',
+                'select[name="business_department_id"]'
+            ].join(',');
+
+            if (userType !== 'ADMINISTRATOR' || !departmentId) {
+                return;
+            }
+
+            const selectDepartment = function () {
+                $(selectors).each(function () {
+                    const $select = $(this);
+                    if ($select.find(`option[value="${departmentId}"]`).length && $select.val() !== departmentId) {
+                        $select.val(departmentId).trigger('change');
+                    }
+                });
+            };
+
+            selectDepartment();
+            new MutationObserver(selectDepartment).observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    </script>
 
     @isset($script_slot)
         {{ $script_slot }}

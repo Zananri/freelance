@@ -44,7 +44,7 @@
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="mb-0 fw-semibold">
-                        Site List
+                        {{ __('monitoring.site_list') }}
                     </h6>
                 </div>
 
@@ -67,7 +67,7 @@
             <div class="card monitoring-card mt-4">
 
                 <h6 class="fw-semibold mb-3">
-                    Employee List
+                    {{ __('monitoring.employee_list') }}
                 </h6>
 
                 <div class="input-group mb-3">
@@ -92,7 +92,7 @@
             <div class="card monitoring-map-card border-0">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="mb-0 fw-semibold">
-                        Map View
+                        {{ __('monitoring.map_view') }}
                     </h6>
                 </div>
 
@@ -106,6 +106,10 @@
 
     <x-slot name="script_slot">
 
+        <script>
+            window.monitoringTranslations = @json(__('monitoring'));
+            window.monitoringLocale = @json(app()->getLocale());
+        </script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="{{ asset('asset/plugin/leaflet/leaflet.js') }}" crossorigin=""></script>
         <script src="{{ asset('asset/js/monitoring.js') }}?v={{ time() }}"></script>

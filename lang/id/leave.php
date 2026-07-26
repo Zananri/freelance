@@ -22,5 +22,18 @@ return [
     'annual_leave_quota' => 'Cuti Tahunan :year',
     'edit_annual_leave' => 'Ubah Cuti Tahunan',
     'please_input_quota' => 'Silakan masukkan kuota cuti tahunan',
+    'loading' => 'Memuat...',
+    'no_data' => 'Tidak ada data',
+    'day' => 'Hari',
+    'days' => 'Hari',
+    'request' => 'Diajukan',
+    'approved' => 'Disetujui',
+    'rejected' => 'Ditolak',
+    'annual_leave_type' => 'Cuti Tahunan',
+    'sick_type' => 'Sakit',
+    'not_found' => 'Tidak ditemukan',
+    'showing' => 'Menampilkan :from-:to dari :total',
+    'previous' => 'Sebelumnya',
+    'next' => 'Berikutnya',
 ];
 

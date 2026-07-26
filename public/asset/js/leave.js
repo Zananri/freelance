@@ -1,4 +1,18 @@
 const appUrl = $('meta[name=app-url]').attr("content");
+const leaveText = window.leaveTranslations || {};
+const leaveLocale = window.leaveLocale || 'en';
+const translateLeave = (key, replacements = {}) => {
+    let value = leaveText[key] || key;
+    $.each(replacements, function (name, replacement) {
+        value = value.replace(`:${name}`, replacement);
+    });
+    return value;
+};
+const formatLeaveDate = date => new Intl.DateTimeFormat(leaveLocale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+}).format(new Date(`${date}T00:00:00`));
  
 const approveLeaveRequestModal = new bootstrap.Modal('#approveLeaveRequestModal', {
   keyboard: false
@@ -16,24 +30,16 @@ const employeeLeaveModal = new bootstrap.Modal('#employeeLeaveModal', {
 
 let CURRENT_DATE = new Date();
 let DATA_EMPLOYEE_LEAVE = [];
+let PAGE_EMPLOYEE_LEAVE = 1;
+const LEAVE_PER_PAGE = 10;
 
-$('.input-search-query').on('keyup',function(){
-    let searchQuery = $(this).val();
-    console.log(searchQuery);
-
-    if(searchQuery){
-        $('.employee-row').addClass('d-none');
-        
-        $('.employee-row').each(function(){
-            let employeeName = $(this).find('.employee-name').text();
-            if(employeeName.toLowerCase().includes(searchQuery.toLowerCase())){
-                $(this).removeClass('d-none');
-            }
-        });
-
-    }else{
-        $('.employee-row').removeClass('d-none');
-    }
+let employeeSearchTimer;
+$('.input-search-query').on('input',function(){
+    clearTimeout(employeeSearchTimer);
+    employeeSearchTimer = setTimeout(function () {
+        PAGE_EMPLOYEE_LEAVE = 1;
+        getEmployeeLeaveByYear(CURRENT_DATE.getFullYear());
+    }, 350);
 });
 
 $(document).on('click','.dropdown-year .year-item',function(){
@@ -41,7 +47,7 @@ $(document).on('click','.dropdown-year .year-item',function(){
     $('.btn-dropdown-year .text-year').text(yearChoose);
 
     CURRENT_DATE.setYear(parseInt(yearChoose));
-
+    PAGE_EMPLOYEE_LEAVE = 1;
     getEmployeeLeaveByYear(yearChoose);
     //$('.dropdown-month.show').removeClass('show');
 });
@@ -64,7 +70,10 @@ function getEmployeeLeaveByYear(year)
         url: appUrl + "/leave/employee-leave-by-year",
         type: "GET",
         data:{
-            'YEAR' : year
+            'YEAR' : year,
+            'search': $('.input-search-query').val().trim(),
+            'page': PAGE_EMPLOYEE_LEAVE,
+            'per_page': LEAVE_PER_PAGE
         },
         beforeSend:function(){
             //$('.col-user-management .loader').fadeIn('fast');
@@ -77,26 +86,84 @@ function getEmployeeLeaveByYear(year)
         },
         success: function(response) {
 
-            DATA_EMPLOYEE_LEAVE = response.data;
-            //$('.table-attendance .col-day').removeClass('is-late');
-
-            $(`.employee-row .col-annual-leave`).text(0);
-            $(`.employee-row .col-use-annual-leave`).text(0);
-            $(`.employee-row .col-sick`).text(0);
-
-            for (let i = 0; i < DATA_EMPLOYEE_LEAVE.length; i++) {
-                const leave = DATA_EMPLOYEE_LEAVE[i];   
-                
-                $(`.employee-row[data-employee-id="${leave.employee_id}"] .col-annual-leave`).text(leave.annual_leave);
-                $(`.employee-row[data-employee-id="${leave.employee_id}"] .col-use-annual-leave`).text((leave.annual_leave - leave.remaining_annual_leave));
-                $(`.employee-row[data-employee-id="${leave.employee_id}"] .col-sick`).text(leave.sick);
-            }
+            DATA_EMPLOYEE_LEAVE = response.data.leaves || [];
+            PAGE_EMPLOYEE_LEAVE = response.data.pagination.current_page || 1;
+            renderEmployeeLeaveTable(response.data.employees || []);
+            renderPagination('#leaveEmployeePaginationInfo', '#leaveEmployeePagination', response.data.pagination, PAGE_EMPLOYEE_LEAVE);
 
         }
          
     });
 
 }
+
+function renderEmployeeLeaveTable(employees) {
+    let rows = '';
+    $.each(employees, function (_, employee) {
+        const leave = DATA_EMPLOYEE_LEAVE.find(item => String(item.employee_id) === String(employee.id));
+        const annualLeave = leave ? leave.annual_leave : 0;
+        const usedAnnualLeave = leave ? leave.annual_leave - leave.remaining_annual_leave : 0;
+        const sick = leave ? leave.sick : 0;
+        const photo = employee.photo ? `${appUrl}/${String(employee.photo).replace(/^\/+/, '')}` : `${appUrl}/asset/img/avatar.png`;
+        rows += `
+            <tr class="employee-row" data-employee-id="${employee.id}" data-employee-name="${employee.name}" data-employee-photo="${photo}">
+                <td>
+                    <div class="box-employee">
+                        <div class="d-flex align-items-center">
+                            <div class="col-photo"><div class="employee-photo"><img src="${photo}" class="rounded-circle w-100 h-100 object-fit-cover" alt=""></div></div>
+                            <div class="col-name w-100"><div class="employee-name">${employee.name}</div></div>
+                        </div>
+                    </div>
+                </td>
+                <td class="text-center position-relative">
+                    <span class="col-annual-leave">${annualLeave}</span>
+                    <div class="box-action h-100 top-0 end-0 position-absolute"><div class="d-flex h-100 flex-column justify-content-center align-items-center"><span class="material-symbols-outlined fill fs-14 px-2">edit</span></div></div>
+                </td>
+                <td class="col-use-annual-leave text-center">${usedAnnualLeave}</td>
+                <td class="col-sick text-center">${sick}</td>
+            </tr>`;
+    });
+    $('#leaveEmployeeTableBody').html(rows || `<tr><td colspan="4" class="text-center">${translateLeave('no_data')}</td></tr>`);
+}
+
+function buildPaginationPages(current, last) {
+    if (last <= 7) return Array.from({ length: last }, (_, index) => index + 1);
+    const pages = [1];
+    if (current > 3) pages.push('...');
+    for (let page = Math.max(2, current - 1); page <= Math.min(last - 1, current + 1); page++) pages.push(page);
+    if (current < last - 2) pages.push('...');
+    pages.push(last);
+    return pages;
+}
+
+function renderPagination(infoSelector, controlsSelector, pagination, currentPage) {
+    const $info = $(infoSelector);
+    const $controls = $(controlsSelector);
+    if (!pagination || !pagination.total) {
+        $info.empty();
+        $controls.empty();
+        return;
+    }
+    $info.text(translateLeave('showing', {
+        from: pagination.from || 0,
+        to: pagination.to || 0,
+        total: pagination.total || 0
+    }));
+    const lastPage = pagination.last_page || 1;
+    let buttons = `<button type="button" class="page-btn" data-page="${Math.max(currentPage - 1, 1)}" ${currentPage <= 1 ? 'disabled' : ''}>${translateLeave('previous')}</button>`;
+    $.each(buildPaginationPages(currentPage, lastPage), function (_, page) {
+        buttons += page === '...'
+            ? '<span class="pagination-ellipsis">...</span>'
+            : `<button type="button" class="page-btn ${page === currentPage ? 'is-active' : ''}" data-page="${page}">${page}</button>`;
+    });
+    buttons += `<button type="button" class="page-btn" data-page="${Math.min(currentPage + 1, lastPage)}" ${currentPage >= lastPage ? 'disabled' : ''}>${translateLeave('next')}</button>`;
+    $controls.html(buttons);
+}
+
+$(document).on('click', '#leaveEmployeePagination .page-btn', function () {
+    PAGE_EMPLOYEE_LEAVE = Number($(this).data('page')) || 1;
+    getEmployeeLeaveByYear(CURRENT_DATE.getFullYear());
+});
 
 getEmployeeLeaveByYear(CURRENT_DATE.getFullYear());
 
@@ -212,6 +279,7 @@ let PAGE_LEAVE_REQUEST = 1;
 $('.col-leave-request .input-search-query-request').on('keyup',function(){
     
     SEARCH_QUERY_LEAVE_REQUEST = $(this).val();
+    PAGE_LEAVE_REQUEST = 1;
     getAllEmployeeLeaveRequest();
 
 });
@@ -261,14 +329,14 @@ function htmlDataRequestTimeOff(dataRow){
             <div class="">
                 <button class="btn btn-action reject">
                     <span class="material-symbols-outlined check-icon">close</span>
-                    Reject
+                    ${translateLeave('reject')}
                 </button>
             </div>
 
             <div class="">
                 <button class="btn btn-action approve">
                     <span class="material-symbols-outlined check-icon">check</span>
-                    Approve
+                    ${translateLeave('approve')}
                 </button>
             </div>
         `;
@@ -291,15 +359,15 @@ function htmlDataRequestTimeOff(dataRow){
                                             ${dataRow.employee.name}
                                         </div>
                                         <div class="item-date">
-                                            ${formatDateENMedium(dataRow.start_date)} - ${formatDateENMedium(dataRow.end_date)}
+                                            ${formatLeaveDate(dataRow.start_date)} - ${formatLeaveDate(dataRow.end_date)}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-day-type">
-                            <div class="item-day">${dataRow.day_amount} Day</div>
-                            <div class="item-type">${leaveType}</div>
+                            <div class="item-day">${dataRow.day_amount} ${dataRow.day_amount > 1 ? translateLeave('days') : translateLeave('day')}</div>
+                            <div class="item-type">${translateLeave(`${dataRow.leave_type.toLowerCase()}_type`) || leaveType}</div>
                         </div>
                     </div>
                 </div>
@@ -314,7 +382,7 @@ function htmlDataRequestTimeOff(dataRow){
                             </div>
                         </div>
                         <div class="col-status">
-                            <div class="item-status ${dataRow.status.toLowerCase()}">${capitalizeFirstLetter(dataRow.status)}</div>
+                            <div class="item-status ${dataRow.status.toLowerCase()}">${translateLeave(dataRow.status.toLowerCase())}</div>
                         </div>
                     </div>
                 </div>
@@ -349,6 +417,7 @@ function getAllEmployeeLeaveRequest(){
         data:{
             'SEARCH_QUERY_LEAVE_REQUEST' : SEARCH_QUERY_LEAVE_REQUEST,
             'page' : PAGE_LEAVE_REQUEST,
+            'per_page': LEAVE_PER_PAGE
         },
         beforeSend:function(){
             //$('.col-user-management .loader').fadeIn('fast');
@@ -362,6 +431,8 @@ function getAllEmployeeLeaveRequest(){
         success: function(response) {
             
             DATA_LEAVE_REQUEST = response.data.employeeLeaveRequest.data;
+            const pagination = response.data.employeeLeaveRequest;
+            PAGE_LEAVE_REQUEST = pagination.current_page || 1;
 
             let rowItem = '';
                 
@@ -370,9 +441,10 @@ function getAllEmployeeLeaveRequest(){
             }
 
             if(DATA_LEAVE_REQUEST.length < 1){
-                rowItem = `<div class="p-3 fs-12 mb-5 mt-2 border rounded-2">No Data</div>`;
+                rowItem = `<div class="p-3 fs-12 mb-5 mt-2 border rounded-2">${translateLeave('no_data')}</div>`;
             }
             $('.col-leave-request .box-data').html(rowItem);
+            renderPagination('#leaveRequestPaginationInfo', '#leaveRequestPagination', pagination, PAGE_LEAVE_REQUEST);
 
             //attendance-checkin attendance-checkout attendance-work-duration
 
@@ -383,6 +455,11 @@ function getAllEmployeeLeaveRequest(){
     });
 
 }
+
+$(document).on('click', '#leaveRequestPagination .page-btn', function () {
+    PAGE_LEAVE_REQUEST = Number($(this).data('page')) || 1;
+    getAllEmployeeLeaveRequest();
+});
 
 getAllEmployeeLeaveRequest();
 //END LEAVE REQUEST
@@ -565,4 +642,3 @@ function capitalizeFirstLetter(str) {
 
     return formattedStr;
 }
-

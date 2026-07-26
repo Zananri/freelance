@@ -1,6 +1,6 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('shift') }}
+        {{ 'shift' }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/shift.css?v=' . time()) }}" rel="stylesheet">
@@ -24,7 +24,7 @@
     </svg>
 
     <div class="title-content d-flex justify-content-between align-items-center mb-3 py-3">
-        <h2 class="m-0">Shift</h2>
+        <h2 class="m-0">{{ __('shift.shift') }}</h2>
         <div class="d-flex gap-2">
             <div class="search-input-container">
                 <span class="material-symbols-outlined search-icon">search</span>
@@ -36,38 +36,38 @@
                 <button class="btn btn-icon-toggle filter-shift-btn border-dddd dropdown-toggle" type="button"
                     data-bs-toggle="dropdown" aria-expanded="false">
                     <span class="material-symbols-outlined icon">filter_list</span>
-                    <span class="icon-text">Filter</span>
+                    <span class="icon-text">{{ __('shift.filter') }}</span>
                 </button>
 
                 <!-- Isi dropdown -->
                 <ul class="dropdown-menu dropdown-filter shadow-sm p-3" style="min-width: 250px;">
                     <!-- Department -->
                     <li class="mb-3 custom-input custom-dropdown-input">
-                        <label class="form-label mb-1">Filter by Department</label>
+                        <label class="form-label mb-1">{{ __('shift.filter_by_department') }}</label>
                         <select id="filterDepartment" class="form-select">
-                            <option value="">Select Department</option>
+                            <option value="">{{ __('shift.select_department') }}</option>
                         </select>
                     </li>
 
-                    <!-- Division -->
+                    <!-- Site -->
                     <li class="mb-3 custom-input custom-dropdown-input">
-                        <label class="form-label mb-1">Filter by Division</label>
+                        <label class="form-label mb-1">{{ __('shift.filter_by_division') }}</label>
                         <select id="filterDivision" class="form-select" disabled>
-                            <option value="">Select Division</option>
+                            <option value="">{{ __('shift.select_division') }}</option>
                         </select>
                     </li>
 
                     <!-- Shift -->
                     <li class="mb-3 custom-input custom-dropdown-input">
-                        <label class="form-label mb-1">Filter by Shift</label>
+                        <label class="form-label mb-1">{{ __('shift.filter_by_shift') }}</label>
                         <select id="filterShift" class="form-select">
-                            <option value="">Select Shift</option>
+                            <option value="">{{ __('shift.select_shift') }}</option>
                         </select>
                     </li>
 
                     <li class="modal-footer-custom d-flex justify-content-between mt-2">
-                        <button type="button" class="btn btn-light btn-sm" id="resetFilter">Cancel</button>
-                        <button type="button" class="btn btn-light btn-sm" id="applyFilterBtn">Filter</button>
+                        <button type="button" class="btn btn-light btn-sm" id="resetFilter">{{ __('shift.cancel') }}</button>
+                        <button type="button" class="btn btn-light btn-sm" id="applyFilterBtn">{{ __('shift.filter') }}</button>
                     </li>
                 </ul>
             </div>
@@ -77,7 +77,7 @@
                 <button class="btn btn-icon-toggle config-shift-btn border-dddd" type="button" data-bs-toggle="modal"
                     data-bs-target="#shiftConfigModal">
                     <span class="material-symbols-outlined icon" type="button">settings</span><span
-                        class="icon-text">Config</span>
+                        class="icon-text">{{ __('shift.config') }}</span>
                 </button>
             @endif
 
@@ -121,6 +121,10 @@
                 </table>
             </div>
         </div>
+        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+            <div class="pagination-summary" id="shiftPaginationInfo"></div>
+            <div class="pagination-controls" id="shiftPagination"></div>
+        </div>
     </div>
 
     {{-- Add Shift Modal --}}
@@ -143,9 +147,9 @@
                         <div class="text-center">
                             <img id="addEmployeePicture" src="" class="rounded-circle mb-2" width="70"
                                 height="70">
-                            <h5 class="fw-normal employee-name mb-0" id="addShiftEmployeeName">Employee fullname
+                            <h5 class="fw-normal employee-name mb-0" id="addShiftEmployeeName">{{ __('shift.employee_fullname') }}
                             </h5>
-                            <small id="addEmployeeGrade" class="text-muted">employee grade</small>
+                            <small id="addEmployeeGrade" class="text-muted">{{ __('shift.employee_grade') }}</small>
                         </div>
 
                         <button type="button" class="btn-close position-absolute end-0 top-0 me-2 mt-2"
@@ -155,22 +159,22 @@
                     <div class="modal-body modal-body-custom text-center">
                         <div class="mt-3 text-start">
                             <div class="d-flex justify-content-between">
-                                <p class="mb-1 fw-normal">Shift :</p>
+                                <p class="mb-1 fw-normal">{{ __('shift.shift_colon') }}</p>
                                 <span id="editTitleShiftDisplay"></span>
                             </div>
 
                             <hr class="border-3 rounded">
 
                             <div class="d-flex justify-content-between text-shift-display">
-                                <p class="text-shift-display">Date : </p>
+                                <p class="text-shift-display">{{ __('shift.date_colon') }}</p>
                                 <span id="addDateShiftDisplayText"></span>
                             </div>
                             <div class="d-flex justify-content-between text-shift-display">
-                                <p class="text-shift-display">Time In : </p>
+                                <p class="text-shift-display">{{ __('shift.time_in_label') }}</p>
                                 <span id="addTimeStartDisplay"></span>
                             </div>
                             <div class="d-flex justify-content-between text-shift-display">
-                                <p class="text-shift-display">Time Out : </p>
+                                <p class="text-shift-display">{{ __('shift.time_out_label') }}</p>
                                 <span id="addTimeEndDisplay"></span>
                             </div>
                         </div>
@@ -180,13 +184,13 @@
                         <button
                             class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                             type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
-                            Select Shift
+                            {{ __('shift.select_shift') }}
                             <span class="material-symbols-outlined">arrow_drop_down</span>
                         </button>
                         <ul class="dropdown-menu dropdown-shift dropdown-menu-end">
                             <li>
                                 <button class="dropdown-item d-flex justify-content-between">
-                                    <span>Shift Title</span>
+                                    <span>{{ __('shift.title') }}</span>
                                     <span>09:00 - 18:00</span>
                                 </button>
                                 <div class="d-flex justify-content-center">
@@ -197,8 +201,8 @@
                     </div>
 
                     <div class="modal-footer modal-footer-custom justify-content-evenly">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button id="saveShiftBtn" type="submit" class="btn btn-submit-black">Submit</button>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('shift.cancel') }}</button>
+                        <button id="saveShiftBtn" type="submit" class="btn btn-submit-black">{{ __('shift.save') }}</button>
                     </div>
                 </form>
             </div>
@@ -225,9 +229,9 @@
                         <div class="text-center">
                             <img id="editEmployeePicture" src="" class="rounded-circle mb-2" width="70"
                                 height="70">
-                            <h5 class="fw-normal employee-name mb-0" id="editShiftEmployeeName">Employee fullname
+                            <h5 class="fw-normal employee-name mb-0" id="editShiftEmployeeName">{{ __('shift.employee_fullname') }}
                             </h5>
-                            <small id="editEmployeeGrade" class="text-muted">employee grade</small>
+                            <small id="editEmployeeGrade" class="text-muted">{{ __('shift.employee_grade') }}</small>
                         </div>
 
                         <button type="button" class="btn-close position-absolute end-0 top-0 me-2 mt-2"
@@ -237,24 +241,24 @@
                     <div class="modal-body modal-body-custom text-center">
                         <div class="mt-3 text-start">
                             <div class="d-flex justify-content-between">
-                                <p class="mb-1 fw-normal">Shift :</p>
+                                <p class="mb-1 fw-normal">{{ __('shift.shift_colon') }}</p>
                                 <span id="editTitleShiftDisplay"></span>
                             </div>
 
                             <hr class="border-3 rounded">
 
                             <div class="d-flex justify-content-between text-shift-display">
-                                <p class="mb-3">Date :</p>
+                                <p class="mb-3">{{ __('shift.date_colon') }}</p>
                                 <span id="editDateShiftDisplayText"></span>
                             </div>
 
                             <div class="d-flex justify-content-between text-shift-display">
-                                <p class="mb-3">Time In :</p>
+                                <p class="mb-3">{{ __('shift.time_in_label') }}</p>
                                 <span id="editTimeStartDisplay"></span>
                             </div>
 
                             <div class="d-flex justify-content-between text-shift-display">
-                                <p class="mb-3">Time Out :</p>
+                                <p class="mb-3">{{ __('shift.time_out_label') }}</p>
                                 <span id="editTimeEndDisplay"></span>
                             </div>
 
@@ -262,7 +266,7 @@
 
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h6 class="fw-semibold mb-0">
-                                    Timeline Checkpoint
+                                    {{ __('shift.timeline_checkpoint') }}
                                 </h6>
 
                                 <span
@@ -285,13 +289,13 @@
                             class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                             type="button" data-bs-toggle="dropdown" data-bs-display="static"
                             id="addDropdownSelected" aria-expanded="false">
-                            Select Shift
+                            {{ __('shift.select_shift') }}
                             <span class="material-symbols-outlined">arrow_drop_down</span>
                         </button>
                         <ul class="dropdown-menu dropdown-shift">
                             <li class="dropdown-list" id="addDropdownList">
                                 <button class="dropdown-item d-flex justify-content-between">
-                                    <span>Shift Title</span>
+                                    <span>{{ __('shift.title') }}</span>
                                     <span>09:00 - 18:00</span>
                                 </button>
                                 <div class="d-flex justify-content-center">
@@ -302,8 +306,8 @@
                     </div>
 
                     <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-submit-black">Update</button>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('shift.cancel') }}</button>
+                        <button type="submit" class="btn btn-submit-black">{{ __('shift.update') }}</button>
                     </div>
                 </form>
             </div>
@@ -326,9 +330,9 @@
                     <div class="text-center">
                         <img id="editEmployeePicture" src="" class="rounded-circle mb-2" width="70"
                             height="70">
-                        <h5 class="fw-normal employee-name mb-0" id="editShiftEmployeeName">Employee fullname
+                        <h5 class="fw-normal employee-name mb-0" id="editShiftEmployeeName">{{ __('shift.employee_fullname') }}
                         </h5>
-                        <small id="addEmployeeGrade" class="text-muted">employee grade</small>
+                        <small id="addEmployeeGrade" class="text-muted">{{ __('shift.employee_grade') }}</small>
                     </div>
 
                     <button type="button" class="btn-close position-absolute end-0 top-0 me-2 mt-2"
@@ -338,19 +342,19 @@
                 <div class="modal-body modal-body-custom text-center">
                     <div class="mt-3 text-start">
                         <div class="d-flex justify-content-between">
-                            <p class="mb-1 fw-normal">Shift :</p>
+                            <p class="mb-1 fw-normal">{{ __('shift.shift_colon') }}</p>
                             <span id="editTitleShiftDisplay"></span>
                         </div>
 
                         <hr class="border-3 rounded">
 
                         <div class="d-flex justify-content-between text-shift-display">
-                            <p class="mb-3">Time In :</p>
+                            <p class="mb-3">{{ __('shift.time_in_label') }}</p>
                             <span id="editTimeStartDisplay"></span>
                         </div>
 
                         <div class="d-flex justify-content-between text-shift-display">
-                            <p class="mb-3">Time Out :</p>
+                            <p class="mb-3">{{ __('shift.time_out_label') }}</p>
                             <span id="editTimeEndDisplay"></span>
                         </div>
                     </div>
@@ -361,7 +365,7 @@
                         class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                         type="button" data-bs-toggle="dropdown" data-bs-display="static" id="editDropdownSelected"
                         aria-expanded="false">
-                        Select Shift
+                        {{ __('shift.select_shift') }}
                         <span class="material-symbols-outlined">arrow_drop_down</span>
                     </button>
                     <ul class="dropdown-menu dropdown-shift" id="editDropdownList">
@@ -370,7 +374,7 @@
                 </div>
 
                 <div class="modal-footer modal-footer-custom w-100">
-                    <button type="button" class="btn btn-submit-black w-100" id="saveEmployeeBtn">Update</button>
+                    <button type="button" class="btn btn-submit-black w-100" id="saveEmployeeBtn">{{ __('shift.update') }}</button>
                 </div>
 
             </div>
@@ -384,7 +388,7 @@
             <div class="modal-content modal-content-custom">
 
                 <div class="modal-header d-flex justify-content-between align-items-center">
-                    <h5 class="modal-title shift-config-title" id="shiftConfigModalLabel">Shift Config</h5>
+                    <h5 class="modal-title shift-config-title" id="shiftConfigModalLabel">{{ __('shift.shift_config') }}</h5>
 
                     <div class="d-flex align-items-center gap-2">
                         <button type="button" class="btn btn-dark btn-sm add-shift-button" data-bs-toggle="modal"
@@ -404,11 +408,11 @@
                             </colgroup>
                             <thead>
                                 <tr>
-                                    <th>Title</th>
-                                    <th>Description</th>
-                                    <th>Time In</th>
-                                    <th>Time Out</th>
-                                    <th>Total Checkpoint</th>
+                                    <th>{{ __('shift.title') }}</th>
+                                    <th>{{ __('shift.description') }}</th>
+                                    <th>{{ __('shift.time_in') }}</th>
+                                    <th>{{ __('shift.time_out') }}</th>
+                                    <th>{{ __('shift.total_checkpoint') }}</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -420,7 +424,7 @@
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <button type="button" class="btn btn-light btn-close-custom"
-                        data-bs-dismiss="modal">Close</button>
+                        data-bs-dismiss="modal">{{ __('shift.close') }}</button>
                 </div>
             </div>
         </div>
@@ -454,7 +458,7 @@
                             </label>
 
                             <input type="text" class="form-control border-0" id="addTitle" name="title"
-                                placeholder="Morning Shift">
+                                placeholder="{{ __('shift.morning_shift') }}">
                         </div>
 
                         <div class="mb-3">
@@ -463,7 +467,7 @@
                             </label>
 
                             <textarea class="form-control border-0" rows="3" id="addDescription" name="description"
-                                placeholder="Description"></textarea>
+                                placeholder="{{ __('shift.description') }}"></textarea>
                         </div>
 
                         <div class="row">
@@ -494,7 +498,7 @@
 
                                 <div class="d-flex gap-2 mb-3">
 
-                                    <input type="text" class="form-control border-0 addCheckpointInput" placeholder="Add checkpoint"
+                                    <input type="text" class="form-control border-0 addCheckpointInput" placeholder="{{ __('shift.add_checkpoint') }}"
                                         readonly>
 
                                     <button type="button" class="btn btn-light px-3 addCheckpointBtn">
@@ -595,7 +599,7 @@
 
                                 <div class="d-flex gap-2 mb-3">
 
-                                    <input type="text" class="form-control border-0 addCheckpointInput" placeholder="Add checkpoint"
+                                    <input type="text" class="form-control border-0 addCheckpointInput" placeholder="{{ __('shift.add_checkpoint') }}"
                                         readonly>
 
                                     <button type="button" class="btn btn-light px-3 addCheckpointBtn">
@@ -638,31 +642,35 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="deleteConfigModalLabel">Delete Shift</h5>
+                    <h5 class="modal-title modal-title-custom" id="deleteConfigModalLabel">{{ __('shift.delete_shift') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-body-custom text-center">
                     <div class="mb-3">
                         <span class="material-symbols-outlined text-warning" style="font-size: 3rem;">warning</span>
                     </div>
-                    <h6 class="mb-3">Are you sure you want to delete this shift?</h6>
+                    <h6 class="mb-3">{{ __('shift.are_you_sure_delete_shift') }}</h6>
                     <div class="mb-3">
-                        <strong id="deleteShiftTitle">Shift Title</strong><br>
-                        <small id="deleteShiftTime" class="text-muted">Time: 09:00 - 17:00</small>
+                        <strong id="deleteShiftTitle">{{ __('shift.title') }}</strong><br>
+                        <small id="deleteShiftTime" class="text-muted">{{ __('shift.time') }}: 09:00 - 17:00</small>
                     </div>
-                    <p class="text-muted small">This action cannot be undone. The shift will be soft deleted.</p>
+                    <p class="text-muted small">{{ __('shift.soft_deleted') }}</p>
                     <input type="hidden" id="deleteConfigShiftId" name="shift_id">
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('shift.cancel') }}</button>
                     <button type="button" class="btn submit-employee-btn"
-                        id="confirmDeleteShiftConfigBtn">Delete</button>
+                        id="confirmDeleteShiftConfigBtn">{{ __('shift.delete') }}</button>
                 </div>
             </div>
         </div>
     </div>
 
     <x-slot name="script_slot">
+        <script>
+            window.shiftTranslations = @json(__('shift'));
+            window.shiftLocale = @json(app()->getLocale());
+        </script>
         <script src="{{ asset('asset/js/shift.js?v=' . time()) }}"></script>
     </x-slot>
 </x-office-layout>

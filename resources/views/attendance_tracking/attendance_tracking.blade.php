@@ -1,9 +1,9 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('attendance_tracking') }}
+        {{ 'attendance_tracking' }}
     </x-slot>
     <x-slot name="head_stitle_slot">
-        {{ __('Attendance Tracking') }}
+        {{ __('attendance_tracking.title') }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/attendance_tracking.css')}}?v{{ time()}}" rel="stylesheet">
@@ -12,15 +12,17 @@
     <div class="title-content">
         <div class="row">
             <div class="col-12 col-md-9">
-                <h2 class="text-title-content mb-3" >Attendance Tracking</h2>
+                <h2 class="text-title-content mb-3">{{ __('attendance_tracking.title') }}</h2>
             </div>
             <div class="col-12 col-md-3">
                 <div class="d-flex gap-2 justify-content-end align-items-center">
                     <div>
-                        <input type="text" class="input-search-query w-100">
+                        <input type="text" class="input-search-query w-100"
+                            placeholder="{{ __('attendance_tracking.search_employee') }}">
                     </div>
                     <div>
-                        <button class="btn btn-default" type="button" id="btn-download-xlsx">
+                        <button class="btn btn-default" type="button" id="btn-download-xlsx"
+                            title="{{ __('attendance_tracking.download_excel') }}">
                             <span class="material-symbols-outlined icon download" type="button">download</span>
                         </button>
                     </div>
@@ -47,7 +49,7 @@
                                     <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         
                                         <div class="d-inline-flex align-items-center">
-                                            <span class="calendar-month">{{ date('F') }}</span>
+                                            <span class="calendar-month">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                             <span class="calendar-year">{{ date('Y') }}</span>
                                         </div>
 
@@ -55,7 +57,11 @@
 
                                     <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
                                         @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
-                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14">
+                                                <div class="dropdown-item fs-14">
+                                                    {{ \Carbon\Carbon::create()->month($monthNum)->locale(app()->getLocale())->translatedFormat('F') }}
+                                                </div>
+                                            </li>
                                         @endfor
                                         
                                     </ul>
@@ -72,26 +78,23 @@
                         </div>
                     </div>
 
-                    <div class="box-data">
+<div class="box-data">
                         <div class="table-container">
-                            <table class="table-attendance">
+                            <table class="table-attendance" id="attendance-tracking-table">
                                 <thead>
                                     <tr>
-                                        <th>Employee</th>
+                                        <th>{{ __('attendance_tracking.employee') }}</th>
                                         @for ($i = 1; $i <= 31 ; $i++)
                                             <th class="col-day" data-day="{{ $i }}">
                                                 <div class="calendar-week-short"></div>
                                                 <div>{{ $i }}</div>
-                                                <div class="calendar-month-short">{{ date('M') }}</div>
+                                                <div class="calendar-month-short">{{ now()->locale(app()->getLocale())->translatedFormat('M') }}</div>
                                             </th>
                                         @endfor
                                     </tr>
                                 </thead>
-                                <tbody>
-
+                                <tbody id="attendance-tracking-tbody">
                                     @foreach ($employee as $itemEmployee)
-                                            
-                                        
                                         <tr class="employee-row" data-employee-name="{{ $itemEmployee->name }}" data-employee-photo="{{ asset($itemEmployee->photo) }}"  data-employee-id="{{ $itemEmployee->id }}" data-weekday-off="{{ $itemEmployee->weekday_off }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
                                             <td>
                                                 <div class="box-employee">
@@ -129,12 +132,13 @@
                                                 </td>
                                             @endfor
                                         </tr>
-
                                     @endforeach
-                                    <!-- Contoh data (lebih banyak data bisa ditambahkan untuk melihat efek sticky) -->
-                                    
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 px-3 pb-3 flex-wrap gap-2">
+                            <div class="pagination-summary" id="trackingPaginationInfo"></div>
+                            <div class="pagination-controls" id="trackingPagination"></div>
                         </div>
                     </div>
 
@@ -164,7 +168,7 @@
                         
 
                             <div class="text-center">
-                                    <span class="fw-light fs-24">Attendance</span>
+                                    <span class="fw-light fs-24">{{ __('attendance_tracking.attendance') }}</span>
                             </div>
                             <div class="mb-4 text-center">
                                 <span class="fw-normal fs-14 text-secondary attendance-date"></span>
@@ -173,7 +177,7 @@
                             <div class="mb-3 pb-2 border-bottom border-3">
                                 <div class="d-flex mb-2 justify-content-between align-items-center w-100">
                                     <div>
-                                        <div class="fs-14 text-secondary fw-normal">Employee</div>
+                                        <div class="fs-14 text-secondary fw-normal">{{ __('attendance_tracking.employee') }}</div>
                                     </div>
                                     <div>
                                         <div class="employee-name fw-medium fs-14"></div>
@@ -183,7 +187,7 @@
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between align-items-center w-100">
                                         <div>
-                                            <div class="fs-14 text-secondary fw-normal">Shift</div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('attendance_tracking.shift') }}</div>
                                         </div>
                                         <div>
                                             <div class="employee-shift fs-14 fw-normal"></div>
@@ -194,7 +198,7 @@
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between align-items-center w-100">
                                         <div>
-                                            <div class="fs-14 text-secondary fw-normal">Status</div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('attendance_tracking.status') }}</div>
                                         </div>
                                         <div>
                                             <div class="attendance-status  fs-14 fw-normal"></div>
@@ -210,7 +214,7 @@
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between align-items-center w-100">
                                         <div>
-                                            <div class="fs-14 text-secondary fw-normal">Late</div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('attendance_tracking.late') }}</div>
                                         </div>
                                         <div>
                                             <div class="attendance-late  fs-14 fw-normal"></div>
@@ -221,7 +225,7 @@
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between align-items-center w-100">
                                         <div>
-                                            <div class="fs-14 text-secondary fw-normal">Check In</div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('attendance_tracking.check_in') }}</div>
                                         </div>
                                         <div>
                                             <div class="attendance-checkin  fs-14 fw-normal"></div>
@@ -232,7 +236,7 @@
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between align-items-center w-100">
                                         <div>
-                                            <div class="fs-14 text-secondary fw-normal">Check Out</div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('attendance_tracking.check_out') }}</div>
                                         </div>
                                         <div>
                                             <div class="attendance-checkout  fs-14 fw-normal"></div>
@@ -243,7 +247,7 @@
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between align-items-center w-100">
                                         <div>
-                                            <div class="fs-14 text-secondary fw-normal">Work Duration</div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('attendance_tracking.work_duration') }}</div>
                                         </div>
                                         <div>
                                             <div class="attendance-work-duration  fs-14 fw-normal">00 : 00</div>
@@ -256,7 +260,7 @@
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between gap-3 align-items-center w-100">
                                         <div>
-                                            <div class="fs-14 text-secondary fw-normal">Note</div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('attendance_tracking.note') }}</div>
                                         </div>
                                         <div>
                                             <div class="attendance-note  fs-14 fw-normal">-</div>
@@ -273,10 +277,10 @@
                             <div class="mt-5">
                                 <div class="row">
                                     <div class="col-6">
-                                        <div class="btn btn-default-modal border-0 w-100 p-2" data-bs-dismiss="modal">Close</div>
+                                        <div class="btn btn-default-modal border-0 w-100 p-2" data-bs-dismiss="modal">{{ __('attendance_tracking.close') }}</div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-edit-attendance">Edit</div>
+                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-edit-attendance">{{ __('attendance_tracking.edit') }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -285,7 +289,7 @@
                                 <div class="box-loader rounded-20" >
                                     <div class="text-center">
                                         <div class="spinner-border text-secondary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
+                                            <span class="visually-hidden">{{ __('attendance_tracking.loading') }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -313,7 +317,7 @@
                         
 
                             <div class="text-center">
-                                    <span class="fw-light fs-24">Attendance</span>
+                                    <span class="fw-light fs-24">{{ __('attendance_tracking.attendance') }}</span>
                             </div>
                             <div class="mb-4 text-center">
                                 <span class="fw-normal fs-14 text-secondary attendance-date"></span>
@@ -323,7 +327,7 @@
 
                                 <div class="d-flex mb-2 justify-content-between align-items-center w-100">
                                     <div>
-                                        <div class="fs-14 text-secondary fw-normal">Employee</div>
+                                        <div class="fs-14 text-secondary fw-normal">{{ __('attendance_tracking.employee') }}</div>
                                     </div>
                                     <div>
                                         <div class="employee-name fw-medium fs-14"></div>
@@ -333,7 +337,7 @@
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between align-items-center w-100">
                                         <div>
-                                            <div class="fs-14 text-secondary fw-normal">Shift</div>
+                                            <div class="fs-14 text-secondary fw-normal">{{ __('attendance_tracking.shift') }}</div>
                                         </div>
                                         <div>
                                             <div class="employee-shift fs-14 fw-normal"></div>
@@ -348,13 +352,13 @@
                                 <div class="row">
                                     <div class="col-6">
                                         <label for="attendance_status" class="fs-14 text-secondary fw-normal">
-                                            Status
+                                            {{ __('attendance_tracking.status') }}
                                         </label>
                                     </div>
                                     <div class="col-6">
                                         <select class="form-select border-0 fs-14" name="attendance_status" id="attendance_status">
-                                            <option value="PRESENT">Present</option>
-                                            <option value="ABSENT">Absent</option>
+                                            <option value="PRESENT">{{ __('attendance_tracking.present') }}</option>
+                                            <option value="ABSENT">{{ __('attendance_tracking.absent') }}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -368,7 +372,7 @@
                                     <div class="row">
                                         <div class="col-6">
                                             <label for="attendance_time_in" class="fs-14 text-secondary fw-normal">
-                                                Check In
+                                                {{ __('attendance_tracking.check_in') }}
                                             </label>
                                         </div>
                                         <div class="col-6">
@@ -383,7 +387,7 @@
                                     <div class="row">
                                         <div class="col-6">
                                             <label for="attendance_time_out" class="fs-14 text-secondary fw-normal">
-                                                Check Out
+                                                {{ __('attendance_tracking.check_out') }}
                                             </label>
                                         </div>
                                         <div class="col-6">
@@ -398,7 +402,7 @@
                                     <div class="row">
                                         <div class="col-12  col-md-6">
                                             <label for="attendance_note" class="fs-14 text-secondary fw-normal">
-                                                Note
+                                                {{ __('attendance_tracking.note') }}
                                             </label>
                                         </div>
                                         <div class="col-12  col-md-6">
@@ -414,10 +418,10 @@
                             <div class="mt-5">
                                 <div class="row">
                                     <div class="col-6">
-                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">Cancel</div>
+                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">{{ __('attendance_tracking.cancel') }}</div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-submit-attendance">Submit</div>
+                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-submit-attendance">{{ __('attendance_tracking.submit') }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -430,9 +434,9 @@
                             <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                                 <div>
                                     <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
-                                        <span class="visually-hidden">Loading...</span>
+                                        <span class="visually-hidden">{{ __('attendance_tracking.loading') }}</span>
                                     </div>
-                                    <div class="fs-14">Loading...</div>
+                                    <div class="fs-14">{{ __('attendance_tracking.loading') }}</div>
                                 </div>
                                 
                             </div>
@@ -455,7 +459,7 @@
                         <div class="mt-5">
                             <div class="row">
                                 <div class="col-12">
-                                    <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-leave">Close</div>
+                                    <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-leave">{{ __('attendance_tracking.close') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -467,9 +471,9 @@
                             <div class="w-100 h-100 d-flex justify-content-center align-items-center">
                                 <div>
                                     <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
-                                        <span class="visually-hidden">Loading...</span>
+                                        <span class="visually-hidden">{{ __('attendance_tracking.loading') }}</span>
                                     </div>
-                                    <div class="fs-14">Loading...</div>
+                                    <div class="fs-14">{{ __('attendance_tracking.loading') }}</div>
                                 </div>
                                 
                             </div>
@@ -486,6 +490,18 @@
 
     <x-slot name="script_slot"> 
         <script src="{{ asset('asset/js/date_helper.js')}}?v={{ time() }}"></script>
+        @php
+            $attendanceTrackingI18n = [
+                'locale' => str_starts_with(app()->getLocale(), 'id')
+                    ? 'id-ID'
+                    : 'en-US',
+                'text' => trans('attendance_tracking.js'),
+            ];
+        @endphp
+
+        <script>
+            window.attendanceTrackingI18n = @js($attendanceTrackingI18n);
+        </script>
         <script src="{{ asset('asset/js/attendance_tracking.js')}}?v={{ time() }}"></script>
     </x-slot>
 

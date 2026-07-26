@@ -37,6 +37,8 @@ class ShiftController extends Controller
         $departmentFilter = $request->input('department', '');
         $divisionFilter = $request->input('division', '');
         $shiftFilter = $request->input('shift', '');
+        $page = max((int) $request->input('page', 1), 1);
+        $perPage = min(max((int) $request->input('per_page', 10), 1), 100);
 
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
@@ -85,9 +87,8 @@ class ShiftController extends Controller
             });
 
 
-        if (in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'CEO', 'HR_MANAGER'])) {
-        } else {
-            $query->where('employees.department_id', $currentEmployee->department_id);
+        if ($userType !== 'SUPERADMIN') {
+            $query->where('employees.department_id', $currentEmployee?->department_id ?? 0);
         }
 
         $query->where('employees.status', 'active')
@@ -141,7 +142,14 @@ class ShiftController extends Controller
             });
         }
 
+        $employeePaginator = (clone $query)
+            ->reorder('employees.name')
+            ->select('employees.id', 'employees.name')
+            ->distinct()
+            ->paginate($perPage, ['*'], 'page', $page);
+
         $employees = $query
+            ->whereIn('employees.id', $employeePaginator->getCollection()->pluck('id'))
             ->orderBy('employees.name')
             ->orderBy('employee_shifts.date_shift', 'asc')
             ->get()
@@ -189,7 +197,15 @@ class ShiftController extends Controller
             'success' => true,
             'data' => $employeeData,
             'month' => (int) $month,
-            'year' => (int) $year
+            'year' => (int) $year,
+            'pagination' => [
+                'current_page' => $employeePaginator->currentPage(),
+                'last_page' => $employeePaginator->lastPage(),
+                'per_page' => $employeePaginator->perPage(),
+                'total' => $employeePaginator->total(),
+                'from' => $employeePaginator->firstItem(),
+                'to' => $employeePaginator->lastItem(),
+            ],
         ]);
     }
 

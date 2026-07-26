@@ -50,9 +50,10 @@ public function index(Request $request)
     $departmentsQuery->where('status', '!=', 'DELETED');
     }
 
-    if (in_array($userType, ['SUPERADMIN','ADMINISTRATOR']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
-        //show all
-    }else{
+    if ($userType !== 'SUPERADMIN') {
+        if (!$currentEmployee?->department_id) {
+            return response()->json(['data' => []]);
+        }
         $departmentsQuery->where('id', $currentEmployee->department_id);
     }
     
@@ -248,7 +249,14 @@ public function index(Request $request)
     public function getDepartmentsForProjects(Request $request)
     {
         try {
+            $user = auth()->user();
+            $currentEmployee = $user?->employee;
+
             $departments = Department::where('status', 'ACTIVE')
+                ->when(
+                    strtoupper((string) ($user?->user_type ?? '')) !== 'SUPERADMIN',
+                    fn ($query) => $query->where('id', $currentEmployee?->department_id ?? 0)
+                )
                 ->orderBy('name_department')
                 ->get(['id', 'name_department', 'description']);
 
