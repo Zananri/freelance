@@ -256,10 +256,14 @@
                         ) {
                             $accessManagementTHD = true;
                         }
+
+                        $hasOperationalAccess =
+                            $accessManagementTHD ||
+                            in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR', 'ADMIN']);
                     @endphp
 
                     @if (
-                        $accessManagementTHD ||
+                        $hasOperationalAccess ||
                             (in_array(Auth::user()->user_type, ['REGULAR']) &&
                                 in_array(Auth::user()->user_role, ['EMPLOYEE', 'PERSONAL_ASSISTANT'])))
                         <li>
@@ -318,10 +322,7 @@
                     </li>
 
 
-                    @if (
-                        $accessManagementTHD ||
-                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
-                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'HR_MANAGER'])))
+                    @if ($hasOperationalAccess)
                         <li>
                             <a href="{{ route('monitoring') }}"
                                 class="{{ $menu_active == 'monitoring' ? 'active' : '' }}">
@@ -330,10 +331,7 @@
                             </a>
                         </li>
                     @endif
-                    @if (
-                        $accessManagementTHD ||
-                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
-                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'HR_MANAGER'])))
+                    @if ($hasOperationalAccess)
                         <li>
                             <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">
                                 <span class="material-symbols-outlined">schedule</span>
@@ -349,10 +347,7 @@
                         </li>
                     @endif
 
-                    @if (
-                        $accessManagementTHD ||
-                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
-                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'HR_MANAGER'])))
+                    @if ($hasOperationalAccess)
                         <li>
                             <a href="{{ route('employee') }}"
                                 class="{{ $menu_active == 'employee' ? 'active' : '' }}  menu-employee ">
@@ -364,10 +359,7 @@
                     @endif
 
 
-                    @if (
-                        $accessManagementTHD ||
-                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
-                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'HR_MANAGER'])))
+                    @if ($hasOperationalAccess)
                         <li>
                             <a href="{{ route('salary_payslip') }}"
                                 class="{{ $menu_active == 'salary_payslip' ? 'active' : '' }}  menu-salary-payslip ">
@@ -378,10 +370,7 @@
                         </li>
                     @endif
 
-                    @if (
-                        $accessManagementTHD ||
-                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
-                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'HR_MANAGER'])))
+                    @if ($hasOperationalAccess)
                         <li>
                             <a href="{{ route('recruitment') }}"
                                 class="{{ $menu_active == 'recruitment' ? 'active' : '' }}">
@@ -391,10 +380,7 @@
                         </li>
                     @endif
 
-                    @if (
-                        $accessManagementTHD ||
-                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
-                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'GENERAL_MANAGER', 'HR_MANAGER'])))
+                    @if ($hasOperationalAccess)
                         <li>
                             <a href="{{ route('attendance_tracking') }}"
                                 class="{{ $menu_active == 'attendance_tracking' ? 'active' : '' }}">
@@ -404,10 +390,7 @@
                         </li>
                     @endif
 
-                    @if (
-                        $accessManagementTHD ||
-                            (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']) &&
-                                in_array(Auth::user()->user_role, ['ADMINISTRATOR', 'HR_MANAGER'])))
+                    @if ($hasOperationalAccess)
                         <li>
                             <a href="{{ route('leave') }}"
                                 class="{{ $menu_active == 'leave' ? 'active' : '' }} menu-leave">
@@ -616,7 +599,7 @@
     <script src="{{ asset('asset/js/app.js?v=' . time()) }}"></script>
     <script src="{{ asset('asset/js/office.js?v=' . time()) }}"></script>
 
-    @if (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR']))
+    @if (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR', 'ADMIN']))
         <script src="{{ asset('asset/js/hr_info.js') }}?v={{ time() }}"></script>
     @endif
 
@@ -632,7 +615,7 @@
                 'select[name="business_department_id"]'
             ].join(',');
 
-            if (userType !== 'ADMINISTRATOR' || !departmentId) {
+            if (!['ADMIN', 'ADMINISTRATOR'].includes(userType) || !departmentId) {
                 return;
             }
 

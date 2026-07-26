@@ -21,7 +21,7 @@ class Management
         }
 
         if (
-            $user->user_type === 'ADMINISTRATOR' &&
+            in_array($user->user_type, ['ADMIN', 'ADMINISTRATOR'], true) &&
             in_array($user->user_role, [
                 'CEO',
                 'GENERAL_MANAGER',

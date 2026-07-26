@@ -25,7 +25,7 @@ class MonitoringController extends Controller
         $currentEmployee = Employee::where('user_id', $user->id)->first();
         $userType = strtoupper((string) ($user->user_type ?? ''));
 
-        if (!in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR'])) {
+        if (!in_array($userType, ['SUPERADMIN', 'ADMINISTRATOR', 'ADMIN'])) {
             abort(403);
         }
 

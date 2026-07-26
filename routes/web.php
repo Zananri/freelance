@@ -270,9 +270,11 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/attendance_tracking/export-attendance-monthly/attendance_{year}_{month}.xlsx', [AttendanceTrackingController::class, 'exportAttendanceMonthly'])->name('attendance_tracking.exportAttendanceMonthly');
     Route::post('/attendance_tracking/edit-employee-attendance', [AttendanceTrackingController::class, 'editEmployeeAttendance'])->name('attendance_tracking.editEmployeeAttendance');
 
-    Route::get('/settings', [SettingsController::class, 'showSettingsPage'])->name('settings');
-    Route::get('/settings/get-all-User', [SettingsController::class, 'getAllUser'])->name('settings.getAllUser');
-    Route::post('/settings/edit-user-role', [SettingsController::class, 'editUserRole'])->name('settings.editUserRole');
+    Route::middleware('superadmin')->group(function () {
+        Route::get('/settings', [SettingsController::class, 'showSettingsPage'])->name('settings');
+        Route::get('/settings/get-all-User', [SettingsController::class, 'getAllUser'])->name('settings.getAllUser');
+        Route::post('/settings/edit-user-role', [SettingsController::class, 'editUserRole'])->name('settings.editUserRole');
+    });
 
     Route::get('/leave', [LeaveController::class, 'showLeavePage'])->name('leave');
     Route::POST('/leave/edit-employee-leave-by-year', [LeaveController::class, 'editEmployeeLeaveByYear'])->name('leave.editEmployeeLeaveByYear');

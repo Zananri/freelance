@@ -212,7 +212,7 @@ class OfficeBasicSeeder extends Seeder
 
                 $adminEmail = "admin.{$slug}@gmail.com";
                 $legacyAdminEmail = "admin.{$slug}@office.local";
-                $adminPassword = "admin_{$slug}_2026";
+                $adminPassword = "adminsgs_2026";
                 $adminPhone = '0812345' . str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT);
 
                 $deptAdminUser = User::whereIn('email', [$adminEmail, $legacyAdminEmail])->first() ?? new User();
