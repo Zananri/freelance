@@ -4,11 +4,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Office ACER</title>
+    <title>Login Office</title>
 
-    <meta name="description" content="Login Office ACER">
-    <meta name="keywords" content="acer, ACER">
-    <meta name="author" content="acer.id">
+    <meta name="description" content="Login Office">
+    <meta name="keywords" content="sgs, SGS">
+    <meta name="author" content="sgs.id">
     <meta name="robots" content="index, nofollow"> 
     <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
     <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
