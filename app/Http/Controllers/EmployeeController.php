@@ -1280,7 +1280,7 @@ class EmployeeController extends Controller
     }
 
 
-    public function exportEmployeeActive()
+    private function exportEmployeeActiveLegacy()
     {
 
 
@@ -1527,6 +1527,150 @@ class EmployeeController extends Controller
 
         $writer = new Xlsx($spreadsheet);
         $writer->save($tempFileName);
+
+        return response()->download($tempFileName, $fileName)->deleteFileAfterSend(true);
+    }
+
+    public function exportEmployeeActive()
+    {
+        $user = auth()->user();
+        $currentEmployee = Employee::where('user_id', $user->id)->first();
+        $userType = strtoupper(trim((string) ($user->user_type ?? '')));
+
+        $employees = Employee::with(['department', 'partner', 'division', 'job'])
+            ->join('users', 'employees.user_id', '=', 'users.id')
+            ->select('employees.*')
+            ->where('employees.status', 'ACTIVE')
+            ->whereNotIn(DB::raw("UPPER(TRIM(COALESCE(users.user_type, '')))"), ['ADMIN', 'ADMINISTRATOR', 'SUPERADMIN'])
+            ->whereNotIn(DB::raw("UPPER(TRIM(COALESCE(users.user_role, '')))"), ['ADMIN', 'ADMINISTRATOR', 'SUPERADMIN', 'GENERAL_MANAGER', 'CEO']);
+
+        if ($userType !== 'SUPERADMIN') {
+            if (!$currentEmployee || $currentEmployee->department_id == 1) {
+                return redirect('/employee');
+            }
+
+            $employees->where('employees.department_id', $currentEmployee->department_id);
+        }
+
+        $employees = $employees
+            ->orderBy('employees.department_id')
+            ->orderBy('employees.name')
+            ->get();
+
+        $salaries = EmployeeSalary::whereIn('employee_id', $employees->pluck('id'))
+            ->get()
+            ->keyBy('employee_id');
+
+        $headers = [
+            'ID_KARYAWAN',
+            'NAMA',
+            'EMAIL',
+            'EMAIL_KERJA',
+            'NO_HP',
+            'WILAYAH',
+            'PARTNER',
+            'SITE',
+            'POSISI',
+            'STATUS',
+            'TANGGAL_LAHIR',
+            'TANGGAL_DITERIMA',
+            'TANGGAL_KONTRAK_BERAKHIR',
+            'HARI_LIBUR',
+            'GAJI_POKOK',
+            'TUNJ_POSISI',
+            'TUNJ_PENSIUN',
+            'TUNJ_BPJS_TK',
+            'TUNJ_BPJS',
+            'NO_BPJS',
+            'NO_BPJSTK',
+            'ALAMAT',
+            'CV',
+            'PKWT',
+            'PAS_FOTO',
+            'KTP',
+        ];
+
+        $spreadsheet = new Spreadsheet();
+        $lastColumn = Coordinate::stringFromColumnIndex(count($headers));
+        $groups = $employees->groupBy(fn (Employee $employee) => (string) ($employee->department->name_department ?? 'EMPLOYEE'));
+
+        if ($groups->isEmpty()) {
+            $groups = collect(['EMPLOYEE' => collect()]);
+        }
+
+        foreach ($groups as $departmentName => $departmentEmployees) {
+            $worksheet = $spreadsheet->getSheetCount() === 1 && $spreadsheet->getActiveSheet()->getCell('A1')->getValue() === null
+                ? $spreadsheet->getActiveSheet()
+                : $spreadsheet->createSheet();
+            $sheetTitle = mb_substr(preg_replace('/[\\\\\\/\\?\\*\\[\\]:]/', ' ', $departmentName), 0, 31);
+            $worksheet->setTitle($sheetTitle ?: 'EMPLOYEE');
+            $worksheet->fromArray($headers, null, 'A1');
+            $worksheet->getStyle("A1:{$lastColumn}1")->applyFromArray([
+                'font' => [
+                    'bold' => true,
+                    'color' => ['rgb' => 'FFFFFF'],
+                ],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => '4472C4'],
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                    ],
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER,
+                    'wrapText' => true,
+                ],
+            ]);
+            $worksheet->freezePane('A2');
+            $worksheet->setAutoFilter("A1:{$lastColumn}1");
+
+            $row = 2;
+            foreach ($departmentEmployees as $employee) {
+                $salary = $salaries->get($employee->id);
+                $worksheet->fromArray([
+                    $employee->employee_niks,
+                    $employee->name,
+                    $employee->email,
+                    $employee->email_work,
+                    $employee->phone,
+                    $employee->region,
+                    $employee->partner->partner_name ?? null,
+                    $employee->division->name_division ?? null,
+                    $employee->job->job_name ?? null,
+                    $employee->status,
+                    $employee->birth_date ? Carbon::parse($employee->birth_date)->format('Y-m-d') : null,
+                    $employee->hire_date ? Carbon::parse($employee->hire_date)->format('Y-m-d') : null,
+                    $employee->contract_end_date ? Carbon::parse($employee->contract_end_date)->format('Y-m-d') : null,
+                    $employee->weekday_off,
+                    $employee->basic_salary ?? $salary?->basic_salary ?? 0,
+                    $employee->positional_allowance ?? $salary?->positional_allowance ?? 0,
+                    $employee->pension_allowance ?? $salary?->pension_allowance ?? 0,
+                    $employee->bpjs_tenaga_kerja_allowance ?? $salary?->bpjs_tenaga_kerja_allowance ?? 0,
+                    $employee->bpjs_allowance ?? $salary?->bpjs_allowance ?? 0,
+                    $employee->no_bpjs,
+                    $employee->no_bpjstk,
+                    $employee->address,
+                    $employee->cv,
+                    $employee->pkwt,
+                    $employee->photo,
+                    $employee->ktp,
+                ], null, "A{$row}");
+                $row++;
+            }
+
+            foreach (range(1, count($headers)) as $columnIndex) {
+                $worksheet->getColumnDimension(Coordinate::stringFromColumnIndex($columnIndex))->setAutoSize(true);
+            }
+        }
+
+        $spreadsheet->setActiveSheetIndex(0);
+        $fileName = 'employee_export_' . now()->format('Ymd_His') . '.xlsx';
+        $tempFileName = tempnam(sys_get_temp_dir(), 'employee_export_');
+        (new Xlsx($spreadsheet))->save($tempFileName);
 
         return response()->download($tempFileName, $fileName)->deleteFileAfterSend(true);
     }
