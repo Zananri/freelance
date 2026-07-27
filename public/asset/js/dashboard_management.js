@@ -132,6 +132,16 @@ function buildMarkerTooltip(employee, checkin) {
                 ? "#28a745"
                 : "#f39c12";
     const statusText = pointTypeLabel(checkin.type, checkin.source_type, checkin.is_live);
+    const isLive = checkin.is_live || checkin.source_type === "live";
+
+    if (isLive || !checkin.image_url) {
+        return '<div style="display:flex;align-items:center;min-width:150px;padding:7px 10px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
+            '<div style="min-width:0;">' +
+                '<div style="font-size:8px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.name || "-") + '</div>' +
+                '<div style="font-size:8px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.partner_name || "-") + '</div>' +
+            '</div>' +
+        '</div>';
+    }
 
     if (checkin.image_url) {
         return '<div style="display:flex;align-items:center;gap:8px;min-width:190px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
@@ -143,13 +153,7 @@ function buildMarkerTooltip(employee, checkin) {
             '</div>';
     }
 
-    return '<div style="display:flex;align-items:center;gap:8px;min-width:170px;padding:7px 9px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
-        '<div style="width:20px;height:20px;aspect-ratio:1/1;border-radius:8px;background:#edf1ff;display:flex;align-items:center;justify-content:center;color:#4e5a75;font-size:10px;font-weight:700;">No Photo</div>' +
-        '<div style="min-width:0;">' +
-            '<div style="font-size:8px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.name || "-") + '</div>' +
-            '<div style="font-size:8px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(employee.partner_name || "-") + '</div>' +
-        '</div>' +
-    '</div>';
+    return "";
 }
 
 function createPointLabelIcon(employee, checkin) {
@@ -620,7 +624,7 @@ function renderWidgetSecurityZone(filteredPoints, employeeMap) {
     });
 }
 
-function renderWidgetMonitoringMap(employees, checkins) {
+function renderWidgetMonitoringMap(employees, checkins, shouldFitMap) {
     if (!widgetMonitoringMap || !widgetMarkerLayer) {
         return;
     }
@@ -666,14 +670,14 @@ function renderWidgetMonitoringMap(employees, checkins) {
 
     renderWidgetSecurityZone(checkins || [], employeeById);
 
-    if (bounds.length) {
+    if (shouldFitMap && bounds.length) {
         widgetMonitoringMap.fitBounds(bounds, {
             padding: [30, 30],
             maxZoom: 14,
         });
-    } else if (widgetUserLocation) {
+    } else if (shouldFitMap && widgetUserLocation) {
         widgetMonitoringMap.setView(widgetUserLocation, 13);
-    } else {
+    } else if (shouldFitMap) {
         widgetMonitoringMap.setView(widgetDefaultCenter, 5);
     }
 
@@ -682,7 +686,7 @@ function renderWidgetMonitoringMap(employees, checkins) {
     }, 200);
 }
 
-function loadDashboardMonitoringWidget() {
+function loadDashboardMonitoringWidget(shouldFitMap = false) {
     if (widgetMonitoringRequestInFlight) {
         return;
     }
@@ -713,7 +717,7 @@ function loadDashboardMonitoringWidget() {
             const employees = (response.data && response.data.employees) || [];
             const checkins = (response.data && (response.data.points || response.data.checkins)) || [];
             buildDepartmentColorMap(employees);
-            renderWidgetMonitoringMap(employees, checkins);
+            renderWidgetMonitoringMap(employees, checkins, shouldFitMap);
             renderMonitoringLegend(employees);
             widgetMonitoringRequestInFlight = false;
         },
@@ -730,7 +734,7 @@ function startWidgetMonitoringPolling() {
     }
 
     widgetMonitoringPollingTimer = setInterval(function () {
-        loadDashboardMonitoringWidget();
+        loadDashboardMonitoringWidget(false);
     }, 10000);
 }
 
@@ -761,7 +765,7 @@ $(document).on("change", "#widgetDepartmentFilter", function () {
         $employeeFilter.find('option:not([value="all"])').remove();
     }
 
-    loadDashboardMonitoringWidget();
+    loadDashboardMonitoringWidget(true);
 });
 
 $(document).on("change", "#widgetDivisionFilter", function () {
@@ -774,7 +778,7 @@ $(document).on("change", "#widgetDivisionFilter", function () {
 
     if (divisionId === "all") {
         $employeeFilter.val("all").prop("disabled", true);
-        loadDashboardMonitoringWidget();
+        loadDashboardMonitoringWidget(true);
         return;
     }
 
@@ -803,11 +807,11 @@ $(document).on("change", "#widgetDivisionFilter", function () {
         },
     });
 
-    loadDashboardMonitoringWidget();
+    loadDashboardMonitoringWidget(true);
 });
 
 $(document).on("change", "#widgetEmployeeFilter", function () {
-    loadDashboardMonitoringWidget();
+    loadDashboardMonitoringWidget(true);
 });
 
 function applyAdminFilterScope() {
@@ -1090,7 +1094,7 @@ $(document).on("click", "#widgetDocumentPagination .widget-doc-page-btn", functi
 
 initWidgetMonitoringMap();
 applyAdminFilterScope();
-loadDashboardMonitoringWidget();
+loadDashboardMonitoringWidget(true);
 
 if ($("#widgetDocumentGrid").length) {
     loadDashboardDocumentWidget("", null);

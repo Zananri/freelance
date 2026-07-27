@@ -15,6 +15,7 @@ $(function () {
     var monitoringDataUrl = $wrapper.data("monitoring-url") || "";
     var pollingTimer = null;
     var isFetching = false;
+    var shouldFitOnNextData = true;
 
     var userType = "";
     var departments = [];
@@ -571,6 +572,22 @@ $(function () {
                   ? "#28a745"
                   : "#f39c12";
         var statusText = pointTypeLabel(point);
+        var isLive = point.is_live || point.source_type === "live";
+
+        if (isLive || !point.image_url) {
+            return (
+                '<div style="display:flex;align-items:center;min-width:150px;padding:7px 10px;border-radius:10px;background:#ffffff;box-shadow:0 8px 18px rgba(0,0,0,.2);">' +
+                    '<div style="min-width:0;">' +
+                        '<div style="font-size:10px;font-weight:700;color:#213047;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+                            escapeHtml(employee.name || "-") +
+                        "</div>" +
+                        '<div style="font-size:8px;color:#5d6981;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+                            escapeHtml(employee.partner_name || "-") +
+                        "</div>" +
+                    "</div>" +
+                "</div>"
+            );
+        }
 
         if (point.image_url) {
             return (
@@ -1237,7 +1254,7 @@ $(function () {
         });
     }
 
-    function renderMarkers() {
+    function renderMarkers(shouldFitMap) {
         markerLayer.clearLayers();
         areaLayer.clearLayers();
 
@@ -1330,7 +1347,7 @@ $(function () {
 
         renderSecurityZone(filteredPoints, employeeMap);
 
-        if (bounds.length) {
+        if (shouldFitMap && bounds.length) {
             monitoringMap.fitBounds(bounds, {
                 padding: [35, 35],
                 maxZoom: 16,
@@ -1399,7 +1416,8 @@ $(function () {
 
                 buildDepartmentColorMap(employees);
                 renderSidebar();
-                renderMarkers();
+                renderMarkers(shouldFitOnNextData);
+                shouldFitOnNextData = false;
 
                 setTimeout(function () {
                     monitoringMap.invalidateSize();
@@ -1427,7 +1445,7 @@ $(function () {
 
         handleTopCardSelect(itemId, itemType);
         renderSidebar();
-        renderMarkers();
+        renderMarkers(true);
     });
 
     $bottomList.on("click", ".monitoring-filter-item", function () {
@@ -1436,7 +1454,7 @@ $(function () {
 
         handleBottomCardSelect(itemId, itemType);
         renderSidebar();
-        renderMarkers();
+        renderMarkers(true);
     });
 
     $topSearch.on("input", function () {

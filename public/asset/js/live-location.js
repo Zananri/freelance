@@ -21,6 +21,8 @@
     let statusTimer = null;
     let latestPosition = null;
     let requestInFlight = false;
+    let lastError = null;
+    let employeeId = null;
 
     async function requestJson(url, options) {
         const response = await fetch(url, {
@@ -74,7 +76,18 @@
                 },
                 body: data.toString(),
             });
+            lastError = null;
+            window.dispatchEvent(
+                new CustomEvent("hris:live-location-sent", {
+                    detail: {
+                        employeeId: employeeId,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    },
+                }),
+            );
         } catch (error) {
+            lastError = error.message;
             if (error.status === 401 || error.status === 403) {
                 stop();
             } else {
@@ -147,12 +160,18 @@
     async function refreshStatus() {
         try {
             const payload = await requestJson(appUrl + "/location/status");
+            employeeId = payload.employee_id || null;
             if (payload.tracking) {
+                lastError = null;
                 start();
             } else {
+                lastError =
+                    payload.reason || "Akun tidak terhubung ke employee";
                 stop();
+                console.warn("Live location tidak aktif:", lastError);
             }
         } catch (error) {
+            lastError = error.message;
             if (error.status === 401) {
                 stop();
             }
@@ -185,6 +204,15 @@
         refreshStatus: refreshStatus,
         isRunning: function () {
             return trackingEnabled;
+        },
+        getState: function () {
+            return {
+                running: trackingEnabled,
+                employeeId: employeeId,
+                hasPosition: latestPosition !== null,
+                requestInFlight: requestInFlight,
+                lastError: lastError,
+            };
         },
     };
 
