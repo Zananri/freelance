@@ -26,9 +26,27 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="user-type" content="{{ Auth::user()->user_type }}">
     <meta name="user-department-id" content="{{ Auth::user()->employee?->department_id }}">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="SGS HRIS">
 
     <script src="{{ asset('asset/js/office_nav.js?v=' . time()) }}"></script>
-
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker
+                    .register("/sw.js", {
+                        scope: "/"
+                    })
+                    .catch(function (error) {
+                        console.error("Service worker gagal:", error);
+                    });
+            });
+        }
+    </script>
+    
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <link rel="apple-touch-icon" href="{{ asset('asset/img/pwa/icon-192.png') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap"
         rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">

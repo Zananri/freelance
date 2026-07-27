@@ -1,0 +1,26 @@
+{
+    "id": "/",
+    "name": "PT SGS HRIS",
+    "short_name": "SGS HRIS",
+    "description": "Human Resource Information System PT SGS",
+    "lang": "id",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#0d6efd",
+    "icons": [
+        {
+            "src": "/asset/img/logo/logo.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/asset/img/logo/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        }
+    ]
+}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PT SGS HRIS</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background: #f5f7fb;
+            color: #212529;
+        }
+
+        .offline-card {
+            width: min(90%, 420px);
+            padding: 32px;
+            text-align: center;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        button {
+            padding: 10px 20px;
+            color: #ffffff;
+            background: #0d6efd;
+            border: 0;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-card">
+        <h2>Koneksi Terputus</h2>
+        <p>Periksa koneksi internet, lalu coba kembali.</p>
+        <button onclick="window.location.reload()">Coba Lagi</button>
+    </div>
+</body>
+</html>
