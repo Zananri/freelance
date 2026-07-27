@@ -140,7 +140,6 @@ function htmlDataRequestOvertime(dataRow){
     
     itemHourMinute = `<div class="item-hour-minute">${formatTimeDisplayHm(dataRow.total_overtime)}</div>`;
     
-    //console.log(`${dataRow.date_overtime} ${formatDatePHP('Y-m-d',new Date().toString())}`);
 
     
 
@@ -362,7 +361,6 @@ $captureButton.on('click', function() {
     }, "image/jpeg", 0.9);
     
     stopStream();
-    //console.log('Foto berhasil diambil');
 });
 
 $closeButton.on('click', stopStream);
@@ -480,7 +478,6 @@ $captureButtonStop.on('click', function() {
     }, "image/jpeg", 0.9);
     
     stopStreamStop();
-    //console.log('Foto berhasil diambil');
 });
 
 $closeButtonStop.on('click', stopStreamStop);

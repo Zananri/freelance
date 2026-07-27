@@ -68,7 +68,6 @@ function showAllData()
             $('.col-user-management .loader').fadeIn('fast');
         },
         error:function(res){
-          console.log(res);
           $('.col-user-management .loader').fadeOut('fast');
         },
         success: function(response) {

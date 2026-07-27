@@ -647,9 +647,6 @@ function setEditShiftModal(btn) {
                 checkpoints = [];
             }
 
-            console.log(checkpoints);
-            console.log(Array.isArray(checkpoints));
-
             renderTimeline(
                 btn.dataset.start,
                 checkpoints,
@@ -1813,7 +1810,7 @@ function showFloatingAlert(message, type = "success", delayMs = 3000) {
     } catch (_) {}
 
     // Last resort
-    try { alert(String(message || "")); } catch (_) { console.log("ALERT:", message); }
+    try { alert(String(message || "")); } catch (_) {}
 }
 
 $(document).ready(function () {

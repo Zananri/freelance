@@ -92,7 +92,6 @@ async function renderEventCalendar(year, month){
         return getAllEventResponse;
         
         
-        //console.log(data);
     } catch (error) {
         console.error("Error fetching or processing data:", error);
         return 'error-rendering';
@@ -322,10 +321,7 @@ $(document).on('click','.calendar-day',function(){
     let itemEvent = '';
     for (let i = 0; i < ARR_DATA_CALENDAR.length; i++) {
         
-        //console.log(ARR_DATA_CALENDAR[i].date_event + ' '+dateCalendar);
-        
         if(ARR_DATA_CALENDAR[i].date_event == dateCalendar){
-            //console.log(ARR_DATA_CALENDAR[i]);
             itemEvent += htmlItemEvent(ARR_DATA_CALENDAR[i]);
         }
         
@@ -694,7 +690,6 @@ async function processEditEvent() {
     const editEvent = await submitEditEmployeeCalendarEvent();
     const processRender = await renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
 
-    //console.log(processRender);
     if((editEvent.status) == 'success' && processRender){
         let itemEvenId = $('#editEventModal [name="event_id"]').val();
         let employeeId = $('#editEventModal [name="employee_id"]').val();

@@ -192,8 +192,6 @@ function getEmployeeSalaryPayslipData(month,year)
         },
         success: function(response) {
 
-            console.log(response.data);
-            
             DATA_TOTAL_ACTIVE_DAY = response.data.totalActiveDay;
 
             DATA_EMPLOYEE_PAYSLIP = response.data.employeePayslip;

@@ -409,8 +409,6 @@ let shiftCache = {};
 
 // Fungsi untuk mengambil dan menampilkan shift time
 function updateShiftDisplay(employeeId, date, modalType = 'checkin') {
-    console.log('updateShiftDisplay called with:', { employeeId, date, modalType });
-
     if (!employeeId || !date) {
         console.warn('Missing employeeId or date:', { employeeId, date });
         return;
@@ -427,7 +425,6 @@ function updateShiftDisplay(employeeId, date, modalType = 'checkin') {
     const todayStr = new Date().toISOString().split('T')[0];
     const isToday = date === todayStr;
     if (!isToday && shiftCache[cacheKey]) {
-        console.log('Using cached shift data:', shiftCache[cacheKey]);
         shiftDisplay.textContent = shiftCache[cacheKey];
         return;
     }
@@ -436,16 +433,12 @@ function updateShiftDisplay(employeeId, date, modalType = 'checkin') {
 
     // Set loading only if not cached
     shiftDisplay.textContent = 'Loading shift...';
-    console.log('Fetching shift data via shift-details first for consistency');
-
     // Prefer direct shift-details (per-date override or base) for consistent display
     fetchEmployeeShift(employeeId, date, modalType);
 }
 
 // Fungsi alternatif untuk mengambil shift langsung dari EmployeeShift
 function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
-    console.log('fetchEmployeeShift called with:', { employeeId, date, modalType });
-
     const shiftDisplay = document.getElementById(modalType === 'checkin' ? 'shift_time_checkin' : 'shift_time_checkout');
     if (!shiftDisplay) {
         console.warn('Shift display element not found in fetchEmployeeShift');
@@ -458,12 +451,9 @@ function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
         : (date || '').toString();
     const url = `${baseUrl}/attendance/shift-details/${employeeId}/${normDate2}`;
 
-    console.log('Fetching direct shift data from:', url);
-
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            console.log('Direct shift data response:', data);
             if (data.status === 'success' && data.data) {
                 // Use top-level time_start/time_end which may come from base shift
                 const ts = data.data.time_start;
@@ -482,18 +472,15 @@ function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
                     const shiftText = `${startTime} - ${endTime}`;
                     shiftDisplay.textContent = shiftText;
                     shiftCache[cacheKey] = shiftText;
-                    console.log('Direct shift display updated:', shiftText);
                 } else {
                     const shiftText = '-';
                     shiftDisplay.textContent = shiftText;
                     shiftCache[cacheKey] = shiftText;
-                    console.log('No shift times available in API response (per-date or base)');
                 }
             } else {
                 const shiftText = '-';
                 shiftDisplay.textContent = shiftText;
                 shiftCache[cacheKey] = shiftText;
-                console.log('No shift data in direct API response');
             }
         })
         .catch(error => {
@@ -699,9 +686,6 @@ function openCheckInDetailModal(dateStrOpt) {
                     return;
                 }
 
-                // Log untuk debugging
-                console.log("Check-in data found:", lastCheckIn);
-
                 // Create modal content (match attendance.js markup and classes)
                 const modalContent = `
                     <div class="modal fade" id="checkInDetailModal" tabindex="-1" role="dialog" aria-labelledby="checkInDetailModalLabel" aria-hidden="true">
@@ -769,8 +753,6 @@ function openCheckInDetailModal(dateStrOpt) {
 
                 // Attach handler BEFORE showing to avoid missing the event
                 checkInModalEl.addEventListener('shown.bs.modal', function () {
-                    // Log untuk debugging
-                    console.log("Check-in data:", lastCheckIn);
                     // Override shift via shift-details to ensure latest shift
                     try {
                         const dateStr = formatLocalYMD(lastCheckIn.date_attendance || dateStrOpt || new Date());
@@ -938,9 +920,6 @@ function openCheckOutDetailModal(dateStrOpt) {
                     return;
                 }
 
-                // Log untuk debugging
-                console.log("Check-out data found:", lastCheckOut);
-
                 // Calculate work duration
                 const workDuration = calculateDuration24h(lastCheckOut.time_in, lastCheckOut.time_out);
 
@@ -1015,8 +994,6 @@ function openCheckOutDetailModal(dateStrOpt) {
 
                 // Attach handler BEFORE showing to avoid missing the event
                 checkOutModalEl.addEventListener('shown.bs.modal', function () {
-                    // Log untuk debugging
-                    console.log("Check-out data:", lastCheckOut);
                     // Override shift via shift-details to ensure latest shift
                     try {
                         const dateStr = formatLocalYMD(lastCheckOut.date_attendance || dateStrOpt || new Date());
@@ -1292,9 +1269,6 @@ function calculateWorkingHours() {
                             return;
                         }
 
-                        console.log("Latest unclosed attendance:", latestData);
-                        console.log("Today's attendance:", todayData);
-
                         // Cek apakah ada check-in yang belum ditutup dari hari sebelumnya
                         if (latestData.status === "success" && latestData.data) {
                             const lastCheckIn = latestData.data;
@@ -1506,7 +1480,6 @@ function openCheckInModal() {
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     // Use local date to avoid timezone shifting
     const dateString = formatLocalYMD(new Date());
-    console.log('openCheckInModal - calling updateShiftDisplay with:', { employeeId, dateString });
     if (employeeId) {
         updateShiftDisplay(employeeId, dateString, 'checkin');
     } else {
@@ -1776,7 +1749,6 @@ function openCheckOutModal() {
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     // Use local date to avoid timezone shifting
     const dateString = formatLocalYMD(new Date());
-    console.log('openCheckOutModal - calling updateShiftDisplay with:', { employeeId, dateString });
     if (employeeId) {
         updateShiftDisplay(employeeId, dateString, 'checkout');
     } else {
@@ -2515,7 +2487,6 @@ function getTodayAttendanceStatus() {
     fetch(urlStatus)
         .then((response) => response.json())
         .then((statusData) => {
-            console.log('Status data received:', statusData); // Debug log
             updateButtonStates(statusData.data);
         })
         .catch((error) => {
@@ -2581,12 +2552,10 @@ if (typeof window !== 'undefined') {
 
     // Fungsi untuk update state tombol berdasarkan status
     function updateButtonStates(status) {
-        console.log('Dashboard - Updating button states with status:', status); // Debug log
         const checkInBtn = document.getElementById("checkInBtn");
         const checkOutBtn = document.getElementById("checkOutBtn");
 
         if (!checkInBtn || !checkOutBtn) {
-            console.log('Dashboard - Buttons not found, skipping update'); // Debug log
             return;
         }
 
@@ -2607,26 +2576,18 @@ if (typeof window !== 'undefined') {
         // Update berdasarkan status
         if (status.status === "not_started") {
             // Belum check-in sama sekali: jangan disable checkout, tampilkan alert saat diklik
-            console.log('Dashboard - Set state: not_started (checkout enabled with alert)');
         } else if (status.status === "checked_in") {
             // Sudah check-in tapi belum check-out: enable both buttons
             checkInBtn.classList.add("active");
             $("#checkInBtn .check-icon").css('opacity','1');
             // checkOutBtn tetap enabled untuk checkout
-            console.log('Dashboard - Set state: checked_in (both enabled, checkin active)');
         } else if (status.status === "checked_out") {
             // Sudah check-out: both buttons active and enabled
             checkInBtn.classList.add("active");
             checkOutBtn.classList.add("active");
             $("#checkInBtn .check-icon").css('opacity','1');
             $("#checkOutBtn .done-all-icon").css('opacity','1');
-            console.log('Dashboard - Set state: checked_out (both active and enabled)');
         }
-
-        console.log('Dashboard - Final button states - CheckIn active:', checkInBtn.classList.contains('active'),
-                   'CheckOut active:', checkOutBtn.classList.contains('active'),
-                   'CheckIn disabled:', checkInBtn.disabled,
-                   'CheckOut disabled:', checkOutBtn.disabled); // Debug log
 
         // Handle unclosed attendance: do NOT automatically mark buttons as active.
         // Showing buttons as "active" should reflect an actual today's action.

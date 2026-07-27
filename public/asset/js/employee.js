@@ -145,8 +145,6 @@ document.addEventListener("DOMContentLoaded", function () {
             data: { division_id: divisionId },
             success: function (response) {
                 const data = response.data || response;
-                console.log(data);
-
                 filterJobSelect.innerHTML =
                     '<option value="">Job</option>';
                 data.forEach((job) => {
@@ -179,7 +177,6 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             success: function (data) {
                 const employees = data.data || [];
-                console.log(employees)
                 const pagination = data.pagination || null;
 
                 renderEmployees(employees);

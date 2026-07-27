@@ -45,26 +45,9 @@
             formData.append('employee_id', employeeId);
             formData.append('feedback_comment', comment);
             
-            // Add files with debug info
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                console.log('Adding file:', {
-                    name: file.name,
-                    type: file.type,
-                    size: file.size,
-                    lastModified: file.lastModified
-                });
                 formData.append('reference_files[]', file);
-            }
-            
-            // Debug: log all FormData entries
-            console.log('FormData entries:');
-            for (let pair of formData.entries()) {
-                if (pair[1] instanceof File) {
-                    console.log(pair[0] + ':', pair[1].name + ' (' + pair[1].type + ')');
-                } else {
-                    console.log(pair[0] + ':', pair[1]);
-                }
             }
             
             fetch('/project-feedbacks', {
@@ -75,11 +58,9 @@
                 body: formData
             })
             .then(response => {
-                console.log('Response status:', response.status);
                 return response.json();
             })
             .then(data => {
-                console.log('Response data:', data);
                 document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
             })
             .catch(error => {

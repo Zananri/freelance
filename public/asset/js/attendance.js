@@ -35,8 +35,6 @@ function setDefaultLocation(){
                 LOC_LATITUDE = position.coords.latitude;
                 LOC_LONGITUDE = position.coords.longitude;
 
-                //console.log(`Latitude: ${LOC_LATITUDE}, Longitude: ${LOC_LONGITUDE}`);
-                
                 $('[name="latitudeCheckIn"]').val(LOC_LATITUDE);
                 $('[name="longitudeCheckIn"]').val(LOC_LONGITUDE);
 
@@ -326,7 +324,6 @@ async function renderAttendance(year, month){
             const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
         }
         
-        //console.log(data);
     } catch (error) {
         console.error("Error fetching or processing data:", error);
     }
@@ -658,8 +655,4 @@ function timeDiffFromNow(dateString){
     }
 
     return format;
-    // console.log(`Difference in milliseconds: ${diffMilliseconds}`);
-    // console.log(`Difference in seconds: ${diffSeconds}`);
-    // console.log(`Difference in minutes: ${diffMinutes}`);
-    // console.log(`Difference in hours: ${diffHours}`)
 }

@@ -82,12 +82,6 @@ function loadDivisionsDropdown(
     selectedId = null,
     selector = "#division_id"
 ) {
-    console.log(
-        "loadDivisionsDropdown called with:",
-        departmentId,
-        selectedId,
-        selector
-    );
     if (!departmentId) {
         $(selector).html(
             '<option value="" disabled selected>Select Division</option>'
@@ -99,7 +93,6 @@ function loadDivisionsDropdown(
         type: "GET",
         data: { department_id: departmentId },
         success: function (response) {
-            console.log("Divisions response:", response);
             var divisions = response.data;
             var options =
                 '<option value="" disabled selected>Select Division</option>';

@@ -398,8 +398,6 @@ function showCheckinDetail() {
             effectiveTrackings.forEach((tracking) => {
                 if (!tracking.location) return;
 
-                console.log(tracking);
-
                 const parts = tracking.location
                     .split(",")
                     .map((s) => s.trim());
@@ -523,7 +521,6 @@ $captureButton.on('click', function() {
     }, "image/jpeg", 0.9);
     
     stopStream();
-    //console.log('Foto berhasil diambil');
 });
 
 $closeButton.on('click', stopStream);
@@ -657,7 +654,6 @@ $captureButtonCheckout.on('click', function() {
     }, "image/jpeg", 0.9);
     
     stopStreamCheckout();
-    //console.log('Foto berhasil diambil');
 });
 
 $closeButtonCheckout.on('click', stopStreamCheckout);

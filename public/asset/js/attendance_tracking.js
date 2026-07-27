@@ -85,7 +85,6 @@ function renderCalendar(year, month) {
             $(this).addClass('sunday');
         }
 
-        //console.log(day+'  '+newDate);
     });
 
     
@@ -105,7 +104,6 @@ function renderCalendar(year, month) {
 
        
 
-        //console.log(day+'  '+newDate);
     });
  
 }
@@ -187,7 +185,6 @@ function getAttendanceTrackingData(month,year)
                 const timeIn = formatTimeDisplay(attendance.time_in);
                 const timeOut = formatTimeDisplay(attendance.time_out);
 
-                //console.log(attendance.time_late);
 
                 if(attendance.time_late != null && attendance.time_late != '00:00:00'){
                     $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"]').addClass('is-late');   
@@ -237,7 +234,6 @@ function getAttendanceTrackingData(month,year)
                 for (let j = 1; j < employeeLeaveRequest.day_amount; j++) {
                     let startDateNew = addDays(employeeLeaveRequest.start_date,j);
                     let startDatedayOfMonthNew = startDateNew.getDate();
-                    console.log(startDatedayOfMonthNew);
                     $('[data-employee-id="'+employeeLeaveRequest.employee_id+'"] [data-day="'+startDatedayOfMonthNew+'"]').addClass(employeeLeaveRequest.leave_type.toLowerCase());
                     $('[data-employee-id="'+employeeLeaveRequest.employee_id+'"] [data-day="'+startDatedayOfMonthNew+'"] .description-leave').text(textLeave);
                 }

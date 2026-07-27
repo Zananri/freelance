@@ -23,8 +23,6 @@ function initCommonFunctions() {
     
     // Fungsi untuk menampilkan notifikasi
     window.showNotification = function(message, type = 'success') {
-        // Implementasi notifikasi bisa ditambahkan di sini
-        console.log(`${type}: ${message}`);
     };
     
     // Fungsi untuk format tanggal - menggunakan format "22 August 2025"

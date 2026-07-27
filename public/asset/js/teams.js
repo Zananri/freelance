@@ -64,8 +64,6 @@ $(document).on('click','.modal .employee-photo',function(){
 
 $('.input-card-action.search-query').on('keyup',function(){
     let searchQuery = $(this).val();
-    console.log(searchQuery);
-
     if(searchQuery){
         $('.card-division').addClass('d-none');
         $('.col-employee').addClass('d-none');
