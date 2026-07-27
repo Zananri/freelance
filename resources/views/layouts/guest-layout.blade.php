@@ -10,6 +10,12 @@
     <meta name="keywords" content="sgs, SGS">
     <meta name="author" content="sgs.id">
     <meta name="robots" content="index, nofollow"> 
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="SGS HRIS">
+
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/asset/img/logo/logo.png">
     <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
     <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
 
@@ -19,6 +25,8 @@
     
     <link href="{{ asset('asset/css/app.css') }}" rel="stylesheet">
     <link href="{{ asset('asset/css/guest.css') }}" rel="stylesheet">
+
+    
     <style>
         body{
             background-image: url('{{ asset('asset/img/background/light-1.jpg') }}')
