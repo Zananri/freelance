@@ -154,6 +154,7 @@ class DashboardController extends Controller
                 ->values();
 
             $locations = EmployeeLocation::whereIn('employee_id', $employeeIds)
+                ->where('tracked_at', '>=', Carbon::now()->subMinutes(5))
                 ->get(['employee_id', 'latitude', 'longitude', 'accuracy', 'tracked_at'])
                 ->map(function ($location) {
                     return [
@@ -217,11 +218,6 @@ class DashboardController extends Controller
 
             foreach ($locations as $location) {
                 $employeeId = (int) $location['employee_id'];
-                $latestStatus = $latestStatusByEmployee[$employeeId] ?? null;
-
-                if ($latestStatus === 'check_out') {
-                    continue;
-                }
 
                 $points->push([
                     'id' => 'live_' . $employeeId,
@@ -542,5 +538,4 @@ class DashboardController extends Controller
         ));
     }
 }
-
 

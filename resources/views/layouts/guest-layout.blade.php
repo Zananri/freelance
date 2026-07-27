@@ -12,6 +12,8 @@
     <meta name="robots" content="index, nofollow"> 
     <meta name="theme-color" content="#0d6efd">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="SGS HRIS">
 
     <link rel="manifest" href="/manifest.webmanifest">

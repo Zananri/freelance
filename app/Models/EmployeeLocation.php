@@ -14,7 +14,15 @@ class EmployeeLocation extends Model
         'tracked_at',
     ];
 
-    public function employee() {
+    protected $casts = [
+        'latitude' => 'float',
+        'longitude' => 'float',
+        'accuracy' => 'float',
+        'tracked_at' => 'datetime',
+    ];
+
+    public function employee()
+    {
         return $this->belongsTo(Employee::class, 'employee_id');
     }
 }

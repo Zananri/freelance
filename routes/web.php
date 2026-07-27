@@ -168,6 +168,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/location/update', [EmployeeLocationController::class, 'update']);
     Route::post('/location', [EmployeeLocationController::class, 'store']);
+    Route::get('/location/status', [EmployeeLocationController::class, 'status']);
 
     Route::get('/language/{locale}', function (string $locale) {
         abort_unless(in_array($locale, ['id', 'en']), 404);

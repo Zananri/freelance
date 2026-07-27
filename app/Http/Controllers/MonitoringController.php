@@ -231,16 +231,12 @@ class MonitoringController extends Controller
         })->filter()->values();
 
         $locations = EmployeeLocation::whereIn('employee_id', $employeeIds)
+            ->where('tracked_at', '>=', Carbon::now()->subMinutes(5))
             ->get(['id', 'employee_id', 'latitude', 'longitude', 'accuracy', 'tracked_at'])
             ->values();
 
         foreach ($locations as $location) {
             $employeeId = (int) $location->employee_id;
-            $latestStatus = $latestStatusByEmployee[$employeeId] ?? null;
-
-            if ($latestStatus === 'check_out') {
-                continue;
-            }
 
             if (!is_numeric($location->latitude) || !is_numeric($location->longitude)) {
                 continue;

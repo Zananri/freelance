@@ -17,7 +17,6 @@ use App\Models\EmployeeLeaveRequest;
 
 use App\Models\Attendance;
 use App\Models\AttendanceTracking;
-use App\Models\EmployeeLocation;
 use App\Helpers\DeviceHelper;
 use App\Helpers\ActivityHelper;
 use Illuminate\Http\Request;
@@ -945,8 +944,6 @@ class AttendanceController extends Controller
                 ->update([
                     'status' => 'PRESENT'
                 ]);
-
-            EmployeeLocation::where('employee_id', $employee->id)->delete();
 
             DB::commit();
 

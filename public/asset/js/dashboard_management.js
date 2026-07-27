@@ -701,11 +701,13 @@ function loadDashboardMonitoringWidget() {
     $.ajax({
         url: appUrl + "/dashboard/monitoring-widget",
         type: "GET",
+        cache: false,
         data: {
             department_id: departmentId,
             division_id: divisionId,
             employee_id: employeeId,
             job_id: jobId,
+            _ts: Date.now(),
         },
         success: function (response) {
             const employees = (response.data && response.data.employees) || [];
@@ -729,7 +731,7 @@ function startWidgetMonitoringPolling() {
 
     widgetMonitoringPollingTimer = setInterval(function () {
         loadDashboardMonitoringWidget();
-    }, 30000);
+    }, 10000);
 }
 
 $(document).on("change", "#widgetDepartmentFilter", function () {

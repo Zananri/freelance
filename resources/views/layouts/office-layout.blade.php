@@ -28,6 +28,8 @@
     <meta name="user-department-id" content="{{ Auth::user()->employee?->department_id }}">
     <meta name="theme-color" content="#0d6efd">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="SGS HRIS">
 
     <script src="{{ asset('asset/js/office_nav.js?v=' . time()) }}"></script>
@@ -68,6 +70,7 @@
     <link href="{{ asset('asset/css/app.css?v=' . time()) }}" rel="stylesheet">
     <link href="{{ asset('asset/css/office.css?v=' . time()) }}" rel="stylesheet">
     <link href="{{ asset('asset/css/sidebar.css?v=' . time()) }}" rel="stylesheet">
+    <link href="{{ asset('asset/css/mobile-responsive.css?v=' . time()) }}" rel="stylesheet">
 
     <style>
 
@@ -79,11 +82,12 @@
 
 </head>
 
-<body class="">
+<body>
     <header>
 
         <div class="box-nav-top-left d-inline-block ps-4 pt-4 float-start align-middle">
-            <div class="d-inline-block align-middle" id="sidebar-control">
+            <div class="d-inline-block align-middle" id="sidebar-control" role="button" tabindex="0"
+                aria-label="Menu" aria-controls="main-sidebar" aria-expanded="false">
                 <span class="material-symbols-outlined">menu</span>
             </div>
 
@@ -250,7 +254,7 @@
     </script>
 
 
-    <aside class="left-nav rounded-4">
+    <aside class="left-nav rounded-4" id="main-sidebar">
         <div class="scrollable-container" style="max-height: calc(100vh - 120px)">
 
             <div class="sidebar">
@@ -468,6 +472,8 @@
         </div>
 
     </aside>
+    <button type="button" class="sidebar-backdrop" aria-label="Close menu"
+        tabindex="-1"></button>
 
     <footer>
 
@@ -616,6 +622,7 @@
 
     <script src="{{ asset('asset/js/app.js?v=' . time()) }}"></script>
     <script src="{{ asset('asset/js/office.js?v=' . time()) }}"></script>
+    <script src="{{ asset('asset/js/live-location.js?v=' . time()) }}"></script>
 
     @if (in_array(Auth::user()->user_type, ['SUPERADMIN', 'ADMINISTRATOR', 'ADMIN']))
         <script src="{{ asset('asset/js/hr_info.js') }}?v={{ time() }}"></script>

@@ -2,6 +2,10 @@ body {
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
 }
 
 .go-back-btn:hover {
@@ -24,9 +28,14 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    min-height: 100dvh;
+    padding: max(24px, env(safe-area-inset-top))
+        max(20px, env(safe-area-inset-right))
+        max(24px, env(safe-area-inset-bottom))
+        max(20px, env(safe-area-inset-left));
 }
 .login-container {
-    width: calc(100vw - 50px);
+    width: 100%;
     max-width: 350px;
 }
 
@@ -80,4 +89,23 @@ h2 {
 /* Penyesuaian untuk ikon di dalam input group */
 .input-group-text .material-symbols-outlined {
     vertical-align: middle;
+}
+
+@media (max-width: 576px) {
+    body {
+        background-attachment: scroll;
+    }
+
+    .login-wrapper {
+        align-items: center;
+    }
+
+    .login-box-form .form-input {
+        min-height: 48px;
+        font-size: 16px;
+    }
+
+    .login-box-form .btn-submit {
+        min-height: 48px;
+    }
 }

@@ -1379,6 +1379,10 @@ $(function () {
             url: monitoringDataUrl,
             type: "GET",
             dataType: "json",
+            cache: false,
+            data: {
+                _ts: Date.now(),
+            },
             success: function (json) {
                 isFetching = false;
 
@@ -1414,7 +1418,7 @@ $(function () {
 
         pollingTimer = setInterval(function () {
             fetchMonitoringData();
-        }, 30000);
+        }, 10000);
     }
 
     $topList.on("click", ".monitoring-filter-item", function () {

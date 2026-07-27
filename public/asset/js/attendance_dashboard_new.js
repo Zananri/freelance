@@ -120,6 +120,11 @@ function sendLiveLocation() {
 }
 
 function startLiveLocationTracking() {
+    if (window.HRISLiveLocationTracker) {
+        window.HRISLiveLocationTracker.start();
+        return;
+    }
+
     if (LIVE_LOCATION_INTERVAL || LIVE_LOCATION_WATCH_ID !== null) return;
 
     if (navigator.geolocation && navigator.geolocation.watchPosition) {

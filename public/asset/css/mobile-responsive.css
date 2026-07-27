@@ -1,0 +1,285 @@
+/*
+ * Shared responsive layer for the authenticated HRIS interface.
+ * Loaded after page styles so every module has a safe mobile fallback.
+ */
+
+html,
+body {
+    max-width: 100%;
+    min-height: 100%;
+}
+
+body {
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+}
+
+img,
+svg,
+video,
+canvas {
+    max-width: 100%;
+}
+
+.main-content > *,
+.body-content,
+.card,
+.card-body,
+.modal-content,
+.row > * {
+    min-width: 0;
+}
+
+.table-responsive,
+.table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+input,
+select,
+textarea,
+.form-control,
+.form-select {
+    max-width: 100%;
+}
+
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1035;
+    padding: 0;
+    border: 0;
+    background: rgba(15, 23, 42, 0.42);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+    header {
+        position: sticky;
+        top: 0;
+        z-index: 1030;
+        height: calc(72px + env(safe-area-inset-top));
+        padding-top: env(safe-area-inset-top);
+        background: rgba(248, 249, 250, 0.94);
+        box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+
+    header .box-nav-top-left {
+        padding-top: 16px !important;
+        padding-left: max(16px, env(safe-area-inset-left)) !important;
+    }
+
+    header .box-user-nav {
+        padding-top: 12px !important;
+        padding-right: max(16px, env(safe-area-inset-right)) !important;
+        gap: 4px;
+    }
+
+    header .box-user-nav .nav-item {
+        margin-right: 4px !important;
+    }
+
+    header .nav-icon {
+        width: 40px;
+        height: 40px;
+        margin: 0;
+    }
+
+    #sidebar-control {
+        display: inline-flex;
+        width: 44px;
+        height: 44px;
+        margin: 0;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        touch-action: manipulation;
+    }
+
+    .main-content {
+        width: 100%;
+        height: auto;
+        min-height: calc(100vh - 72px);
+        min-height: calc(100dvh - 72px - env(safe-area-inset-top));
+        padding: 16px max(16px, env(safe-area-inset-right))
+            max(20px, env(safe-area-inset-bottom))
+            max(16px, env(safe-area-inset-left));
+        overflow: visible;
+    }
+
+    .left-nav,
+    .hide-sidebar .left-nav {
+        top: calc(12px + env(safe-area-inset-top));
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        left: 12px;
+        z-index: 1040;
+        width: min(320px, calc(100vw - 40px));
+        min-width: 0;
+        min-height: 0;
+        max-height: none;
+        overflow: hidden;
+        visibility: hidden;
+        opacity: 0;
+        transform: translateX(calc(-100% - 24px));
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+        transition: transform 0.22s ease, opacity 0.22s ease,
+            visibility 0s linear 0.22s;
+    }
+
+    .hide-sidebar .left-nav {
+        visibility: visible;
+        opacity: 1;
+        transform: translateX(0);
+        transition-delay: 0s;
+    }
+
+    .left-nav .scrollable-container {
+        width: 100%;
+        height: 100%;
+        max-height: none !important;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .left-nav .sidebar {
+        width: 100%;
+        padding-bottom: 32px;
+    }
+
+    body.hide-sidebar {
+        overflow: hidden;
+        touch-action: none;
+    }
+
+    .hide-sidebar .sidebar-backdrop {
+        display: block;
+        opacity: 1;
+    }
+
+    .modal {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .modal-dialog {
+        width: auto;
+        max-width: none;
+        margin: 12px;
+    }
+
+    .modal-dialog-scrollable {
+        height: calc(100dvh - 24px);
+    }
+
+    .dropdown-menu {
+        max-width: calc(100vw - 24px);
+    }
+
+    .body-content,
+    .card {
+        border-radius: 16px !important;
+    }
+
+    .title-content h1,
+    .title-content h2 {
+        overflow-wrap: anywhere;
+    }
+}
+
+@media (max-width: 576px) {
+    .main-content {
+        padding-inline: 12px;
+    }
+
+    header .box-user-nav {
+        padding-right: 12px !important;
+    }
+
+    header .box-user-nav .nav-item.d-none.d-sm-inline-block {
+        display: none !important;
+    }
+
+    #avatarDropdownCard,
+    #notificationDropdownCard,
+    #languageDropdownCard {
+        top: calc(68px + env(safe-area-inset-top));
+        right: 12px;
+        left: 12px;
+        width: auto;
+        max-width: none;
+        max-height: calc(100dvh - 84px - env(safe-area-inset-top));
+        overflow-y: auto;
+    }
+
+    .body-content {
+        padding: 16px !important;
+    }
+
+    .body-content .table-title {
+        font-size: 18px;
+    }
+
+    .btn:not(.btn-close):not(.dropdown-toggle),
+    button:not(.btn-close) {
+        min-height: 42px;
+    }
+
+    .form-control,
+    .form-select {
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    textarea.form-control {
+        min-height: 96px;
+    }
+
+    input[type="date"],
+    input[type="datetime-local"],
+    input[type="time"] {
+        min-width: 0;
+    }
+
+    .pagination {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .toast,
+    .alert.position-fixed {
+        right: 12px !important;
+        left: 12px !important;
+        width: auto !important;
+        min-width: 0 !important;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .sidebar-menu li a,
+    .dropdown-item,
+    .nav-link {
+        min-height: 44px;
+    }
+
+    .btn,
+    a,
+    button {
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .left-nav,
+    .sidebar-backdrop {
+        transition: none;
+    }
+}
