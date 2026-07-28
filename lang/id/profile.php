@@ -31,6 +31,10 @@ return [
     'bpjs_allowance' => 'Tunj. BPJS',
     'bpjs_tenaga_kerja_allowance' => 'Tunj. BPJS Tenaga Kerja',
     'pension_allowance' => 'Tunj. Pensiun',
+    'show_salary' => 'Tampilkan gaji',
+    'hide_salary' => 'Sembunyikan gaji',
+    'download_payslip' => 'Unduh slip gaji',
+    'no_payslip' => 'Belum ada slip gaji yang dikirim',
     'grade' => 'Golongan',
 ];
 

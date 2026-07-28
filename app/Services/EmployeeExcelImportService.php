@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Department;
-use App\Models\DocumentFolders;
 use App\Models\Division;
 use App\Models\Employee;
 use App\Models\EmployeeSalary;
@@ -366,29 +365,7 @@ class EmployeeExcelImportService
 
     private function ensureEmployeeDefaultFolders(Employee $employee): void
     {
-        $employeeFolder = DocumentFolders::firstOrCreate(
-            [
-                'employee_id' => $employee->id,
-                'parent_folder_id' => null,
-                'folder_name' => $employee->name,
-            ],
-            [
-                'created_by' => $this->actorId,
-            ]
-        );
-
-        foreach (['CV', 'PKWT', 'DAN LAINNYA'] as $folderName) {
-            DocumentFolders::firstOrCreate(
-                [
-                    'employee_id' => $employee->id,
-                    'parent_folder_id' => $employeeFolder->id,
-                    'folder_name' => $folderName,
-                ],
-                [
-                    'created_by' => $this->actorId,
-                ]
-            );
-        }
+        app(EmployeeDocumentService::class)->sync($employee, $this->actorId);
     }
 
     private function resolveDepartmentId(string $name): int

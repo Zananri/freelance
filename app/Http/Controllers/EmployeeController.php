@@ -14,8 +14,6 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
 use App\Models\Employee;
-use App\Models\Document;
-use App\Models\DocumentFolders;
 use App\Models\EmployeeSalary;
 use App\Models\User;
 use App\Models\Department;
@@ -27,6 +25,7 @@ use App\Models\Partner;
 use App\Models\EmployeeShift;
 use App\Models\Attendance;
 use App\Services\EmployeeExcelImportService;
+use App\Services\EmployeeDocumentService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,19 +57,6 @@ class EmployeeController extends Controller
         $norm = str_replace('\\', '/', trim($path));
         $norm = ltrim($norm, '/');
         return $norm === 'asset/img/avatar.png';
-    }
-
-    private function normalizeDocumentFolderName(string $name): string
-    {
-        $normalized = preg_replace('/[^A-Za-z0-9_\-]/', '_', trim($name));
-        return $normalized ?: 'employee';
-    }
-
-    private function ensureDirectoryExists(string $path): void
-    {
-        if (!is_dir($path)) {
-            mkdir($path, 0777, true);
-        }
     }
 
     private function resolvePartnerContext(?int $partnerId): array
@@ -109,86 +95,11 @@ class EmployeeController extends Controller
 
     private function createEmployeeDocumentStructure(Employee $employee, array $documentSources): void
     {
-        $userId = auth()->id();
-        $employeeFolderName = $this->normalizeDocumentFolderName($employee->name);
-        $employeeDirectory = public_path('file/documents/employee_' . $employee->id . '_' . $employeeFolderName);
-
-        $this->ensureDirectoryExists($employeeDirectory);
-
-        $rootFolder = DocumentFolders::create([
-            'employee_id' => $employee->id,
-            'parent_folder_id' => null,
-            'folder_name' => $employee->name,
-            'created_by' => $userId,
-            'updated_by' => $userId,
-        ]);
-
-        $folders = [
-            'pkwt' => DocumentFolders::create([
-                'employee_id' => $employee->id,
-                'parent_folder_id' => $rootFolder->id,
-                'folder_name' => 'PKWT',
-                'created_by' => $userId,
-                'updated_by' => $userId,
-            ]),
-            'cv' => DocumentFolders::create([
-                'employee_id' => $employee->id,
-                'parent_folder_id' => $rootFolder->id,
-                'folder_name' => 'CV',
-                'created_by' => $userId,
-                'updated_by' => $userId,
-            ]),
-            'others' => DocumentFolders::create([
-                'employee_id' => $employee->id,
-                'parent_folder_id' => $rootFolder->id,
-                'folder_name' => 'Dan Lainnya',
-                'created_by' => $userId,
-                'updated_by' => $userId,
-            ]),
-        ];
-
-        foreach (
-            [
-                'PKWT' => 'pkwt',
-                'CV' => 'cv',
-                'Dan_Lainnya' => 'others',
-            ] as $directoryName => $folderKey
-        ) {
-            $this->ensureDirectoryExists($employeeDirectory . DIRECTORY_SEPARATOR . $directoryName);
-        }
-
-        $folderMap = [
-            'photo' => ['folder' => $folders['others'], 'directory' => 'Dan_Lainnya'],
-            'ktp' => ['folder' => $folders['others'], 'directory' => 'Dan_Lainnya'],
-            'cv' => ['folder' => $folders['cv'], 'directory' => 'CV'],
-            'pkwt' => ['folder' => $folders['pkwt'], 'directory' => 'PKWT'],
-        ];
-
-        foreach ($documentSources as $key => $documentSource) {
-            if (empty($documentSource['source_path']) || !file_exists($documentSource['source_path'])) {
-                continue;
-            }
-
-            $mapping = $folderMap[$key] ?? $folderMap['ktp'];
-            $storedFilename = basename($documentSource['source_path']);
-            $relativePath = 'file/documents/employee_' . $employee->id . '_' . $employeeFolderName . '/' . $mapping['directory'] . '/' . $storedFilename;
-            $destinationPath = public_path($relativePath);
-
-            if (!file_exists($destinationPath)) {
-                copy($documentSource['source_path'], $destinationPath);
-            }
-
-            Document::create([
-                'employee_id' => $employee->id,
-                'folder_id' => $mapping['folder']->id,
-                'file_name' => $documentSource['original_name'] ?? $storedFilename,
-                'file_path' => $relativePath,
-                'file_type' => $documentSource['mime_type'] ?? 'application/octet-stream',
-                'file_size' => $documentSource['file_size'] ?? filesize($documentSource['source_path']),
-                'created_by' => $userId,
-                'updated_by' => $userId,
-            ]);
-        }
+        app(EmployeeDocumentService::class)->sync(
+            $employee,
+            (int) auth()->id(),
+            $documentSources
+        );
     }
 
     public function showEmployeePage()
@@ -206,10 +117,10 @@ class EmployeeController extends Controller
         $userType = strtoupper((string) ($user->user_type ?? ''));
         $userRole = strtoupper((string) ($user->user_role ?? ''));
 
-        $query = $request->input('query', '');
-        $partnerIds = $request->input('department', []);
-        $divisionIds = $request->input('division', []);
-        $jobIds = $request->input('job', []);
+        $query = trim((string) $request->input('query', ''));
+        $partnerIds = array_values(array_filter((array) $request->input('department', []), 'is_numeric'));
+        $divisionIds = array_values(array_filter((array) $request->input('division', []), 'is_numeric'));
+        $jobIds = array_values(array_filter((array) $request->input('job', []), 'is_numeric'));
         $sort = (string) $request->input('sort', '');
 
         if ($request->wantsJson()) {
@@ -234,11 +145,16 @@ class EmployeeController extends Controller
                         ->orWhereHas('officeModel', function ($qOffice) use ($query) {
                             $qOffice->where('name', 'like', '%' . $query . '%');
                         })
-                        ->orWhereHas('department', function ($q3) use ($query) {
+                        ->orWhere('email_work', 'like', '%' . $query . '%')
+                        ->orWhere('employee_niks', 'like', '%' . $query . '%')
+                        ->orWhereHas('partner', function ($q3) use ($query) {
                             $q3->where('partner_name', 'like', '%' . $query . '%');
                         })
                         ->orWhereHas('division', function ($q4) use ($query) {
                             $q4->where('name_division', 'like', '%' . $query . '%');
+                        })
+                        ->orWhereHas('job', function ($q5) use ($query) {
+                            $q5->where('job_name', 'like', '%' . $query . '%');
                         });
                 });
             })
@@ -568,8 +484,8 @@ class EmployeeController extends Controller
                 // Copy photo file to profile_picture with different name
                 copy($photoDestination . '/' . $photoFilename, $profilePictureDestination . '/' . $profilePictureFilename);
                 $profilePicturePath = 'file/profile_picture/' . $profilePictureFilename;
-                $documentSources['photo'] = [
-                    'source_path' => $photoDestination . '/' . $photoFilename,
+                $documentSources['profile'] = [
+                    'source_path' => $profilePictureDestination . '/' . $profilePictureFilename,
                     'original_name' => $photoOriginalName,
                     'mime_type' => $photoMimeType,
                     'file_size' => $photoFileSize,
@@ -1679,10 +1595,38 @@ class EmployeeController extends Controller
     {
         $path = public_path('file/employee-template/employee_import_template.xlsx');
 
-        if (!file_exists($path)) {
-            abort(404, 'Template file not found.');
+        if (is_file($path) && is_readable($path)) {
+            return response()->download(
+                $path,
+                'employee_import_template.xlsx',
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+            );
         }
 
-        return response()->download($path, 'employee_list-pt_sgs.xlsx');
+        $headers = [
+            'ID_KARYAWAN', 'NAMA', 'EMAIL', 'EMAIL_KERJA', 'NO_HP',
+            'WILAYAH', 'PARTNER', 'SITE', 'POSISI', 'STATUS', 'TANGGAL_LAHIR',
+            'TANGGAL_DITERIMA', 'TANGGAL_KONTRAK_BERAKHIR', 'HARI_LIBUR',
+            'GAJI_POKOK', 'TUNJ_POSISI', 'TUNJ_PENSIUN', 'TUNJ_BPJS_TK',
+            'TUNJ_BPJS', 'NO_BPJS', 'NO_BPJSTK', 'ALAMAT', 'CV', 'PKWT',
+            'PAS_FOTO', 'KTP',
+        ];
+
+        $spreadsheet = new Spreadsheet();
+        $worksheet = $spreadsheet->getActiveSheet();
+        $worksheet->setTitle('EMPLOYEE');
+        $worksheet->fromArray($headers, null, 'A1');
+        $worksheet->getStyle('A1:Z1')->getFont()->setBold(true);
+        $worksheet->freezePane('A2');
+        $worksheet->setAutoFilter('A1:Z1');
+
+        $tempFileName = tempnam(sys_get_temp_dir(), 'employee_template_');
+        (new Xlsx($spreadsheet))->save($tempFileName);
+
+        return response()->download(
+            $tempFileName,
+            'employee_import_template.xlsx',
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        )->deleteFileAfterSend(true);
     }
 }

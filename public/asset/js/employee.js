@@ -59,6 +59,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let currentPage = 1;
     const perPage = 10;
+    let employeeRequest = null;
+    let searchTimer = null;
 
     const filterDepartmentSelect = document.getElementById("filterDepartment");
     const filterDivisionSelect = document.getElementById("filterDivision");
@@ -69,13 +71,14 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load departments for filter select
     function loadDepartments() {
         $.ajax({
-            url: appUrl + "/department/index",
+            url: appUrl + "/partner/index",
             method: "GET",
             dataType: "json",
+            data: { exclude_administrative_partners: 1 },
             success: function (response) {
                 const data = response.data || response;
                 filterDepartmentSelect.innerHTML =
-                    '<option value="">Partner</option>';
+                    '<option value="">' + ((window.dropdownTranslations || {}).select_partner || "Select Partner") + '</option>';
                 data.forEach((dept) => {
                     const option = document.createElement("option");
                     option.value = dept.id;
@@ -83,10 +86,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     filterDepartmentSelect.appendChild(option);
                 });
                 filterDivisionSelect.innerHTML =
-                    '<option value="">Site</option>';
+                    '<option value="">' + ((window.dropdownTranslations || {}).select_site || "Select Site") + '</option>';
                 filterDivisionSelect.disabled = true;
                 filterJobSelect.innerHTML =
-                    '<option value="">Job</option>';
+                    '<option value="">' + ((window.dropdownTranslations || {}).select_job || "Select Job") + '</option>';
                 filterJobSelect.disabled = true;
             },
             error: function () {
@@ -101,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function () {
             filterDivisionSelect.innerHTML =
                 '<option value="">' + ((window.dropdownTranslations || {}).select_site || "Select Site") + '</option>';
             filterDivisionSelect.disabled = true;
-            filterJobSelect.innerHTML = '<option value="">Job</option>';
+            filterJobSelect.innerHTML = '<option value="">' + ((window.dropdownTranslations || {}).select_job || "Select Job") + '</option>';
             filterJobSelect.disabled = true;
             return;
         }
@@ -109,7 +112,7 @@ document.addEventListener("DOMContentLoaded", function () {
             url: appUrl + "/division/index",
             method: "GET",
             dataType: "json",
-            data: { department_id: departmentId },
+            data: { partner_id: departmentId },
             success: function (response) {
                 const data = response.data || response;
                 filterDivisionSelect.innerHTML =
@@ -122,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
                 filterDivisionSelect.disabled = false;
                 filterJobSelect.innerHTML =
-                    '<option value="">Job</option>';
+                    '<option value="">' + ((window.dropdownTranslations || {}).select_job || "Select Job") + '</option>';
                 filterJobSelect.disabled = true;
             },
             error: function () {
@@ -134,7 +137,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load jobs based on selected division
     function loadJobs(divisionId) {
         if (!divisionId) {
-            filterJobSelect.innerHTML = '<option value="">Job</option>';
+            filterJobSelect.innerHTML = '<option value="">' + ((window.dropdownTranslations || {}).select_job || "Select Job") + '</option>';
             filterJobSelect.disabled = true;
             return;
         }
@@ -146,7 +149,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function (response) {
                 const data = response.data || response;
                 filterJobSelect.innerHTML =
-                    '<option value="">Job</option>';
+                    '<option value="">' + ((window.dropdownTranslations || {}).select_job || "Select Job") + '</option>';
                 data.forEach((job) => {
                     const option = document.createElement("option");
                     option.value = job.id;
@@ -163,7 +166,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Fetch employees with filters
     function fetchEmployees(filters = {}, page = 1) {
-        $.ajax({
+        if (employeeRequest && employeeRequest.readyState !== 4) {
+            employeeRequest.abort();
+        }
+
+        employeeRequest = $.ajax({
             url: appUrl + "/employee/index",
             type: "GET",
             dataType: "json",
@@ -184,7 +191,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 currentPage = pagination?.current_page || 1;
 
             },
-            error: function () {
+            error: function (xhr, status) {
+                if (status === "abort") {
+                    return;
+                }
                 tableBody.innerHTML =
                     '<tr><td colspan="8">Failed to load employee data.</td></tr>';
                 renderPagination(null);
@@ -614,7 +624,10 @@ document.addEventListener("DOMContentLoaded", function () {
     searchInput.addEventListener("input", () => {
         currentFilters.query = searchInput.value.trim();
         currentPage = 1;
-        fetchEmployees(currentFilters, currentPage);
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            fetchEmployees(currentFilters, currentPage);
+        }, 350);
     });
 
     if (employeePagination) {

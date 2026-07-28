@@ -218,17 +218,19 @@
                     <div class="salary-payslip bg-card-1 rounded-4 pb-2">
 
                         <div class="p-4 pb-2">
-                            <div class="d-inline-block float-end  salary_off">
+                            <button type="button" class="btn border-0 p-0 d-inline-block float-end salary_off"
+                                aria-label="{{ __('profile.show_salary') }}" title="{{ __('profile.show_salary') }}">
                                 <span class="material-symbols-outlined fs-16 text-secondary">
                                     visibility_off
                                 </span>
-                            </div>
+                            </button>
 
-                            <div class="d-inline-block float-end  salary_on">
+                            <button type="button" class="btn border-0 p-0 d-inline-block float-end salary_on"
+                                aria-label="{{ __('profile.hide_salary') }}" title="{{ __('profile.hide_salary') }}">
                                 <span class="material-symbols-outlined fs-16 text-body">
                                     visibility
                                 </span>
-                            </div>
+                            </button>
                             
                             <h5 class="fw-light fs-18 m-0">{{ __('profile.salary') }}</h5>
 
@@ -346,22 +348,28 @@
 
                         <div class="p-4 pt-2 scrollbar-transparent box-payslip mb-3">
 
-                            @foreach ($employeePayslip as $item)
+                            @forelse ($employeePayslip as $item)
 
                             <div class="mb-2 item-payslip">
                                 <div class="d-flex justify-content-between w-100">
                                     <div>
                                         <span class="fs-14 text-secondary">
-                                            {{ date_format(date_create($item->date_salary),'F Y') }}
+                                            {{ \Carbon\Carbon::parse($item->date_salary)->locale(app()->getLocale())->translatedFormat('F Y') }}
                                         </span>
                                     </div>
                                     <div>
-                                        <span class="material-symbols-outlined download fs-18" data-year="{{ date_format(date_create($item->date_salary),'Y') }}" data-month="{{ date_format(date_create($item->date_salary),'n') }}">download</span>
+                                        <button type="button" class="btn border-0 p-0 material-symbols-outlined download fs-18"
+                                            aria-label="{{ __('profile.download_payslip') }}"
+                                            title="{{ __('profile.download_payslip') }}"
+                                            data-year="{{ date_format(date_create($item->date_salary),'Y') }}"
+                                            data-month="{{ date_format(date_create($item->date_salary),'n') }}">download</button>
                                     </div>
                                 </div>
                             </div>
 
-                            @endforeach
+                            @empty
+                                <div class="fs-14 text-secondary">{{ __('profile.no_payslip') }}</div>
+                            @endforelse
                             
                         </div>
                         
