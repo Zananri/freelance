@@ -470,13 +470,17 @@ async function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             absent = employeeAttendanceAbsent;
             
             attendanceNotComplete = employeeAttendanceNotComplete;
+
+            if (
+                employeePayslip != null
+                && employeePayslip.attendance_incomplete !== null
+                && employeePayslip.attendance_incomplete !== undefined
+            ) {
+                attendanceNotComplete = parseSalaryInput(employeePayslip.attendance_incomplete);
+            }
             
             
             $('#modalSalaryEdit [name="attendance_not_complete"]').val(attendanceNotComplete);
-            
-            $('#modalSalaryEdit .jumlah_absensi_tidak_lengkap').text(attendanceNotComplete+' hari');
-            
-            $('#modalSalaryEdit .hitungan_absensi_tidak_lengkap').text( (0 - (attendanceNotComplete * 50000)).toLocaleString('id-ID'));
             
             $('#modalSalaryEdit .info_working_day').attr(
                 'data-bs-title',
@@ -575,7 +579,11 @@ $('#modalSalaryEdit [name="thr"], #modalSalaryEdit [name="kompensasi_pkwt"], #mo
 });
 
 
-$('#modalSalaryEdit [name="active_day"], #modalSalaryEdit [name="working_day"], #modalSalaryEdit [name="meal_day"], #modalSalaryEdit [name="basic_salary"], #modalSalaryEdit [name="positional_allowance"], #modalSalaryEdit [name="bpjs_allowance"], #modalSalaryEdit [name="bpjs_tenaga_kerja_allowance"], #modalSalaryEdit [name="pension_allowance"]').on('input change', function(){
+$('#modalSalaryEdit [name="active_day"], #modalSalaryEdit [name="working_day"], #modalSalaryEdit [name="meal_day"], #modalSalaryEdit [name="attendance_not_complete"], #modalSalaryEdit [name="basic_salary"], #modalSalaryEdit [name="positional_allowance"], #modalSalaryEdit [name="bpjs_allowance"], #modalSalaryEdit [name="bpjs_tenaga_kerja_allowance"], #modalSalaryEdit [name="pension_allowance"]').on('input change', function(){
+    if ($(this).attr('name') === 'attendance_not_complete') {
+        const attendanceIncomplete = Math.max(0, parseSalaryInput($(this).val()));
+        $(this).val(attendanceIncomplete);
+    }
     countSalary();
 });
 

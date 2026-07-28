@@ -18,6 +18,7 @@ class EmployeePayslip extends Model
         'total_day_active',
         'total_working_day',
         'total_working_day_meal',
+        'attendance_incomplete',
 
         'take_home_pay',
         'basic_salary',

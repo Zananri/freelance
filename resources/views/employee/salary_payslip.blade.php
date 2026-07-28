@@ -464,9 +464,6 @@
                             <input type="hidden" name="employee_id" value="">
                             <input type="hidden" name="year" value="">
                             <input type="hidden" name="month" value="">
-                            <input type="hidden" name="attendance_not_complete" value="">
-
-
                             <div class="p-4 pb-0">
                                 <div class="text-center">
                                     <div class="fw-light fs-24">{{ __('salary.salary_title') }}</div>
@@ -571,19 +568,21 @@
                                         </div>
 
                                         <div class="col-6">
-                                            <label for="basic_salary" class="fs-14 text-secondary fw-normal">
-                                                {{ __('salary.absensi_tidak_lengkap') }}
-                                                <span class="jumlah_absensi_tidak_lengkap"></span>
-                                            </label>
-
-                                            <div class="">
-                                                <span class="hitungan_absensi_tidak_lengkap fs-14"></span>
-                                                <span class="fs-12 ms-2 info_absensi_tidak_lengkap"
+                                            <label for="attendance_not_complete" class="fs-14 text-secondary fw-normal">
+                                                {{ __('salary.absensi_terlambat') }}
+                                                <span class="fs-12 ms-1 info_absensi_tidak_lengkap"
                                                     data-bs-toggle="tooltip" data-bs-placement="top"
                                                     data-bs-title="hari * 50.000">
                                                     <i class="bi bi-info-circle"></i>
                                                 </span>
-                                            </div>
+                                            </label>
+
+                                            <input type="number" class="form-control border-0 fs-14"
+                                                name="attendance_not_complete"
+                                                id="attendance_not_complete"
+                                                min="0"
+                                                step="1"
+                                                value="0">
                                         </div>
 
 

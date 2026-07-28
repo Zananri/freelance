@@ -521,6 +521,7 @@ class SalaryPayslipController extends Controller
                 'active_day' => 'required|integer',
                 'working_day' => 'required|integer',
                 'meal_day' => 'required|integer',
+                'attendance_not_complete' => 'required|integer|min:0|max:65535',
             ]);
 
             $employee = $this->findSalaryPayslipEmployee((int) $request->employee_id);
@@ -546,11 +547,7 @@ class SalaryPayslipController extends Controller
             $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
             $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
             
-            $employeeAttendanceNotComplete = $this->countLateAttendances(
-                (int) $employee->id,
-                $firstDayOfMonth,
-                $lastDayOfMonth
-            );
+            $employeeAttendanceNotComplete = (int) $request->attendance_not_complete;
 
             
             $salaryData['employee_id'] = $employee->id;
@@ -558,6 +555,7 @@ class SalaryPayslipController extends Controller
             $salaryData['total_day_active'] = $request->active_day;
             $salaryData['total_working_day'] = $request->working_day;
             $salaryData['total_working_day_meal'] = $request->meal_day;
+            $salaryData['attendance_incomplete'] = $employeeAttendanceNotComplete;
 
             $salaryData['basic_salary'] = $request->basic_salary;
             $salaryData['positional_allowance'] = $request->positional_allowance;

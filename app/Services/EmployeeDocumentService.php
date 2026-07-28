@@ -31,17 +31,14 @@ class EmployeeDocumentService
         }
 
         $cvFolder = $this->folder($employee, $root->id, 'CV', $actorId);
-        $pkwtFolder = $this->folder($employee, $root->id, 'PKWT', $actorId);
-        $otherFolder = $this->folder($employee, $root->id, 'Dan Lainnya', $actorId);
-        $ktpFolder = $this->folder($employee, $otherFolder->id, 'KTP', $actorId);
-        $profileFolder = $this->folder($employee, $otherFolder->id, 'Photo Profile', $actorId);
+        $otherFolder = $this->folder($employee, $root->id, 'Dan lainnya', $actorId);
 
         $employeeDirectoryName = 'employee_' . $employee->id . '_' . Str::slug($employee->name, '_');
         $folderMap = [
             'cv' => [$cvFolder, 'CV'],
-            'pkwt' => [$pkwtFolder, 'PKWT'],
-            'ktp' => [$ktpFolder, 'Dan_Lainnya/KTP'],
-            'profile' => [$profileFolder, 'Dan_Lainnya/Photo_Profile'],
+            'pkwt' => [$otherFolder, 'Dan_lainnya'],
+            'ktp' => [$otherFolder, 'Dan_lainnya'],
+            'profile' => [$otherFolder, 'Dan_lainnya'],
         ];
 
         $sources = array_merge($this->sourcesFromEmployee($employee), $sources);
@@ -94,6 +91,13 @@ class EmployeeDocumentService
             ->first();
 
         if ($existingFolder) {
+            if ($existingFolder->folder_name !== $name) {
+                $existingFolder->update([
+                    'folder_name' => $name,
+                    'updated_by' => $actorId,
+                ]);
+            }
+
             return $existingFolder;
         }
 
