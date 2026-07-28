@@ -137,7 +137,7 @@ $selectedDivisionName = __('general.all_site');
                                     <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         
                                         <div class="d-inline-flex align-items-center">
-                                            <span class="calendar-month">{{ date('F') }}</span>
+                                            <span class="calendar-month">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                             <span class="calendar-year">{{ date('Y') }}</span>
                                         </div>
 
@@ -145,7 +145,7 @@ $selectedDivisionName = __('general.all_site');
 
                                     <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
                                         @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
-                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{ \Carbon\Carbon::create()->month($monthNum)->locale(app()->getLocale())->translatedFormat('F') }}</div></li>
                                         @endfor
                                         
                                     </ul>
@@ -180,18 +180,18 @@ $selectedDivisionName = __('general.all_site');
                                         <th>
                                             <div class="white-space-nowrap">{{ __('salary.active_day_short') }}</div>
                                             <div class="">
-                                                <span class="calendar-month fs-10 fw-normal white-space-nowrap">{{ date('F') }}</span>
+                                                <span class="calendar-month fs-10 fw-normal white-space-nowrap">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                             </div>
                                         </th>
 
                                         <th>
                                             <div class="white-space-nowrap">{{ __('salary.working_day_short') }}</div>
-                                            <span class="calendar-month fs-10 fw-normal white-space-nowrap">{{ date('F') }}</span>
+                                            <span class="calendar-month fs-10 fw-normal white-space-nowrap">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                         </th>
 
                                         <th>
                                             <div class="white-space-nowrap">{{ __('salary.meal_day_short') }}</div>
-                                            <span class="calendar-month fs-10 fw-normal white-space-nowrap">{{ date('F') }}</span>
+                                            <span class="calendar-month fs-10 fw-normal white-space-nowrap">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                         </th>
 
                                         <th>
@@ -408,7 +408,7 @@ $selectedDivisionName = __('general.all_site');
                             <div class="p-4 pb-0">
                                 <div class="text-center">
                                     <div class="fw-light fs-24">{{ __('salary.salary_title') }}</div>
-                                    <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
+                                    <span class="fw-normal fs-14 calendar-month">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                     <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
                             </div>
                             <div class="mb-4 text-center">
@@ -722,7 +722,7 @@ $selectedDivisionName = __('general.all_site');
                             <div class="p-4 pb-0">
                                 <div class="text-center">
                                         <div class="fw-light fs-24">{{ __('salary.payslip') }}</div>
-                                        <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
+                                        <span class="fw-normal fs-14 calendar-month">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                         <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
                                 </div>
                                 <div class="mb-4 text-center">
@@ -830,7 +830,7 @@ $selectedDivisionName = __('general.all_site');
                             <div class="p-4 pb-0">
                                 <div class="text-center">
                                         <div class="fw-light fs-24">{{ __('salary.payslip') }}</div>
-                                        <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
+                                        <span class="fw-normal fs-14 calendar-month">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                         <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
                                 </div>
                                 <div class="mb-4 text-center">

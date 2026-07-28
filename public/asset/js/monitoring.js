@@ -1436,7 +1436,7 @@ $(function () {
 
         pollingTimer = setInterval(function () {
             fetchMonitoringData();
-        }, 10000);
+        }, 7000);
     }
 
     $topList.on("click", ".monitoring-filter-item", function () {

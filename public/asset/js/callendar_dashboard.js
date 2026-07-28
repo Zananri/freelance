@@ -1,4 +1,9 @@
 const dashboardAppUrl = $("meta[name=app-url]").attr("content");
+const dashboardCalendarLocale = document.documentElement.lang
+    .toLowerCase()
+    .startsWith("id")
+    ? "id-ID"
+    : "en-US";
 const dashboardCalendarModalEl = document.getElementById(
     "dashboardCalendarEventModal",
 );
@@ -41,9 +46,9 @@ function formatTimeDisplay(timeString) {
 }
 
 function formatDateLabel(dateString) {
-    const date = new Date(dateString);
+    const date = new Date(`${dateString}T00:00:00`);
     if (Number.isNaN(date.getTime())) return dateString;
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(dashboardCalendarLocale, {
         weekday: "long",
         day: "numeric",
         month: "long",
@@ -63,7 +68,7 @@ async function renderCalendar(year, month) {
     const totalDays = new Date(year, month + 1, 0).getDate();
 
     $(".calendar-month").text(
-        currentDate.toLocaleString("default", { month: "long" }),
+        currentDate.toLocaleString(dashboardCalendarLocale, { month: "long" }),
     );
     $(".calendar-year").text(`${year}`);
 
@@ -135,7 +140,9 @@ function showEventsByMonth() {
         return;
     }
 
-    const monthLabel = currentDate.toLocaleString("default", { month: "long" });
+    const monthLabel = currentDate.toLocaleString(dashboardCalendarLocale, {
+        month: "long",
+    });
     const yearLabel = currentDate.getFullYear();
     const monthEvents = [...ARR_DATA_CALENDAR].sort((a, b) => {
         const aDate = `${a.date_event} ${a.start_time || "00:00:00"}`;

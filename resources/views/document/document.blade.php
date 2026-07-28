@@ -36,10 +36,11 @@
     </svg>
 
     <div class="title-content mb-3">
-        <div class="d-flex align-items-center">
-            <div class="w-100">
+        <div class="document-header d-flex align-items-center">
+            <div class="document-title w-100">
                 <h2 id="breadcrumbDocument" class="text-title-content" data-documents-label="{{ __('document.documents') }}"></h2>
             </div>
+            <div class="document-toolbar">
             <div class="view-switcher me-2">
                 <div class="switch-indicator"></div>
 
@@ -59,52 +60,52 @@
                 <button class="btn btn-filter-document d-flex align-items-center dropdown-toggle no-caret"
                     data-bs-toggle="dropdown">
                     <span class="material-symbols-outlined">filter_list</span>
-                    <span class="ms-2">Filter</span>
+                    <span class="ms-2">{{ __('document.filter') }}</span>
                 </button>
                 <div class="dropdown-menu filter-dropdown filter-dropdown-panel p-3">
                     <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
                         <div>
-                            <div class="filter-panel-title">Quick Filters</div>
-                            <div class="filter-panel-subtitle">Refine documents without leaving the page</div>
+                            <div class="filter-panel-title">{{ __('document.quick_filters') }}</div>
+                            <div class="filter-panel-subtitle">{{ __('document.refine_documents') }}</div>
                         </div>
                         <button type="button" class="btn btn-link p-0 filter-reset-btn"
-                            id="btnResetDocumentFilters">Reset</button>
+                            id="btnResetDocumentFilters">{{ __('document.reset') }}</button>
                     </div>
                     <div class="filter-section mb-3">
-                        <div class="filter-section-title">Access</div>
+                        <div class="filter-section-title">{{ __('document.access') }}</div>
                         @if ($currentUserType === 'SUPERADMIN')
                             <div class="mb-2">
-                                <label class="form-label label-custom mb-1" for="filter_department">Partner</label>
+                                <label class="form-label label-custom mb-1" for="filter_department">{{ __('document.partner') }}</label>
                                 <select id="filter_department" class="form-select form-select-sm border-0"></select>
                             </div>
                         @elseif ($currentUserType === 'ADMINISTRATOR')
                             <div class="filter-fixed-chip mb-2">
-                                Partner: {{ $currentEmployee?->department?->name_department ?? 'No Partner' }}
+                                {{ __('document.partner') }}: {{ $currentEmployee?->department?->name_department ?? '-' }}
                             </div>
                         @endif
                         <div class="mb-2">
-                            <label class="form-label label-custom mb-1" for="filter_site">Site</label>
+                            <label class="form-label label-custom mb-1" for="filter_site">{{ __('document.site') }}</label>
                             <select id="filter_site" class="form-select form-select-sm border-0"></select>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label label-custom mb-1" for="filter_job">Job</label>
+                            <label class="form-label label-custom mb-1" for="filter_job">{{ __('document.job') }}</label>
                             <select id="filter_job" class="form-select form-select-sm border-0"></select>
                         </div>
                     </div>
                     <div class="filter-section">
-                        <div class="filter-section-title">Content</div>
+                        <div class="filter-section-title">{{ __('document.content') }}</div>
                         <div class="mb-2">
-                            <label class="form-label label-custom mb-1" for="filter_type">Item Type</label>
+                            <label class="form-label label-custom mb-1" for="filter_type">{{ __('document.item_type') }}</label>
                             <select id="filter_type" class="form-select form-select-sm border-0">
-                                <option value="all">All</option>
-                                <option value="folder">Folder</option>
-                                <option value="file">File</option>
+                                <option value="all">{{ __('document.all') }}</option>
+                                <option value="folder">{{ __('document.folder') }}</option>
+                                <option value="file">{{ __('document.file') }}</option>
                             </select>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label label-custom mb-1" for="filter_extension">File Type</label>
+                            <label class="form-label label-custom mb-1" for="filter_extension">{{ __('document.file_type') }}</label>
                             <select id="filter_extension" class="form-select form-select-sm border-0">
-                                <option value="all">All</option>
+                                <option value="all">{{ __('document.all') }}</option>
                                 <option value="pdf">PDF</option>
                                 <option value="doc">DOC</option>
                                 <option value="docx">DOCX</option>
@@ -118,12 +119,12 @@
                             </select>
                         </div>
                         <div class="mb-0">
-                            <label class="form-label label-custom mb-1" for="filter_updated">Last Update</label>
+                            <label class="form-label label-custom mb-1" for="filter_updated">{{ __('document.last_update') }}</label>
                             <select id="filter_updated" class="form-select form-select-sm border-0">
-                                <option value="all">All</option>
-                                <option value="7">Last 7 days</option>
-                                <option value="30">Last 30 days</option>
-                                <option value="365">Last year</option>
+                                <option value="all">{{ __('document.all') }}</option>
+                                <option value="7">{{ __('document.last_7_days') }}</option>
+                                <option value="30">{{ __('document.last_30_days') }}</option>
+                                <option value="365">{{ __('document.last_year') }}</option>
                             </select>
                         </div>
                     </div>
@@ -134,9 +135,10 @@
                     <span class="material-symbols-outlined">add</span>
                 </button>
                 <div class="dropdown-menu">
-                    <div class="dropdown-item add-doc add-folder">Add Folder</div>
-                    <div class="dropdown-item add-doc add-files">Add Files</div>
+                    <div class="dropdown-item add-doc add-folder">{{ __('document.add_folder') }}</div>
+                    <div class="dropdown-item add-doc add-files">{{ __('document.add_files') }}</div>
                 </div>
+            </div>
             </div>
         </div>
     </div>

@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function loadDivisions(departmentId) {
         if (!departmentId) {
             filterDivisionSelect.innerHTML =
-                '<option value="">Division</option>';
+                '<option value="">' + ((window.dropdownTranslations || {}).select_site || "Select Site") + '</option>';
             filterDivisionSelect.disabled = true;
             filterJobSelect.innerHTML = '<option value="">Job</option>';
             filterJobSelect.disabled = true;
@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function (response) {
                 const data = response.data || response;
                 filterDivisionSelect.innerHTML =
-                    '<option value="">Division</option>';
+                    '<option value="">' + ((window.dropdownTranslations || {}).select_site || "Select Site") + '</option>';
                 data.forEach((div) => {
                     const option = document.createElement("option");
                     option.value = div.id;

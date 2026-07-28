@@ -57,7 +57,7 @@ return [
         'number' => 'No',
         'employee_name' => 'NAMA KARYAWAN',
         'department' => 'Departemen',
-        'division' => 'Divisi',
+        'division' => 'Lokasi',
         'job_position' => 'Posisi Pekerjaan',
         'grade_rank' => 'Grade/Pangkat',
         'join_date' => 'Tanggal Bergabung',

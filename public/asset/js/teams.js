@@ -65,19 +65,19 @@ $(document).on('click','.modal .employee-photo',function(){
 $('.input-card-action.search-query').on('keyup',function(){
     let searchQuery = $(this).val();
     if(searchQuery){
-        $('.card-division').addClass('d-none');
+        $('.card-department').addClass('d-none');
         $('.col-employee').addClass('d-none');
 
         $('.col-employee').each(function(){
             let employeeName = $(this).find('.employee-name').text();
             if(employeeName.toLowerCase().includes(searchQuery.toLowerCase())){
                 $(this).removeClass('d-none');
-                $(this).closest('.card-division').removeClass('d-none');
+                $(this).closest('.card-department').removeClass('d-none');
             }
         });
 
     }else{
         $('.col-employee').removeClass('d-none');
-        $('.card-division').removeClass('d-none');
+        $('.card-department').removeClass('d-none');
     }
 });

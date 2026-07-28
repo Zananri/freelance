@@ -186,7 +186,7 @@
                                 <select id="business_department_id" name="business_department_id" class="form-select input-select"
                                     data-current="{{ $selectedDepartmentId }}"
                                     data-locked="{{ $isAdminUser ? '1' : '0' }}" required>
-                                    <option value="" disabled selected>Select Department</option>
+                                    <option value="" disabled selected>{{ __('general.select_department') }}</option>
                                 </select>
                                 <div class="invalid-feedback">
                                     Please select a department.
@@ -197,7 +197,7 @@
                                 <label for="region" class="form-label">Wilayah</label>
                                 <select id="region" name="region" class="form-select input-select"
                                     data-current="{{ $employee->region }}" required disabled>
-                                    <option value="" disabled selected>Select Department First</option>
+                                    <option value="" disabled selected>{{ __('general.select_department_first') }}</option>
                                 </select>
                                 <div class="invalid-feedback">
                                     Please select a region.
@@ -208,7 +208,7 @@
                                 <label for="department_id" class="form-label">Partner Name</label>
                                 <select id="department_id" name="department_id" class="form-select input-select"
                                     required data-current-partner="{{ $employee->partner_id }}">
-                                    <option value="" disabled>Select Partner</option>
+                                    <option value="" disabled>{{ __('general.select_partner') }}</option>
                                     @foreach ($departments as $department)
                                         <option value="{{ $department->id }}"
                                             {{ $employee->partner_id == $department->id ? 'selected' : '' }}>
@@ -225,7 +225,7 @@
                                 <label for="division_id" class="form-label">Site Name</label>
                                 <select id="division_id" name="division_id" class="form-select input-select" required
                                     data-current="{{ $employee->division_id }}">
-                                    <option value="" disabled>Select Site</option>
+                                    <option value="" disabled>{{ __('general.select_site') }}</option>
                                     @foreach ($divisions as $division)
                                         <option value="{{ $division->id }}"
                                             {{ $employee->division_id == $division->id ? 'selected' : '' }}>
@@ -242,7 +242,7 @@
                                 <label for="job_id" class="form-label">Job Name</label>
                                 <select id="job_id" name="job_id" class="form-select input-select" required
                                     data-current="{{ $employee->job_id }}">
-                                    <option value="" disabled>Select Job</option>
+                                    <option value="" disabled>{{ __('general.select_job') }}</option>
                                     @foreach ($jobs as $job)
                                         <option value="{{ $job->id }}"
                                             {{ $employee->job_id == $job->id ? 'selected' : '' }}>
@@ -258,7 +258,7 @@
                             <div class="custom-form-employee">
                                 <label for="grade_id" class="form-label">Grade</label>
                                 <select id="grade_id" name="grade_id" class="form-select input-select" required>
-                                    <option value="" disabled>Select Grade</option>
+                                    <option value="" disabled>{{ __('general.select_grade') }}</option>
                                     @foreach ($grades ?? [] as $g)
                                         <option value="{{ $g->id }}"
                                             {{ (int) $employee->grade_id === (int) $g->id ? 'selected' : '' }}>
@@ -272,7 +272,7 @@
                             <div class="custom-form-employee">
                                 <label for="office" class="form-label">Office</label>
                                 <select id="office" name="office" class="form-select input-select" required>
-                                    <option value="" disabled>Select Office</option>
+                                    <option value="" disabled>{{ __('general.select_office') }}</option>
                                     @foreach ($offices ?? [] as $o)
                                         <option value="{{ $o->id }}"
                                             {{ (int) $employee->office === (int) $o->id ? 'selected' : '' }}>
@@ -292,9 +292,9 @@
                             <div class="custom-form-employee">
                                 <label for="status" class="form-label">Status</label>
                                 <select id="status" name="status" class="form-select input-select" required>
-                                    <option value="ACTIVE" {{ $currentStatus === 'ACTIVE' ? 'selected' : '' }}>ACTIVE</option>
-                                    <option value="RESIGN" {{ $currentStatus === 'RESIGN' ? 'selected' : '' }}>RESIGN</option>
-                                    <option value="CANDIDATE" {{ $currentStatus === 'CANDIDATE' ? 'selected' : '' }}>CANDIDATE</option>
+                                    <option value="ACTIVE" {{ $currentStatus === 'ACTIVE' ? 'selected' : '' }}>{{ __('general.active') }}</option>
+                                    <option value="RESIGN" {{ $currentStatus === 'RESIGN' ? 'selected' : '' }}>{{ __('general.resign') }}</option>
+                                    <option value="CANDIDATE" {{ $currentStatus === 'CANDIDATE' ? 'selected' : '' }}>{{ __('general.candidate') }}</option>
                                 </select>
                                 <div class="invalid-feedback">
                                     Please select a status.
@@ -307,7 +307,7 @@
                                 <select id="shift_id" name="shift_id" class="form-select input-select" required
                                     data-current="{{ $employee->shift_id }}"
                                     data-fetch-url="{{ route('shift.list') }}">
-                                    <option value="" disabled>Select Shift</option>
+                                    <option value="" disabled>{{ __('general.select_shift') }}</option>
                                 </select>
                                 <div class="invalid-feedback">
                                     Please select a shift.

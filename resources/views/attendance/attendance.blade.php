@@ -163,7 +163,7 @@
                                     <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         
                                         <div class="d-inline-flex align-items-center">
-                                            <span class="calendar-month">{{ date('F') }}</span>
+                                            <span class="calendar-month">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                             <span class="calendar-year">{{ date('Y') }}</span>
                                         </div>
 
@@ -171,7 +171,7 @@
 
                                     <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
                                         @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
-                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{ \Carbon\Carbon::create()->month($monthNum)->locale(app()->getLocale())->translatedFormat('F') }}</div></li>
                                         @endfor
                                         
                                     </ul>
@@ -683,8 +683,8 @@
                                 <div class="mb-3">
                                     <label for="select-type-edit" class="form-label">Leave Type</label>
                                     <select class="form-select" name="leave_type" id="select-type-edit" attr-validation="required">
-                                        <option value="ANNUAL_LEAVE">Annual Leave</option>
-                                        <option value="SICK">Sick</option>
+                                        <option value="ANNUAL_LEAVE">{{ __('general.annual_leave') }}</option>
+                                        <option value="SICK">{{ __('general.sick') }}</option>
                                     </select>
                                     <div class="invalid-feedback fs-12">Please select a leave type</div>
                                 </div>
@@ -879,7 +879,7 @@
                                         <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             
                                             <div class="d-inline-flex align-items-center">
-                                                <span class="calendar-month">{{ date('F') }}</span>
+                                                <span class="calendar-month">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                                 <span class="calendar-year">{{ date('Y') }}</span>
                                             </div>
 
@@ -887,7 +887,7 @@
 
                                         <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
                                             @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
-                                                <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                                <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{ \Carbon\Carbon::create()->month($monthNum)->locale(app()->getLocale())->translatedFormat('F') }}</div></li>
                                             @endfor
                                             
                                         </ul>

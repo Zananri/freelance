@@ -130,7 +130,7 @@ $(document).ready(function () {
             success: function (response) {
                 var departments = response.data;
                 var options =
-                    '<option value="" disabled selected>Select Department</option>';
+                    '<option value="" disabled selected>' + ((window.dropdownTranslations || {}).select_department || 'Select Department') + '</option>';
                 $.each(departments, function (index, department) {
                     options +=
                         '<option value="' +
@@ -404,7 +404,7 @@ $(document).ready(function () {
             },
             success: function (response) {
                 showLoader("add", false);
-                showFloatingAlert(response.message || 'Division created successfully.', 'success', 1500);
+                showFloatingAlert(response.message || 'Site created successfully.', 'success', 1500);
                 loadDivisions();
                 setTimeout(function () {
                     var addDivisionModalEl =
@@ -522,7 +522,7 @@ $(document).ready(function () {
             },
             success: function (response) {
                 showLoader("edit", false);
-                showFloatingAlert(response.message || 'Division updated successfully.', 'success', 1500);
+                showFloatingAlert(response.message || 'Site updated successfully.', 'success', 1500);
                 loadDivisions();
                 setTimeout(function () {
                     var editDivisionModalEl =
@@ -607,7 +607,7 @@ $(document).ready(function () {
             },
             success: function (response) {
                 showLoader("delete", false);
-                showFloatingAlert(response.message || 'Division deleted successfully.', 'success', 1200);
+                showFloatingAlert(response.message || 'Site deleted successfully.', 'success', 1200);
                 $('#divisionTableBody tr[data-id="' + id + '"]').remove();
                 var deleteDivisionModalEl = document.getElementById(
                     "deleteDivisionModal"
@@ -655,7 +655,7 @@ $.ajax({
                             imageHtml =
                                 '<img src="' +
                                 division.image_url +
-                                '" alt="Division Image" class="table-image" />';
+                                '" alt="Site Image" class="table-image" />';
                         } else {
                             imageHtml = "";
                         }

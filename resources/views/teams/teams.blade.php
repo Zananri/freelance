@@ -3,7 +3,7 @@
         {{ 'teams' }}
     </x-slot>
     <x-slot name="head_stitle_slot">
-        {{ 'Teams' }}
+        {{ __('teams.teams') }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/teams.css?v'.time()) }}" rel="stylesheet">
@@ -15,7 +15,9 @@
                 <h2 class="text-title-content" >{{ __('teams.teams') }}</h2>
             </div>
             <div>
-                <input type="text" class="input-card-action search-query">
+                <input type="search" class="input-card-action search-query"
+                    placeholder="{{ __('teams.search_employee') }}"
+                    aria-label="{{ __('teams.search_employee') }}">
             </div>
         </div>
         
@@ -24,10 +26,10 @@
 
     <div class="teams-container">
 
-        @foreach ($division as $rowdivision)
-            <div class="card-division" data-division="{{ $rowdivision->name_division }}">
+        @foreach ($department as $rowDepartment)
+            <div class="card-department" data-department="{{ $rowDepartment->name_department }}">
                 <div class="box-card-title">
-                    <h3 class="text-card-title">{{ $rowdivision->name_division }}</h3>
+                    <h3 class="text-card-title">{{ $rowDepartment->name_department }}</h3>
                 </div>
 
                 <div class="box-employee">
@@ -35,7 +37,7 @@
                         
                         @foreach ($employee as $rowEmmployee)
                         
-                            @if ($rowEmmployee->division_id == $rowdivision->id)
+                            @if ($rowEmmployee->department_id == $rowDepartment->id)
 
                                 <div class="col-12 col-md-4 col-employee">
 
@@ -59,7 +61,10 @@
                                                     }
                                                     if(!$empAvatar) { $empAvatar = asset('asset/img/avatar.png'); }
                                                 @endphp
-                                                <img class="employee-photo rounded-circle" src="{{ $empAvatar }}" alt="{{ $rowEmmployee->name }}" data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}" onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
+                                                <img class="employee-photo rounded-circle" src="{{ $empAvatar }}"
+                                                    alt="{{ __('teams.employee_photo', ['name' => $rowEmmployee->name]) }}"
+                                                    data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}"
+                                                    onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
                                             </div>
                                             <div class="w-100">
                                                 <h4 class="employee-name">{{ $rowEmmployee->name }}</h4>
@@ -104,17 +109,21 @@
                     <div class="modal-body position-relative">
 
                         <div class="text-center mb-3">
-                            <button type="button" class="btn-close btn-sm float-end mt-2 me-1" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close btn-sm float-end mt-2 me-1"
+                                data-bs-dismiss="modal" aria-label="{{ __('general.close') }}"></button>
                         </div>
                         <div class="mb-4 p-4 pt-0">
 
                             <div class="box-user-photo text-center mb-3">
-                                <img class="employee-photo rounded-circle" src="{{ asset('asset/img/avatar.png') }}" alt="Employee" width="70" height="70" data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}" onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
+                                <img class="employee-photo rounded-circle" src="{{ asset('asset/img/avatar.png') }}"
+                                    alt="{{ __('teams.employee_detail') }}" width="70" height="70" data-global-avatar=""
+                                    data-default="{{ asset('asset/img/avatar.png') }}"
+                                    onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
                             </div>
 
                             <div class="text-center mb-4">
-                                <h3 class="employee-name">Employee Name</h3>
-                                <div class="employee-grade">Analist</div>
+                                <h3 class="employee-name">-</h3>
+                                <div class="employee-grade">-</div>
                             </div>
 
                             <div class="personal-info">

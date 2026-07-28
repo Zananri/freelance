@@ -171,6 +171,25 @@ $(document).ready(function() {
     const ctx = document.getElementById('attendanceChart');
     if (!ctx) return;
 
+    const attendanceLocale = document.documentElement.lang.toLowerCase().startsWith('id')
+        ? 'id-ID'
+        : 'en-US';
+    const attendanceText = attendanceLocale === 'id-ID'
+        ? {
+            days: 'Hari',
+            annualLeave: 'Cuti Tahunan',
+            sick: 'Sakit',
+            present: 'Hadir',
+            absent: 'Tidak Hadir'
+        }
+        : {
+            days: 'Days',
+            annualLeave: 'Annual Leave',
+            sick: 'Sick',
+            present: 'Present',
+            absent: 'Absent'
+        };
+
     const now = new Date();
     const month = String(now.getMonth() + 1);
     const year = String(now.getFullYear());
@@ -197,10 +216,10 @@ $(document).ready(function() {
     }
 
     function updateLegend(summary) {
-        if (dayEls.present) dayEls.present.textContent = summary.present + ' Days';
-        if (dayEls.sick) dayEls.sick.textContent = summary.sick + ' Days';
-        if (dayEls.annual_leave) dayEls.annual_leave.textContent = summary.annual_leave + ' Days';
-        if (dayEls.absent) dayEls.absent.textContent = summary.absent + ' Days';
+        if (dayEls.present) dayEls.present.textContent = summary.present + ' ' + attendanceText.days;
+        if (dayEls.sick) dayEls.sick.textContent = summary.sick + ' ' + attendanceText.days;
+        if (dayEls.annual_leave) dayEls.annual_leave.textContent = summary.annual_leave + ' ' + attendanceText.days;
+        if (dayEls.absent) dayEls.absent.textContent = summary.absent + ' ' + attendanceText.days;
     }
 
     function renderAttendanceChart(selectedMonth, selectedYear) {
@@ -243,7 +262,12 @@ $(document).ready(function() {
                 attendanceChartInstance = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Annual Leave', 'Sick', 'Present', 'Absent'],
+                        labels: [
+                            attendanceText.annualLeave,
+                            attendanceText.sick,
+                            attendanceText.present,
+                            attendanceText.absent
+                        ],
                         datasets: [{
                             data: chartData,
                             backgroundColor: [
@@ -270,7 +294,7 @@ $(document).ready(function() {
                             tooltip: {
                                 callbacks: {
                                     label: function(context) {
-                                        return `${context.label} : ${context.raw} Days`;
+                                        return `${context.label} : ${context.raw} ${attendanceText.days}`;
                                     }
                                 }
                             }

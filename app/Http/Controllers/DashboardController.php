@@ -439,7 +439,11 @@ class DashboardController extends Controller
             ->where('date_attendance', $rangeStart->addHours(2)->toDateString())
             ->first();
 
-        $todayDate = $rangeStart->format('l, j F Y');
+        $dashboardLocale = app()->isLocale('id') ? 'id' : 'en';
+        $todayDate = $rangeStart
+            ->copy()
+            ->locale($dashboardLocale)
+            ->translatedFormat('l, j F Y');
 
 
         $attendanceTrackingCheckins = collect();
@@ -538,4 +542,3 @@ class DashboardController extends Controller
         ));
     }
 }
-

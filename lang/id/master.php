@@ -8,6 +8,6 @@ return [
     'job' => 'Pekerjaan',
     'user' => 'Pengguna',
     'department' => 'Departemen',
-    'division' => 'Divisi',
+    'division' => 'Lokasi',
 ];
 

@@ -150,7 +150,7 @@
                                             data-bs-toggle="dropdown" aria-expanded="false">
 
                                             <div class="d-inline-flex align-items-center">
-                                                <span class="calendar-month">{{ date('F') }}</span>
+                                                <span class="calendar-month">{{ now()->locale(app()->getLocale())->translatedFormat('F') }}</span>
                                                 <span class="calendar-year">{{ date('Y') }}</span>
                                             </div>
 
@@ -161,7 +161,7 @@
                                                 <li data-month="{{ $monthNum }}"
                                                     class="dropdown-item month-item fs-14">
                                                     <div class="dropdown-item fs-14">
-                                                        {{ date('F', mktime(0, 0, 0, $monthNum, 1)) }}</div>
+                                                        {{ \Carbon\Carbon::create()->month($monthNum)->locale(app()->getLocale())->translatedFormat('F') }}</div>
                                                 </li>
                                             @endfor
 

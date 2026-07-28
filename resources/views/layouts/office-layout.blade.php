@@ -317,7 +317,7 @@
                             <li><a href="#"><span class="status-indicator active-project"></span> Project</a></li>
                             <li><a href="#"><span class="status-indicator active-project"></span> Task</a></li>
                             <li><a href="#"><span class="status-indicator active-project"></span> Department</a></li>
-                            <li><a href="#"><span class="status-indicator project-done"></span> Division</a></li>
+                            <li><a href="#"><span class="status-indicator project-done"></span> {{ __('general.site') }}</a></li>
                             <li><a href="#"><span class="status-indicator project-on-hold"></span> Grade</a></li>
                         </ul>
                     </li> --}}
@@ -612,6 +612,24 @@
 
 
     <script src="{{ asset('asset/js/jquery-3.7.1.min.js') }}"></script>
+    @php
+        $dropdownTranslations = [
+            'loading' => __('general.loading'),
+            'select_department' => __('general.select_department'),
+            'select_department_first' => __('general.select_department_first'),
+            'select_region' => __('general.select_region'),
+            'select_partner' => __('general.select_partner'),
+            'select_partner_first' => __('general.select_partner_first'),
+            'select_site' => __('general.select_site'),
+            'select_site_first' => __('general.select_site_first'),
+            'select_job' => __('general.select_job'),
+            'site' => __('general.site'),
+            'all_site' => __('general.all_site'),
+        ];
+    @endphp
+    <script>
+        window.dropdownTranslations = {{ Illuminate\Support\Js::from($dropdownTranslations) }};
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
         integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous">

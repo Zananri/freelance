@@ -9,7 +9,7 @@ return [
     'partner_not_assigned' => 'Partner not assigned',
     'site_not_assigned' => 'Site not assigned',
     'job' => 'Job',
-    'job_not_assigned' => 'Division not assigned',
+    'job_not_assigned' => 'Site not assigned',
     'address' => 'Address',
     'salary' => 'Salary',
     'payslip' => 'Payslip',

@@ -735,7 +735,7 @@ function startWidgetMonitoringPolling() {
 
     widgetMonitoringPollingTimer = setInterval(function () {
         loadDashboardMonitoringWidget(false);
-    }, 10000);
+    }, 7000);
 }
 
 $(document).on("change", "#widgetDepartmentFilter", function () {

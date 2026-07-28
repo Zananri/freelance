@@ -1584,6 +1584,18 @@ input[type="file"]::file-selector-button {
     gap: 44px 32px;
 }
 
+.chart-container {
+    width: 250px !important;
+    height: 250px !important;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 250px;
+}
+
+.chart-container #attendanceChart {
+    width: 100% !important;
+    height: 100% !important;
+}
+
 .present-container,
 .sick-container,
 .leave-container,
@@ -1674,6 +1686,26 @@ input[type="file"]::file-selector-button {
 
 .legend-container .rounded:hover {
     transform: translateY(-2px);
+}
+
+@media (max-width: 576px) {
+    .attendance-summary-content {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 24px;
+    }
+
+    .legend-container {
+        width: 100%;
+        gap: 12px;
+    }
+
+    .chart-container {
+        width: min(250px, 100%) !important;
+        height: auto !important;
+        flex: 0 0 auto;
+        align-self: center;
+    }
 }
 
 .dropdown-attendance .dropdown-item.active,

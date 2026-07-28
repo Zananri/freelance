@@ -37,22 +37,22 @@
                         <li class="mb-2">
                             <select class="form-select form-select-sm" id="filterTypeSelect"
                                 aria-label="Select filter type">
-                                <option value="" disabled selected>Select Filter Option</option>
-                                <option value="status">Filter by Status</option>
-                                <option value="department">Filter by Partner</option>
-                                <option value="division">Filter by Site</option>
+                                <option value="" disabled selected>{{ __('general.select_filter_option') }}</option>
+                                <option value="status">{{ __('general.filter_by_status') }}</option>
+                                <option value="department">{{ __('general.filter_by_partner') }}</option>
+                                <option value="division">{{ __('general.filter_by_site') }}</option>
                             </select>
                         </li>
                         <li id="statusFilterOptions" class="d-none">
-                            <a class="dropdown-item filter-option" href="#" data-status="ALL">All</a>
-                            <a class="dropdown-item filter-option" href="#" data-status="ACTIVE">Active</a>
-                            <a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a>
+                            <a class="dropdown-item filter-option" href="#" data-status="ALL">{{ __('general.all') }}</a>
+                            <a class="dropdown-item filter-option" href="#" data-status="ACTIVE">{{ __('general.active') }}</a>
+                            <a class="dropdown-item filter-option" href="#" data-status="INACTIVE">{{ __('general.inactive') }}</a>
                         </li>
                         <li id="departmentFilterOptions" class="d-none">
-                            <span class="dropdown-item text-muted">Loading partners...</span>
+                            <span class="dropdown-item text-muted">{{ __('general.loading_partners') }}</span>
                         </li>
                         <li id="divisionFilterOptions" class="d-none">
-                            <span class="dropdown-item text-muted">Loading sites...</span>
+                            <span class="dropdown-item text-muted">{{ __('general.loading_sites') }}</span>
                         </li>
                     </ul>
                 </div>
@@ -115,9 +115,9 @@
                     <div class="mb-3 custom-input">
                         <label for="status" class="form-label label-custom">Status</label>
                         <select id="status" name="status" class="form-select input-select" required>
-                            <option value="" disabled selected>Select Status</option>
-                            <option value="ACTIVE">Active</option>
-                            <option value="INACTIVE">Inactive</option>
+                            <option value="" disabled selected>{{ __('general.select_status') }}</option>
+                            <option value="ACTIVE">{{ __('general.active') }}</option>
+                            <option value="INACTIVE">{{ __('general.inactive') }}</option>
                         </select>
                     </div>
                     <div class="mb-3 custom-input">
@@ -165,9 +165,9 @@
                     <div class="mb-3 custom-input">
                         <label for="edit_status" class="form-label label-custom">Status</label>
                         <select id="edit_status" name="edit_status" class="form-select input-select" required>
-                            <option value="" disabled selected>Select Status</option>
-                            <option value="ACTIVE">Active</option>
-                            <option value="INACTIVE">Inactive</option>
+                            <option value="" disabled selected>{{ __('general.select_status') }}</option>
+                            <option value="ACTIVE">{{ __('general.active') }}</option>
+                            <option value="INACTIVE">{{ __('general.inactive') }}</option>
                         </select>
                     </div>
                     <div class="mb-3 custom-input">

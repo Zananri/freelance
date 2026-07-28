@@ -225,7 +225,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (user.employee?.division) {
                     divisionText = user.employee.division.name_division || "-";
                 }
-                $("#detailEmployeeDivision").text(divisionText ? `Division: ${divisionText}` : "");
+                $("#detailEmployeeDivision").text(divisionText ? `${((window.dropdownTranslations || {}).site || "Site")}: ${divisionText}` : "");
                 $("#btnResetPassword").data("id", user.id);
                 $("#userDetailModal").modal("show");
             },

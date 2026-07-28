@@ -186,7 +186,7 @@
                                     required
                                 >
                                     <option value="" disabled selected>
-                                        Select Department
+                                        {{ __('general.select_department') }}
                                     </option>
                                 </select>
 
@@ -216,7 +216,7 @@
                                     disabled
                                 >
                                     <option value="" disabled selected>
-                                        Select Department First
+                                        {{ __('general.select_department_first') }}
                                     </option>
                                 </select>
 
@@ -237,7 +237,7 @@
                                     required
                                 >
                                     <option value="" disabled selected>
-                                        Select Partner
+                                        {{ __('general.select_partner') }}
                                     </option>
                                 </select>
 
@@ -258,7 +258,7 @@
                                     required
                                 >
                                     <option value="" disabled selected>
-                                        Select Site
+                                        {{ __('general.select_site') }}
                                     </option>
                                 </select>
 
@@ -279,7 +279,7 @@
                                     required
                                 >
                                     <option value="" disabled selected>
-                                        Select Job
+                                        {{ __('general.select_job') }}
                                     </option>
                                 </select>
 
@@ -292,7 +292,7 @@
                                 <label for="grade_id" class="form-label">Grade</label>
                                 <select id="grade_id" name="grade_id" class="form-select input-select" required>
 
-                                    <option value="" disabled selected>Select Grade</option>
+                                    <option value="" disabled selected>{{ __('general.select_grade') }}</option>
 
                                     @php
                                         $gradeOptions = $grades ?? [];
@@ -316,7 +316,7 @@
                                 <label for="office" class="form-label">Office</label>
                                 <select id="office" name="office" class="form-select input-select" required>
 
-                                    <option value="" disabled selected>Select Office</option>
+                                    <option value="" disabled selected>{{ __('general.select_office') }}</option>
 
                                     @php
                                         $officeOptions = $offices ?? [];

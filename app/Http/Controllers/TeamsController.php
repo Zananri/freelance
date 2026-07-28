@@ -4,11 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 
-use App\Models\User;
 use App\Models\Employee;
 use App\Models\Department;
-use App\Models\Division;
-use App\Models\Job;
 use App\Helpers\ActivityHelper;
 
 class TeamsController extends Controller
@@ -18,7 +15,8 @@ class TeamsController extends Controller
     {
         $user = auth()->user();
         $userId = $user->id;
-        $isSuperadmin = strtoupper((string) ($user->user_type ?? '')) === 'SUPERADMIN';
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $isSuperadmin = $userType === 'SUPERADMIN';
 
         $currentEmployee = Employee::where('user_id', $userId)->first();
 
@@ -35,20 +33,27 @@ class TeamsController extends Controller
             'users.photo as user_photo', // fallback legacy user photo
             'job_list.job_name'
         )
-        ->join('job_list','employees.job_id','=','job_list.id')
-        ->join('users','employees.user_id','=','users.id')
-        ->where('employees.status',"ACTIVE")
-        ->where('users.user_type','<>',"ADMINISTRATOR")
-        ->when(!$isSuperadmin, fn ($query) => $query->where('employees.department_id', $currentEmployee?->department_id ?? 0))
-        ->get();
+            ->join('job_list', 'employees.job_id', '=', 'job_list.id')
+            ->join('users', 'employees.user_id', '=', 'users.id')
+            ->where('employees.status', "ACTIVE")
+            ->when(
+                $isSuperadmin,
+                fn ($query) => $query
+                    ->where('employees.user_id', '<>', $userId)
+                    ->whereNotIn('users.user_type', ['ADMIN', 'ADMINISTRATOR']),
+                fn ($query) => $query->where(
+                    'employees.department_id',
+                    $currentEmployee?->department_id ?? 0
+                )
+            )
+            ->orderBy('employees.name')
+            ->get();
 
-        $department = Department::where('status',"ACTIVE")
-            ->when(!$isSuperadmin, fn ($query) => $query->where('id', $currentEmployee?->department_id ?? 0))
+        $visibleDepartmentIds = $employee->pluck('department_id')->filter()->unique()->values();
+        $department = Department::where('status', "ACTIVE")
+            ->whereIn('id', $visibleDepartmentIds)
+            ->orderBy('name_department')
             ->get();
-        $division = Division::where('status',"ACTIVE")
-            ->when(!$isSuperadmin, fn ($query) => $query->where('department_id', $currentEmployee?->department_id ?? 0))
-            ->get();
-        $job = Job::where('status',"ACTIVE")->get();
 
         try {
             $user = auth()->user();
@@ -63,13 +68,12 @@ class TeamsController extends Controller
 
         return view('teams.teams',[
             'employee' => $employee,
-            'department' => $department,
-            'division' => $division,
-            'job' => $job
+            'department' => $department
         ]);
     }
 
-    public function getTeamsDetail(Request $request){
+    public function getTeamsDetail(Request $request)
+    {
         $user = auth()->user();
         $currentEmployee = $user?->employee;
         $isSuperadmin = strtoupper((string) ($user?->user_type ?? '')) === 'SUPERADMIN';
@@ -83,14 +87,29 @@ class TeamsController extends Controller
         $employee = Employee::with('division', 'department', 'job','grade','user')
             ->where('status',"ACTIVE")
             ->where('id', $idEmployee)
-            ->when(!$isSuperadmin, fn ($query) => $query->where('department_id', $currentEmployee?->department_id ?? 0))
+            ->when(
+                $isSuperadmin,
+                fn ($query) => $query
+                    ->where('user_id', '<>', $user->id)
+                    ->whereHas(
+                        'user',
+                        fn ($userQuery) => $userQuery->whereNotIn(
+                            'user_type',
+                            ['ADMIN', 'ADMINISTRATOR']
+                        )
+                    ),
+                fn ($query) => $query->where(
+                    'department_id',
+                    $currentEmployee?->department_id ?? 0
+                )
+            )
             ->first();
 
         if(!$employee){
             return response()->json([
                 'code' => 406,
                 'status' => "error",
-                'message'=> 'Employee not found '.$idEmployee
+                'message'=> __('teams.employee_not_found')
             ], 406);
         }
 

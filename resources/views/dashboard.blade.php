@@ -1,4 +1,8 @@
 <x-office-layout>
+    @php
+        $dashboardLocale = app()->isLocale('id') ? 'id' : 'en';
+    @endphp
+
     <x-slot name="menu_active">
         {{ 'dashboard' }}
     </x-slot>
@@ -158,7 +162,9 @@
                                                         type="button" data-bs-toggle="dropdown" aria-expanded="false">
 
                                                         <div class="d-inline-flex align-items-center">
-                                                            <span class="calendar-month">{{ date('F') }}</span>
+                                                            <span class="calendar-month">
+                                                                {{ now()->locale($dashboardLocale)->translatedFormat('F') }}
+                                                            </span>
                                                             <span class="calendar-year">{{ date('Y') }}</span>
                                                         </div>
 
@@ -169,7 +175,9 @@
                                                             <li data-month="{{ $monthNum }}"
                                                                 class="dropdown-item month-item fs-14">
                                                                 <div class="dropdown-item fs-14">
-                                                                    {{ date('F', mktime(0, 0, 0, $monthNum, 1)) }}
+                                                                    {{ \Carbon\Carbon::create(null, $monthNum, 1)
+                                                                        ->locale($dashboardLocale)
+                                                                        ->translatedFormat('F') }}
                                                                 </div>
                                                             </li>
                                                         @endfor
@@ -246,7 +254,9 @@
                                         data-selected-year="{{ now()->format('Y') }}">
                                         <span
                                             class="material-symbols-outlined attendance-month-icon">calendar_month</span>
-                                        <span id="attendanceMonthDropdownLabel">{{ now()->format('F Y') }}</span>
+                                        <span id="attendanceMonthDropdownLabel">
+                                            {{ now()->locale($dashboardLocale)->translatedFormat('F Y') }}
+                                        </span>
                                     </button>
                                     <ul class="dropdown-menu attendance-month-menu"
                                         aria-labelledby="attendanceMonthDropdown">
@@ -259,7 +269,7 @@
                                                 $months[] = [
                                                     'month' => (int) $d->format('n'),
                                                     'year' => (int) $d->format('Y'),
-                                                    'label' => $d->format('F Y'),
+                                                    'label' => $d->locale($dashboardLocale)->translatedFormat('F Y'),
                                                 ];
                                             }
                                         @endphp
@@ -281,7 +291,7 @@
                             </div>
 
 
-                            <div class="d-flex align-items-center justify-content-between">
+                            <div class="attendance-summary-content d-flex align-items-center justify-content-between">
                             <div class="legend-container">
                                     <div class="present-container rounded">
                                         <p class="attendance-status">{{ __('general.present') }}</p>

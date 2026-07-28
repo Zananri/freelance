@@ -57,7 +57,7 @@ return [
         'number' => 'No',
         'employee_name' => 'EMPLOYEE NAME',
         'department' => 'Department',
-        'division' => 'Division',
+        'division' => 'Site',
         'job_position' => 'Job Position',
         'grade_rank' => 'Grade/Rank',
         'join_date' => 'Join Date',

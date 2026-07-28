@@ -1,5 +1,9 @@
 var appUrl = $('meta[name="app-url"]').attr("content");
 var regionsUrl = appUrl + "/employee/regions";
+var dropdownText = window.dropdownTranslations || {};
+var dropdownLabel = function (key, fallback) {
+    return dropdownText[key] || fallback;
+};
 
 $(function () {
     var $partnerSelect = $("#department_id");
@@ -55,7 +59,7 @@ $(function () {
             type: "GET",
             dataType: "json",
             success: function (data) {
-                var options = '<option value="" disabled selected>Select Department</option>';
+                var options = '<option value="" disabled selected>' + dropdownLabel("select_department", "Select Department") + '</option>';
                 (data.data || [])
                     .filter(function (dept) {
                         return !isSuperadminName(dept.name_department || dept.name);
@@ -85,7 +89,7 @@ $(function () {
         var departmentId = $businessDepartmentSelect.val();
 
         if (!departmentId) {
-            $regionSelect.html('<option value="" disabled selected>Select Department First</option>');
+            $regionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_department_first", "Select Department First") + '</option>');
             $regionSelect.prop("disabled", true);
             return;
         }
@@ -101,7 +105,7 @@ $(function () {
             },
             dataType: "json",
             success: function (data) {
-                var options = '<option value="" disabled selected>Select Region</option>';
+                var options = '<option value="" disabled selected>' + dropdownLabel("select_region", "Select Region") + '</option>';
                 (data.data || []).forEach(function (region) {
                     var selected = selectedRegion && String(selectedRegion) === String(region) ? "selected" : "";
                     options += '<option value="' + region + '" ' + selected + ">" + region + "</option>";
@@ -113,7 +117,7 @@ $(function () {
                 }
             },
             error: function () {
-                $regionSelect.html('<option value="" disabled selected>Select Region</option>');
+                $regionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_region", "Select Region") + '</option>');
                 $regionSelect.prop("disabled", false);
                 showFloatingAlert("Failed to load regions.", "warning", 3000);
             },
@@ -136,7 +140,7 @@ $(function () {
             },
             dataType: "json",
             success: function (data) {
-                var options = '<option value="" disabled selected>Select Partner</option>';
+                var options = '<option value="" disabled selected>' + dropdownLabel("select_partner", "Select Partner") + '</option>';
                 (data.data || [])
                     .filter(function (dept) {
                         var name = dept.name_department || dept.name;
@@ -164,14 +168,14 @@ $(function () {
         $divisionSelect.html('<option value="" disabled selected>Loading...</option>');
 
         if (!departmentId) {
-            $divisionSelect.html('<option value="" disabled selected>Select Department</option>');
-            $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+            $divisionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_department", "Select Department") + '</option>');
+            $jobSelect.html('<option value="" disabled selected>' + dropdownLabel("select_job", "Select Job") + '</option>');
             return;
         }
 
         if (!partnerId) {
-            $divisionSelect.html('<option value="" disabled selected>Select Partner</option>');
-            $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+            $divisionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_partner", "Select Partner") + '</option>');
+            $jobSelect.html('<option value="" disabled selected>' + dropdownLabel("select_job", "Select Job") + '</option>');
             return;
         }
 
@@ -186,7 +190,7 @@ $(function () {
             },
             dataType: "json",
             success: function (data) {
-                var options = '<option value="" disabled selected>Select Site</option>';
+                var options = '<option value="" disabled selected>' + dropdownLabel("select_site", "Select Site") + '</option>';
                 var divisions = data.data || [];
 
                 divisions
@@ -208,12 +212,12 @@ $(function () {
                     $divisionSelect.val(String(selectedDivisionId));
                 }
 
-                $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+                $jobSelect.html('<option value="" disabled selected>' + dropdownLabel("select_job", "Select Job") + '</option>');
                 loadJobsByDepartment();
             },
             error: function () {
-                $divisionSelect.html('<option value="" disabled selected>Select Site</option>');
-                $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+                $divisionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_site", "Select Site") + '</option>');
+                $jobSelect.html('<option value="" disabled selected>' + dropdownLabel("select_job", "Select Job") + '</option>');
                 showFloatingAlert("Failed to load sites.", "warning", 3000);
             },
         });
@@ -231,7 +235,7 @@ $(function () {
         $jobSelect.html('<option value="" disabled selected>Loading...</option>');
 
         if (!departmentId || !partnerId || !divisionId) {
-            $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+            $jobSelect.html('<option value="" disabled selected>' + dropdownLabel("select_job", "Select Job") + '</option>');
             return;
         }
 
@@ -247,7 +251,7 @@ $(function () {
             },
             dataType: "json",
             success: function (data) {
-                var options = '<option value="" disabled selected>Select Job</option>';
+                var options = '<option value="" disabled selected>' + dropdownLabel("select_job", "Select Job") + '</option>';
                 (data.data || [])
                     .filter(function (job) {
                         var name = job.job_name || job.name;
@@ -274,23 +278,23 @@ $(function () {
 
         $partnerSelect.on("change", function () {
             loadDivisionsByDepartment();
-            $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+            $jobSelect.html('<option value="" disabled selected>' + dropdownLabel("select_job", "Select Job") + '</option>');
         });
 
         if ($businessDepartmentSelect.length) {
             $businessDepartmentSelect.on("change", function () {
                 loadRegions();
                 loadPartners();
-                $divisionSelect.html('<option value="" disabled selected>Select Site</option>');
-                $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+                $divisionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_site", "Select Site") + '</option>');
+                $jobSelect.html('<option value="" disabled selected>' + dropdownLabel("select_job", "Select Job") + '</option>');
             });
         }
 
         if ($regionSelect.length) {
             $regionSelect.on("change", function () {
                 loadPartners();
-                $divisionSelect.html('<option value="" disabled selected>Select Site</option>');
-                $jobSelect.html('<option value="" disabled selected>Select Job</option>');
+                $divisionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_site", "Select Site") + '</option>');
+                $jobSelect.html('<option value="" disabled selected>' + dropdownLabel("select_job", "Select Job") + '</option>');
             });
         }
 

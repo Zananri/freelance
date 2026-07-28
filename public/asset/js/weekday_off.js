@@ -206,7 +206,7 @@ $('.department-item').on('click', function () {
     $('.col-dropdown-department .title-dropdown').text(departmentName);
 
     $('.col-dropdown-division').attr('data-division-id', 0);
-    $('.col-dropdown-division .title-dropdown').text('All Division');
+    $('.col-dropdown-division .title-dropdown').text((window.dropdownTranslations || {}).all_site || 'All Site');
 
     $('.division-item').addClass('d-none');
     $(`.division-item[data-department-id="${departmentId}"]`).removeClass('d-none');
@@ -239,7 +239,7 @@ function setDefaultDropdown() {
 
     $('.col-dropdown-division').attr('data-department-id', departmentId);
     $('.col-dropdown-division').attr('data-division-id', 0);
-    $('.col-dropdown-division .title-dropdown').text('All Division');
+    $('.col-dropdown-division .title-dropdown').text((window.dropdownTranslations || {}).all_site || 'All Site');
 
     $('.division-item').addClass('d-none');
     $(`.division-item[data-department-id="${departmentId}"]`).removeClass('d-none');

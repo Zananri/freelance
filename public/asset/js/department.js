@@ -83,7 +83,7 @@ function loadPartnerOptions(selectedDepartmentId, selectedOfficeId, isEdit) {
             const departments = data.departments || [];
             const offices = data.offices || [];
 
-            let departmentOptions = '<option value="" disabled selected>Select Department</option>';
+            let departmentOptions = '<option value="" disabled selected>' + ((window.dropdownTranslations || {}).select_department || 'Select Department') + '</option>';
             departments.forEach((item) => {
                 departmentOptions += '<option value="' + item.id + '">' + item.name_department + '</option>';
             });

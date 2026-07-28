@@ -36,18 +36,18 @@
                         <li class="mb-3">
                             <select class="form-select form-select-sm" id="filterTypeSelect"
                                 aria-label="Select filter type">
-                                <option value="" disabled selected>Select Filter Option</option>
-                                <option value="status">Filter by Status</option>
-                                <option value="department">Filter by Partner</option>
+                                <option value="" disabled selected>{{ __('general.select_filter_option') }}</option>
+                                <option value="status">{{ __('general.filter_by_status') }}</option>
+                                <option value="department">{{ __('general.filter_by_partner') }}</option>
                             </select>
                         </li>
                         <li id="statusFilterOptions" class="d-none">
-                            <a class="dropdown-item filter-option" href="#" data-status="ALL">All</a>
-                            <a class="dropdown-item filter-option" href="#" data-status="ACTIVE">Active</a>
-                            <a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a>
+                            <a class="dropdown-item filter-option" href="#" data-status="ALL">{{ __('general.all') }}</a>
+                            <a class="dropdown-item filter-option" href="#" data-status="ACTIVE">{{ __('general.active') }}</a>
+                            <a class="dropdown-item filter-option" href="#" data-status="INACTIVE">{{ __('general.inactive') }}</a>
                         </li>
                         <li id="departmentFilterOptions" class="d-none">
-                            <span class="dropdown-item text-muted">Loading partners...</span>
+                            <span class="dropdown-item text-muted">{{ __('general.loading_partners') }}</span>
                         </li>
                     </ul>
                 </div>
@@ -100,7 +100,7 @@
                             <label for="department_id" class="form-label label-custom">Partner</label>
                             <select class="form-select input-select" id="department_id" name="department_id"
                                 required>
-                                <option value="" disabled selected>Select Partner</option>
+                                <option value="" disabled selected>{{ __('general.select_partner') }}</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a partner.
@@ -117,9 +117,9 @@
                         <div class="mb-3 custom-input">
                             <label for="status" class="form-label label-custom">Status</label>
                             <select class="form-select input-select" id="status" name="status" required>
-                                <option value="" disabled selected>Select Status</option>
-                                <option value="ACTIVE">Active</option>
-                                <option value="INACTIVE">Inactive</option>
+                                <option value="" disabled selected>{{ __('general.select_status') }}</option>
+                                <option value="ACTIVE">{{ __('general.active') }}</option>
+                                <option value="INACTIVE">{{ __('general.inactive') }}</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a status.
@@ -177,7 +177,7 @@
                             <label for="edit_department_id" class="form-label label-custom">Partner</label>
                             <select class="form-select input-select" id="edit_department_id" name="department_id"
                                 required>
-                                <option value="" disabled selected>Select Partner</option>
+                                <option value="" disabled selected>{{ __('general.select_partner') }}</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a partner.
@@ -194,8 +194,8 @@
                         <div class="mb-3 custom-input">
                             <label for="edit_status" class="form-label label-custom">Status</label>
                             <select class="form-select input-select" id="edit_status" name="status" required>
-                                <option value="ACTIVE">Active</option>
-                                <option value="INACTIVE">Inactive</option>
+                                <option value="ACTIVE">{{ __('general.active') }}</option>
+                                <option value="INACTIVE">{{ __('general.inactive') }}</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a status.
@@ -246,7 +246,7 @@
                     <div class="loader-spinner"></div>
                 </div>
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom mb-3" id="deleteDivisionModalLabel">Delete Division</h5>
+                    <h5 class="modal-title modal-title-custom mb-3" id="deleteDivisionModalLabel">Delete {{ __('general.site') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="deleteDivisionForm" class="form-custom">
@@ -259,7 +259,7 @@
                                 name="department_name" readonly disabled />
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="delete_name_division" class="form-label label-custom">Division Name</label>
+                            <label for="delete_name_division" class="form-label label-custom">{{ __('general.site') }}</label>
                             <input type="text" class="form-control input-text" id="delete_name_division"
                                 name="name_division" readonly disabled />
                         </div>

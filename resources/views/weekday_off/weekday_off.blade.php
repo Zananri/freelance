@@ -66,7 +66,7 @@
                                             </div>
 
                                             <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                                                <li data-department-id="0" data-division-id="0" data-division-name="All Division" class="dropdown-item division-item fs-14">
+                                                <li data-department-id="0" data-division-id="0" data-division-name="{{ __('general.all_site') }}" class="dropdown-item division-item fs-14">
                                                     <div class="dropdown-item fs-14">{{ __('general.all_site') }}</div>
                                                 </li>
                                                 @foreach ($division as $itemDivision)

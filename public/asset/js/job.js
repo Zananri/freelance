@@ -4,6 +4,7 @@ var selectedStatus = "ALL";
 
 var selectedDepartmentId = "";
 var selectedDivisionId = "";
+var jobDropdownText = window.dropdownTranslations || {};
 var selectedFilterType = "";
 
 var editJobModal = new bootstrap.Modal(document.getElementById("editJobModal"));
@@ -55,7 +56,7 @@ function loadDepartmentsDropdown(
         success: function (response) {
             var departments = response.data;
             var options =
-                '<option value="" disabled selected>Select Department</option>';
+                '<option value="" disabled selected>' + (jobDropdownText.select_department || 'Select Department') + '</option>';
             $.each(departments, function (index, department) {
                 options +=
                     '<option value="' +
@@ -84,7 +85,7 @@ function loadDivisionsDropdown(
 ) {
     if (!departmentId) {
         $(selector).html(
-            '<option value="" disabled selected>Select Division</option>'
+            '<option value="" disabled selected>' + (jobDropdownText.select_site || 'Select Site') + '</option>'
         );
         return;
     }
@@ -95,7 +96,7 @@ function loadDivisionsDropdown(
         success: function (response) {
             var divisions = response.data;
             var options =
-                '<option value="" disabled selected>Select Division</option>';
+                '<option value="" disabled selected>' + (jobDropdownText.select_site || 'Select Site') + '</option>';
             $.each(divisions, function (index, division) {
                 options +=
                     '<option value="' +
@@ -165,7 +166,7 @@ function loadDivisionsForFilter(departmentId) {
         success: function (response) {
             var divisions = response.data;
             var menuHtml =
-                '<a class="dropdown-item division-filter-option active" href="#" data-division="">All Divisions</a>';
+                '<a class="dropdown-item division-filter-option active" href="#" data-division="">' + (jobDropdownText.all_site || 'All Site') + '</a>';
             $.each(divisions, function (index, division) {
                 menuHtml +=
                     '<a class="dropdown-item division-filter-option" href="#" data-division="' +
@@ -287,7 +288,7 @@ $(document).ready(function () {
                     success: function (response) {
                         var departments = response.data;
                         var menuHtml =
-                            '<a class="dropdown-item department-filter-option disabled selected" href="#" data-department="">Select Department</a>';
+                            '<a class="dropdown-item department-filter-option disabled selected" href="#" data-department="">' + (jobDropdownText.select_department || 'Select Department') + '</a>';
                         $.each(departments, function (index, department) {
                             menuHtml +=
                                 '<a class="dropdown-item department-filter-option" href="#" data-department="' +
@@ -316,7 +317,7 @@ $(document).ready(function () {
                     success: function (response) {
                         var departments = response.data;
                         var menuHtml =
-                            '<a class="dropdown-item department-filter-option disabled selected" href="#" data-department="">Select Department</a>';
+                            '<a class="dropdown-item department-filter-option disabled selected" href="#" data-department="">' + (jobDropdownText.select_department || 'Select Department') + '</a>';
                         $.each(departments, function (index, department) {
                             menuHtml +=
                                 '<a class="dropdown-item department-filter-option" href="#" data-department="' +
@@ -397,7 +398,7 @@ $(document).ready(function () {
             $("#department_id").val("");
             // Reset division dropdown to default
             $("#division_id").html(
-                '<option value="" disabled selected>Select Division</option>'
+                '<option value="" disabled selected>' + (jobDropdownText.select_site || 'Select Site') + '</option>'
             );
         });
         addJobModal.show();

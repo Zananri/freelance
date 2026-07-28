@@ -33,9 +33,9 @@
                         <span class="material-symbols-outlined icon">filter_list</span> <span class="btn-text">Filter</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-filter" aria-labelledby="filterDropdown" style="min-width: 150px;">
-                        <li><a class="dropdown-item filter-option active" href="#" data-status="ALL">All</a></li>
-                        <li><a class="dropdown-item filter-option" href="#" data-status="ACTIVE">Active</a></li>
-                        <li><a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a>
+                        <li><a class="dropdown-item filter-option active" href="#" data-status="ALL">{{ __('general.all') }}</a></li>
+                        <li><a class="dropdown-item filter-option" href="#" data-status="ACTIVE">{{ __('general.active') }}</a></li>
+                        <li><a class="dropdown-item filter-option" href="#" data-status="INACTIVE">{{ __('general.inactive') }}</a>
                         </li>
                     </ul>
                 </div>
@@ -93,7 +93,7 @@
                         <div class="mb-3 custom-input">
                             <label for="department_id" class="form-label label-custom">Department</label>
                             <select class="form-select input-select" id="department_id" name="department_id" required>
-                                <option value="" disabled selected>Select Department</option>
+                                <option value="" disabled selected>{{ __('general.select_department') }}</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a department.
@@ -102,7 +102,7 @@
                         <div class="mb-3 custom-input">
                             <label for="office_id" class="form-label label-custom">Wilayah</label>
                             <select class="form-select input-select" id="office_id" name="office_id" required>
-                                <option value="" disabled selected>Select Wilayah</option>
+                                <option value="" disabled selected>{{ __('general.select_region') }}</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select wilayah.
@@ -111,9 +111,9 @@
                         <div class="mb-3 custom-input">
                             <label for="status" class="form-label label-custom">Status</label>
                             <select class="form-select input-select" id="status" name="status" required>
-                                <option value="" disabled selected>Select Status</option>
-                                <option value="ACTIVE">Active</option>
-                                <option value="INACTIVE">Inactive</option>
+                                <option value="" disabled selected>{{ __('general.select_status') }}</option>
+                                <option value="ACTIVE">{{ __('general.active') }}</option>
+                                <option value="INACTIVE">{{ __('general.inactive') }}</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a status.
@@ -177,7 +177,7 @@
                         <div class="mb-3 custom-input">
                             <label for="edit_department_id" class="form-label label-custom">Department</label>
                             <select class="form-select input-select" id="edit_department_id" name="department_id" required>
-                                <option value="" disabled selected>Select Department</option>
+                                <option value="" disabled selected>{{ __('general.select_department') }}</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a department.
@@ -186,7 +186,7 @@
                         <div class="mb-3 custom-input">
                             <label for="edit_office_id" class="form-label label-custom">Wilayah</label>
                             <select class="form-select input-select" id="edit_office_id" name="office_id" required>
-                                <option value="" disabled selected>Select Wilayah</option>
+                                <option value="" disabled selected>{{ __('general.select_region') }}</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select wilayah.
@@ -195,8 +195,8 @@
                         <div class="mb-3 custom-input">
                             <label for="edit_status" class="form-label label-custom">Status</label>
                             <select class="form-select input-select" id="edit_status" name="status" required>
-                                <option value="ACTIVE">Active</option>
-                                <option value="INACTIVE">Inactive</option>
+                                <option value="ACTIVE">{{ __('general.active') }}</option>
+                                <option value="INACTIVE">{{ __('general.inactive') }}</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a status.

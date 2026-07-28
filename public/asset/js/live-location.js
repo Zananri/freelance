@@ -7,7 +7,7 @@
     const csrfToken =
         document.querySelector('meta[name="csrf-token"]')?.content || "";
 
-    const UPDATE_INTERVAL_MS = 10000;
+    const UPDATE_INTERVAL_MS = 7000;
     const STATUS_INTERVAL_MS = 60000;
     const GEOLOCATION_OPTIONS = {
         enableHighAccuracy: true,
