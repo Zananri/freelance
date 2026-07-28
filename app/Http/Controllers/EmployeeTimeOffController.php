@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 use Carbon\Carbon;
 
@@ -53,8 +54,10 @@ class EmployeeTimeOffController extends Controller
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after_or_equal:start_date',
 
-                'file_1' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
+                'file_1' => 'required_unless:leave_type,ANNUAL_LEAVE|nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
                 'file_2' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
+                'contact_phone' => 'required_if:leave_type,ANNUAL_LEAVE|nullable|string|max:20',
+                'signature_data' => ['required_if:leave_type,ANNUAL_LEAVE', 'nullable', 'string', 'regex:/^data:image\/png;base64,[A-Za-z0-9+\/=]+$/'],
             ]);
 
 
@@ -82,7 +85,18 @@ class EmployeeTimeOffController extends Controller
 
             if (!file_exists($destinationPath)) { mkdir($destinationPath, 0777, true); }
 
-            if ($request->hasFile('file_1')) {
+            if ($request->leave_type === 'ANNUAL_LEAVE') {
+                $file1 = $this->generateAnnualLeaveForm(
+                    $employee,
+                    $startDate,
+                    $endDate,
+                    $dayAmount,
+                    $request->description,
+                    $request->contact_phone,
+                    $request->signature_data,
+                    $destinationPath
+                );
+            } elseif ($request->hasFile('file_1')) {
 
                 $reqFile1 = $request->file('file_1');
                 $file1Extension = $reqFile1->getClientOriginalExtension();
@@ -234,6 +248,8 @@ class EmployeeTimeOffController extends Controller
 
                 'file_1' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
                 'file_2' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
+                'contact_phone' => 'required_if:leave_type,ANNUAL_LEAVE|nullable|string|max:20',
+                'signature_data' => ['required_if:leave_type,ANNUAL_LEAVE', 'nullable', 'string', 'regex:/^data:image\/png;base64,[A-Za-z0-9+\/=]+$/'],
             ]);
 
 
@@ -286,7 +302,23 @@ class EmployeeTimeOffController extends Controller
 
             if (!file_exists($destinationPath)) { mkdir($destinationPath, 0777, true); }
 
-            if ($request->hasFile('file_1')) {
+            if ($request->leave_type === 'ANNUAL_LEAVE') {
+                $oldGeneratedForm = $file1;
+                $file1 = $this->generateAnnualLeaveForm(
+                    $employee,
+                    $startDate,
+                    $endDate,
+                    $dayAmount,
+                    $request->description,
+                    $request->contact_phone,
+                    $request->signature_data,
+                    $destinationPath
+                );
+
+                if ($oldGeneratedForm && file_exists(public_path($oldGeneratedForm))) {
+                    @unlink(public_path($oldGeneratedForm));
+                }
+            } elseif ($request->hasFile('file_1')) {
 
                 $reqFile1 = $request->file('file_1');
                 $file1Extension = $reqFile1->getClientOriginalExtension();
@@ -361,6 +393,39 @@ class EmployeeTimeOffController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function generateAnnualLeaveForm(
+        Employee $employee,
+        Carbon $startDate,
+        Carbon $endDate,
+        int $dayAmount,
+        string $reason,
+        string $contactPhone,
+        string $signatureData,
+        string $destinationPath
+    ): string {
+        $employee->loadMissing(['job', 'division', 'department']);
+
+        $fileName = sprintf(
+            'ANNUAL_LEAVE_FORM_%d_%s_%s.pdf',
+            $employee->id,
+            now()->format('YmdHis'),
+            bin2hex(random_bytes(3))
+        );
+
+        Pdf::loadView('pdf.annual_leave_form', [
+            'employee' => $employee,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'dayAmount' => $dayAmount,
+            'reason' => $reason,
+            'contactPhone' => $contactPhone,
+            'signatureData' => $signatureData,
+            'submittedAt' => now(),
+        ])->setPaper('a4')->save($destinationPath . DIRECTORY_SEPARATOR . $fileName);
+
+        return 'file/leave_request/' . $fileName;
     }
 
     public function deleteTimeOff(Request $request){

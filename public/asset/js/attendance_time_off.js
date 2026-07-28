@@ -16,6 +16,139 @@ const deleteTimeOffModal = new bootstrap.Modal('#deleteTimeOffModal', {
 const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
+const leaveSignaturePads = {};
+
+function setupLeaveSignaturePad(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || leaveSignaturePads[canvasId]) return;
+
+    const context = canvas.getContext('2d');
+    let drawing = false;
+    let hasSignature = false;
+
+    function resizeCanvas() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.max(1, Math.round(rect.width * ratio));
+        canvas.height = Math.max(1, Math.round(rect.height * ratio));
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.lineWidth = 2;
+        context.strokeStyle = '#172033';
+        hasSignature = false;
+        updateSignatureValue();
+    }
+
+    function pointFromEvent(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top,
+        };
+    }
+
+    function updateSignatureValue() {
+        const form = canvas.closest('form');
+        const hiddenInput = form.querySelector('[name="signature_data"]');
+        if (hiddenInput) {
+            hiddenInput.value = hasSignature ? canvas.toDataURL('image/png') : '';
+        }
+        const error = canvas.closest('.annual-leave-form-box').querySelector('.signature-error');
+        if (error) error.classList.toggle('d-none', hasSignature);
+    }
+
+    canvas.addEventListener('pointerdown', function (event) {
+        event.preventDefault();
+        drawing = true;
+        hasSignature = true;
+        const point = pointFromEvent(event);
+        context.beginPath();
+        context.moveTo(point.x, point.y);
+        if (canvas.setPointerCapture) canvas.setPointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', function (event) {
+        if (!drawing) return;
+        event.preventDefault();
+        const point = pointFromEvent(event);
+        context.lineTo(point.x, point.y);
+        context.stroke();
+    });
+
+    function stopDrawing(event) {
+        if (!drawing) return;
+        drawing = false;
+        if (event && canvas.releasePointerCapture && canvas.hasPointerCapture(event.pointerId)) {
+            canvas.releasePointerCapture(event.pointerId);
+        }
+        updateSignatureValue();
+    }
+
+    canvas.addEventListener('pointerup', stopDrawing);
+    canvas.addEventListener('pointercancel', stopDrawing);
+    canvas.addEventListener('pointerleave', stopDrawing);
+
+    leaveSignaturePads[canvasId] = {
+        clear: function () {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            hasSignature = false;
+            updateSignatureValue();
+        },
+        resize: resizeCanvas,
+    };
+
+    resizeCanvas();
+}
+
+function syncAnnualLeaveForm(formSelector) {
+    const form = $(formSelector);
+    const isAnnualLeave = form.find('[name="leave_type"]').val() === 'ANNUAL_LEAVE';
+    form.find('.annual-leave-form-box').toggleClass('d-none', !isAnnualLeave);
+    form.find('.manual-leave-file').toggleClass('d-none', isAnnualLeave);
+    form.find('[name="file_1"]').attr('attr-validation', isAnnualLeave ? null : 'required');
+}
+
+function validateAnnualLeaveForm(formSelector) {
+    const form = $(formSelector);
+    if (form.find('[name="leave_type"]').val() !== 'ANNUAL_LEAVE') return true;
+
+    const phone = form.find('[name="contact_phone"]');
+    const signature = form.find('[name="signature_data"]');
+    const signatureError = form.find('.signature-error');
+    const phoneValid = String(phone.val() || '').trim() !== '';
+    const signatureValid = String(signature.val() || '') !== '';
+
+    phone.toggleClass('is-invalid', !phoneValid);
+    signatureError.toggleClass('d-none', signatureValid);
+
+    return phoneValid && signatureValid;
+}
+
+$(document).on('click', '.clear-signature', function () {
+    const pad = leaveSignaturePads[$(this).data('target')];
+    if (pad) pad.clear();
+});
+
+$('#requestTimeOffModal, #editTimeOffModal').on('shown.bs.modal', function () {
+    const canvasId = this.id === 'requestTimeOffModal'
+        ? 'annual-leave-signature-pad'
+        : 'annual-leave-signature-pad-edit';
+    setupLeaveSignaturePad(canvasId);
+    leaveSignaturePads[canvasId].resize();
+});
+
+$('#form-request-time-off [name="leave_type"]').on('change', function () {
+    syncAnnualLeaveForm('#form-request-time-off');
+});
+
+$('#form-edit-time-off [name="leave_type"]').on('change', function () {
+    syncAnnualLeaveForm('#form-edit-time-off');
+});
+
+syncAnnualLeaveForm('#form-request-time-off');
+syncAnnualLeaveForm('#form-edit-time-off');
+
 function capitalizeFirstLetter(str) {
     const formattedStr = str
     .toLowerCase()
@@ -246,7 +379,7 @@ function validationFormRequestTimeOff(){
     });
 
 
-    if($('#form-request-time-off [attr-validation="required"]').hasClass('is-invalid')){
+    if($('#form-request-time-off [attr-validation="required"]').hasClass('is-invalid') || !validateAnnualLeaveForm('#form-request-time-off')){
         return false;
     }else{
         return true;
@@ -301,6 +434,12 @@ function setFormEditValue(rowItem){
     $('#form-edit-time-off [name="description"]').val(rowItem.reason);
     $('#form-edit-time-off [name="start_date"]').val(rowItem.start_date);
     $('#form-edit-time-off [name="end_date"]').val(rowItem.end_date);    
+    $('#form-edit-time-off [name="contact_phone"]').val(
+        $('#form-edit-time-off [name="contact_phone"]').data('default-phone') || ''
+    );
+    const editSignaturePad = leaveSignaturePads['annual-leave-signature-pad-edit'];
+    if (editSignaturePad) editSignaturePad.clear();
+    syncAnnualLeaveForm('#form-edit-time-off');
     $('#form-edit-time-off .pill-file-1').addClass('d-none');
     $('#form-edit-time-off .pill-file-2').addClass('d-none');
 
@@ -330,7 +469,7 @@ function validationFormEditTimeOff(){
     });
 
 
-    if($('#form-edit-time-off [attr-validation="required"]').hasClass('is-invalid')){
+    if($('#form-edit-time-off [attr-validation="required"]').hasClass('is-invalid') || !validateAnnualLeaveForm('#form-edit-time-off')){
         return false;
     }else{
         return true;

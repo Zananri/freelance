@@ -918,3 +918,36 @@ input[type="file"]::file-selector-button {
     object-fit: cover;
     margin-right: 15px;
 }
+.annual-leave-form-box {
+    background: linear-gradient(145deg, rgba(23, 155, 255, 0.08), rgba(255, 255, 255, 0.72));
+    border: 1px solid rgba(23, 155, 255, 0.24);
+    border-radius: 14px;
+    padding: 16px;
+}
+
+.signature-pad-wrap {
+    background: #fff;
+    border: 1px dashed #9aa9bc;
+    border-radius: 12px;
+    height: 150px;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.signature-pad {
+    cursor: crosshair;
+    display: block;
+    height: 100%;
+    touch-action: none;
+    width: 100%;
+}
+
+@media (max-width: 575.98px) {
+    .annual-leave-form-box {
+        padding: 13px;
+    }
+
+    .signature-pad-wrap {
+        height: 135px;
+    }
+}

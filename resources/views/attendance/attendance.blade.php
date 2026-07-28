@@ -612,9 +612,37 @@
                                     <div class="invalid-feedback fs-12">Please input a description</div>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="annual-leave-form-box mb-3">
+                                    <div class="d-flex align-items-start gap-2 mb-3">
+                                        <span class="material-symbols-outlined text-primary">description</span>
+                                        <div>
+                                            <div class="fw-semibold">{{ __('attendance.annual_leave') }} Form</div>
+                                            <div class="text-muted fs-12">Formulir akan dibuat dan diisi otomatis berdasarkan data permohonan ini.</div>
+                                        </div>
+                                    </div>
+                                    <label for="annual-leave-contact-phone" class="form-label">No. Telepon yang Bisa Dihubungi</label>
+                                    <input class="form-control mb-3" type="tel" name="contact_phone"
+                                        id="annual-leave-contact-phone" value="{{ $employee->phone }}"
+                                        data-default-phone="{{ $employee->phone }}" maxlength="20"
+                                        attr-annual-validation="required">
+
+                                    <label class="form-label">Tanda Tangan Pemohon</label>
+                                    <div class="signature-pad-wrap">
+                                        <canvas id="annual-leave-signature-pad" class="signature-pad"></canvas>
+                                    </div>
+                                    <input type="hidden" name="signature_data" id="annual-leave-signature-data"
+                                        attr-annual-validation="required">
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <small class="text-muted">Gunakan jari atau mouse untuk tanda tangan.</small>
+                                        <button type="button" class="btn btn-sm btn-light clear-signature"
+                                            data-target="annual-leave-signature-pad">Hapus</button>
+                                    </div>
+                                    <div class="signature-error text-danger fs-12 d-none">Tanda tangan wajib diisi.</div>
+                                </div>
+
+                                <div class="manual-leave-file mb-3 d-none">
                                     <label for="file-1" class="form-label">{{ __('attendance.file_1') }}</label>
-                                    <input class="form-control" type="file" name="file_1" id="file-1" attr-validation="required"  accept="image/*,.pdf">
+                                    <input class="form-control" type="file" name="file_1" id="file-1" accept="image/*,.pdf">
                                     <div class="invalid-feedback fs-12">Please add a file</div>
                                 </div>
 
@@ -710,7 +738,35 @@
                                     <div class="invalid-feedback fs-12">Please input a description</div>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="annual-leave-form-box mb-3">
+                                    <div class="d-flex align-items-start gap-2 mb-3">
+                                        <span class="material-symbols-outlined text-primary">description</span>
+                                        <div>
+                                            <div class="fw-semibold">{{ __('general.annual_leave') }} Form</div>
+                                            <div class="text-muted fs-12">Formulir akan dibuat ulang sesuai perubahan permohonan.</div>
+                                        </div>
+                                    </div>
+                                    <label for="annual-leave-contact-phone-edit" class="form-label">No. Telepon yang Bisa Dihubungi</label>
+                                    <input class="form-control mb-3" type="tel" name="contact_phone"
+                                        id="annual-leave-contact-phone-edit" value="{{ $employee->phone }}"
+                                        data-default-phone="{{ $employee->phone }}" maxlength="20"
+                                        attr-annual-validation="required">
+
+                                    <label class="form-label">Tanda Tangan Pemohon</label>
+                                    <div class="signature-pad-wrap">
+                                        <canvas id="annual-leave-signature-pad-edit" class="signature-pad"></canvas>
+                                    </div>
+                                    <input type="hidden" name="signature_data" id="annual-leave-signature-data-edit"
+                                        attr-annual-validation="required">
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <small class="text-muted">Tanda tangani ulang setelah melakukan perubahan.</small>
+                                        <button type="button" class="btn btn-sm btn-light clear-signature"
+                                            data-target="annual-leave-signature-pad-edit">Hapus</button>
+                                    </div>
+                                    <div class="signature-error text-danger fs-12 d-none">Tanda tangan wajib diisi.</div>
+                                </div>
+
+                                <div class="manual-leave-file mb-3 d-none">
                                     <label for="file-1" class="form-label-edit">File 1</label>
 
                                     <div class="pill-file-1 d-none d-inline-flex rounded-pill bg-light align-items-center px-2 p-1 float-end">
