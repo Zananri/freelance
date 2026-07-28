@@ -21,6 +21,31 @@ use App\Models\EmployeeLeaveRequest;
 
 class ProfileController extends Controller
 {
+    private function authenticatedEmployee(): ?Employee
+    {
+        $user = auth()->user();
+
+        $employee = Employee::with('division', 'department', 'job', 'grade')
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$employee && $user->email) {
+            $employee = Employee::with('division', 'department', 'job', 'grade')
+                ->where(function ($query) use ($user) {
+                    $query->whereRaw('LOWER(email_work) = ?', [strtolower($user->email)])
+                        ->orWhereRaw('LOWER(email) = ?', [strtolower($user->email)]);
+                })
+                ->first();
+
+            if ($employee && (int) $employee->user_id !== (int) $user->id) {
+                $employee->user_id = $user->id;
+                $employee->save();
+            }
+        }
+
+        return $employee;
+    }
+
     /**
      * Check if a given stored path points to the shared default avatar.
      * We treat both 'asset/img/avatar.png' and '/asset/img/avatar.png' as default.
@@ -35,10 +60,26 @@ class ProfileController extends Controller
 
     public function showprofilePage()
     {
-        $user = auth()->user();
-        $employee = Employee::with('division', 'department', 'job','grade')->where('user_id', $user->id)->first();
-        $employeeSalary = EmployeeSalary::where('employee_id', $employee->id)->first();
-        $employeePayslip = EmployeePayslip::where('status', 'PAYSLIP_SENT')->where('employee_id', $employee->id)->get();
+        $employee = $this->authenticatedEmployee();
+        abort_if(
+            !$employee,
+            422,
+            'Akun pengguna belum terhubung dengan data employee. Hubungi administrator.'
+        );
+
+        $employeePayslip = EmployeePayslip::where('status', 'PAYSLIP_SENT')
+            ->where('employee_id', $employee->id)
+            ->orderByDesc('date_salary')
+            ->get();
+
+        $masterEmployeeSalary = EmployeeSalary::where('employee_id', $employee->id)
+            ->orderByDesc('updated_at')
+            ->first();
+
+        // The sent payslip is the final salary snapshot for the employee.
+        // Prefer it over the master salary because the master record can still
+        // contain zero/default values after the payslip has been calculated.
+        $employeeSalary = $employeePayslip->first() ?? $masterEmployeeSalary;
 
         try {
             ActivityHelper::record([
@@ -58,8 +99,7 @@ class ProfileController extends Controller
 
     public function downloadPDFPayslip($year,$month){
     
-        $user = auth()->user();
-        $employee = Employee::with('division', 'department', 'job','grade')->where('user_id', $user->id)->first();
+        $employee = $this->authenticatedEmployee();
 
         if(!$employee){
             return '<h4>Employee not found</h4>';
