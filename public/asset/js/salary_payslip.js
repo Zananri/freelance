@@ -398,7 +398,6 @@ let employeePayslip = [];
 let employeeSalary = [];
 let employeeAttendanceAll = [];
 let employeeAttendanceAbsent = [];
-let employeeAttendanceNotComplete = [];
 let employeeTotalActiveDay = 0;
 
 async function getEmployeeSalaryPayslipDetail(employeeId,month,year)
@@ -427,7 +426,7 @@ async function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             let thr = 0;
             let kompensasiPkwt = 0;
             let absent = 0;
-            let attendanceNotComplete = 0;
+            let attendanceNotComplete = '';
             let totalDeduction = 0;
             let deductionAbsent = 0;
             let deductionLate = 0;
@@ -445,7 +444,6 @@ async function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             employeeSalary = response.data.employeeSalary;
             employeeAttendanceAll = response.data.employeeAttendanceAll;
             employeeAttendanceAbsent = response.data.employeeAttendanceAbsent;
-            employeeAttendanceNotComplete = response.data.employeeAttendanceNotComplete;
 
             // parseInt(largeNum).toLocaleString('id-ID');
 
@@ -469,8 +467,6 @@ async function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             
             absent = employeeAttendanceAbsent;
             
-            attendanceNotComplete = employeeAttendanceNotComplete;
-
             if (
                 employeePayslip != null
                 && employeePayslip.attendance_incomplete !== null
@@ -528,7 +524,7 @@ async function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             $('#modalSalaryEdit [name="deduction_bpjs_dana_pensiun"]').val(deductionBpjsDanaPensiun);
             $('#modalSalaryEdit [name="deduction_other"]').val(deductionOther);
 
-            thp = thp - (attendanceNotComplete * 50000) - totalDeduction;
+            thp = thp - parseSalaryInput(attendanceNotComplete) - totalDeduction;
             if(employeePayslip){
                 thp = employeePayslip.take_home_pay;
             }
@@ -580,10 +576,6 @@ $('#modalSalaryEdit [name="thr"], #modalSalaryEdit [name="kompensasi_pkwt"], #mo
 
 
 $('#modalSalaryEdit [name="active_day"], #modalSalaryEdit [name="working_day"], #modalSalaryEdit [name="meal_day"], #modalSalaryEdit [name="attendance_not_complete"], #modalSalaryEdit [name="basic_salary"], #modalSalaryEdit [name="positional_allowance"], #modalSalaryEdit [name="bpjs_allowance"], #modalSalaryEdit [name="bpjs_tenaga_kerja_allowance"], #modalSalaryEdit [name="pension_allowance"]').on('input change', function(){
-    if ($(this).attr('name') === 'attendance_not_complete') {
-        const attendanceIncomplete = Math.max(0, parseSalaryInput($(this).val()));
-        $(this).val(attendanceIncomplete);
-    }
     countSalary();
 });
 
@@ -643,11 +635,7 @@ function countSalary(){
 
     }
 
-    let thp = basicSalary - (attendanceNotComplete * 50000) - totalDeduction + positionalAllowance + bpjsAllowance + bpjsTenagaKerjaAllowance + pensionAllowance + kompensasiPkwt + thr;
-
-    if(Array.isArray(employeeAttendanceNotComplete) && employeeAttendanceNotComplete.length > 0){
-        thp = thp - (employeeAttendanceNotComplete[0].total_attendance * 50000);
-    }
+    let thp = basicSalary - attendanceNotComplete - totalDeduction + positionalAllowance + bpjsAllowance + bpjsTenagaKerjaAllowance + pensionAllowance + kompensasiPkwt + thr;
     
     $('#modalSalaryEdit .employee-salary-thp').text(formatRupiah(thp));
 }

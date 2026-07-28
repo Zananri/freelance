@@ -47,7 +47,7 @@ return [
     'perhitungan' => 'Perhitungan',
     'recalled_payslip' => 'Tarik slip gaji',
     'send_to_employee' => 'Kirim ke karyawan',
-    'absensi_terlambat' => 'Absensi Terlambat',
+    'absensi_terlambat' => 'Absensi Tidak Lengkap',
     'hari_aktif' => 'Hari Aktif',
     'hari_kerja' => 'Hari Kerja',
     'hari_um' => 'Hari UM',
