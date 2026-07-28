@@ -51,6 +51,12 @@ class DocumentController extends Controller
         $employeeId = $authUser->employee->id;
         $currentEmployee = $authUser->employee;
         $userType = strtoupper((string) ($authUser->user_type ?? ''));
+        $userRole = strtoupper((string) ($authUser->user_role ?? ''));
+        $isSuperadmin = in_array('SUPERADMIN', [$userType, $userRole], true);
+        $isAdmin = count(array_intersect(
+            [$userType, $userRole],
+            ['ADMIN', 'ADMINISTRATOR']
+        )) > 0;
         $departmentFilter = $request->input('filter_department');
         $divisionFilter = $request->input('filter_division');
         $jobFilter = $request->input('filter_job');
@@ -83,12 +89,12 @@ class DocumentController extends Controller
         // - SUPERADMIN: see all folders/files
         // - ADMINISTRATOR: see folders/files owned by employees in same department
         // - REGULAR: only own folders/files
-        if ($userType === 'SUPERADMIN') {
+        if ($isSuperadmin) {
             if ($departmentFilter && $departmentFilter !== 'all') {
                 $query->where('doc_employees.department_id', $departmentFilter);
                 $fileQuery->where('doc_employees.department_id', $departmentFilter);
             }
-        } elseif ($userType === 'ADMINISTRATOR') {
+        } elseif ($isAdmin) {
             $query->where('doc_employees.department_id', $currentEmployee->department_id);
             $fileQuery->where('doc_employees.department_id', $currentEmployee->department_id);
         } else {

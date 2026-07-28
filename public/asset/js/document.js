@@ -49,6 +49,8 @@ const currentUserEmployeeId = Number(document.querySelector('meta[name="current-
 const currentUserType = (document.querySelector('meta[name="current-user-type"]')?.content || '').toUpperCase();
 const currentUserRole = (document.querySelector('meta[name="current-user-role"]')?.content || '').toUpperCase();
 const currentUserDepartmentId = Number(document.querySelector('meta[name="current-employee-department-id"]')?.content || 0);
+const isCurrentUserAdmin = ["ADMIN", "ADMINISTRATOR"].includes(currentUserType)
+    || ["ADMIN", "ADMINISTRATOR"].includes(currentUserRole);
 const currentUserDepartmentName = document.querySelector('meta[name="current-employee-department-name"]')?.content || '';
 
 function formatBytes(bytes) {
@@ -1169,7 +1171,7 @@ if (typeof jQuery !== "undefined") {
                 loadSiteFilters("all", "all");
                 loadJobFilters("all", "all");
             });
-        } else if (currentUserType === "ADMINISTRATOR") {
+        } else if (isCurrentUserAdmin) {
             if (currentUserDepartmentId) {
                 loadSiteFilters(currentUserDepartmentId, "all").then(function () {
                     loadJobFilters("all", "all");
@@ -1237,7 +1239,7 @@ if (typeof jQuery !== "undefined") {
                             });
                         });
                     });
-                } else if (currentUserType === "ADMINISTRATOR") {
+                } else if (isCurrentUserAdmin) {
                     if (currentUserDepartmentId) {
                         loadSiteFilters(currentUserDepartmentId, "all").then(function () {
                             loadJobFilters("all", "all").then(function () {
@@ -1268,7 +1270,7 @@ window.addEventListener("DOMContentLoaded", function () {
     if (filterUpdatedSelect) {
         currentFilterUpdated = filterUpdatedSelect.value || "all";
     }
-    if (currentUserType === "ADMINISTRATOR") {
+    if (isCurrentUserAdmin) {
         currentFilterDepartment = currentUserDepartmentId ? String(currentUserDepartmentId) : "all";
     }
     loadFolder(null, currentPage);
