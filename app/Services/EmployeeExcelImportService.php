@@ -335,7 +335,7 @@ class EmployeeExcelImportService
         }
 
         return [
-            'employee_niks' => $text('employee_niks'),
+            'employee_niks' => $this->normalizeNik($text('employee_niks')),
             'name' => $name,
             'email' => $email,
             'email_work' => $this->normalizeEmail($text('email_work')),
@@ -610,6 +610,27 @@ class EmployeeExcelImportService
         }
 
         return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : null;
+    }
+
+    private function normalizeNik(?string $nik): ?string
+    {
+        if ($nik === null) {
+            return null;
+        }
+
+        $nik = trim($nik);
+        if ($nik === '' || $nik === '-') {
+            return null;
+        }
+
+        // Spreadsheet numeric IDs can be read as decimals, e.g. 266442.1.
+        // NIK is an identifier, so discard the decimal portion before storing
+        // it or using it to generate the employee's email address.
+        if (preg_match('/^\d+\.\d+$/', $nik) === 1) {
+            return strstr($nik, '.', true);
+        }
+
+        return $nik;
     }
 
     private function normalizePhone(?string $phone): ?string
