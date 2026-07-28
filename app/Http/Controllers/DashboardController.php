@@ -344,10 +344,33 @@ class DashboardController extends Controller
         // $today = Carbon::parse('2025-09-07')->toDateString();
         // $yesterday = Carbon::parse('2025-09-06')->toDateString();
 
-        $employee = Employee::with('division', 'partner', 'department', 'job', 'grade', 'shift')->where('user_id', $user->id)->first();
-        // dd($user->id, Employee::where('user_id', $user->id)->first());
-        // dd($employee);
-        $office = Office::where('id', $employee->office)->first();
+        $employee = Employee::with('division', 'partner', 'department', 'job', 'grade', 'shift')
+            ->where('user_id', $user->id)
+            ->first();
+
+        // Recover older/imported employee records whose user_id has not been linked,
+        // but whose work email belongs to the authenticated user.
+        if (!$employee && $user->email) {
+            $employee = Employee::with('division', 'partner', 'department', 'job', 'grade', 'shift')
+                ->where(function ($query) use ($user) {
+                    $query->whereRaw('LOWER(email_work) = ?', [strtolower($user->email)])
+                        ->orWhereRaw('LOWER(email) = ?', [strtolower($user->email)]);
+                })
+                ->first();
+
+            if ($employee && (int) $employee->user_id !== (int) $user->id) {
+                $employee->user_id = $user->id;
+                $employee->save();
+            }
+        }
+
+        abort_if(
+            !$employee,
+            422,
+            'Akun pengguna belum terhubung dengan data employee. Hubungi administrator.'
+        );
+
+        $office = $employee->office ? Office::find($employee->office) : null;
 
         // if($office == null) {
             
