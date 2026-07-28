@@ -52,5 +52,13 @@ return [
     'hari_kerja' => 'Hari Kerja',
     'hari_um' => 'Hari UM',
     'rincian_potongan' => 'Deduction Details',
+    'send_all_payslips' => 'Send All Payslips',
+    'confirm_send_all_payslips' => 'Send all generated payslips for the selected month?',
+    'bulk_send_result' => ':sent payslips sent. :skipped employees were skipped because their payslip has not been calculated or the result is zero.',
+    'no_calculated_payslips' => 'There are no payslips ready to send. Calculate employee salaries first and make sure the result is not zero.',
+    'late_over_15_minutes' => 'More than 15 minutes late',
+    'recipient_scope' => 'Recipients',
+    'all_employees' => 'All Employees',
+    'same_department' => 'Same Department',
 ];
 

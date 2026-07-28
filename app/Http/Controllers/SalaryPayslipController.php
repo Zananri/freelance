@@ -27,6 +27,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class SalaryPayslipController extends Controller
 {
+    private const LATE_TOLERANCE_SECONDS = 15 * 60;
+    private const LATE_DEDUCTION_AMOUNT = 50000;
     private const EXCLUDED_SALARY_PAYSLIP_DEPARTMENT_IDS = [1];
     private const EXCLUDED_SALARY_PAYSLIP_USER_ROLES = ['ADMINISTRATOR', 'SUPERADMIN', 'ADMIN'];
     private const EXCLUDED_SALARY_PAYSLIP_USER_TYPES = ['ADMINISTRATOR', 'SUPERADMIN', 'ADMIN'];
@@ -59,6 +61,28 @@ class SalaryPayslipController extends Controller
             ->whereNotIn('department_id', self::EXCLUDED_SALARY_PAYSLIP_DEPARTMENT_IDS)
             ->when(!$isSuperadmin, fn ($query) => $query->where('department_id', $currentEmployee?->department_id ?? 0))
             ->first();
+    }
+
+    private function countLateAttendances(int $employeeId, string $firstDay, string $lastDay): int
+    {
+        return Attendance::where('employee_id', $employeeId)
+            ->whereBetween('date_attendance', [$firstDay, $lastDay])
+            ->where('status', '<>', 'ABSENT')
+            ->whereNotNull('time_in')
+            ->whereNotNull('shift_time_start')
+            ->whereRaw('TIME_TO_SEC(TIMEDIFF(time_in, shift_time_start)) > ?', [self::LATE_TOLERANCE_SECONDS])
+            ->count();
+    }
+
+    private function canManagePayslips(): bool
+    {
+        $user = auth()->user();
+        $roles = [
+            strtoupper((string) ($user?->user_type ?? '')),
+            strtoupper((string) ($user?->user_role ?? '')),
+        ];
+
+        return count(array_intersect($roles, ['SUPERADMIN', 'ADMIN', 'ADMINISTRATOR'])) > 0;
     }
 
     public function generatePDFPayslipEX()
@@ -194,19 +218,11 @@ class SalaryPayslipController extends Controller
             ->groupBy('employee_id')
         ->get();
 
-        $employeeAttendanceNotComplete = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
-            ->where('date_attendance', '<=', $lastDayOfMonth)
-            ->where('date_attendance', '>=', $firstDayOfMonth)
-            ->where('employee_id', $employeeId)
-            ->where(function ($query) {
-                $query->whereNull('time_in')
-                      ->orWhere('time_in', '00:00:00')
-                      ->orWhereNull('time_out')
-                      ->orWhere('time_out', '00:00:00');
-            })
-            ->where('status','<>','ABSENT')
-            ->groupBy('employee_id')
-        ->get()->pluck('total_attendance');
+        $employeeAttendanceNotComplete = $this->countLateAttendances(
+            (int) $employeeId,
+            $firstDayOfMonth,
+            $lastDayOfMonth
+        );
 
         $totalActiveDay = $this->getActiveDay($firstDayOfMonth,$lastDayOfMonth);
 
@@ -450,21 +466,11 @@ class SalaryPayslipController extends Controller
 
         $employeeAttendanceAbsent = $employeeAttendanceAbsent[0] ?? 0;
 
-        $employeeAttendanceNotComplete = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
-            ->where('date_attendance', '<=', $lastDayOfMonth)
-            ->where('date_attendance', '>=', $firstDayOfMonth)
-            ->where('employee_id', $employeeId)
-            ->where(function ($query) {
-                $query->whereNull('time_in')
-                      ->orWhere('time_in', '00:00:00')
-                      ->orWhereNull('time_out')
-                      ->orWhere('time_out', '00:00:00');
-            })
-            ->where('status','<>','ABSENT')
-            ->groupBy('employee_id')
-        ->get()->pluck('total_attendance');
-
-        $employeeAttendanceNotComplete = $employeeAttendanceNotComplete[0] ?? 0;
+        $employeeAttendanceNotComplete = $this->countLateAttendances(
+            (int) $employeeId,
+            $firstDayOfMonth,
+            $lastDayOfMonth
+        );
 
         $totalActiveDay = $this->getActiveDay($firstDayOfMonth,$lastDayOfMonth);
 
@@ -540,21 +546,11 @@ class SalaryPayslipController extends Controller
             $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
             $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
             
-            $employeeAttendanceNotComplete = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
-                ->where('date_attendance', '<=', $lastDayOfMonth)
-                ->where('date_attendance', '>=', $firstDayOfMonth)
-                ->where('employee_id', $employee->id)
-                ->where(function ($query) {
-                    $query->whereNull('time_in')
-                        ->orWhere('time_in', '00:00:00')
-                        ->orWhereNull('time_out')
-                        ->orWhere('time_out', '00:00:00');
-                })
-                ->where('status','<>','ABSENT')
-                ->groupBy('employee_id')
-            ->get()->pluck('total_attendance');
-
-            $employeeAttendanceNotComplete = $employeeAttendanceNotComplete[0] ?? 0;
+            $employeeAttendanceNotComplete = $this->countLateAttendances(
+                (int) $employee->id,
+                $firstDayOfMonth,
+                $lastDayOfMonth
+            );
 
             
             $salaryData['employee_id'] = $employee->id;
@@ -593,7 +589,7 @@ class SalaryPayslipController extends Controller
             $salaryData['deduction'] = $totalDeduction;
 
             $salaryData['take_home_pay'] = $request->basic_salary
-                - (intVal($employeeAttendanceNotComplete) * 50000)
+                - (intVal($employeeAttendanceNotComplete) * self::LATE_DEDUCTION_AMOUNT)
                 - $totalDeduction
                 + $request->positional_allowance
                 + $request->bpjs_allowance
@@ -788,6 +784,81 @@ class SalaryPayslipController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function sendAllEmployeePayslipsByYearMonth(Request $request)
+    {
+        if (!$this->canManagePayslips()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'year' => 'required|integer|min:2000|max:2100',
+            'month' => 'required|integer|min:1|max:12',
+        ]);
+
+        $dateSalary = Carbon::create($validated['year'], $validated['month'], 1)
+            ->endOfMonth()
+            ->toDateString();
+        $employeeIds = $this->getSalaryPayslipEmployeeIds();
+        $eligibleCount = $employeeIds->count();
+        $userId = auth()->id();
+
+        $payslips = EmployeePayslip::whereIn('employee_id', $employeeIds)
+            ->where('date_salary', $dateSalary)
+            ->where('status', '<>', 'DELETED')
+            ->where('basic_salary', '>', 0)
+            ->where('take_home_pay', '>', 0)
+            ->get();
+
+        if ($payslips->isEmpty()) {
+            return response()->json([
+                'code' => 422,
+                'status' => 'error',
+                'data' => [
+                    'sent_count' => 0,
+                    'skipped_count' => $eligibleCount,
+                ],
+                'message' => __('salary.no_calculated_payslips'),
+            ], 422);
+        }
+
+        DB::transaction(function () use ($payslips, $dateSalary, $userId) {
+            foreach ($payslips as $payslip) {
+                $payslip->date_payslip_send = now();
+                $payslip->status = 'PAYSLIP_SENT';
+                $payslip->updated_by = $userId;
+                $payslip->save();
+
+                try {
+                    NotificationController::createUserNotification(
+                        employeeId: $payslip->employee_id,
+                        type: 'payslip_sent',
+                        title: 'Salary Payslip',
+                        message: 'Your salary payslip for ' . $dateSalary . ' is now available for review.',
+                        createdBy: $userId
+                    );
+                } catch (\Throwable $e) {
+                    // A notification failure must not block payslip delivery.
+                }
+            }
+        });
+
+        $sentCount = $payslips->count();
+        $skippedCount = max(0, $eligibleCount - $sentCount);
+
+        return response()->json([
+            'code' => 200,
+            'status' => 'success',
+            'data' => [
+                'sent_count' => $sentCount,
+                'skipped_count' => $skippedCount,
+            ],
+            'message' => __('salary.bulk_send_result', [
+                'sent' => $sentCount,
+                'skipped' => $skippedCount,
+            ]),
+        ]);
     }
     
     public function viewPayslip($employeeId,$year,$month){

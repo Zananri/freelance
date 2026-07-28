@@ -301,6 +301,22 @@
                                     <div class="invalid-feedback fs-12">{{ __('leave.please_input_quota') }}</div>
                                 </div>
 
+                                <div class="input-used-annual-leave mt-3">
+                                    <label for="edit-used-annual-leaves" class="form-label fs-14 fw-normal">
+                                        {{ __('leave.use_annual_leave') }} <strong class="year-leave"></strong>
+                                    </label>
+                                    <input type="number" name="used_annual_leave" id="edit-used-annual-leaves" class="form-control" min="0" attr-validation="required">
+                                    <div class="invalid-feedback fs-12">{{ __('leave.please_input_used_annual_leave') }}</div>
+                                </div>
+
+                                <div class="input-sick mt-3">
+                                    <label for="edit-sick" class="form-label fs-14 fw-normal">
+                                        {{ __('leave.sick') }} <strong class="year-leave"></strong>
+                                    </label>
+                                    <input type="number" name="sick" id="edit-sick" class="form-control" min="0" attr-validation="required">
+                                    <div class="invalid-feedback fs-12">{{ __('leave.please_input_sick') }}</div>
+                                </div>
+
 
                             </form>
                         </div>

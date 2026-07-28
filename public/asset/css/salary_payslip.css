@@ -591,3 +591,183 @@ nav
     text-align: center;
     white-space: nowrap;
 }
+
+@media (max-width: 767.98px) {
+    .title-content {
+        margin-bottom: 18px;
+    }
+
+    .text-title-content {
+        font-size: 26px;
+        margin-bottom: 12px !important;
+    }
+
+    .salary-title-actions {
+        justify-content: stretch !important;
+        width: 100%;
+    }
+
+    .salary-title-actions > * {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .salary-title-actions .btn-send-all-payslips,
+    .salary-title-actions .input-search-query {
+        width: 100% !important;
+    }
+
+    .card-content {
+        border-radius: 14px;
+        min-height: 260px;
+    }
+
+    .header-calendar {
+        padding: 10px;
+    }
+
+    .header-calendar > div > .d-flex {
+        align-items: center !important;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .department-division {
+        flex: 1 1 100%;
+    }
+
+    .department-division > .d-flex {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .col-dropdown-department,
+    .col-dropdown-division {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+    }
+
+    .dropdown-select .btn-dropdown-table {
+        width: 100%;
+        padding: 9px 8px;
+        text-align: left;
+    }
+
+    .title-dropdown {
+        display: block;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-left: 4px;
+    }
+
+    .month-year {
+        flex: 1 1 auto;
+        min-width: 120px;
+    }
+
+    .dropdown-month .btn-dropdown-month {
+        padding: 8px 6px;
+    }
+
+    .box-view-control {
+        display: flex;
+        align-items: center;
+        margin-left: auto;
+    }
+
+    .calendar-next-month,
+    .calendar-prev-month,
+    .data-fullscreen {
+        padding: 8px;
+    }
+
+    .calendar-prev-month {
+        margin-left: 0 !important;
+    }
+
+    .data-fullscreen {
+        display: none !important;
+    }
+
+    .box-data {
+        padding: 0 10px 10px;
+    }
+
+    .table-container {
+        width: 100%;
+        max-height: none;
+        min-height: 180px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-data {
+        min-width: 1320px;
+    }
+
+    .table-data td:first-child {
+        width: 170px;
+    }
+
+    .table-data .box-employee {
+        width: 168px;
+    }
+
+    .table-data thead th {
+        padding: 8px 10px;
+    }
+
+    .modal-dialog {
+        margin: .5rem;
+    }
+
+    #modalSalaryEdit .modal-content {
+        max-height: calc(100dvh - 1rem);
+    }
+
+    #modalSalaryEdit .form-block-salary {
+        max-height: calc(100dvh - 250px);
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    #modalSalaryEdit .form-block-salary .row > .col-6 {
+        width: 100%;
+        margin-bottom: 12px;
+    }
+
+    #modalSalaryEdit .form-block-salary .row {
+        margin-bottom: 0 !important;
+    }
+
+    #modalSalaryEdit .p-4 {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    .salary-payslip-pagination {
+        padding: 4px 10px 12px;
+    }
+}
+
+@media (max-width: 420px) {
+    .col-dropdown-department,
+    .col-dropdown-division {
+        flex-basis: 100%;
+    }
+
+    .title-dropdown {
+        max-width: calc(100vw - 110px);
+    }
+
+    .salary-payslip-pagination .pagination {
+        gap: 3px;
+    }
+
+    .salary-payslip-pagination .page-link {
+        min-width: 28px;
+        height: 28px;
+        padding: 0 7px;
+    }
+}

@@ -159,13 +159,18 @@ class LeaveController extends Controller
             $request->validate([
                 'year' => 'required|integer',
                 'id_employee' => 'required|integer',
-                'annual_leave' => 'required|integer|min:0',
+                'annual_leave' => 'required|integer|min:0|max:255',
+                'used_annual_leave' => 'required|integer|min:0|max:255|lte:annual_leave',
+                'sick' => 'required|integer|min:0|max:255',
             ]);
 
             $userId = auth()->user()->id;
             $employeeId = $request->id_employee;
             $yearLeave = $request->year;
             $annualLeave = $request->annual_leave;
+            $usedAnnualLeave = $request->used_annual_leave;
+            $sick = $request->sick;
+            $remainingAnnualLeave = $annualLeave - $usedAnnualLeave;
 
             $employeeLeave = EmployeeLeave::where('employee_id',$employeeId)->where('year',$yearLeave)->first();
 
@@ -175,24 +180,17 @@ class LeaveController extends Controller
                 $newEmployeeLeave->employee_id = $employeeId;
                 $newEmployeeLeave->year = $yearLeave;
                 $newEmployeeLeave->annual_leave = $annualLeave;
-                $newEmployeeLeave->remaining_annual_leave = $annualLeave;
+                $newEmployeeLeave->remaining_annual_leave = $remainingAnnualLeave;
+                $newEmployeeLeave->sick = $sick;
                 $newEmployeeLeave->created_by = $userId;
                 $newEmployeeLeave->save();
                 
             }else{
-                
-                $remainingAnnualLeave = $employeeLeave->remaining_annual_leave;
-                
-                if($annualLeave > $employeeLeave->annual_leave){
-                    $remainingAnnualLeave = $employeeLeave->remaining_annual_leave + ($annualLeave - $employeeLeave->annual_leave);
-                }
-                
-                if($annualLeave < $employeeLeave->annual_leave){
-                    $remainingAnnualLeave = $employeeLeave->remaining_annual_leave - ($employeeLeave->annual_leave - $annualLeave);
-                }
 
                 $employeeLeave->annual_leave = $annualLeave;
                 $employeeLeave->remaining_annual_leave = $remainingAnnualLeave;
+                $employeeLeave->sick = $sick;
+                $employeeLeave->updated_by = $userId;
 
                 $employeeLeave->save();
             }

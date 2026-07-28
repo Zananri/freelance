@@ -22,6 +22,9 @@ return [
     'annual_leave_quota' => 'Cuti Tahunan :year',
     'edit_annual_leave' => 'Ubah Cuti Tahunan',
     'please_input_quota' => 'Silakan masukkan kuota cuti tahunan',
+    'please_input_used_annual_leave' => 'Silakan masukkan penggunaan cuti tahunan',
+    'please_input_sick' => 'Silakan masukkan jumlah hari sakit',
+    'used_leave_exceeds_quota' => 'Penggunaan cuti tidak boleh melebihi kuota cuti tahunan',
     'loading' => 'Memuat...',
     'no_data' => 'Tidak ada data',
     'day' => 'Hari',
@@ -36,4 +39,3 @@ return [
     'previous' => 'Sebelumnya',
     'next' => 'Berikutnya',
 ];
-

@@ -22,6 +22,9 @@ return [
     'annual_leave_quota' => 'Annual Leave :year',
     'edit_annual_leave' => 'Edit Annual Leave',
     'please_input_quota' => 'Please input quota annual leave',
+    'please_input_used_annual_leave' => 'Please input annual leave usage',
+    'please_input_sick' => 'Please input sick days',
+    'used_leave_exceeds_quota' => 'Annual leave usage cannot exceed the annual leave quota',
     'loading' => 'Loading...',
     'no_data' => 'No data',
     'day' => 'Day',
@@ -36,4 +39,3 @@ return [
     'previous' => 'Prev',
     'next' => 'Next',
 ];
-

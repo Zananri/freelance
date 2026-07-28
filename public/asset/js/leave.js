@@ -197,11 +197,17 @@ $(document).on('click','.table-leave-employee .employee-row',function(){
     if(rowItem){
         
         $('#form-edit-employee-leave [name="annual_leave"]').val(rowItem.annual_leave);
+        $('#form-edit-employee-leave [name="used_annual_leave"]').val(
+            Math.max(0, Number(rowItem.annual_leave) - Number(rowItem.remaining_annual_leave))
+        );
+        $('#form-edit-employee-leave [name="sick"]').val(rowItem.sick || 0);
         
         employeeLeaveModal.show();
     }else{
         $('#form-edit-employee-leave [name="id_employee"]').val(employeeId);
         $('#form-edit-employee-leave [name="annual_leave"]').val(0);
+        $('#form-edit-employee-leave [name="used_annual_leave"]').val(0);
+        $('#form-edit-employee-leave [name="sick"]').val(0);
 
         employeeLeaveModal.show();
     }
@@ -217,6 +223,17 @@ function validationFormEmployeeLeave(){
             $(this).removeClass('is-invalid');
         }
     });
+
+    const annualLeave = Number($('#form-edit-employee-leave [name="annual_leave"]').val());
+    const usedAnnualLeave = Number($('#form-edit-employee-leave [name="used_annual_leave"]').val());
+    const $usedAnnualLeave = $('#form-edit-employee-leave [name="used_annual_leave"]');
+
+    if (usedAnnualLeave > annualLeave) {
+        $usedAnnualLeave.addClass('is-invalid');
+        $usedAnnualLeave.siblings('.invalid-feedback').text(translateLeave('used_leave_exceeds_quota'));
+    } else {
+        $usedAnnualLeave.siblings('.invalid-feedback').text(translateLeave('please_input_used_annual_leave'));
+    }
 
 
     if($('#form-edit-employee-leave [attr-validation="required"]').hasClass('is-invalid')){

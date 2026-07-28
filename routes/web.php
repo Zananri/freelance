@@ -201,6 +201,7 @@ Route::middleware('auth', 'management')->group(function () {
     
     Route::post('/salary_payslip/save-employee-salary-by-year-month', [SalaryPayslipController::class, 'saveEmployeeSalaryByYearMonth'])->name('salary_payslip.saveEmployeeSalaryByYearMonth');
     Route::post('/salary_payslip/send-employee-payslip-by-year-month', [SalaryPayslipController::class, 'sendEmployeePayslipByYearMonth'])->name('salary_payslip.sendEmployeePayslipByYearMonth');
+    Route::post('/salary_payslip/send-all-employee-payslips-by-year-month', [SalaryPayslipController::class, 'sendAllEmployeePayslipsByYearMonth'])->name('salary_payslip.sendAllEmployeePayslipsByYearMonth');
     Route::post('/salary_payslip/recall-employee-payslip-by-year-month', [SalaryPayslipController::class, 'recallEmployeePayslipByYearMonth'])->name('salary_payslip.recallEmployeePayslipByYearMonth');
 
     Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword');

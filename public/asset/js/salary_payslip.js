@@ -1,4 +1,6 @@
 const appUrl = $('meta[name=app-url]').attr("content");
+const salaryText = window.salaryTranslations || {};
+const translateSalary = key => salaryText[key] || key;
 
 const modalSalaryEdit = new bootstrap.Modal('#modalSalaryEdit', {
    keyboard: false
@@ -9,6 +11,10 @@ const modalPayslipSend = new bootstrap.Modal('#modalPayslipSend', {
 });
 
 const modalPayslipRecalled = new bootstrap.Modal('#modalPayslipRecalled', {
+   keyboard: false
+});
+
+const modalAllPayslipSend = new bootstrap.Modal('#modalAllPayslipSend', {
    keyboard: false
 });
 
@@ -472,7 +478,11 @@ async function getEmployeeSalaryPayslipDetail(employeeId,month,year)
             
             $('#modalSalaryEdit .hitungan_absensi_tidak_lengkap').text( (0 - (attendanceNotComplete * 50000)).toLocaleString('id-ID'));
             
-            $('#modalSalaryEdit .info_working_day').attr('data-bs-title','Tidak Masuk Kerja : '+parseInt(absent) + ' <br> Absensi tidak lengkap : '+parseInt(attendanceNotComplete));
+            $('#modalSalaryEdit .info_working_day').attr(
+                'data-bs-title',
+                'Tidak Masuk Kerja : ' + parseInt(absent) + ' <br> '
+                    + translateSalary('late_over_15_minutes') + ' : ' + parseInt(attendanceNotComplete)
+            );
             
             $('#modalSalaryEdit .info_basic_salary').attr('data-bs-title','Rp '+parseInt(employeeSalary.basic_salary).toLocaleString('id-ID'));
             $('#modalSalaryEdit .info_positional_allowance').attr('data-bs-title','Rp '+parseInt(employeeSalary.positional_allowance).toLocaleString('id-ID'));
@@ -729,6 +739,47 @@ function sendEmployeeSalaryPayslip(){
         }
     });
 }
+
+$('.btn-send-all-payslips').on('click', function () {
+    modalAllPayslipSend.show();
+});
+
+$('#modalAllPayslipSend .btn-close-all-payslips').on('click', function () {
+    modalAllPayslipSend.hide();
+});
+
+$('#modalAllPayslipSend .btn-confirm-send-all-payslips').on('click', function () {
+    const $button = $(this);
+    $.ajax({
+        url: appUrl + '/salary_payslip/send-all-employee-payslips-by-year-month',
+        type: 'POST',
+        data: {
+            _token: $('meta[name="csrf-token"]').attr('content'),
+            year: CURRENT_DATE.getFullYear(),
+            month: CURRENT_DATE.getMonth() + 1
+        },
+        beforeSend: function () {
+            $button.prop('disabled', true);
+            $('#modalAllPayslipSend .box-loader').fadeIn('fast');
+        },
+        complete: function () {
+            $button.prop('disabled', false);
+            $('#modalAllPayslipSend .box-loader').fadeOut('fast');
+        },
+        error: function (res) {
+            const resJson = res.responseJSON || {};
+            showAlertMsg(resJson.message || 'Failed to send payslips', 'error', 5000);
+        },
+        success: function (res) {
+            showAlertMsg(res.message, 'success', 5000);
+            modalAllPayslipSend.hide();
+            getEmployeeSalaryPayslipData(
+                CURRENT_DATE.getMonth() + 1,
+                CURRENT_DATE.getFullYear()
+            );
+        }
+    });
+});
 
 $('.table-data .btn-icon.recalled').on('click',function(){
 

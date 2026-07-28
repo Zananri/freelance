@@ -839,8 +839,8 @@ fileInput.addEventListener("change", function () {
     }
     const validFiles = [];
     for (const file of files) {
-        if (file.size > 1073741824) {
-            showAlertMsg(`File ${file.name} exceeds 1GB limit`);
+        if (file.size > 20 * 1024 * 1024) {
+            showAlertMsg(`File ${file.name} exceeds 20MB limit`);
             continue;
         }
         validFiles.push(file);
@@ -866,14 +866,32 @@ uploadSelectedFilesButton.addEventListener("click", function () {
     selectedFiles.forEach((file) => {
         formData.append("files[]", file);
     });
+    uploadSelectedFilesButton.disabled = true;
     fetch("/document/upload-files", {
         method: "POST",
         headers: {
             "X-CSRF-TOKEN": getCsrfToken(),
+            "Accept": "application/json",
         },
         body: formData,
     })
-        .then((response) => response.json())
+        .then(async (response) => {
+            const contentType = response.headers.get("content-type") || "";
+            const result = contentType.includes("application/json")
+                ? await response.json()
+                : { message: response.status === 413
+                    ? "Upload is too large for the server. Maximum total upload is 25MB."
+                    : `Upload failed (${response.status}).` };
+
+            if (!response.ok) {
+                const validationMessage = result.errors
+                    ? Object.values(result.errors).flat().join(" ")
+                    : result.message;
+                throw new Error(validationMessage || "Upload failed");
+            }
+
+            return result;
+        })
         .then((res) => {
             if (res.status) {
                 showAlertMsg(res.message);
@@ -887,8 +905,11 @@ uploadSelectedFilesButton.addEventListener("click", function () {
                 showAlertMsg(res.message || "Upload failed");
             }
         })
-        .catch(() => {
-            showAlertMsg("Upload failed");
+        .catch((error) => {
+            showAlertMsg(error.message || "Upload failed");
+        })
+        .finally(() => {
+            uploadSelectedFilesButton.disabled = false;
         });
 });
 

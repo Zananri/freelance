@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Document;
 use App\Models\DocumentFolders;
+use App\Models\Employee;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -263,10 +264,36 @@ class DocumentController extends Controller
         $request->validate([
             'folder_id' => 'nullable|exists:document_folders,id',
             'files' => 'required|array',
-            'files.*' => 'file|max:1048576',
+            'files.*' => 'file|max:20480',
         ]);
 
-        $employeeId = Auth::user()->employee->id;
+        $authUser = Auth::user();
+        $currentEmployee = $authUser->employee;
+        abort_if(!$currentEmployee, 403, 'Employee account is not linked.');
+
+        $targetFolder = $request->folder_id
+            ? DocumentFolders::findOrFail($request->folder_id)
+            : null;
+        $employeeId = (int) ($targetFolder?->employee_id ?? $currentEmployee->id);
+        $targetEmployee = Employee::findOrFail($employeeId);
+        $userType = strtoupper((string) ($authUser->user_type ?? ''));
+
+        if ($userType !== 'SUPERADMIN') {
+            if (in_array($userType, ['ADMINISTRATOR', 'ADMIN'], true)) {
+                abort_unless(
+                    (int) $targetEmployee->department_id === (int) $currentEmployee->department_id,
+                    403,
+                    'You cannot upload files outside your department.'
+                );
+            } else {
+                abort_unless(
+                    (int) $targetEmployee->id === (int) $currentEmployee->id,
+                    403,
+                    'You cannot upload files to another employee folder.'
+                );
+            }
+        }
+
         $userId = Auth::id();
         $savedFiles = [];
         $uploadFolder = $request->folder_id ?? 'root';
