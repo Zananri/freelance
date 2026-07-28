@@ -31,6 +31,7 @@ const documentPagination = document.getElementById("documentPagination");
 let currentFolder = null;
 let selectedFiles = [];
 let currentSearch = "";
+let documentSearchTimer = null;
 let currentFilterType = "all";
 let currentFilterExtension = "all";
 let currentFilterUpdated = "all";
@@ -591,6 +592,20 @@ function renderBreadcrumb(breadcrumb = []) {
 }
 
 function loadFolder(folderId = currentFolder, page = currentPage) {
+    const normalizedCurrentFolder =
+        currentFolder === null || currentFolder === undefined
+            ? null
+            : String(currentFolder);
+    const normalizedTargetFolder =
+        folderId === null || folderId === undefined || folderId === ""
+            ? null
+            : String(folderId);
+    const folderChanged = normalizedCurrentFolder !== normalizedTargetFolder;
+
+    if (folderChanged) {
+        resetDocumentSearch();
+    }
+
     currentFolder = folderId;
     currentPage = page;
     const url = new URL("/document/get-all-folder", window.location.origin);
@@ -642,6 +657,34 @@ function loadFolder(folderId = currentFolder, page = currentPage) {
         .finally(() => {
             hideDocumentLoaders();
         });
+}
+
+function resetDocumentSearch() {
+    clearTimeout(documentSearchTimer);
+    currentSearch = "";
+    if (searchInput) {
+        searchInput.value = "";
+    }
+    if (typeof jQuery !== "undefined") {
+        $("#search_filter").val("");
+    }
+}
+
+function navigateDocumentFolder(folderId) {
+    resetDocumentSearch();
+    currentPage = 1;
+    loadFolder(folderId, currentPage);
+}
+
+function applyDocumentSearch() {
+    const nextSearch = searchInput ? searchInput.value.trim() : "";
+    if (nextSearch === currentSearch) {
+        return;
+    }
+
+    currentSearch = nextSearch;
+    currentPage = 1;
+    loadFolder(currentFolder, currentPage);
 }
 
 function toggleView(view) {
@@ -746,8 +789,7 @@ document.addEventListener("click", function (event) {
     );
     if (breadcrumbTarget) {
         const id = breadcrumbTarget.dataset.id || null;
-        currentPage = 1;
-        loadFolder(id, currentPage);
+        navigateDocumentFolder(id);
         return;
     }
     const folderRow = event.target.closest(".folder-row");
@@ -758,8 +800,7 @@ document.addEventListener("click", function (event) {
         !event.target.closest(".edit-folder") &&
         !event.target.closest(".delete-folder")
     ) {
-        currentPage = 1;
-        loadFolder(folderRow.dataset.id, currentPage);
+        navigateDocumentFolder(folderRow.dataset.id);
     }
     if (
         folderCard &&
@@ -767,8 +808,7 @@ document.addEventListener("click", function (event) {
         !event.target.closest(".edit-folder") &&
         !event.target.closest(".delete-folder")
     ) {
-        currentPage = 1;
-        loadFolder(folderCard.dataset.id, currentPage);
+        navigateDocumentFolder(folderCard.dataset.id);
     }
 });
 
@@ -854,63 +894,83 @@ fileInput.addEventListener("change", function () {
     fileInput.value = "";
 });
 
-uploadSelectedFilesButton.addEventListener("click", function () {
+async function uploadDocumentFileInChunks(file, fileIndex) {
+    const chunkSize = 1024 * 1024;
+    const totalChunks = Math.ceil(file.size / chunkSize);
+    const uploadId = [
+        Date.now(),
+        fileIndex,
+        Math.random().toString(36).slice(2),
+    ].join("_");
+
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * chunkSize;
+        const chunk = file.slice(start, Math.min(start + chunkSize, file.size));
+        const formData = new FormData();
+
+        if (currentFolder !== null) {
+            formData.append("folder_id", currentFolder);
+        }
+        formData.append("upload_id", uploadId);
+        formData.append("chunk_index", chunkIndex);
+        formData.append("total_chunks", totalChunks);
+        formData.append("original_name", file.name);
+        formData.append("mime_type", file.type || "application/octet-stream");
+        formData.append("total_size", file.size);
+        formData.append("chunk", chunk, `${file.name}.part`);
+
+        uploadSelectedFilesButton.textContent =
+            `Uploading ${fileIndex + 1}/${selectedFiles.length} (${chunkIndex + 1}/${totalChunks})`;
+
+        const response = await fetch("/document/upload-chunk", {
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": getCsrfToken(),
+                "Accept": "application/json",
+            },
+            body: formData,
+        });
+        const contentType = response.headers.get("content-type") || "";
+        const result = contentType.includes("application/json")
+            ? await response.json()
+            : { message: `Upload failed (${response.status}).` };
+
+        if (!response.ok || result.status === false) {
+            const validationMessage = result.errors
+                ? Object.values(result.errors).flat().join(" ")
+                : result.message;
+            throw new Error(validationMessage || "Upload failed");
+        }
+    }
+}
+
+uploadSelectedFilesButton.addEventListener("click", async function () {
     if (selectedFiles.length === 0) {
         showAlertMsg("No files selected for upload");
         return;
     }
-    const formData = new FormData();
-    if (currentFolder !== null) {
-        formData.append("folder_id", currentFolder);
-    }
-    selectedFiles.forEach((file) => {
-        formData.append("files[]", file);
-    });
+
+    const originalButtonText = uploadSelectedFilesButton.textContent;
     uploadSelectedFilesButton.disabled = true;
-    fetch("/document/upload-files", {
-        method: "POST",
-        headers: {
-            "X-CSRF-TOKEN": getCsrfToken(),
-            "Accept": "application/json",
-        },
-        body: formData,
-    })
-        .then(async (response) => {
-            const contentType = response.headers.get("content-type") || "";
-            const result = contentType.includes("application/json")
-                ? await response.json()
-                : { message: response.status === 413
-                    ? "Upload is too large for the server. Maximum total upload is 25MB."
-                    : `Upload failed (${response.status}).` };
 
-            if (!response.ok) {
-                const validationMessage = result.errors
-                    ? Object.values(result.errors).flat().join(" ")
-                    : result.message;
-                throw new Error(validationMessage || "Upload failed");
-            }
+    try {
+        for (let fileIndex = 0; fileIndex < selectedFiles.length; fileIndex++) {
+            await uploadDocumentFileInChunks(selectedFiles[fileIndex], fileIndex);
+        }
 
-            return result;
-        })
-        .then((res) => {
-            if (res.status) {
-                showAlertMsg(res.message);
-                loadFolder(currentFolder);
-                selectedFiles = [];
-                renderUploadPreview();
-                bootstrap.Modal.getInstance(
-                    document.getElementById("modalUploadFiles"),
-                ).hide();
-            } else {
-                showAlertMsg(res.message || "Upload failed");
-            }
-        })
-        .catch((error) => {
-            showAlertMsg(error.message || "Upload failed");
-        })
-        .finally(() => {
-            uploadSelectedFilesButton.disabled = false;
-        });
+        showAlertMsg("Files uploaded successfully.");
+        loadFolder(currentFolder);
+        selectedFiles = [];
+        renderUploadPreview();
+        bootstrap.Modal.getInstance(
+            document.getElementById("modalUploadFiles"),
+        ).hide();
+    } catch (error) {
+        showAlertMsg(error.message || "Upload failed");
+    } finally {
+        uploadSelectedFilesButton.disabled = false;
+        uploadSelectedFilesButton.textContent = originalButtonText;
+    }
 });
 
 function showFileDetail(file) {
@@ -1076,26 +1136,33 @@ document
             });
     });
 
-function debounce(fn, wait) {
-    let timeout;
-    return function () {
-        const context = this;
-        const args = arguments;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => fn.apply(context, args), wait);
-    };
-}
-
 if (typeof jQuery !== "undefined") {
     $(function () {
-        $("#search_filter").on(
-            "input",
-            debounce(function () {
-                currentSearch = $(this).val().trim();
-                currentPage = 1;
-                loadFolder(currentFolder, currentPage);
-            }, 250),
-        );
+        $("#search_filter")
+            .on("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    clearTimeout(documentSearchTimer);
+                    applyDocumentSearch();
+                }
+            })
+            .on("input", function () {
+                clearTimeout(documentSearchTimer);
+                const value = $(this).val().trim();
+
+                if (value === "") {
+                    applyDocumentSearch();
+                    return;
+                }
+
+                documentSearchTimer = setTimeout(function () {
+                    applyDocumentSearch();
+                }, 650);
+            })
+            .on("change", function () {
+                clearTimeout(documentSearchTimer);
+                applyDocumentSearch();
+            });
 
         if (currentUserType === "SUPERADMIN") {
             loadDepartmentFilters("all").then(function () {

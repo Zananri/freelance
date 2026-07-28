@@ -115,6 +115,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/document/create-folder', [DocumentController::class, 'createFolder'])->name('document.create-folder');
     Route::post('/document/update-folder', [DocumentController::class, 'updateFolder'])->name('document.update-folder');
     Route::post('/document/upload-files', [DocumentController::class, 'uploadFiles'])->name('document.upload-files');
+    Route::post('/document/upload-chunk', [DocumentController::class, 'uploadChunk'])->name('document.upload-chunk');
     Route::post('/document/update-file', [DocumentController::class, 'updateFile'])->name('document.update-file');
     Route::delete('/document/delete-file/{id}', [DocumentController::class, 'deleteFile'])->name('document.delete-file');
     Route::delete('/document/delete-folder/{id}', [DocumentController::class, 'deleteFolder'])->name('document.delete-folder');

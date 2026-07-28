@@ -261,10 +261,31 @@ class DocumentController extends Controller
 
     public function uploadFiles(Request $request)
     {
+        foreach ((array) $request->file('files', []) as $index => $file) {
+            if (!$file->isValid()) {
+                $serverLimit = ini_get('upload_max_filesize') ?: 'unknown';
+
+                return response()->json([
+                    'status' => false,
+                    'message' => "File ke-" . ($index + 1) . " gagal diunggah: "
+                        . $file->getErrorMessage()
+                        . " Batas upload PHP aktif: {$serverLimit}.",
+                    'errors' => [
+                        "files.{$index}" => [
+                            $file->getErrorMessage(),
+                        ],
+                    ],
+                ], 413);
+            }
+        }
+
         $request->validate([
             'folder_id' => 'nullable|exists:document_folders,id',
             'files' => 'required|array',
             'files.*' => 'file|max:20480',
+        ], [
+            'files.*.uploaded' => 'File gagal diunggah oleh server. Pastikan ukurannya maksimal 20 MB.',
+            'files.*.max' => 'Ukuran setiap file maksimal 20 MB.',
         ]);
 
         $authUser = Auth::user();
@@ -327,6 +348,136 @@ class DocumentController extends Controller
             'status' => true,
             'message' => 'Files uploaded successfully.',
             'data' => $savedFiles,
+        ]);
+    }
+
+    public function uploadChunk(Request $request)
+    {
+        $validated = $request->validate([
+            'folder_id' => 'nullable|exists:document_folders,id',
+            'upload_id' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/'],
+            'chunk_index' => 'required|integer|min:0',
+            'total_chunks' => 'required|integer|min:1|max:25',
+            'original_name' => 'required|string|max:255',
+            'mime_type' => 'nullable|string|max:255',
+            'total_size' => 'required|integer|min:1|max:20971520',
+            'chunk' => 'required|file|max:1536',
+        ]);
+
+        $authUser = Auth::user();
+        $currentEmployee = $authUser->employee;
+        abort_if(!$currentEmployee, 403, 'Employee account is not linked.');
+
+        $targetFolder = $request->filled('folder_id')
+            ? DocumentFolders::findOrFail((int) $validated['folder_id'])
+            : null;
+        $employeeId = (int) ($targetFolder?->employee_id ?? $currentEmployee->id);
+        $targetEmployee = Employee::findOrFail($employeeId);
+        $userType = strtoupper((string) ($authUser->user_type ?? ''));
+
+        if ($userType !== 'SUPERADMIN') {
+            if (in_array($userType, ['ADMINISTRATOR', 'ADMIN'], true)) {
+                abort_unless(
+                    (int) $targetEmployee->department_id === (int) $currentEmployee->department_id,
+                    403,
+                    'You cannot upload files outside your department.'
+                );
+            } else {
+                abort_unless(
+                    (int) $targetEmployee->id === (int) $currentEmployee->id,
+                    403,
+                    'You cannot upload files to another employee folder.'
+                );
+            }
+        }
+
+        $chunkDirectory = storage_path(
+            'app/upload_chunks/' . Auth::id() . '/' . $validated['upload_id']
+        );
+        if (!is_dir($chunkDirectory)) {
+            mkdir($chunkDirectory, 0775, true);
+        }
+
+        $chunkPath = $chunkDirectory . DIRECTORY_SEPARATOR . $validated['chunk_index'] . '.part';
+        $request->file('chunk')->move($chunkDirectory, basename($chunkPath));
+
+        if ((int) $validated['chunk_index'] !== (int) $validated['total_chunks'] - 1) {
+            return response()->json([
+                'status' => true,
+                'complete' => false,
+                'message' => 'Chunk uploaded.',
+            ]);
+        }
+
+        for ($index = 0; $index < (int) $validated['total_chunks']; $index++) {
+            if (!is_file($chunkDirectory . DIRECTORY_SEPARATOR . $index . '.part')) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Potongan file belum lengkap. Silakan ulangi upload.',
+                ], 422);
+            }
+        }
+
+        $uploadFolder = $targetFolder?->id ?? 'root';
+        $destination = public_path("file/documents/{$uploadFolder}");
+        if (!is_dir($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        $extension = strtolower((string) pathinfo($validated['original_name'], PATHINFO_EXTENSION));
+        $extension = preg_replace('/[^a-z0-9]/', '', $extension);
+        $filename = time() . '_' . uniqid() . ($extension !== '' ? '.' . $extension : '');
+        $destinationPath = $destination . DIRECTORY_SEPARATOR . $filename;
+        $output = fopen($destinationPath, 'wb');
+
+        if ($output === false) {
+            abort(500, 'Folder tujuan tidak dapat ditulis.');
+        }
+
+        try {
+            for ($index = 0; $index < (int) $validated['total_chunks']; $index++) {
+                $partPath = $chunkDirectory . DIRECTORY_SEPARATOR . $index . '.part';
+                $input = fopen($partPath, 'rb');
+                if ($input === false) {
+                    throw new \RuntimeException('Potongan file tidak dapat dibaca.');
+                }
+                stream_copy_to_stream($input, $output);
+                fclose($input);
+            }
+        } finally {
+            fclose($output);
+        }
+
+        $actualSize = filesize($destinationPath);
+        if ($actualSize === false || $actualSize !== (int) $validated['total_size']) {
+            @unlink($destinationPath);
+            return response()->json([
+                'status' => false,
+                'message' => 'Ukuran file hasil upload tidak sesuai. Silakan ulangi upload.',
+            ], 422);
+        }
+
+        for ($index = 0; $index < (int) $validated['total_chunks']; $index++) {
+            @unlink($chunkDirectory . DIRECTORY_SEPARATOR . $index . '.part');
+        }
+        @rmdir($chunkDirectory);
+
+        $document = Document::create([
+            'employee_id' => $employeeId,
+            'folder_id' => $targetFolder?->id,
+            'file_name' => $validated['original_name'],
+            'file_path' => "file/documents/{$uploadFolder}/{$filename}",
+            'file_type' => $validated['mime_type'] ?: 'application/octet-stream',
+            'file_size' => $actualSize,
+            'created_by' => Auth::id(),
+            'updated_by' => Auth::id(),
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'complete' => true,
+            'message' => 'File berhasil diunggah.',
+            'data' => $document,
         ]);
     }
 
