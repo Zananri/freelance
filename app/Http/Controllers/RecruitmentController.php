@@ -72,6 +72,8 @@ class RecruitmentController extends Controller
     public function candidateStore(Request $request): JsonResponse
     {
         $validated = $this->validateCandidate($request);
+        $validated['gender'] = $validated['gender'] ?? 'male';
+        $validated['experience_years'] = $validated['experience_years'] ?? 0;
 
         $candidate = Candidate::create($validated);
 
@@ -81,6 +83,8 @@ class RecruitmentController extends Controller
     public function candidateUpdate(Request $request, Candidate $candidate): JsonResponse
     {
         $validated = $this->validateCandidate($request);
+        $validated['gender'] = $validated['gender'] ?? ($candidate->gender ?: 'male');
+        $validated['experience_years'] = $validated['experience_years'] ?? 0;
 
         $candidate->update($validated);
 
@@ -96,7 +100,7 @@ class RecruitmentController extends Controller
 
     public function scheduleIndex(Request $request): JsonResponse
     {
-        $query = ScheduleRecruitment::with(['candidate:id,candidates_name,job_id', 'candidate.job:id,job_name']);
+        $query = ScheduleRecruitment::with(['candidate:id,candidates_name,job_id,position', 'candidate.job:id,job_name']);
 
         if ($candidateId = $request->query('candidate_id')) {
             $query->where('candidate_id', $candidateId);
@@ -107,7 +111,7 @@ class RecruitmentController extends Controller
 
     public function scheduleShow(ScheduleRecruitment $schedule): JsonResponse
     {
-        return response()->json($schedule->load(['candidate:id,candidates_name,job_id', 'candidate.job:id,job_name']));
+        return response()->json($schedule->load(['candidate:id,candidates_name,job_id,position', 'candidate.job:id,job_name']));
     }
 
     public function scheduleStore(Request $request): JsonResponse
@@ -143,7 +147,7 @@ class RecruitmentController extends Controller
         [$isSuper, $deptId] = $this->resolveAuthContext($request);
 
         $schedules = $this->scheduleQuery($isSuper, $deptId)
-            ->with(['candidate:id,candidates_name,job_id', 'candidate.job:id,job_name'])
+            ->with(['candidate:id,candidates_name,job_id,position', 'candidate.job:id,job_name'])
             ->whereYear('time_start', $year)
             ->whereMonth('time_start', $month)
             ->orderBy('time_start')
@@ -228,7 +232,7 @@ class RecruitmentController extends Controller
 
             $sheet->setCellValue('A' . $row, $no);
             $sheet->setCellValue('B' . $row, $candidate->candidates_name);
-            $sheet->setCellValue('C' . $row, optional($candidate->job)->job_name ?? '-');
+            $sheet->setCellValue('C' . $row, $candidate->position ?: (optional($candidate->job)->job_name ?? '-'));
             $sheet->setCellValue('D' . $row, $candidate->status);
             $sheet->setCellValue('E' . $row, optional($schedule)->schedule_type ?? '-');
             $sheet->setCellValue(
@@ -272,7 +276,8 @@ class RecruitmentController extends Controller
     private function validateCandidate(Request $request): array
     {
         return $request->validate([
-            'job_id' => 'required|exists:job_list,id',
+            'job_id' => 'nullable|exists:job_list,id',
+            'position' => 'required|string|max:255',
 
             'candidates_name' => 'required|string|max:255',
             'candidates_email' => 'required|email|max:255',
@@ -342,7 +347,7 @@ class RecruitmentController extends Controller
 
     private function buildDashboardData(Carbon $startDate, Carbon $endDate, bool $isSuper, ?int $deptId): array
     {
-        $schedules = ScheduleRecruitment::with(['candidate:id,candidates_name,job_id', 'candidate.job:id,job_name'])
+        $schedules = ScheduleRecruitment::with(['candidate:id,candidates_name,job_id,position', 'candidate.job:id,job_name'])
             ->whereBetween('time_start', [$startDate, $endDate])
             ->orderBy('time_start')
             ->get();
@@ -392,7 +397,7 @@ class RecruitmentController extends Controller
                 ->map(fn($candidate) => [
                     'id' => $candidate->id,
                     'candidate_name' => $candidate->candidates_name,
-                    'position' => optional($candidate->job)->job_name ?? '-',
+                    'position' => $candidate->position ?: (optional($candidate->job)->job_name ?? '-'),
                 ]);
         }
 

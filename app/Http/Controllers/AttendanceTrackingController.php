@@ -264,11 +264,11 @@ class AttendanceTrackingController extends Controller
         $activeWorksheet->getStyle('S1')->getFont()->setBold(true)->setSize(44);
         $activeWorksheet->getStyle('S1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        //No	NAMA KARYAWAN	NSAID	Department	Division	Job Position	Grade/Rank	Join Date	Periode Kerja	Penempatan	Time Lateness 1 Hour	Time Lateness 1 > Hour	Overtime off work day	Overtime on Work day	Sick	Permit	Absen	Leave	Shift 2	Total Work half Day This Month	Amount Work half Day This Month	Total Work Day This Month (23 Days)	Total Day Off This Month
+        //No	NAMA KARYAWAN	EMPLOYEE ID	Department	Division	Job Position	Grade/Rank	Join Date	Periode Kerja	Penempatan	Time Lateness 1 Hour	Time Lateness 1 > Hour	Overtime off work day	Overtime on Work day	Sick	Permit	Absen	Leave	Shift 2	Total Work half Day This Month	Amount Work half Day This Month	Total Work Day This Month (23 Days)	Total Day Off This Month
         
         $activeWorksheet->setCellValue('A2', __('attendance_tracking.export.number'));
         $activeWorksheet->setCellValue('B2', __('attendance_tracking.export.employee_name'));
-        $activeWorksheet->setCellValue('C2', 'NSAID');
+        $activeWorksheet->setCellValue('C2', 'EMPLOYEEID');
         $activeWorksheet->setCellValue('D2', __('attendance_tracking.export.department'));
         $activeWorksheet->setCellValue('E2', __('attendance_tracking.export.division'));
         $activeWorksheet->setCellValue('F2', __('attendance_tracking.export.job_position'));

@@ -72,6 +72,46 @@ $(function () {
         } catch (e) {}
     }
 
+    function getRequestErrorMessage(xhr) {
+        const response = xhr && xhr.responseJSON ? xhr.responseJSON : null;
+
+        if (response && response.errors) {
+            const messages = [];
+
+            Object.keys(response.errors).forEach((field) => {
+                const fieldMessages = response.errors[field];
+
+                if (Array.isArray(fieldMessages)) {
+                    fieldMessages.forEach((message) => messages.push(message));
+                } else if (fieldMessages) {
+                    messages.push(fieldMessages);
+                }
+            });
+
+            if (messages.length) {
+                return messages.join("<br>");
+            }
+        }
+
+        if (xhr && xhr.status === 419) {
+            return "Sesi login telah berakhir. Silakan refresh halaman dan coba lagi.";
+        }
+
+        if (xhr && (xhr.status === 401 || xhr.status === 403)) {
+            return "Akun ini tidak memiliki akses untuk melakukan tindakan tersebut.";
+        }
+
+        if (response && response.message) {
+            return response.message;
+        }
+
+        if (xhr && xhr.status === 0) {
+            return "Tidak dapat terhubung ke server. Periksa koneksi internet lalu coba lagi.";
+        }
+
+        return lang.something_wrong || "Something went wrong, please try again";
+    }
+
     function getCurrentDateParams() {
         const value = $("#dateRange").val();
 
@@ -85,7 +125,7 @@ $(function () {
         const dates = value.split(" to ");
 
         selectedStart = dates[0];
-        selectedEnd = dates[1] ?? dates[0];
+        selectedEnd = dates[1] || dates[0];
 
         return {
             start_date: selectedStart,
@@ -240,8 +280,8 @@ $(function () {
             (data) => {
                 selectedStart = data.selected_start;
                 selectedEnd = data.selected_end;
-                $("#totalEmployeesValue").text(data.totalEmployees ?? 0);
-                $("#totalSchedulesValue").text(data.schedules.length ?? 0);
+                $("#totalEmployeesValue").text(data.totalEmployees || 0);
+                $("#totalSchedulesValue").text(data.schedules.length || 0);
 
                 renderPipeline(
                     data.pipeline_statuses,
@@ -304,7 +344,7 @@ $(function () {
 
             const options = candidates.map(candidate => `
                 <option value="${candidate.id}">
-                    ${candidate.candidates_name} - ${candidate.job?.job_name ?? "-"}
+                    ${candidate.candidates_name} - ${candidate.position || (candidate.job && candidate.job.job_name) || "-"}
                 </option>
             `).join("");
 
@@ -327,7 +367,6 @@ $(function () {
 
     function openAddCandidateModal() {
         $("#candidateAddForm")[0].reset();
-        loadJobOptions("#addCandidateJobId");
         $("#candidateAddModal").modal("show");
     }
 
@@ -336,9 +375,10 @@ $(function () {
 
         $.get(`${routes.candidates}/${id}`)
             .done((candidate) => {
-                loadJobOptions("#editCandidateJobId", candidate.job_id).done(
-                    () => {
-                        $("#candidateEditForm").data("id", id);
+                $("#candidateEditForm").data("id", id);
+                        $("#editCandidatePosition").val(
+                            candidate.position || (candidate.job && candidate.job.job_name) || "",
+                        );
                         $("#editCandidateName").val(candidate.candidates_name);
                         $("#editCandidateEmail").val(
                             candidate.candidates_email,
@@ -368,8 +408,6 @@ $(function () {
                         $("#editCandidateStatus").val(candidate.status);
 
                         $("#candidateEditModal").modal("show");
-                    },
-                );
             })
             .fail((xhr) =>
                 showFloatingAlert(lang.something_wrong || "Something went wrong, please try again"),
@@ -388,6 +426,7 @@ $(function () {
             .done((candidate) => {
                 const payload = {
                     job_id: candidate.job_id,
+                    position: candidate.position || (candidate.job && candidate.job.job_name) || "",
                     candidates_name: candidate.candidates_name,
                     candidates_email: candidate.candidates_email,
                     candidates_phone: candidate.candidates_phone,
@@ -658,9 +697,18 @@ $(function () {
 
     $("#candidateAddForm").on("submit", function (event) {
         event.preventDefault();
+        const form = this;
+        const submitButton = $(form).find('button[type="submit"]');
+        const position = String($("#addCandidatePosition").val() || "").trim();
+
+        if (!position) {
+            showFloatingAlert("Position wajib diisi.", "warning");
+            $("#addCandidatePosition").trigger("focus");
+            return;
+        }
 
         const payload = {
-            job_id: $("#addCandidateJobId").val(),
+            position: position,
             candidates_name: $("#addCandidateName").val(),
             candidates_email: $("#addCandidateEmail").val(),
             candidates_phone: $("#addCandidatePhone").val(),
@@ -674,15 +722,20 @@ $(function () {
             status: $("#addCandidateStatus").val(),
         };
 
+        submitButton.prop("disabled", true);
+
         $.post(routes.candidates, payload)
             .done((response) => {
                 showFloatingAlert(response.message);
                 $("#candidateAddModal").modal("hide");
                 refreshDashboard();
             })
-            .fail((xhr) =>
-                showFloatingAlert(lang.something_wrong || "Something went wrong please try again"),
-            );
+            .fail((xhr) => {
+                showFloatingAlert(getRequestErrorMessage(xhr), "warning", 5000);
+            })
+            .always(() => {
+                submitButton.prop("disabled", false);
+            });
     });
 
     $("#candidateEditForm").on("submit", function (event) {
@@ -690,7 +743,7 @@ $(function () {
 
         const id = $(this).data("id");
         const payload = {
-            job_id: $("#editCandidateJobId").val(),
+            position: String($("#editCandidatePosition").val() || "").trim(),
             candidates_name: $("#editCandidateName").val(),
             candidates_email: $("#editCandidateEmail").val(),
             candidates_phone: $("#editCandidatePhone").val(),

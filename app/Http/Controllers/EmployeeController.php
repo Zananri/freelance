@@ -1255,13 +1255,13 @@ class EmployeeController extends Controller
 
         $activeWorksheet->setCellValue('A1', $title);
 
-        //No	PHOTO	NAMA KARYAWAN	EMAIL	NSAID	Department	Division	Job Position	Grade/Rank	Join Date	Selesai Kontrak	Status	Alamat	THP Take Home Pay	Gaji Pokok	Tunjangan Jabatan	Tunjangan Transportasi	Tunjangan Makan	Tunjangan Internet
+        //No	PHOTO	NAMA KARYAWAN	EMAIL	EMPLOYEE ID	Department	Division	Job Position	Grade/Rank	Join Date	Selesai Kontrak	Status	Alamat	THP Take Home Pay	Gaji Pokok	Tunjangan Jabatan	Tunjangan Transportasi	Tunjangan Makan	Tunjangan Internet
 
         $activeWorksheet->setCellValue('A2', 'No');
         $activeWorksheet->setCellValue('B2', 'PHOTO');
         $activeWorksheet->setCellValue('C2', 'NAMA KARYAWAN');
         $activeWorksheet->setCellValue('D2', 'EMAIL');
-        $activeWorksheet->setCellValue('E2', 'NSAID');
+        $activeWorksheet->setCellValue('E2', 'EMPLOYEE ID');
         $activeWorksheet->setCellValue('F2', 'Department');
         $activeWorksheet->setCellValue('G2', 'Division');
         $activeWorksheet->setCellValue('H2', 'Job Position');

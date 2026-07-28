@@ -387,11 +387,8 @@
                                     {{ __('recruitment.position') }} <span class="text-danger">*</span>
                                 </label>
 
-                                <select id="addCandidateJobId" class="form-select border-0" required>
-
-                                    <option value="">{{ __('recruitment.select_position') }}</option>
-
-                                </select>
+                                <input type="text" id="addCandidatePosition" class="form-control border-0"
+                                    placeholder="{{ __('recruitment.position') }}" maxlength="255" required>
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -547,11 +544,8 @@
                                     {{ __('recruitment.position') }} <span class="text-danger">*</span>
                                 </label>
 
-                                <select id="editCandidateJobId" class="form-select border-0" required>
-
-                                    <option value="">{{ __('recruitment.select_position') }}</option>
-
-                                </select>
+                                <input type="text" id="editCandidatePosition" class="form-control border-0"
+                                    placeholder="{{ __('recruitment.position') }}" maxlength="255" required>
                             </div>
 
                             <div class="col-md-6 mb-3">

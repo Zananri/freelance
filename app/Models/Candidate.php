@@ -32,6 +32,7 @@ class Candidate extends Model
         'candidates_phone',
         'candidates_address',
         'job_id',
+        'position',
         'gender',
         'candidates_birthdate',
         'last_education',
