@@ -248,7 +248,39 @@ class DocumentController extends Controller
             'parent_folder_id' => 'nullable|exists:document_folders,id'
         ]);
 
-        $employeeId = Auth::user()->employee->id;
+        $authUser = Auth::user();
+        $currentEmployee = $authUser->employee;
+        abort_if(!$currentEmployee, 403, 'Employee account is not linked.');
+
+        $parentFolder = $request->parent_folder_id
+            ? DocumentFolders::findOrFail($request->parent_folder_id)
+            : null;
+        $employeeId = (int) ($parentFolder?->employee_id ?? $currentEmployee->id);
+        $targetEmployee = Employee::findOrFail($employeeId);
+        $userType = strtoupper((string) ($authUser->user_type ?? ''));
+        $userRole = strtoupper((string) ($authUser->user_role ?? ''));
+        $isSuperadmin = in_array('SUPERADMIN', [$userType, $userRole], true);
+        $isAdmin = count(array_intersect(
+            [$userType, $userRole],
+            ['ADMIN', 'ADMINISTRATOR']
+        )) > 0;
+
+        if (!$isSuperadmin) {
+            if ($isAdmin) {
+                abort_unless(
+                    (int) $targetEmployee->department_id === (int) $currentEmployee->department_id,
+                    403,
+                    'You cannot create folders outside your department.'
+                );
+            } else {
+                abort_unless(
+                    (int) $targetEmployee->id === (int) $currentEmployee->id,
+                    403,
+                    'You cannot create folders for another employee.'
+                );
+            }
+        }
+
         $userId = Auth::id();
 
         $folder = DocumentFolders::create([
@@ -569,7 +601,6 @@ class DocumentController extends Controller
 
         while (!empty($currentIds)) {
             $children = DocumentFolders::whereIn('parent_folder_id', $currentIds)
-                ->where('created_by', $userId)
                 ->pluck('id')
                 ->toArray();
 
@@ -579,6 +610,20 @@ class DocumentController extends Controller
 
             $deleteIds = array_merge($deleteIds, $children);
             $currentIds = $children;
+        }
+
+        $containsOtherOwners = DocumentFolders::whereIn('id', $deleteIds)
+            ->where('created_by', '<>', $userId)
+            ->exists()
+            || Document::whereIn('folder_id', $deleteIds)
+                ->where('created_by', '<>', $userId)
+                ->exists();
+
+        if ($containsOtherOwners) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Folder tidak dapat dihapus karena berisi folder atau file milik pengguna lain.',
+            ], 422);
         }
 
         DocumentFolders::whereIn('id', $deleteIds)->delete();
