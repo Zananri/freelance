@@ -98,8 +98,58 @@ class DocumentController extends Controller
             $query->where('doc_employees.department_id', $currentEmployee->department_id);
             $fileQuery->where('doc_employees.department_id', $currentEmployee->department_id);
         } else {
-            $query->where('document_folders.employee_id', $employeeId);
-            $fileQuery->where('documents.employee_id', $employeeId);
+            $departmentId = (int) $currentEmployee->department_id;
+
+            $query->where(function ($scope) use ($employeeId, $departmentId) {
+                $scope->where('document_folders.employee_id', $employeeId)
+                    ->orWhereExists(function ($adminFolder) use ($departmentId) {
+                        $adminFolder->selectRaw('1')
+                            ->from('users as folder_creators')
+                            ->join(
+                                'employees as folder_creator_employees',
+                                'folder_creator_employees.user_id',
+                                '=',
+                                'folder_creators.id'
+                            )
+                            ->whereColumn(
+                                'folder_creators.id',
+                                'document_folders.created_by'
+                            )
+                            ->where(
+                                'folder_creator_employees.department_id',
+                                $departmentId
+                            )
+                            ->where(function ($adminRole) {
+                                $adminRole
+                                    ->whereIn('folder_creators.user_type', ['ADMIN', 'ADMINISTRATOR'])
+                                    ->orWhereIn('folder_creators.user_role', ['ADMIN', 'ADMINISTRATOR']);
+                            });
+                    });
+            });
+
+            $fileQuery->where(function ($scope) use ($employeeId, $departmentId) {
+                $scope->where('documents.employee_id', $employeeId)
+                    ->orWhereExists(function ($adminFile) use ($departmentId) {
+                        $adminFile->selectRaw('1')
+                            ->from('users as file_creators')
+                            ->join(
+                                'employees as file_creator_employees',
+                                'file_creator_employees.user_id',
+                                '=',
+                                'file_creators.id'
+                            )
+                            ->whereColumn('file_creators.id', 'documents.created_by')
+                            ->where(
+                                'file_creator_employees.department_id',
+                                $departmentId
+                            )
+                            ->where(function ($adminRole) {
+                                $adminRole
+                                    ->whereIn('file_creators.user_type', ['ADMIN', 'ADMINISTRATOR'])
+                                    ->orWhereIn('file_creators.user_role', ['ADMIN', 'ADMINISTRATOR']);
+                            });
+                    });
+            });
         }
 
         if ($divisionFilter && $divisionFilter !== 'all') {
