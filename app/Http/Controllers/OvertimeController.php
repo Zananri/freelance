@@ -53,12 +53,7 @@ class OvertimeController extends Controller
 
         $today = Carbon::today()->toDateString();
 
-        $searchQuery = '';
-
-
-        if(isset($request->SEARCH_QUERY)){
-            $searchQuery = $request->SEARCH_QUERY;
-        }
+        $searchQuery = trim((string) $request->input('SEARCH_QUERY', ''));
 
         
         $employeeIds = Employee::select('employees.id')
@@ -79,7 +74,7 @@ class OvertimeController extends Controller
             ->where('date_overtime','<',$today)
             ->where('status','<>','DELETED');
         
-        if(isset($searchQuery)){
+        if ($searchQuery !== '') {
             $employeeOvertime = $employeeOvertime->where(function($query) use ($searchQuery){
                     $query->where('status','like','%'.$searchQuery.'%');
                     $query->orWhere('date_overtime','like','%'.$searchQuery.'%');
@@ -119,6 +114,7 @@ class OvertimeController extends Controller
         $month = Carbon::today()->format('m');
         $page = (int)($request->PAGE ?? 1);
         $perPage = 10;
+        $searchQuery = trim((string) $request->input('SEARCH_QUERY', ''));
 
         if(isset($request->YEAR)){
             $year = $request->YEAR;
@@ -137,6 +133,15 @@ class OvertimeController extends Controller
 
         if ($userType !== 'SUPERADMIN') {
             $employeeQuery->where('employees.department_id', $currentEmployee?->department_id ?? 0);
+        }
+
+        if ($searchQuery !== '') {
+            $employeeQuery->where(function ($query) use ($searchQuery) {
+                $query->where('employees.name', 'like', '%' . $searchQuery . '%')
+                    ->orWhere('employees.employee_niks', 'like', '%' . $searchQuery . '%')
+                    ->orWhere('employees.email', 'like', '%' . $searchQuery . '%')
+                    ->orWhere('employees.email_work', 'like', '%' . $searchQuery . '%');
+            });
         }
 
         $totalEmployees = $employeeQuery->count();

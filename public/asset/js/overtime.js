@@ -16,6 +16,11 @@ let CURRENT_DATE = new Date();
 let DATA_OVERTIME_REQUEST = [];
 let SEARCH_QUERY_OVERTIME_REQUEST = '';
 let PAGE_OVERTIME_REQUEST = 1;
+let SEARCH_QUERY_TOTAL_OVERTIME = '';
+let overtimeRequestSearchTimer = null;
+let overtimeTotalSearchTimer = null;
+let overtimeRequestXhr = null;
+let overtimeTotalXhr = null;
 
 let OVERTIME_CURRENT_MONTH = CURRENT_DATE.getMonth() + 1;
 let OVERTIME_CURRENT_YEAR = CURRENT_DATE.getFullYear();
@@ -131,14 +136,19 @@ function htmlDataRequestOvertime(dataRow){
 }
 
 function getAllEmployeeOvertimeRequest(){
-    $.ajax({
+    if (overtimeRequestXhr && overtimeRequestXhr.readyState !== 4) {
+        overtimeRequestXhr.abort();
+    }
+
+    overtimeRequestXhr = $.ajax({
         url: appUrl + "/overtime/employee-overtime-request",
         type: "GET",
         data:{
             'SEARCH_QUERY' : SEARCH_QUERY_OVERTIME_REQUEST,
             'page' : PAGE_OVERTIME_REQUEST,
         },
-        error:function(res){
+        error:function(res, status){
+            if (status === 'abort') return;
             var resJson = res.responseJSON;
             showAlertMsg(resJson?.message || 'Error','error',5000);
         },
@@ -158,10 +168,14 @@ function getAllEmployeeOvertimeRequest(){
 
 getAllEmployeeOvertimeRequest();
 
-$('.input-search-overtime-request').on('keyup',function(){
-    SEARCH_QUERY_OVERTIME_REQUEST = $(this).val();
-    PAGE_OVERTIME_REQUEST = 1;
-    getAllEmployeeOvertimeRequest();
+$('.input-search-overtime-request').on('input',function(){
+    const input = this;
+    clearTimeout(overtimeRequestSearchTimer);
+    overtimeRequestSearchTimer = setTimeout(function(){
+        SEARCH_QUERY_OVERTIME_REQUEST = $(input).val().trim();
+        PAGE_OVERTIME_REQUEST = 1;
+        getAllEmployeeOvertimeRequest();
+    }, 500);
 });
 
 function capitalizeFirstLetter(str) {
@@ -181,15 +195,21 @@ $('#overtimePhotoModal .btn-close-img-viewer').on('click',function(){
 
 // OVERVIEW EMPLOYEE TABLE WITH PAGINATION
 function getEmployeeOvertimeByMonth(){
-    $.ajax({
+    if (overtimeTotalXhr && overtimeTotalXhr.readyState !== 4) {
+        overtimeTotalXhr.abort();
+    }
+
+    overtimeTotalXhr = $.ajax({
         url: appUrl + "/overtime/employee-overtime-by-month",
         type: "GET",
         data: {
             YEAR: OVERTIME_CURRENT_YEAR,
             MONTH: OVERTIME_CURRENT_MONTH,
             PAGE: OVERTIME_PAGE,
+            SEARCH_QUERY: SEARCH_QUERY_TOTAL_OVERTIME,
         },
-        error:function(res){
+        error:function(res, status){
+            if (status === 'abort') return;
             var resJson = res.responseJSON;
             showAlertMsg(resJson?.message || 'Error','error',5000);
         },
@@ -329,9 +349,14 @@ $('.dropdown-year .month-item').on('click', function(){
     getEmployeeOvertimeByMonth();
 });
 
-$('.input-search-total-overtime').on('keyup', function(){
-    OVERTIME_PAGE = 1;
-    getEmployeeOvertimeByMonth();
+$('.input-search-total-overtime').on('input', function(){
+    const input = this;
+    clearTimeout(overtimeTotalSearchTimer);
+    overtimeTotalSearchTimer = setTimeout(function(){
+        SEARCH_QUERY_TOTAL_OVERTIME = $(input).val().trim();
+        OVERTIME_PAGE = 1;
+        getEmployeeOvertimeByMonth();
+    }, 500);
 });
 
 getEmployeeOvertimeByMonth();
@@ -485,4 +510,3 @@ function rejectOvertimeRequest(){
         }
     });
 }
-

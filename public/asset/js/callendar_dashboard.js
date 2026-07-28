@@ -258,8 +258,12 @@ $(document).on("click", ".calendar-event-list", function () {
     showEventsByMonth();
 });
 
-$("#dashboardSearchMonthEvent").on("keyup", function () {
-    const searchQuery = String($(this).val() || "")
+let dashboardEventSearchTimer = null;
+$("#dashboardSearchMonthEvent").on("input", function () {
+    const input = this;
+    clearTimeout(dashboardEventSearchTimer);
+    dashboardEventSearchTimer = setTimeout(function () {
+    const searchQuery = String($(input).val() || "")
         .trim()
         .toLowerCase();
     const $items = $(
@@ -291,6 +295,7 @@ $("#dashboardSearchMonthEvent").on("keyup", function () {
             date.includes(searchQuery);
         $(this).toggleClass("d-none", !isMatch);
     });
+    }, 500);
 });
 
 $(document).on("click", ".dashboard-calendar-month-event-item", function () {

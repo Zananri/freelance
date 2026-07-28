@@ -1457,12 +1457,17 @@ $(function () {
         renderMarkers(true);
     });
 
+    var topSearchTimer = null;
+    var bottomSearchTimer = null;
+
     $topSearch.on("input", function () {
-        renderSidebar();
+        clearTimeout(topSearchTimer);
+        topSearchTimer = setTimeout(renderSidebar, 500);
     });
 
     $bottomSearch.on("input", function () {
-        renderSidebar();
+        clearTimeout(bottomSearchTimer);
+        bottomSearchTimer = setTimeout(renderSidebar, 500);
     });
 
     fetchMonitoringData();

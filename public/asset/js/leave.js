@@ -275,13 +275,16 @@ function editEmployeeLeave(){
 let SEARCH_QUERY_LEAVE_REQUEST = '';
 let DATA_LEAVE_REQUEST = [];
 let PAGE_LEAVE_REQUEST = 1;
+let leaveRequestSearchTimer = null;
 
-$('.col-leave-request .input-search-query-request').on('keyup',function(){
-    
-    SEARCH_QUERY_LEAVE_REQUEST = $(this).val();
-    PAGE_LEAVE_REQUEST = 1;
-    getAllEmployeeLeaveRequest();
-
+$('.col-leave-request .input-search-query-request').on('input',function(){
+    const input = this;
+    clearTimeout(leaveRequestSearchTimer);
+    leaveRequestSearchTimer = setTimeout(function(){
+        SEARCH_QUERY_LEAVE_REQUEST = $(input).val().trim();
+        PAGE_LEAVE_REQUEST = 1;
+        getAllEmployeeLeaveRequest();
+    }, 500);
 });
 
 function htmlDataRequestTimeOff(dataRow){

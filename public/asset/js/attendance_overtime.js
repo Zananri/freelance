@@ -58,10 +58,15 @@ let DATE_NOW = formatDatePHP('Y-m-d',new Date().toString());
 let SEARCH_QUERY_OVERTIME = '';
 let PAGE_DATA_OVERTIME = 1;
 let ARR_DATA_OVERTIME = [];
+let overtimeSearchTimer = null;
+let overtimeSearchXhr = null;
 
 function getAllRequestOvertime(){
+    if (overtimeSearchXhr && overtimeSearchXhr.readyState !== 4) {
+        overtimeSearchXhr.abort();
+    }
 
-    $.ajax({
+    overtimeSearchXhr = $.ajax({
         url: appUrl + "/employee-overtime/all-request",
         type: "GET",
         data:{
@@ -71,7 +76,8 @@ function getAllRequestOvertime(){
         beforeSend:function(){
             //$('.col-user-management .loader').fadeIn('fast');
         },
-        error:function(res){
+        error:function(res, status){
+          if (status === 'abort') return;
           //$('.col-user-management .loader').fadeOut('fast');
         },
         success: function(response) {
@@ -262,39 +268,14 @@ $('#overtimeModal .btn-close-img-viewer').on('click',function(){
 
  
 
-$('#input-search-overtime').on('keyup',function(){
-    let searchQuery = $(this).val();
-     
-
-    if(searchQuery){
-        $('#overtimeModal .item-overtime').addClass('d-none'); 
-
-        $('#overtimeModal .item-overtime').each(function(){
-            let itemDescription = $(this).find('.item-description').text();
-            let itemTitle = $(this).find('.item-title').text();
-            let itemStatus = $(this).find('.item-status').text();
-            let searchExist = false;
-
-            if(itemDescription.toLowerCase().includes(searchQuery.toLowerCase())){
-                searchExist = true;
-            }
-
-            if(itemTitle.toLowerCase().includes(searchQuery.toLowerCase())){
-                searchExist = true;
-            }
-            
-            if(itemStatus.toLowerCase().includes(searchQuery.toLowerCase())){
-                searchExist = true;
-            }
-
-            if(searchExist){
-                $(this).removeClass('d-none');
-            }
-        });
-
-    }else{
-        $('#overtimeModal .item-overtime').removeClass('d-none');
-    }
+$('#input-search-overtime').on('input',function(){
+    const input = this;
+    clearTimeout(overtimeSearchTimer);
+    overtimeSearchTimer = setTimeout(function(){
+        SEARCH_QUERY_OVERTIME = $(input).val().trim();
+        PAGE_DATA_OVERTIME = 1;
+        getAllRequestOvertime();
+    }, 500);
 });
 
 function isMobileDevice() {

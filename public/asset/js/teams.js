@@ -62,8 +62,12 @@ $(document).on('click','.modal .employee-photo',function(){
 
 });
 
-$('.input-card-action.search-query').on('keyup',function(){
-    let searchQuery = $(this).val();
+let teamsSearchTimer = null;
+$('.input-card-action.search-query').on('input',function(){
+    const input = this;
+    clearTimeout(teamsSearchTimer);
+    teamsSearchTimer = setTimeout(function(){
+    let searchQuery = $(input).val();
     if(searchQuery){
         $('.card-department').addClass('d-none');
         $('.col-employee').addClass('d-none');
@@ -80,4 +84,5 @@ $('.input-card-action.search-query').on('keyup',function(){
         $('.col-employee').removeClass('d-none');
         $('.card-department').removeClass('d-none');
     }
+    }, 500);
 });
