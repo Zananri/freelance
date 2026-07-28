@@ -17,6 +17,15 @@ class Candidate extends Model
         'Rejected',
     ];
 
+    public const DATABASE_STATUSES = [
+        'applied',
+        'screening',
+        'interview',
+        'tech_test',
+        'hired',
+        'rejected',
+    ];
+
     protected $fillable = [
         'candidates_name',
         'candidates_email',
@@ -46,6 +55,26 @@ class Candidate extends Model
 
     public function scopeStatus($query, string $status)
     {
-        return $query->where('status', $status);
+        return $query->where('status', self::toDatabaseStatus($status));
+    }
+
+    public static function toDatabaseStatus(string $status): string
+    {
+        return strtolower(str_replace([' ', '-'], '_', trim($status)));
+    }
+
+    public static function toDisplayStatus(string $status): string
+    {
+        return ucwords(str_replace('_', ' ', strtolower(trim($status))));
+    }
+
+    public function setStatusAttribute(?string $status): void
+    {
+        $this->attributes['status'] = self::toDatabaseStatus((string) $status);
+    }
+
+    public function getStatusAttribute(?string $status): string
+    {
+        return self::toDisplayStatus((string) $status);
     }
 }

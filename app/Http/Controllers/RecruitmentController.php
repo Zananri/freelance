@@ -56,7 +56,7 @@ class RecruitmentController extends Controller
         $query = Candidate::with('job:id,job_name');
 
         if ($status = $request->query('status')) {
-            $query->where('status', $status);
+            $query->where('status', Candidate::toDatabaseStatus($status));
         }
 
         return response()->json(
@@ -531,7 +531,7 @@ class RecruitmentController extends Controller
 
     private function candidateStatusQuery(string $status, bool $isSuper, ?int $deptId)
     {
-        $query = Candidate::where('status', $status);
+        $query = Candidate::where('status', Candidate::toDatabaseStatus($status));
 
         if (! $isSuper && $deptId) {
             $this->scopeToDepartment($query, $deptId);
