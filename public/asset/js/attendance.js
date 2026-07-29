@@ -28,10 +28,17 @@ $('#checkInModal').on('hidden.bs.modal', function (e) {
     //clearInterval(mapCheckInReload);
 });
 
+let locationRequestInProgress = false;
+
 function setDefaultLocation(){
+    if (locationRequestInProgress) return;
+
     if (navigator.geolocation) {
+        locationRequestInProgress = true;
+
         navigator.geolocation.getCurrentPosition(
             (position) => {
+                locationRequestInProgress = false;
                 LOC_LATITUDE = position.coords.latitude;
                 LOC_LONGITUDE = position.coords.longitude;
 
@@ -44,27 +51,27 @@ function setDefaultLocation(){
                 
             },
             (error) => {
-                // Handle errors, such as user denying location access
+                locationRequestInProgress = false;
+
                 switch (error.code) {
                     case error.PERMISSION_DENIED:
-                    console.error("User denied the request for Geolocation.");
-                    break;
+                        console.error("User denied the request for Geolocation.");
+                        break;
                     case error.POSITION_UNAVAILABLE:
-                    console.error("Location information is unavailable.");
-                    break;
+                        console.warn("Location information is temporarily unavailable.");
+                        break;
                     case error.TIMEOUT:
-                    console.error("The request to get user location timed out.");
-                    break;
+                        console.warn("Location request timed out. Retrying automatically.");
+                        break;
                     case error.UNKNOWN_ERROR:
-                    console.error("An unknown error occurred.");
-                    break;
+                        console.error("An unknown error occurred.");
+                        break;
                 }
             },
             {
-                // Optional: configuration options for getCurrentPosition
-                enableHighAccuracy: true, // Request the most accurate position available
-                timeout: 5000, // Maximum time (in milliseconds) allowed to return a position
-                maximumAge: 0 // Do not use a cached position, always try to get the real current position
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 30000
             }
         );
     } else {
@@ -175,7 +182,8 @@ if(employeeOffice){
 
 const LOC_OFFICE = L.latLng(locationLat, locationLong);
 
-const loopGetLocation = setInterval(setDefaultLocation, 500);
+setDefaultLocation();
+const loopGetLocation = setInterval(setDefaultLocation, 30000);
 
 
 $('.time-log.time-in').on('click', function(){

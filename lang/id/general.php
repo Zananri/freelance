@@ -271,5 +271,8 @@ return [
     'employee_detail' => 'Detail Karyawan',
     'confirm_delete_employee' => 'Konfirmasi Hapus Karyawan',
     'delete_employee_confirm' => 'Apakah Anda yakin ingin menghapus karyawan ini?',
+
+    'journey_checkpoints' => 'Checkpoint Perjalanan',
+    'checkpoints_recorded' => 'checkpoint tercatat',
 ];
 

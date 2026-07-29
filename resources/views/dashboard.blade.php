@@ -786,6 +786,34 @@
                                 </div>
                             </div>
 
+                            @if ($attendanceTrackingCheckins->count() > 1)
+                                <div class="checkpoint-detail-card">
+                                    <div class="checkpoint-detail-heading">
+                                        <span class="material-symbols-outlined">route</span>
+                                        <div>
+                                            <div class="checkpoint-detail-title">{{ __('general.journey_checkpoints') }}</div>
+                                            <div class="checkpoint-detail-subtitle">
+                                                {{ $attendanceTrackingCheckins->count() - 1 }} {{ __('general.checkpoints_recorded') }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="checkpoint-detail-list">
+                                        @foreach ($attendanceTrackingCheckins->skip(1)->values() as $checkpointIndex => $checkpoint)
+                                            <div class="checkpoint-detail-item">
+                                                <span class="checkpoint-detail-number">{{ $checkpointIndex + 1 }}</span>
+                                                <div class="checkpoint-detail-copy">
+                                                    <span>Checkpoint {{ $checkpointIndex + 1 }}</span>
+                                                    <small>{{ \Carbon\Carbon::parse($checkpoint->date_time)->translatedFormat('l, j F Y') }}</small>
+                                                </div>
+                                                <span class="checkpoint-detail-time">
+                                                    {{ \Carbon\Carbon::parse($checkpoint->date_time)->format('H:i') }}
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
                             @php
                                 $checkinImageSrc = '';
 

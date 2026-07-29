@@ -271,5 +271,7 @@ return [
     'employee_detail' => 'Employee Detail',
     'confirm_delete_employee' => 'Confirm Delete Employee',
     'delete_employee_confirm' => 'Are you sure you want to delete this employee?',
+    'journey_checkpoints' => 'Journey Checkpoints',
+    'checkpoints_recorded' => 'checkpoints recorded',
 ];
 

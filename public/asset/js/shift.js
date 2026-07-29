@@ -660,6 +660,14 @@ function setEditShiftModal(btn) {
 }
 
 function renderTimeline(start, checkpoints, end) {
+    // Older records stored time_start as the only checkpoint. Check-in is now
+    // implicit, so do not render/count that legacy value twice.
+    if (
+        checkpoints.length === 1 &&
+        toHHMM(checkpoints[0]) === toHHMM(start)
+    ) {
+        checkpoints = [];
+    }
 
     let html = `
         <div class="timeline-item">
@@ -705,7 +713,7 @@ function renderTimeline(start, checkpoints, end) {
     $("#shiftTimeline").html(html);
 
     $("#editCheckpointCount").text(
-        `${checkpoints.length} ${checkpoints.length > 1 ? translateShift('points') : translateShift('point')}`
+        `${checkpoints.length + 1} ${checkpoints.length > 0 ? translateShift('points') : translateShift('point')}`
     );
 
 }
@@ -798,6 +806,12 @@ document.addEventListener("click", async (e) => {
             if (typeof checkpoints === "string") checkpoints = JSON.parse(checkpoints);
             if (!Array.isArray(checkpoints)) checkpoints = [];
         } catch (e) {
+            checkpoints = [];
+        }
+        if (
+            checkpoints.length === 1 &&
+            toHHMM(checkpoints[0]) === toHHMM(editBtn.dataset.start || "")
+        ) {
             checkpoints = [];
         }
         const $editModalBody = $(modalEl).find(".modal-body");
@@ -1409,10 +1423,10 @@ async function saveNewShift(formId = "addShiftForm") {
 function addCheckpoint($modalBody) {
     const container = $modalBody.find(".checkpoint-wrapper");
     const items = container.find(".checkpoint-item");
-    const maxCheckpoints = 7;
+    const maxCheckpoints = 8;
 
     if (items.length >= maxCheckpoints) {
-        showFloatingAlert("Maximum of 7 checkpoints allowed.", "warning");
+        showFloatingAlert("Maximum of 8 additional checkpoints allowed (9 including check-in).", "warning");
         return;
     }
 

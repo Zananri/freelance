@@ -148,6 +148,46 @@
     color: #9b9cac;
 }
 
+.checkpoint-log-list {
+    margin: 9px 0 11px;
+}
+
+.checkpoint-log-list::before {
+    content: none;
+}
+
+.checkpoint-log-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 28px;
+    padding: 4px 9px 4px 6px;
+    margin-bottom: 5px;
+    border: 1px solid #e1e8ef;
+    border-radius: 9px;
+    background: rgba(247, 249, 252, .88);
+}
+
+.checkpoint-log-marker {
+    display: grid;
+    place-items: center;
+    flex: 0 0 18px;
+    width: 16px;
+    height: 18px;
+    border-radius: 50%;
+    background: #5c7189;
+    color: #fff;
+}
+
+.checkpoint-log-marker .material-symbols-outlined {
+    margin: 0;
+    font-size: 11px;
+    color: inherit;
+}
+
+.checkpoint-log-label { color: #657083; font-size: 11px; font-weight: 500; }
+.checkpoint-log-time { margin-left: auto; color: #303946; font-size: 11px; font-weight: 600; }
+
 .attendance-actions {
     display: flex;
     justify-content: center;
@@ -1897,6 +1937,89 @@ input[type="file"]::file-selector-button {
     color: #2A3542;
     font-weight: 500;
     text-align: right;
+}
+
+.checkpoint-detail-card {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid rgba(103, 124, 146, .2);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .48);
+}
+
+.checkpoint-detail-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.checkpoint-detail-heading > .material-symbols-outlined {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: #34485e;
+    color: #fff;
+    font-size: 19px;
+}
+
+.checkpoint-detail-title {
+    color: #2f3b49;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.checkpoint-detail-subtitle {
+    color: #718092;
+    font-size: 10px;
+}
+
+.checkpoint-detail-list {
+    display: grid;
+    gap: 8px;
+}
+
+.checkpoint-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, .76);
+    box-shadow: 0 3px 10px rgba(45, 63, 82, .05);
+}
+
+.checkpoint-detail-number {
+    display: grid;
+    place-items: center;
+    flex: 0 0 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #dce7f1;
+    color: #34485e;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.checkpoint-detail-copy {
+    display: flex;
+    flex-direction: column;
+    color: #34404d;
+    font-size: 12px;
+}
+
+.checkpoint-detail-copy small {
+    color: #7e8b99;
+    font-size: 9px;
+}
+
+.checkpoint-detail-time {
+    margin-left: auto;
+    color: #26384b;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .checkin-detail-panels {

@@ -11,7 +11,11 @@ use Illuminate\Support\Facades\DB;
 
 class ShiftController extends Controller
 {
-    private const MAX_CHECKPOINTS = 7;
+    /**
+     * Check-in is the first checkpoint. This limit only applies to additional
+     * checkpoint fields, so the maximum total_checkpoint is 9.
+     */
+    private const MAX_ADDITIONAL_CHECKPOINTS = 8;
 
     public function showShiftPage(Request $request)
     {
@@ -264,7 +268,7 @@ class ShiftController extends Controller
                 'time_start' => 'required|date_format:H:i',
                 'time_end' => 'required|date_format:H:i',
 
-                'checkpoints' => 'nullable|array|max:' . self::MAX_CHECKPOINTS,
+                'checkpoints' => 'nullable|array|max:' . self::MAX_ADDITIONAL_CHECKPOINTS,
                 'checkpoints.*' => 'date_format:H:i',
             ]);
 
@@ -278,10 +282,7 @@ class ShiftController extends Controller
 
             $totalHour = $end->diffInHours($start, true); // true for absolute value
 
-            $checkpoints = $request->input('checkpoints', []);
-            if (empty($checkpoints)) {
-                $checkpoints = [$request->time_start];
-            }
+            $checkpoints = $validated['checkpoints'] ?? [];
 
             $shift = \App\Models\Shift::create([
                 'title' => $validated['title'],
@@ -289,7 +290,7 @@ class ShiftController extends Controller
                 'time_start' => $validated['time_start'],
                 'time_end' => $validated['time_end'],
                 'total_hour' => $totalHour,
-                'total_checkpoint' => count($checkpoints),
+                'total_checkpoint' => 1 + count($checkpoints),
                 'checkpoint_times' => $checkpoints,
                 'created_by' => auth()->id(),
             ]);
@@ -400,7 +401,7 @@ class ShiftController extends Controller
                 'time_start' => 'required|date_format:H:i',
                 'time_end' => 'required|date_format:H:i',
 
-                'checkpoints' => 'nullable|array|max:' . self::MAX_CHECKPOINTS,
+                'checkpoints' => 'nullable|array|max:' . self::MAX_ADDITIONAL_CHECKPOINTS,
                 'checkpoints.*' => 'date_format:H:i',
             ]);
 
@@ -411,10 +412,7 @@ class ShiftController extends Controller
                 $end = $end->copy()->addDay();
             }
             $totalHour = $end->diffInHours($start, true);
-            $checkpoints = $request->input('checkpoints', []);
-            if (empty($checkpoints)) {
-                $checkpoints = [$request->time_start];
-            }
+            $checkpoints = $validated['checkpoints'] ?? [];
 
             $shift = \App\Models\Shift::findOrFail($id);
             $shift->update([
@@ -423,7 +421,7 @@ class ShiftController extends Controller
                 'time_start' => $validated['time_start'],
                 'time_end' => $validated['time_end'],
                 'total_hour' => $totalHour,
-                'total_checkpoint' => count($checkpoints),
+                'total_checkpoint' => 1 + count($checkpoints),
                 'checkpoint_times' => $checkpoints,
             ]);
 

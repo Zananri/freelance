@@ -55,10 +55,10 @@ class AttendanceController extends Controller
         return $earthRadius * $c;
     }
 
-    private function validateHsnDistanceRule(Employee $employee, float $latitude, float $longitude, int $existingCheckinCount): void
+    private function validateMdsDistanceRule(Employee $employee, float $latitude, float $longitude, int $existingCheckinCount): void
     {
-        $departmentName = strtoupper(trim((string) optional($employee->department)->name_department));
-        if ($departmentName !== 'HSN') {
+        $divisionName = strtoupper(trim((string) optional($employee->division)->name_division));
+        if ($divisionName !== 'MDS') {
             return;
         }
 
@@ -71,13 +71,18 @@ class AttendanceController extends Controller
 
         $distance = $this->distanceMeters($officeCoordinates[0], $officeCoordinates[1], $latitude, $longitude);
 
-        // if ($existingCheckinCount === 0 && $distance > 50) {
-        //     throw new \Exception('HSN check-in must be within 50 meters from office.');
-        // }
+        if ($existingCheckinCount === 0 && $distance > 50) {
+            throw new \Exception('MDS check-in must be within 50 meters from office.');
+        }
 
-        // if ($existingCheckinCount > 0 && $distance < 90000) {
-        //     throw new \Exception('HSN checkpoint must be at least 90 km from office.');
-        // }
+        if ($existingCheckinCount > 0 && $distance < 90000) {
+            throw new \Exception('MDS checkpoint must be at least 90 km from office.');
+        }
+    }
+
+    private function hasUnrestrictedCheckin(Employee $employee): bool
+    {
+        return strtoupper(trim((string) optional($employee->job)->job_name)) === 'TENAGA KEAMANAN';
     }
 
 
@@ -435,7 +440,7 @@ class AttendanceController extends Controller
             $yesterday = Carbon::today()->subDays(1)->toDateString();
             $tomorow = Carbon::today()->addDay()->toDateString();
 
-            $employee = Employee::with(['shift', 'department', 'officeModel'])->where('user_id', $userId)->first();
+            $employee = Employee::with(['shift', 'division', 'job', 'officeModel'])->where('user_id', $userId)->first();
 
             $shiftId = $employee->shift_id;
             $currentShift = $employee->shift;
@@ -508,10 +513,12 @@ class AttendanceController extends Controller
             }
 
 
-            if ($now <= $rangeEnd && $now >= $rangeStart) {
+            if ($this->hasUnrestrictedCheckin($employee)) {
+                $dateAttendance = $today;
+            } elseif ($now >= $rangeStart && $now <= $timeEnd) {
                 $dateAttendance = $rangeStart->addHours(2)->toDateString();
             } else {
-                throw new \Exception('Check In only in you shift time');
+                throw new \Exception('Check-in is only allowed from 2 hours before the shift starts until the shift ends.');
             }
 
 
@@ -536,7 +543,7 @@ class AttendanceController extends Controller
             $statusAttendance = 'PRESENT';
             $timeLate = '00:00:00';
 
-            if ($now > $timeStart) {
+            if (!$this->hasUnrestrictedCheckin($employee) && $now > $timeStart) {
                 $timeLate = $now->diff($timeStart)->format('%H:%I:%S');
             }
 
@@ -584,9 +591,9 @@ class AttendanceController extends Controller
                 ->where('type', 'check_in')
                 ->count();
 
-            $requiredCheckpoint = max(1, min((int) $currentShift->total_checkpoint, 8));
+            $requiredCheckpoint = max(1, min((int) $currentShift->total_checkpoint, 9));
 
-            $this->validateHsnDistanceRule($employee, (float) $latitude, (float) $longitude, $totalCheckIn);
+            $this->validateMdsDistanceRule($employee, (float) $latitude, (float) $longitude, $totalCheckIn);
 
             if ($totalCheckIn >= $requiredCheckpoint) {
                 throw new \Exception('You have reached the maximum number of check-ins for today.');
@@ -729,7 +736,7 @@ class AttendanceController extends Controller
             //$today = Carbon::parse('2025-09-07')->toDateString();
             //$yesterday = Carbon::parse('2025-09-06')->toDateString();
 
-            $employee = Employee::with('shift')->where('user_id', $userId)->first();
+            $employee = Employee::with(['shift', 'job'])->where('user_id', $userId)->first();
 
             $employeeShiftToday = EmployeeShift::with('shift')
                 ->where('employee_id', $employee->id)
@@ -792,10 +799,12 @@ class AttendanceController extends Controller
             }
 
 
-            if ($now <= $rangeEnd && $now >= $rangeStart) {
+            $checkoutStart = $timeEnd->copy()->subMinutes(15);
+
+            if ($now >= $checkoutStart && $now <= $rangeEnd) {
                 $dateAttendance = $rangeStart->addHours(2)->toDateString();
             } else {
-                throw new \Exception('Checkout only in you shift time');
+                throw new \Exception('Check-out is only allowed from 15 minutes before the shift ends.');
             }
 
 
@@ -862,7 +871,7 @@ class AttendanceController extends Controller
                     ->where('type', 'check_in')
                     ->count();
 
-                $requiredCheckpoint = max(1, min((int) $employeeShiftForCheckout->shift->total_checkpoint, 8));
+                $requiredCheckpoint = max(1, min((int) $employeeShiftForCheckout->shift->total_checkpoint, 9));
 
                 if ($totalCheckIn < $requiredCheckpoint) {
                     throw new \Exception('You can only check out after reaching the required number of check-ins.');

@@ -91,6 +91,24 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                @if ($atendanceTrackingCheckin->count() > 1)
+                                    <div class="checkpoint-log-list">
+                                        @foreach ($atendanceTrackingCheckin->skip(1)->values() as $checkpointIndex => $checkpoint)
+                                            <div class="checkpoint-log-item">
+                                                <div class="checkpoint-log-marker">
+                                                    <span class="material-symbols-outlined">location_on</span>
+                                                </div>
+                                                <span class="checkpoint-log-label">
+                                                    Checkpoint {{ $checkpointIndex + 1 }}
+                                                </span>
+                                                <span class="checkpoint-log-time">
+                                                    {{ \Carbon\Carbon::parse($checkpoint->date_time)->format('H:i') }}
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="row-checkout">
@@ -272,7 +290,35 @@
                                 </div>
                             </div>
 
-                            <div class="mb-5 mt-5">
+                            @if ($atendanceTrackingCheckin->count() > 1)
+                                <div class="checkpoint-detail-card">
+                                    <div class="checkpoint-detail-heading">
+                                        <span class="material-symbols-outlined">route</span>
+                                        <div>
+                                            <div class="checkpoint-detail-title">Checkpoint Perjalanan</div>
+                                            <div class="checkpoint-detail-subtitle">
+                                                {{ $atendanceTrackingCheckin->count() - 1 }} checkpoint tercatat
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="checkpoint-detail-list">
+                                        @foreach ($atendanceTrackingCheckin->skip(1)->values() as $checkpointIndex => $checkpoint)
+                                            <div class="checkpoint-detail-item">
+                                                <span class="checkpoint-detail-number">{{ $checkpointIndex + 1 }}</span>
+                                                <div class="checkpoint-detail-copy">
+                                                    <span>Checkpoint {{ $checkpointIndex + 1 }}</span>
+                                                    <small>{{ \Carbon\Carbon::parse($checkpoint->date_time)->translatedFormat('l, j F Y') }}</small>
+                                                </div>
+                                                <span class="checkpoint-detail-time">
+                                                    {{ \Carbon\Carbon::parse($checkpoint->date_time)->format('H:i') }}
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <div class="mb-5 mt-4">
                                 <div class="row">
 
                                     @php
