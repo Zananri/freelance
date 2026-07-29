@@ -304,7 +304,7 @@
                             <!-- Shift selection (from shifts table) -->
                             <div class="custom-form-employee">
                                 <label for="shift_id" class="form-label">Shift</label>
-                                <select id="shift_id" name="shift_id" class="form-select input-select" required
+                                <select id="shift_id" name="shift_id" class="form-select input-select"
                                     data-current="{{ $employee->shift_id }}"
                                     data-fetch-url="{{ route('shift.list') }}">
                                     <option value="" disabled>{{ __('general.select_shift') }}</option>

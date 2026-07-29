@@ -340,7 +340,7 @@
                                 <label for="shift_id" class="form-label">Shift</label>
 
                                 <select id="shift_id" name="shift_id" class="form-select input-select"
-                                    data-fetch-url="{{ route('shift.list') }}" required>
+                                    data-fetch-url="{{ route('shift.list') }}">
 
                                     <option value="" disabled selected>
                                         Select Shift
