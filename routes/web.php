@@ -206,6 +206,7 @@ Route::middleware('auth', 'management')->group(function () {
     Route::post('/salary_payslip/recall-employee-payslip-by-year-month', [SalaryPayslipController::class, 'recallEmployeePayslipByYearMonth'])->name('salary_payslip.recallEmployeePayslipByYearMonth');
 
     Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword');
+    Route::post('/user/{id}/change-password', [UserController::class, 'changePassword'])->name('user.changePassword');
     Route::get('/user', [UserController::class, 'showUserPage'])->name('user');
     Route::get('/user/index', [UserController::class, 'index'])->name('user.index');
     Route::get('/user/create', [UserController::class, 'create'])->name('user.create');

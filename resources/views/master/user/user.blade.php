@@ -67,20 +67,64 @@
                             <p class="user-name fw-semibold mt-3 mb-1" id="detailUserName"></p>
                             <p class="user-email text-muted mb-1" id="detailUserEmail"></p>
                             <p class="user-division text-muted" id="detailEmployeeDivision"></p>
-                            <button type="button" class="btn btn-reset mt-3" id="btnResetPassword"
-                                title="Reset Password">
-                                <span class="material-symbols-outlined">autorenew</span> Reset Password
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="resetPasswordAlertContainer" class="position-fixed bottom-0 start-50 translate-middle-x mb-3"
-        style="z-index: 1055; width: auto; max-width: 400px; display:none;">
-        <!-- Alert will be injected here -->
+        <!-- Change Password Modal -->
+        <div class="modal fade" id="changePasswordModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+            aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom"
+                            id="changePasswordModalLabel">{{ __('profile.change_password') }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="changePasswordForm" class="form-custom needs-validation" novalidate>
+                        @csrf
+                        <input type="hidden" id="changePasswordUserId">
+                        <div class="modal-body modal-body-custom">
+                            <div class="change-password-user-card">
+                                <div class="change-password-user-icon">
+                                    <span class="material-symbols-outlined">person</span>
+                                </div>
+                                <div class="change-password-user-info">
+                                    <span class="change-password-user-label">User</span>
+                                    <p class="change-password-user mb-0" id="changePasswordUserName"></p>
+                                </div>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="changePasswordNew"
+                                    class="form-label label-custom">{{ __('profile.new_password') }}</label>
+                                <input type="password" class="form-control input-text" id="changePasswordNew"
+                                    name="new_password" minlength="7" required autocomplete="new-password">
+                                <div class="invalid-feedback">{{ __('profile.enter_new_password') }}</div>
+                            </div>
+                            <div class="mb-4 custom-input">
+                                <label for="changePasswordConfirmation"
+                                    class="form-label label-custom">{{ __('profile.confirm_password') }}</label>
+                                <input type="password" class="form-control input-text" id="changePasswordConfirmation"
+                                    name="new_password_confirmation" minlength="7" required
+                                    autocomplete="new-password">
+                                <div class="invalid-feedback"
+                                    id="changePasswordFeedback"
+                                    data-mismatch-message="{{ __('profile.password_not_match') }}">{{ __('profile.password_not_match') }}</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn-cancel-password"
+                                data-bs-dismiss="modal">{{ __('general.cancel') }}</button>
+                            <button type="submit" class="btn-submit-black" id="submitChangePassword">
+                                {{ __('profile.change_password') }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <x-slot name="script_slot">

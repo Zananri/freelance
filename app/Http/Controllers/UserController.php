@@ -373,4 +373,21 @@ class UserController extends Controller
 
         return response()->json(['message' => 'Password has been reset to default successfully']);
     }
+
+    public function changePassword(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'new_password' => ['required', 'string', 'min:7', 'confirmed'],
+        ]);
+
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        $user->password = Hash::make($validated['new_password']);
+        $user->save();
+
+        return response()->json(['message' => 'Password changed successfully.']);
+    }
 }

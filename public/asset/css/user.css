@@ -81,6 +81,18 @@ table.table tbody td {
     color: black;
 }
 
+.btn-change-password {
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+    justify-content: center;
+    border: none;
+}
+
+.btn-change-password .icon {
+    font-size: 20px;
+}
+
 /* User Detail Modal Styling - adapted from employee.css */
 
 .modal-title-custom {
@@ -135,6 +147,159 @@ table.table tbody td {
     padding-top: 1rem;
     overflow-y: auto;
     align-items: center;
+}
+
+#changePasswordModal .modal-content {
+    border: 0;
+    border-radius: 16px;
+    padding: 24px;
+    background: #f7f7f8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    position: relative;
+}
+
+#changePasswordModal .modal-header-custom {
+    border: 0;
+    padding: 0;
+    min-height: 42px;
+    background: transparent;
+}
+
+#changePasswordModal .modal-title-custom {
+    position: static;
+    font-size: 28px;
+    font-weight: 300;
+    color: rgb(103, 111, 122);
+}
+
+#changePasswordModal .form-custom {
+    margin-top: 18px;
+    padding: 20px;
+    border: 0;
+    border-radius: 14px;
+    background: #fff;
+}
+
+#changePasswordModal .modal-body-custom {
+    padding: 0;
+}
+
+#changePasswordModal .change-password-user-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f4f5f7;
+}
+
+#changePasswordModal .change-password-user-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    background: #444;
+}
+
+#changePasswordModal .change-password-user-icon .material-symbols-outlined {
+    font-size: 23px;
+}
+
+#changePasswordModal .change-password-user-info {
+    min-width: 0;
+}
+
+#changePasswordModal .change-password-user-label {
+    display: block;
+    margin-bottom: 1px;
+    color: #9298a2;
+    font-size: 11px;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+#changePasswordModal .change-password-user {
+    overflow: hidden;
+    color: #34383f;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#changePasswordModal .label-custom {
+    color: #555;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+#changePasswordModal .form-control {
+    min-height: 45px;
+    border: 0;
+    border-radius: 8px;
+    background-color: #f4f5f7;
+}
+
+#changePasswordModal .form-control:focus {
+    border: 0;
+    background-color: #f0f1f3;
+    box-shadow: 0 0 0 3px rgba(68, 68, 68, 0.1);
+}
+
+#changePasswordModal .modal-footer-custom {
+    width: 100%;
+    padding: 4px 0 0;
+    border: 0;
+    justify-content: center;
+    gap: 10px;
+}
+
+#changePasswordModal .btn-submit-black,
+#changePasswordModal .btn-cancel-password {
+    min-width: 150px;
+    min-height: 45px;
+    padding: 10px 20px;
+    border: 0;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+#changePasswordModal .btn-cancel-password {
+    color: #555;
+    background: #eceef1;
+    transition: background-color 0.2s ease;
+}
+
+#changePasswordModal .btn-cancel-password:hover {
+    background: #e1e3e7;
+}
+
+@media (max-width: 576px) {
+    #changePasswordModal .modal-content {
+        margin: 16px;
+        padding: 20px;
+    }
+
+    #changePasswordModal .form-custom {
+        padding: 16px;
+    }
+
+    #changePasswordModal .modal-footer-custom {
+        flex-wrap: nowrap;
+    }
+
+    #changePasswordModal .btn-submit-black,
+    #changePasswordModal .btn-cancel-password {
+        min-width: 0;
+        flex: 1;
+    }
 }
 
 .user-photo-name-email {

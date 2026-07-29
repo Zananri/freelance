@@ -150,6 +150,11 @@ document.addEventListener("DOMContentLoaded", function () {
                         <button class="btn-icon-toggle btn-detail" data-id="${user.id}" title="Detail">
                             <span class="material-symbols-outlined icon">visibility</span>
                         </button>
+                        <button class="btn-icon-toggle btn-change-password" data-id="${user.id}"
+                            data-name="${String(user.name || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"
+                            title="Change Password" aria-label="Change Password">
+                            <span class="material-symbols-outlined icon">lock</span>
+                        </button>
                     </td>
                 </tr>
             `;
@@ -226,7 +231,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     divisionText = user.employee.division.name_division || "-";
                 }
                 $("#detailEmployeeDivision").text(divisionText ? `${((window.dropdownTranslations || {}).site || "Site")}: ${divisionText}` : "");
-                $("#btnResetPassword").data("id", user.id);
                 $("#userDetailModal").modal("show");
             },
             error: function () {
@@ -235,38 +239,60 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $(document).on("click", ".btn-reset-pwd", function () {
-        const id = $(this).data("id");
-        if (!confirm("Reset password for this user to default?")) return;
-        $.ajax({
-            url: appUrl + `/user/${id}/reset-password`,
-            type: "POST",
-            data: { _token: $('meta[name="csrf-token"]').attr("content") },
-            dataType: "json",
-            success: function (res) {
-                showFloatingAlert(res.message || "Password reset successfully.", "success", 3000);
-            },
-            error: function () {
-                showFloatingAlert("Failed to reset password.", "warning", 3000);
-            },
-        });
+    $(document).on("click", ".btn-change-password", function () {
+        const form = document.getElementById("changePasswordForm");
+        form.reset();
+        form.classList.remove("was-validated");
+        $("#changePasswordConfirmation").removeClass("is-invalid");
+        $("#changePasswordFeedback").text($("#changePasswordFeedback").data("mismatch-message"));
+        $("#changePasswordUserId").val($(this).data("id"));
+        $("#changePasswordUserName").text($(this).data("name"));
+        $("#changePasswordModal").modal("show");
     });
 
-    $("#btnResetPassword").on("click", function () {
-        const id = $(this).data("id");
-        if (!id || !confirm("Reset password for this user to default?")) return;
+    $("#changePasswordForm").on("submit", function (event) {
+        event.preventDefault();
+        const form = this;
+        const id = $("#changePasswordUserId").val();
+        const password = $("#changePasswordNew").val();
+        const confirmation = $("#changePasswordConfirmation").val();
+        const $confirmation = $("#changePasswordConfirmation");
+        const $feedback = $("#changePasswordFeedback");
+
+        form.classList.add("was-validated");
+        $confirmation.removeClass("is-invalid");
+        $feedback.text($feedback.data("mismatch-message"));
+
+        if (!form.checkValidity()) return;
+        if (password !== confirmation) {
+            $confirmation.addClass("is-invalid");
+            $feedback.text($feedback.data("mismatch-message"));
+            return;
+        }
+
+        const $submit = $("#submitChangePassword");
         $.ajax({
-            url: appUrl + `/user/${id}/reset-password`,
+            url: appUrl + `/user/${id}/change-password`,
             type: "POST",
-            data: { _token: $('meta[name="csrf-token"]').attr("content") },
+            data: $(form).serialize(),
             dataType: "json",
+            beforeSend: function () {
+                $submit.prop("disabled", true);
+            },
             success: function (res) {
-                $("#userDetailModal").modal("hide");
-                showFloatingAlert(res.message || "Password reset successfully.", "success", 3000);
+                $("#changePasswordModal").modal("hide");
+                form.reset();
+                showFloatingAlert(res.message || "Password changed successfully.", "success", 3000);
             },
-            error: function () {
-                showFloatingAlert("Failed to reset password.", "warning", 3000);
+            error: function (xhr) {
+                const message = xhr.responseJSON?.message
+                    || xhr.responseJSON?.errors?.new_password?.[0]
+                    || "Failed to change password.";
+                showFloatingAlert(message, "warning", 4000);
             },
+            complete: function () {
+                $submit.prop("disabled", false);
+            }
         });
     });
 
