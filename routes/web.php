@@ -218,14 +218,9 @@ Route::middleware('auth', 'management')->group(function () {
     Route::post('/user/{id}/toggle-attendance', [UserController::class, 'toggleAttendance'])->name('user.toggleAttendance');
     Route::get('/user/ajax/data', [UserController::class, 'getUsersAjax'])->name('user.ajax.data');
 
-
-    Route::get('/department', [DepartmentController::class, 'showPartnerPage'])->name('department');
+    Route::get('/department', [DepartmentController::class, 'showDepartmentPage'])->name('department');
     Route::get('/department/index', [DepartmentController::class, 'index'])->name('department.index');
-    Route::get('/department/options', [DepartmentController::class, 'options'])->name('department.options');
     Route::get('/department/{id}', [DepartmentController::class, 'show'])->name('department.show');
-    Route::post('/department/store', [DepartmentController::class, 'store'])->name('department.store');
-    Route::put('/department/{id}', [DepartmentController::class, 'update'])->name('department.update');
-    Route::delete('/department/{id}', [DepartmentController::class, 'destroy'])->name('department.destroy');
 
     Route::get('/employee/regions', [EmployeeController::class, 'getRegions'])->name('employee.regions');
 

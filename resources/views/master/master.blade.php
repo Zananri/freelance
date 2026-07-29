@@ -14,6 +14,14 @@
         <div class="col-6 col-sm-6 col-lg-3">
             <div class="body-content rounded-4 p-5 d-flex justify-content-center align-items-center h-100 position-relative" style="min-height: 180px;">
                 <a href="{{ url('department') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center stretched-link">
+                    <h5 class="mb-0">Department</h5>
+                    <small class="text-secondary mt-2">View Data</small>
+                </a>
+            </div>
+        </div>
+        <div class="col-6 col-sm-6 col-lg-3">
+            <div class="body-content rounded-4 p-5 d-flex justify-content-center align-items-center h-100 position-relative" style="min-height: 180px;">
+                <a href="{{ url('partner') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center stretched-link">
                     <h5 class="mb-0">Partner</h5>
                 </a>
             </div>

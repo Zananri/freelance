@@ -30,8 +30,6 @@ class PartnerController extends Controller
         $status = $request->input('status');
         $departmentId = $request->input('department_id');
         $officeId = $request->input('office_id');
-        $excludeAdministrativePartners = $request->boolean('exclude_administrative_partners');
-
         $partnersQuery = Partner::with(['department', 'office']);
 
         if ($query) {
@@ -56,12 +54,10 @@ class PartnerController extends Controller
             $partnersQuery->where('office_id', $officeId);
         }
 
-        if ($excludeAdministrativePartners) {
-            $partnersQuery->whereDoesntHave('employees.user', function ($query) {
-                $query->whereIn('user_type', ['SUPERADMIN', 'ADMINISTRATOR', 'ADMIN'])
-                    ->orWhereIn('user_role', ['SUPERADMIN', 'ADMINISTRATOR', 'ADMIN']);
-            });
-        }
+        $partnersQuery->whereDoesntHave('employees.user', function ($query) {
+            $query->whereIn(DB::raw('UPPER(user_type)'), ['SUPERADMIN', 'ADMINISTRATOR', 'ADMIN'])
+                ->orWhereIn(DB::raw('UPPER(user_role)'), ['SUPERADMIN', 'ADMINISTRATOR', 'ADMIN']);
+        });
 
         if ($userType !== 'SUPERADMIN') {
             $partnersQuery->where('department_id', $currentEmployee?->department_id ?? 0);

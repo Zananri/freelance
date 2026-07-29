@@ -1,6 +1,6 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('master') }}
+        {{ 'master' }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/department.css') }}" rel="stylesheet">
@@ -100,12 +100,12 @@
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="office_id" class="form-label label-custom">Wilayah</label>
+                            <label for="office_id" class="form-label label-custom">Office</label>
                             <select class="form-select input-select" id="office_id" name="office_id" required>
                                 <option value="" disabled selected>{{ __('general.select_region') }}</option>
                             </select>
                             <div class="invalid-feedback">
-                                Please select wilayah.
+                                Please select office.
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
@@ -184,12 +184,12 @@
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="edit_office_id" class="form-label label-custom">Wilayah</label>
+                            <label for="edit_office_id" class="form-label label-custom">Office</label>
                             <select class="form-select input-select" id="edit_office_id" name="office_id" required>
                                 <option value="" disabled selected>{{ __('general.select_region') }}</option>
                             </select>
                             <div class="invalid-feedback">
-                                Please select wilayah.
+                                Please select office.
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
@@ -263,7 +263,7 @@
                             <input type="text" class="form-control input-text" id="delete_department_name" readonly disabled />
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="delete_office_name" class="form-label label-custom">Wilayah</label>
+                            <label for="delete_office_name" class="form-label label-custom">Office</label>
                             <input type="text" class="form-control input-text" id="delete_office_name" readonly disabled />
                         </div>
                         <div class="mb-3 custom-input">
@@ -295,7 +295,7 @@
     </div>
     <x-slot name="script_slot">
 
-        <script src="{{ asset('asset/js/department.js') }}"></script>
+        <script src="{{ asset('asset/js/department.js?v=' . time()) }}"></script>
 
         <script></script>
     </x-slot>

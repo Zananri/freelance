@@ -1,6 +1,6 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('master') }}
+        {{ 'master' }}
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/division.css') }}" rel="stylesheet">

@@ -76,7 +76,7 @@ function loadPartnerOptions(selectedDepartmentId, selectedOfficeId, isEdit) {
     const officeSelector = isEdit ? '#edit_office_id' : '#office_id';
 
     $.ajax({
-        url: appUrl + '/department/options',
+        url: appUrl + '/partner/options',
         type: 'GET',
         success: function (response) {
             const data = response.data || {};
@@ -112,7 +112,7 @@ function loadPartnerOptions(selectedDepartmentId, selectedOfficeId, isEdit) {
 
 function loadDepartments(query, status) {
     $.ajax({
-        url: appUrl + '/department/index',
+        url: appUrl + '/partner/index',
         type: 'GET',
         data: { query: query || '', status: status || 'ALL' },
         success: function (response) {
@@ -249,7 +249,7 @@ $(document).ready(function () {
         showLoader('add', true);
 
         $.ajax({
-            url: appUrl + '/department/store',
+            url: appUrl + '/partner/store',
             type: 'POST',
             data: new FormData(form),
             contentType: false,
@@ -280,7 +280,7 @@ $(document).ready(function () {
         const id = $(this).data('id');
 
         $.ajax({
-            url: appUrl + '/department/' + id,
+            url: appUrl + '/partner/' + id,
             type: 'GET',
             success: function (partner) {
                 $('#edit_name_department').val(partner.name_department || partner.partner_name || '');
@@ -333,7 +333,7 @@ $(document).ready(function () {
         showLoader('edit', true);
 
         $.ajax({
-            url: appUrl + '/department/' + id,
+            url: appUrl + '/partner/' + id,
             type: 'POST',
             data: formData,
             contentType: false,
@@ -364,7 +364,7 @@ $(document).ready(function () {
         const id = $(this).data('id');
 
         $.ajax({
-            url: appUrl + '/department/' + id,
+            url: appUrl + '/partner/' + id,
             type: 'GET',
             success: function (partner) {
                 $('#delete_name_department').val(partner.name_department || partner.partner_name || '-');
@@ -401,7 +401,7 @@ $(document).ready(function () {
         showLoader('delete', true);
 
         $.ajax({
-            url: appUrl + '/department/' + id,
+            url: appUrl + '/partner/' + id,
             type: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

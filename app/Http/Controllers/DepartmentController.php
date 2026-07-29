@@ -13,9 +13,12 @@ use App\Models\Employee;
 
 class DepartmentController extends Controller
 {
-   
+    public function showDepartmentPage()
+    {
+        return view('master.department.index');
+    }
 
-public function showDepartmentPage()
+public function showPartnerPage()
 {
         return view('master/department/department');
 }
