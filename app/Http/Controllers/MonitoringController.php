@@ -70,7 +70,7 @@ class MonitoringController extends Controller
                 'job_name' => optional($employee->job)->job_name,
                 'department_id' => $employee->department_id,
                 'department_name' => optional($employee->department)->name_department,
-                'default_checkpoint_count' => (int) optional($employee->shift)->total_checkpoint,
+                'default_checkpoint_count' => (int) $employee->total_checkpoint,
                 'default_shift_title' => optional($employee->shift)->title,
             ];
         });
@@ -88,7 +88,7 @@ class MonitoringController extends Controller
             $scheduledShift = $employeeShift?->shift;
 
             $employee['required_checkpoint_count'] = (int) (
-                $scheduledShift?->total_checkpoint
+                $employeeShift?->total_checkpoint
                 ?? $employee['default_checkpoint_count']
                 ?? 0
             );

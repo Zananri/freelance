@@ -9,10 +9,6 @@ class Shift extends Model
 {
     use HasFactory;
 
-    protected $casts = [
-        'checkpoint_times' => 'array',
-    ];
-
     protected $fillable = [
         'title',
         'description',
@@ -20,7 +16,6 @@ class Shift extends Model
         'time_end',
         'total_hour',
         'total_checkpoint',
-        'checkpoint_times',
         'status',
         'created_by',
         'updated_by',

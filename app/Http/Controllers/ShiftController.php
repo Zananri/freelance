@@ -11,12 +11,6 @@ use Illuminate\Support\Facades\DB;
 
 class ShiftController extends Controller
 {
-    /**
-     * Check-in is the first checkpoint. This limit only applies to additional
-     * checkpoint fields, so the maximum total_checkpoint is 9.
-     */
-    private const MAX_ADDITIONAL_CHECKPOINTS = 8;
-
     public function showShiftPage(Request $request)
     {
         return view('shift/shift');
@@ -57,6 +51,7 @@ class ShiftController extends Controller
             'employees.division_id',
             // base shift fields
             'employees.shift_id as base_shift_id',
+            'employees.total_checkpoint as base_total_checkpoint',
             'base_shifts.title as base_title',
             'base_shifts.description as base_description',
             'base_shifts.time_start as base_time_start',
@@ -69,8 +64,7 @@ class ShiftController extends Controller
             'shifts.time_start',
             'shifts.time_end',
             'shifts.total_hour',
-            'shifts.total_checkpoint',
-            'shifts.checkpoint_times',
+            'employee_shifts.total_checkpoint',
             'shifts.created_by as shift_created_by',
             'shifts.updated_by as shift_updated_by',
             'shifts.deleted_by as shift_deleted_by',
@@ -176,7 +170,6 @@ class ShiftController extends Controller
                         'time_end' => $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null,
                         'total_hour' => $shift->total_hour,
                         'total_checkpoint' => $shift->total_checkpoint,
-                        'checkpoint_times' => $shift->checkpoint_times,
                     ];
                 }
             }
@@ -190,6 +183,7 @@ class ShiftController extends Controller
                 'profile_picture' => $employee->profile_picture ?? '/asset/img/avatar.png',
                 // expose base shift data for prefill in Shift page modal
                 'shift_id' => $employee->base_shift_id,
+                'total_checkpoint' => $employee->base_total_checkpoint,
                 'shift_title' => $employee->base_title,
                 'time_start' => $employee->base_time_start ? Carbon::parse($employee->base_time_start)->format('H:i') : null,
                 'time_end' => $employee->base_time_end ? Carbon::parse($employee->base_time_end)->format('H:i') : null,
@@ -225,8 +219,6 @@ class ShiftController extends Controller
                 'description',
                 'time_start',
                 'time_end',
-                'total_checkpoint',
-                'checkpoint_times',
                 'total_hour'
             )
                 ->whereNull('deleted_by')
@@ -268,8 +260,6 @@ class ShiftController extends Controller
                 'time_start' => 'required|date_format:H:i',
                 'time_end' => 'required|date_format:H:i',
 
-                'checkpoints' => 'nullable|array|max:' . self::MAX_ADDITIONAL_CHECKPOINTS,
-                'checkpoints.*' => 'date_format:H:i',
             ]);
 
             $start = Carbon::createFromFormat('H:i', $validated['time_start']);
@@ -282,16 +272,13 @@ class ShiftController extends Controller
 
             $totalHour = $end->diffInHours($start, true); // true for absolute value
 
-            $checkpoints = $validated['checkpoints'] ?? [];
-
             $shift = \App\Models\Shift::create([
                 'title' => $validated['title'],
                 'description' => $validated['description'],
                 'time_start' => $validated['time_start'],
                 'time_end' => $validated['time_end'],
                 'total_hour' => $totalHour,
-                'total_checkpoint' => 1 + count($checkpoints),
-                'checkpoint_times' => $checkpoints,
+                'total_checkpoint' => 1,
                 'created_by' => auth()->id(),
             ]);
 
@@ -338,6 +325,7 @@ class ShiftController extends Controller
                 'date_shifts' => 'required|array',
                 'date_shifts.*' => 'required|date_format:Y-m-d',
                 'shift_id' => 'required|exists:shifts,id',
+                'total_checkpoint' => 'required|integer|min:1|max:8',
             ]);
 
             $employeeId = $validated['employee_id'];
@@ -357,6 +345,7 @@ class ShiftController extends Controller
                 EmployeeShift::create([
                     'employee_id' => $employeeId,
                     'shift_id' => $shiftId,
+                    'total_checkpoint' => $validated['total_checkpoint'],
                     'date_shift' => $formattedDate,
                 ]);
             }
@@ -401,8 +390,6 @@ class ShiftController extends Controller
                 'time_start' => 'required|date_format:H:i',
                 'time_end' => 'required|date_format:H:i',
 
-                'checkpoints' => 'nullable|array|max:' . self::MAX_ADDITIONAL_CHECKPOINTS,
-                'checkpoints.*' => 'date_format:H:i',
             ]);
 
             $start = Carbon::createFromFormat('H:i', $validated['time_start']);
@@ -412,8 +399,6 @@ class ShiftController extends Controller
                 $end = $end->copy()->addDay();
             }
             $totalHour = $end->diffInHours($start, true);
-            $checkpoints = $validated['checkpoints'] ?? [];
-
             $shift = \App\Models\Shift::findOrFail($id);
             $shift->update([
                 'title' => $validated['title'],
@@ -421,8 +406,6 @@ class ShiftController extends Controller
                 'time_start' => $validated['time_start'],
                 'time_end' => $validated['time_end'],
                 'total_hour' => $totalHour,
-                'total_checkpoint' => 1 + count($checkpoints),
-                'checkpoint_times' => $checkpoints,
             ]);
 
             DB::commit();

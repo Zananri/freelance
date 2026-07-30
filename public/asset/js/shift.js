@@ -386,7 +386,8 @@ function createEmployeeCell(employee) {
                         data-shift-id="${employee.shift_id || ""}"
                         data-start="${baseStart || ""}"
                         data-end="${baseEnd || ""}"
-                        data-title="${baseTitle || ""}">
+                        data-title="${baseTitle || ""}"
+                        data-total-check="${employee.total_checkpoint || 1}">
                     <span class="material-symbols-outlined">edit</span>
                 </button>
             </div>
@@ -467,8 +468,7 @@ function createShiftCell(employee, shift, dateKey) {
                         data-date="${dateKey}"
                         data-start="${shift?.time_start || ""}"
                         data-end="${shift?.time_end || ""}"
-                        data-checkpoints='${JSON.stringify(shift?.checkpoint_times || [])}'
-                        data-total-check="${shift?.total_checkpoint || ""}">
+                        data-total-check="${shift?.total_checkpoint || 1}">
                     <span class="material-symbols-outlined">edit</span>
                 </button>
             </div>
@@ -509,6 +509,8 @@ function setEditEmployeeModal(btn) {
         btn.dataset.start || "--";
     employeeModalEl.querySelector("#editTimeEndDisplay").textContent =
         btn.dataset.end || "--";
+    employeeModalEl.querySelector("#employeeTotalCheckpoint").value =
+        btn.dataset.totalCheck || 1;
 
     // Set the title display
     employeeModalEl.querySelector("#editTitleShiftDisplay").textContent =
@@ -548,6 +550,7 @@ function setAddShiftModal(btn) {
         btn.dataset.start || "--";
     addShiftModalEl.querySelector("#addTimeEndDisplay").textContent =
         btn.dataset.end || "--";
+    addShiftModalEl.querySelector("#addTotalCheckpoint").value = 1;
 
     let rawDate = btn.dataset.date;
     if (rawDate) {
@@ -602,6 +605,8 @@ function setEditShiftModal(btn) {
         btn.dataset.start || "--";
     shiftModalEl.querySelector("#editTimeEndDisplay").textContent =
         btn.dataset.end || "--";
+    shiftModalEl.querySelector("#editTotalCheckpoint").value =
+        btn.dataset.totalCheck || 1;
 
     let rawDate = btn.dataset.date;
     if (rawDate) {
@@ -631,91 +636,11 @@ function setEditShiftModal(btn) {
                 btn.dataset.shiftId || null
             );
 
-            let checkpoints = btn.dataset.checkpoints || "[]";
-
-            try {
-                checkpoints = JSON.parse(checkpoints);
-
-                if (typeof checkpoints === "string") {
-                    checkpoints = JSON.parse(checkpoints);
-                }
-
-                if (!Array.isArray(checkpoints)) {
-                    checkpoints = [];
-                }
-            } catch (e) {
-                checkpoints = [];
-            }
-
-            renderTimeline(
-                btn.dataset.start,
-                checkpoints,
-                btn.dataset.end
-            );
         } catch (e) {
             console.warn("Could not populate shift dropdown:", e);
         }
         shiftModal.show();
     });
-}
-
-function renderTimeline(start, checkpoints, end) {
-    // Older records stored time_start as the only checkpoint. Check-in is now
-    // implicit, so do not render/count that legacy value twice.
-    if (
-        checkpoints.length === 1 &&
-        toHHMM(checkpoints[0]) === toHHMM(start)
-    ) {
-        checkpoints = [];
-    }
-
-    let html = `
-        <div class="timeline-item">
-
-            <div class="timeline-dot success"></div>
-            <span style="font-size: 10px;">Check In</span>
-            <span class="timeline-time">${start}</span>
-
-            <div class="timeline-line"></div>
-
-        </div>
-    `;
-
-    checkpoints.forEach((time,index)=>{
-        html+=`
-            <div class="timeline-item">
-
-                <div class="timeline-dot success"></div>
-
-                <span style="font-size: 10px;">Checkpoint ${index+1}</span>
-
-                <span class="timeline-time">${time}</span>
-
-                <div class="timeline-line"></div>
-
-            </div>
-        `;
-
-    });
-
-    html+=`
-        <div class="timeline-item">
-
-            <div class="timeline-dot danger"></div>
-
-            <span style="font-size: 10px;">Check Out</span>
-
-            <span class="timeline-time">${end}</span>
-
-        </div>
-    `;
-
-    $("#shiftTimeline").html(html);
-
-    $("#editCheckpointCount").text(
-        `${checkpoints.length + 1} ${checkpoints.length > 0 ? translateShift('points') : translateShift('point')}`
-    );
-
 }
 
 function renderShiftConfigTable(shifts) {
@@ -731,7 +656,7 @@ function renderShiftConfigTable(shifts) {
     tbody.innerHTML = "";
     if (!Array.isArray(shifts) || shifts.length === 0) {
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="3" class="text-center text-muted">${translateShift('no_shifts')}</td>`;
+        tr.innerHTML = `<td colspan="5" class="text-center text-muted">${translateShift('no_shifts')}</td>`;
         tbody.appendChild(tr);
         return;
     }
@@ -743,7 +668,6 @@ function renderShiftConfigTable(shifts) {
             <td data-field="description">${s.description || ""}</td>
             <td data-field="time">${formatTime(s.time_start || "")}</td>
             <td data-field="time">${formatTime(s.time_end || "")}</td>
-            <td data-field="checkpoint">${s.total_checkpoint}</td>
             <td>
                 <div class="d-flex justify-content-between align-items-center config-group-icon">
                     <div class="d-flex">
@@ -752,8 +676,7 @@ function renderShiftConfigTable(shifts) {
                             data-title="${s.title || ""}"
                             data-description="${s.description || ""}"
                             data-start="${s.time_start || ""}"
-                            data-end="${s.time_end || ""}"
-                            data-checkpoints='${JSON.stringify(s.checkpoint_times || [])}'>
+                            data-end="${s.time_end || ""}">
                             <span class="material-symbols-outlined">edit</span>
                         </button>
 
@@ -797,46 +720,6 @@ document.addEventListener("click", async (e) => {
     // Ensure inputs are in HH:MM (backend expects H:i)
     modalEl.querySelector("#editTimeStart").value = toHHMM(editBtn.dataset.start || "");
     modalEl.querySelector("#editTimeEnd").value = toHHMM(editBtn.dataset.end || "");
-
-        // Load existing checkpoints into edit modal
-        resetCheckpoint("#checkpointContainerEdit");
-        let checkpoints = editBtn.dataset.checkpoints || "[]";
-        try {
-            checkpoints = JSON.parse(checkpoints);
-            if (typeof checkpoints === "string") checkpoints = JSON.parse(checkpoints);
-            if (!Array.isArray(checkpoints)) checkpoints = [];
-        } catch (e) {
-            checkpoints = [];
-        }
-        if (
-            checkpoints.length === 1 &&
-            toHHMM(checkpoints[0]) === toHHMM(editBtn.dataset.start || "")
-        ) {
-            checkpoints = [];
-        }
-        const $editModalBody = $(modalEl).find(".modal-body");
-        checkpoints.forEach(function(time) {
-            if (time) {
-                const container = $editModalBody.find(".checkpoint-wrapper");
-                const items = container.find(".checkpoint-item");
-                const index = items.length + 1;
-                container.append(`
-                    <div class="row align-items-center mb-2 checkpoint-item">
-                        <div class="col-3">
-                            <small class="fw-semibold">Checkpoint ${index}</small>
-                        </div>
-                        <div class="col-8">
-                            <input type="time" class="form-control border-0 checkpoint-time" name="checkpoints[]" value="${time}">
-                        </div>
-                        <div class="col-1 text-end">
-                            <button type="button" class="btn btn-sm btn-link text-dark removeCheckpoint">
-                                <span class="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-                    </div>
-                `);
-            }
-        });
 
         modal.show();
     }
@@ -883,13 +766,6 @@ document.getElementById("saveUpdateShiftConfigBtn").addEventListener("click", as
     const timeStart = toHHMM(modalEl.querySelector("#editTimeStart").value);
     const timeEnd = toHHMM(modalEl.querySelector("#editTimeEnd").value);
 
-    const checkpoints = [];
-    $(modalEl).find(".checkpoint-time").each(function () {
-        if ($(this).val()) {
-            checkpoints.push($(this).val());
-        }
-    });
-
     if (!title || !timeStart || !timeEnd) {
         showFloatingAlert("Please fill all required fields", "warning");
         return;
@@ -905,7 +781,7 @@ document.getElementById("saveUpdateShiftConfigBtn").addEventListener("click", as
                 "Content-Type": "application/json",
                 "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
             },
-            body: JSON.stringify({ title, description, time_start: timeStart, time_end: timeEnd, checkpoints }),
+            body: JSON.stringify({ title, description, time_start: timeStart, time_end: timeEnd }),
         });
 
         // Handle validation errors (e.g., 422) gracefully
@@ -1099,23 +975,6 @@ function setupEventListeners() {
         });
     }
 
-    // Reset checkpoint container when add config modal opens
-    const addConfigEl = document.getElementById("addConfigModal");
-    if (addConfigEl) {
-        addConfigEl.addEventListener("show.bs.modal", function () {
-            resetCheckpoint("#checkpointContainerAdd");
-        });
-    }
-
-    // Reset checkpoint container when edit config modal opens
-    const editConfigEl = document.getElementById("editConfigModal");
-    if (editConfigEl) {
-        editConfigEl.addEventListener("show.bs.modal", function () {
-            // Reset is done in the click handler after data loads,
-            // but ensure clean state on show
-        });
-    }
-
     // Modal navigation buttons
     const prevMonthBtnModal = document.getElementById("prevMonthBtnModal");
     if (prevMonthBtnModal) {
@@ -1246,8 +1105,9 @@ async function assignShiftForEmployee() {
     const shiftId = formData.get("shift_id");
     const employeeId = formData.get("employee_id");
     const date = formData.get("date");
+    const totalCheckpoint = Number(formData.get("total_checkpoint"));
 
-    if (!employeeId || !date || !shiftId) {
+    if (!employeeId || !date || !shiftId || !Number.isInteger(totalCheckpoint) || totalCheckpoint < 1 || totalCheckpoint > 8) {
         showFloatingAlert("Please fill all required fields", "warning");
         return;
     }
@@ -1269,6 +1129,7 @@ async function assignShiftForEmployee() {
                 employee_id: employeeId,
                 date_shifts: [date],
                 shift_id: shiftId,
+                total_checkpoint: totalCheckpoint,
             }),
         });
 
@@ -1321,14 +1182,6 @@ async function saveNewShift(formId = "addShiftForm") {
     const timeStart = formData.get("time_start");
     const timeEnd = formData.get("time_end");
 
-    const checkpoints = [];
-
-    $(`#${formId} .checkpoint-time`).each(function () {
-        if ($(this).val()) {
-            checkpoints.push($(this).val());
-        }
-    });
-
     if (!title || !timeStart || !timeEnd) {
         showFloatingAlert("Please fill all required fields", "warning");
         return;
@@ -1352,7 +1205,6 @@ async function saveNewShift(formId = "addShiftForm") {
                 description: formData.get("description") || "",
                 time_start: timeStart,
                 time_end: timeEnd,
-                checkpoints: checkpoints,
             })
         });
 
@@ -1420,52 +1272,6 @@ async function saveNewShift(formId = "addShiftForm") {
     }
 }
 
-function addCheckpoint($modalBody) {
-    const container = $modalBody.find(".checkpoint-wrapper");
-    const items = container.find(".checkpoint-item");
-    const maxCheckpoints = 8;
-
-    if (items.length >= maxCheckpoints) {
-        showFloatingAlert("Maximum of 8 additional checkpoints allowed (9 including check-in).", "warning");
-        return;
-    }
-
-    const index = items.length + 1;
-
-    container.append(`
-        <div class="row align-items-center mb-2 checkpoint-item">
-            <div class="col-3">
-                <small class="fw-semibold">Checkpoint ${index}</small>
-            </div>
-            <div class="col-8">
-                <input type="time" class="form-control border-0 checkpoint-time" name="checkpoints[]">
-            </div>
-            <div class="col-1 text-end">
-                <button type="button" class="btn btn-sm btn-link text-dark removeCheckpoint">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-        </div>
-    `);
-}
-
-$(document).on("click", ".addCheckpointBtn, .addCheckpointInput", function () {
-    const $modalBody = $(this).closest(".modal-body");
-    addCheckpoint($modalBody);
-});
-
-$(document).on("click", ".removeCheckpoint", function () {
-    const wrapper = $(this).closest(".checkpoint-wrapper");
-    $(this).closest(".checkpoint-item").remove();
-    wrapper.find(".checkpoint-item").each(function(index){
-        $(this).find("small").text(`Checkpoint ${index + 1}`);
-    });
-});
-
-function resetCheckpoint(containerId){
-    $(containerId).empty();
-}
-
 // Save shift changes via AJAX
 async function saveShiftChanges() {
     const form = document.getElementById("editShiftForm");
@@ -1492,8 +1298,9 @@ async function saveShiftChanges() {
 
     // Validate required fields
     const employeeId = formData.get("employee_id");
+    const totalCheckpoint = Number(formData.get("total_checkpoint"));
 
-    if (!employeeId || dateShifts.length === 0) {
+    if (!employeeId || dateShifts.length === 0 || !Number.isInteger(totalCheckpoint) || totalCheckpoint < 1 || totalCheckpoint > 8) {
         showFloatingAlert("Please fill all required fields", "warning");
         return;
     }
@@ -1515,6 +1322,7 @@ async function saveShiftChanges() {
                 employee_id: employeeId,
                 date_shifts: dateShifts,
                 shift_id: selectedShiftId,
+                total_checkpoint: totalCheckpoint,
             }),
         });
 
@@ -1575,12 +1383,19 @@ async function saveEmployeeBaseShiftFromShiftPage() {
 
         const employeeId = modalEl.querySelector("#editEmployeeId")?.value;
         const selectedShiftId = modalEl.querySelector("#editShiftId")?.value;
+        const totalCheckpoint = Number(
+            modalEl.querySelector("#employeeTotalCheckpoint")?.value
+        );
         if (!employeeId) {
             showFloatingAlert("Employee ID missing", "warning");
             return;
         }
         if (!selectedShiftId) {
             showFloatingAlert("Please select a shift", "warning");
+            return;
+        }
+        if (!Number.isInteger(totalCheckpoint) || totalCheckpoint < 1 || totalCheckpoint > 8) {
+            showFloatingAlert("Checkpoint must be between 1 and 8", "warning");
             return;
         }
 
@@ -1597,7 +1412,10 @@ async function saveEmployeeBaseShiftFromShiftPage() {
                 ).content,
                 "X-Requested-With": "XMLHttpRequest",
             },
-            body: JSON.stringify({ shift_id: selectedShiftId }),
+            body: JSON.stringify({
+                shift_id: selectedShiftId,
+                total_checkpoint: totalCheckpoint,
+            }),
         });
 
         if (!res.ok) {

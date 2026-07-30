@@ -261,8 +261,8 @@ class DashboardController extends Controller
             $employeeShift = $employeeShifts->get($employee->id);
             $scheduledShift = $employeeShift?->shift;
             $requiredCheckpointCount = (int) (
-                $scheduledShift?->total_checkpoint
-                ?? optional($employee->shift)->total_checkpoint
+                $employeeShift?->total_checkpoint
+                ?? $employee->total_checkpoint
                 ?? 0
             );
 

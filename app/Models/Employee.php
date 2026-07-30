@@ -17,6 +17,7 @@ class Employee extends Model
         'division_id',
         'job_id',
         'shift_id',
+        'total_checkpoint',
         'weekday_off',
         'profile_picture',
         'name',

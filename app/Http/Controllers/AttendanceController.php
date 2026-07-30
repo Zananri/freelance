@@ -591,7 +591,10 @@ class AttendanceController extends Controller
                 ->where('type', 'check_in')
                 ->count();
 
-            $requiredCheckpoint = max(1, min((int) $currentShift->total_checkpoint, 9));
+            $assignedCheckpoint = EmployeeShift::where('employee_id', $employee->id)
+                ->whereDate('date_shift', $dateAttendance)
+                ->value('total_checkpoint');
+            $requiredCheckpoint = max(1, min((int) ($assignedCheckpoint ?? $employee->total_checkpoint), 8));
 
             $this->validateMdsDistanceRule($employee, (float) $latitude, (float) $longitude, $totalCheckIn);
 
@@ -871,7 +874,7 @@ class AttendanceController extends Controller
                     ->where('type', 'check_in')
                     ->count();
 
-                $requiredCheckpoint = max(1, min((int) $employeeShiftForCheckout->shift->total_checkpoint, 9));
+                $requiredCheckpoint = max(1, min((int) $employeeShiftForCheckout->total_checkpoint, 8));
 
                 if ($totalCheckIn < $requiredCheckpoint) {
                     throw new \Exception('You can only check out after reaching the required number of check-ins.');

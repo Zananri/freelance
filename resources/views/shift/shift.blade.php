@@ -177,6 +177,17 @@
                                 <p class="text-shift-display">{{ __('shift.time_out_label') }}</p>
                                 <span id="addTimeEndDisplay"></span>
                             </div>
+                            <div class="checkpoint-count-field mt-3">
+                                <div class="checkpoint-count-icon">
+                                    <span class="material-symbols-outlined">pin_drop</span>
+                                </div>
+                                <div class="checkpoint-count-copy">
+                                    <label for="addTotalCheckpoint">{{ __('shift.total_checkpoint') }}</label>
+                                    <small>{{ __('shift.checkpoint_count_hint') }}</small>
+                                </div>
+                                <input id="addTotalCheckpoint" class="checkpoint-count-input" type="number"
+                                    name="total_checkpoint" value="1" min="1" max="8" inputmode="numeric" required>
+                            </div>
                         </div>
                     </div>
 
@@ -261,26 +272,17 @@
                                 <p class="mb-3">{{ __('shift.time_out_label') }}</p>
                                 <span id="editTimeEndDisplay"></span>
                             </div>
-
-                            <hr class="border-3 rounded">
-
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="fw-semibold mb-0">
-                                    {{ __('shift.timeline_checkpoint') }}
-                                </h6>
-
-                                <span
-                                    id="editCheckpointCount"
-                                    class="text-dark fs-8">
-                                    0 Point
-                                </span>
+                            <div class="checkpoint-count-field mt-3">
+                                <div class="checkpoint-count-icon">
+                                    <span class="material-symbols-outlined">pin_drop</span>
+                                </div>
+                                <div class="checkpoint-count-copy">
+                                    <label for="editTotalCheckpoint">{{ __('shift.total_checkpoint') }}</label>
+                                    <small>{{ __('shift.checkpoint_count_hint') }}</small>
+                                </div>
+                                <input id="editTotalCheckpoint" class="checkpoint-count-input" type="number"
+                                    name="total_checkpoint" value="1" min="1" max="8" inputmode="numeric" required>
                             </div>
-
-                            <div
-                                id="shiftTimeline"
-                                class="timeline-wrapper">
-                            </div>
-
                         </div>
                     </div>
 
@@ -357,6 +359,17 @@
                             <p class="mb-3">{{ __('shift.time_out_label') }}</p>
                             <span id="editTimeEndDisplay"></span>
                         </div>
+                        <div class="checkpoint-count-field mt-3">
+                            <div class="checkpoint-count-icon">
+                                <span class="material-symbols-outlined">pin_drop</span>
+                            </div>
+                            <div class="checkpoint-count-copy">
+                                <label for="employeeTotalCheckpoint">{{ __('shift.total_checkpoint') }}</label>
+                                <small>{{ __('shift.checkpoint_count_hint') }}</small>
+                            </div>
+                            <input id="employeeTotalCheckpoint" class="checkpoint-count-input" type="number"
+                                name="total_checkpoint" value="1" min="1" max="8" inputmode="numeric" required>
+                        </div>
                     </div>
                 </div>
 
@@ -403,8 +416,10 @@
                         <table class="table table-bordered shift-config-table">
                             <colgroup>
                                 <col style="width: 20%">
-                                <col style="width: 40%">
-                                <col style="width: 40%">
+                                <col style="width: 35%">
+                                <col style="width: 15%">
+                                <col style="width: 15%">
+                                <col style="width: 15%">
                             </colgroup>
                             <thead>
                                 <tr>
@@ -412,7 +427,6 @@
                                     <th>{{ __('shift.description') }}</th>
                                     <th>{{ __('shift.time_in') }}</th>
                                     <th>{{ __('shift.time_out') }}</th>
-                                    <th>{{ __('shift.total_checkpoint') }}</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -490,31 +504,6 @@
                                     required>
                             </div>
 
-                            <div class="col-md-12 mb-3">
-
-                                <label class="form-label small fw-semibold">
-                                    Time In Checkpoint
-                                </label>
-
-                                <div class="d-flex gap-2 mb-3">
-
-                                    <input type="text" class="form-control border-0 addCheckpointInput" placeholder="{{ __('shift.add_checkpoint') }}"
-                                        readonly>
-
-                                    <button type="button" class="btn btn-light px-3 addCheckpointBtn">
-
-                                        <span class="material-symbols-outlined">
-                                            add
-                                        </span>
-
-                                    </button>
-
-                                </div>
-
-                                <div id="checkpointContainerAdd" class="checkpoint-wrapper"></div>
-
-                            </div>
-
                         </div>
 
                     </div>
@@ -589,31 +578,6 @@
 
                                 <input type="time" class="form-control border-0" id="editTimeEnd"
                                     name="time_end">
-                            </div>
-
-                            <div class="col-md-12 mb-3">
-
-                                <label class="form-label small fw-semibold">
-                                    Time In Checkpoint
-                                </label>
-
-                                <div class="d-flex gap-2 mb-3">
-
-                                    <input type="text" class="form-control border-0 addCheckpointInput" placeholder="{{ __('shift.add_checkpoint') }}"
-                                        readonly>
-
-                                    <button type="button" class="btn btn-light px-3 addCheckpointBtn">
-
-                                        <span class="material-symbols-outlined">
-                                            add
-                                        </span>
-
-                                    </button>
-
-                                </div>
-
-                                <div id="checkpointContainerEdit" class="checkpoint-wrapper"></div>
-
                             </div>
 
                         </div>

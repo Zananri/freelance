@@ -85,6 +85,64 @@
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
+.checkpoint-count-field {
+    display: grid;
+    grid-template-columns: 42px 1fr 68px;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, #f5f6fb 0%, #eceef7 100%);
+    border: 1px solid #e0e3ee;
+    border-radius: 14px;
+}
+
+.checkpoint-count-icon {
+    display: flex;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: #20232b;
+    border-radius: 12px;
+}
+
+.checkpoint-count-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.checkpoint-count-copy label {
+    color: #292d36;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.checkpoint-count-copy small {
+    color: #818796;
+    font-size: 10px;
+}
+
+.checkpoint-count-input {
+    width: 68px;
+    height: 44px;
+    color: #20232b;
+    background: #fff;
+    border: 1px solid #d9dce7;
+    border-radius: 12px;
+    outline: none;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.checkpoint-count-input:focus {
+    border-color: #20232b;
+    box-shadow: 0 0 0 3px rgba(32, 35, 43, .1);
+}
+
 .border-dddd {
     border: 1px solid #ddd;
 }

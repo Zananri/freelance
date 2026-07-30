@@ -716,6 +716,7 @@ class EmployeeController extends Controller
                 'division_id' => 'sometimes|exists:divisions,id',
                 'job_id' => 'sometimes|exists:job_list,id',
                 'shift_id' => 'sometimes|exists:shifts,id',
+                'total_checkpoint' => 'sometimes|integer|min:1|max:8',
                 'employee_niks' => 'nullable|string|max:255',
                 // 10 MB max for images
                 'profile_picture' => 'nullable|file|image|max:10240',
@@ -765,6 +766,7 @@ class EmployeeController extends Controller
                 'division_id',
                 'job_id',
                 'shift_id',
+                'total_checkpoint',
                 'name',
                 'employee_niks',
                 'email',
@@ -882,11 +884,17 @@ class EmployeeController extends Controller
 
             // Track old shift_id to detect changes
             $oldShiftId = $employee->shift_id;
+            $oldTotalCheckpoint = $employee->total_checkpoint;
 
             $employee->update($updateData);
 
-            // If shift_id changed, also sync today's per-date EmployeeShift when safe
-            if (array_key_exists('shift_id', $updateData) && $updateData['shift_id'] && (int)$updateData['shift_id'] !== (int)$oldShiftId) {
+            $shiftChanged = array_key_exists('shift_id', $updateData)
+                && $updateData['shift_id']
+                && (int) $updateData['shift_id'] !== (int) $oldShiftId;
+            $checkpointChanged = array_key_exists('total_checkpoint', $updateData)
+                && (int) $updateData['total_checkpoint'] !== (int) $oldTotalCheckpoint;
+
+            if ($shiftChanged || $checkpointChanged) {
                 $today = Carbon::today()->toDateString();
 
                 // Only upsert if there is no attendance record yet for today (to avoid altering an ongoing/recorded shift)
@@ -901,14 +909,14 @@ class EmployeeController extends Controller
                             'date_shift' => $today,
                         ],
                         [
-                            'shift_id' => $updateData['shift_id'],
+                            'shift_id' => $updateData['shift_id'] ?? $employee->shift_id,
+                            'total_checkpoint' => $updateData['total_checkpoint'] ?? $employee->total_checkpoint,
                         ]
                     );
                 }
 
-                // Recalculate lateness for today's existing check-in records using the new base shift
                 $empWithShift = Employee::with('shift')->find($employee->id);
-                if ($empWithShift && $empWithShift->shift) {
+                if ($shiftChanged && $empWithShift && $empWithShift->shift) {
                     $rawStart = $empWithShift->shift->getRawOriginal('time_start') ?? $empWithShift->shift->time_start;
                     if ($rawStart) {
                         $newShiftStart = Carbon::parse($today . ' ' . $rawStart);
@@ -939,24 +947,39 @@ class EmployeeController extends Controller
             }
 
 
-            $salaryData['take_home_pay'] = $request->basic_salary + $request->positional_allowance + $request->bpjs_allowance + $request->bpjs_tenaga_kerja_allowance + $request->pension_allowance;
-            $salaryData['basic_salary'] = $request->basic_salary;
-            $salaryData['positional_allowance'] = $request->positional_allowance;
-            $salaryData['bpjs_allowance'] = $request->bpjs_allowance;
-            $salaryData['bpjs_tenaga_kerja_allowance'] = $request->bpjs_tenaga_kerja_allowance;
-            $salaryData['pension_allowance'] = $request->pension_allowance;
+            $salaryFields = [
+                'basic_salary',
+                'positional_allowance',
+                'bpjs_allowance',
+                'bpjs_tenaga_kerja_allowance',
+                'pension_allowance',
+                'bank_name',
+                'bank_account_number',
+            ];
 
-            $salaryData['bank_name'] = $request->bank_name;
-            $salaryData['bank_account_number'] = $request->bank_account_number;
-
-            $salaryData['updated_by'] = auth()->id();
-
-            EmployeeSalary::updateOrCreate(
-                [
+            if ($request->hasAny($salaryFields)) {
+                $employeeSalary = EmployeeSalary::firstOrNew([
                     'employee_id' => $employee->id,
-                ],
-                $salaryData
-            );
+                ]);
+                $basicSalary = $request->input('basic_salary', $employeeSalary->basic_salary ?? 0);
+                $positionalAllowance = $request->input('positional_allowance', $employeeSalary->positional_allowance ?? 0);
+                $bpjsAllowance = $request->input('bpjs_allowance', $employeeSalary->bpjs_allowance ?? 0);
+                $employmentBpjsAllowance = $request->input('bpjs_tenaga_kerja_allowance', $employeeSalary->bpjs_tenaga_kerja_allowance ?? 0);
+                $pensionAllowance = $request->input('pension_allowance', $employeeSalary->pension_allowance ?? 0);
+
+                $employeeSalary->fill([
+                    'take_home_pay' => $basicSalary + $positionalAllowance + $bpjsAllowance + $employmentBpjsAllowance + $pensionAllowance,
+                    'basic_salary' => $basicSalary,
+                    'positional_allowance' => $positionalAllowance,
+                    'bpjs_allowance' => $bpjsAllowance,
+                    'bpjs_tenaga_kerja_allowance' => $employmentBpjsAllowance,
+                    'pension_allowance' => $pensionAllowance,
+                    'bank_name' => $request->input('bank_name', $employeeSalary->bank_name),
+                    'bank_account_number' => $request->input('bank_account_number', $employeeSalary->bank_account_number),
+                    'updated_by' => auth()->id(),
+                ]);
+                $employeeSalary->save();
+            }
 
             // Update corresponding user record (only name/email, NOT photo for independence)
             $user = User::find($employee->user_id);
