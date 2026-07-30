@@ -34,6 +34,12 @@ use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
+    private const EMPLOYEE_REGIONS = [
+        'JAWA TENGAH',
+        'DKI JAKARTA',
+        'DAERAH ISTIMEWA YOGYAKARTA',
+    ];
+
     /**
      * Derive HTTP status code from exception, defaulting to 500 for non-HTTP exceptions
      */
@@ -291,7 +297,7 @@ class EmployeeController extends Controller
 
     public function show($id)
     {
-        $employee = Employee::with(['department', 'division', 'job', 'grade', 'officeModel', 'user'])->find($id);
+        $employee = Employee::with(['department', 'partner', 'division', 'job', 'grade', 'officeModel', 'user'])->find($id);
 
         if (!$employee) {
             return response()->json(['message' => 'Employee not found'], 404);
@@ -343,41 +349,11 @@ class EmployeeController extends Controller
     public function getRegions(Request $request)
     {
         $request->validate([
-            'business_department_id' => 'required|integer',
+            'business_department_id' => 'required|integer|exists:departments,id',
         ]);
 
-        $user = auth()->user();
-
-        $currentEmployee = Employee::where(
-            'user_id',
-            $user->id
-        )->first();
-
-        $userType = strtoupper(
-            (string) ($user->user_type ?? '')
-        );
-
-        $departmentId = $request->business_department_id;
-
-        if (
-            $userType === 'ADMINISTRATOR' &&
-            $currentEmployee
-        ) {
-            $departmentId = $currentEmployee->department_id;
-        }
-
-        $regions = Employee::query()
-            ->where('department_id', $departmentId)
-            ->where('status', '!=', 'DELETED')
-            ->whereNotNull('region')
-            ->where('region', '!=', '')
-            ->distinct()
-            ->orderBy('region')
-            ->pluck('region')
-            ->values();
-
         return response()->json([
-            'data' => $regions,
+            'data' => self::EMPLOYEE_REGIONS,
         ]);
     }
 
@@ -402,6 +378,7 @@ class EmployeeController extends Controller
                 ],
                 'shift_id' => 'required|exists:shifts,id',
                 'employee_niks' => 'nullable|string|max:255',
+                'region' => ['required', Rule::in(self::EMPLOYEE_REGIONS)],
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:employees,email',
                 'email_work' => [
@@ -561,6 +538,7 @@ class EmployeeController extends Controller
 
             $employee = Employee::create([
                 'user_id' => $user->id,
+                'region' => $request->region,
                 'department_id' => $partnerContext['department_id'],
                 'partner_id' => $partnerContext['partner_id'],
                 'division_id' => $request->division_id,
@@ -718,6 +696,7 @@ class EmployeeController extends Controller
                 'shift_id' => 'sometimes|exists:shifts,id',
                 'total_checkpoint' => 'sometimes|integer|min:1|max:8',
                 'employee_niks' => 'nullable|string|max:255',
+                'region' => ['sometimes', Rule::in(self::EMPLOYEE_REGIONS)],
                 // 10 MB max for images
                 'profile_picture' => 'nullable|file|image|max:10240',
                 'name' => 'sometimes|string|max:255',
@@ -750,6 +729,7 @@ class EmployeeController extends Controller
                 'contract_end_date' => 'sometimes|date',
                 'resign_date' => 'nullable|date',
                 'grade_id' => 'sometimes|exists:grades,id',
+                'office' => 'sometimes|exists:offices,id',
             ]);
 
             if ($validator->fails()) {
@@ -769,6 +749,7 @@ class EmployeeController extends Controller
                 'total_checkpoint',
                 'name',
                 'employee_niks',
+                'region',
                 'email',
                 'email_work',
                 'phone',
@@ -781,14 +762,17 @@ class EmployeeController extends Controller
                 'hire_date',
                 'contract_end_date',
                 'resign_date',
-                'grade_id'
+                'grade_id',
+                'office'
             ]);
 
             if ($request->hasAny(['partner_id', 'department_id'])) {
                 $partnerContext = $this->resolvePartnerContext((int) $request->input('partner_id', $request->input('department_id')));
                 $updateData['partner_id'] = $partnerContext['partner_id'];
                 $updateData['department_id'] = $partnerContext['department_id'];
-                $updateData['office'] = $partnerContext['office_id'];
+                $updateData['office'] = $request->filled('office')
+                    ? (int) $request->input('office')
+                    : $partnerContext['office_id'];
             }
 
             if (isset($updateData['partner_id']) && $request->filled('division_id')) {

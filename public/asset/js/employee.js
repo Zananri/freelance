@@ -425,8 +425,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 $("#deleteEmployeeName").text(employee.name);
                 $("#deleteEmployeeEmail").text(employee.email);
                 $("#deleteEmployeeDepartment").text(
-                    employee.department
-                        ? employee.department.name_department
+                    employee.partner
+                        ? employee.partner.partner_name
                         : "-"
                 );
                 $("#deleteEmployeeDivision").text(
@@ -524,8 +524,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 $("#detailAddress").text(employee.address);
 
                 $("#detailDepartment").text(
-                    employee.department
-                        ? employee.department.name_department
+                    employee.partner
+                        ? employee.partner.partner_name
                         : "-"
                 );
                 $("#detailDivision").text(

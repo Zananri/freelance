@@ -112,15 +112,25 @@ var dropdownLabel = function (key, fallback) {
 
     function loadRegions(selectedRegion) {
         if (!$regionSelect.length) return;
+        selectedRegion = $.trim(String(selectedRegion || $regionSelect.attr("data-current") || ""));
         var departmentId = $businessDepartmentSelect.length ? $businessDepartmentSelect.val() : "";
 
         if (!departmentId) {
-            $regionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_department_first", "Select Department First") + '</option>');
-            $regionSelect.prop("disabled", true);
+            if (selectedRegion) {
+                $regionSelect.empty().append(
+                    $("<option>", { value: selectedRegion, text: selectedRegion, selected: true })
+                );
+                $regionSelect.prop("disabled", false);
+            } else {
+                $regionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_department_first", "Select Department First") + '</option>');
+                $regionSelect.prop("disabled", true);
+            }
             return;
         }
 
-        $regionSelect.html('<option value="" disabled selected>Loading...</option>');
+        if (!selectedRegion) {
+            $regionSelect.html('<option value="" disabled selected>Loading...</option>');
+        }
         $regionSelect.prop("disabled", true);
 
         $.ajax({
@@ -131,19 +141,43 @@ var dropdownLabel = function (key, fallback) {
             },
             dataType: "json",
             success: function (data) {
-                var options = '<option value="" disabled selected>' + dropdownLabel("select_region", "Select Region") + '</option>';
-                (data.data || []).forEach(function (region) {
-                    var selected = selectedRegion && String(selectedRegion) === String(region) ? "selected" : "";
-                    options += '<option value="' + region + '" ' + selected + ">" + region + "</option>";
+                var regions = (data.data || []).map(function (region) {
+                    return $.trim(String(region));
                 });
-                $regionSelect.html(options);
+                if (selectedRegion && regions.indexOf(selectedRegion) === -1) {
+                    regions.unshift(selectedRegion);
+                }
+
+                $regionSelect.empty().append(
+                    $("<option>", {
+                        value: "",
+                        text: dropdownLabel("select_region", "Select Region"),
+                        disabled: true,
+                        selected: !selectedRegion,
+                    })
+                );
+                regions.forEach(function (region) {
+                    $regionSelect.append(
+                        $("<option>", {
+                            value: region,
+                            text: region,
+                            selected: selectedRegion === region,
+                        })
+                    );
+                });
                 $regionSelect.prop("disabled", false);
                 if (selectedRegion) {
-                    $regionSelect.val(String(selectedRegion));
+                    $regionSelect.val(selectedRegion);
                 }
             },
             error: function () {
-                $regionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_region", "Select Region") + '</option>');
+                if (selectedRegion) {
+                    $regionSelect.empty().append(
+                        $("<option>", { value: selectedRegion, text: selectedRegion, selected: true })
+                    );
+                } else {
+                    $regionSelect.html('<option value="" disabled selected>' + dropdownLabel("select_region", "Select Region") + '</option>');
+                }
                 $regionSelect.prop("disabled", false);
                 showFloatingAlert("Failed to load regions.", "warning", 3000);
             },
@@ -166,12 +200,12 @@ var dropdownLabel = function (key, fallback) {
                 var options = '<option value="" disabled>' + dropdownLabel("select_partner", "Select Partner") + '</option>';
                 (data.data || [])
                     .filter(function (dept) {
-                        var name = dept.name_department || dept.name;
+                        var name = dept.partner_name || dept.name_department || dept.name;
                         return !isSuperadminName(name) && !isAdminDummyName(name);
                     })
                     .forEach(function (dept) {
                         var isSelected = selectedId && String(dept.id) === String(selectedId);
-                        options += '<option value="' + dept.id + '" ' + (isSelected ? "selected" : "") + ">" + (dept.name_department || dept.name) + "</option>";
+                        options += '<option value="' + dept.id + '" ' + (isSelected ? "selected" : "") + ">" + (dept.partner_name || dept.name_department || dept.name) + "</option>";
                     });
                 $departmentSelect.html(options);
                 if (selectedId) {

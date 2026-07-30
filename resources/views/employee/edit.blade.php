@@ -199,7 +199,11 @@
                                 <label for="region" class="form-label">Wilayah</label>
                                 <select id="region" name="region" class="form-select input-select"
                                     data-current="{{ $employee->region }}" required disabled>
-                                    <option value="" disabled selected>{{ __('general.select_department_first') }}</option>
+                                    @if ($employee->region)
+                                        <option value="{{ $employee->region }}" selected>{{ $employee->region }}</option>
+                                    @else
+                                        <option value="" disabled selected>{{ __('general.select_department_first') }}</option>
+                                    @endif
                                 </select>
                                 <div class="invalid-feedback">
                                     Please select a region.
@@ -214,7 +218,7 @@
                                     @foreach ($departments as $department)
                                         <option value="{{ $department->id }}"
                                             {{ $employee->partner_id == $department->id ? 'selected' : '' }}>
-                                            {{ $department->name_department ?? $department->name }}
+                                            {{ $department->partner_name ?? $department->name_department ?? $department->name }}
                                         </option>
                                     @endforeach
                                 </select>
