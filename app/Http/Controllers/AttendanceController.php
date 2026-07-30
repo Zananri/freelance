@@ -57,8 +57,9 @@ class AttendanceController extends Controller
 
     private function validateMdsDistanceRule(Employee $employee, float $latitude, float $longitude, int $existingCheckinCount): void
     {
+        $departmentName = strtoupper(trim((string) optional($employee->department)->name_department));
         $divisionName = strtoupper(trim((string) optional($employee->division)->name_division));
-        if ($divisionName !== 'MDS') {
+        if ($departmentName !== 'MDS' || $divisionName !== 'YOGYAKARTA') {
             return;
         }
 
@@ -440,7 +441,7 @@ class AttendanceController extends Controller
             $yesterday = Carbon::today()->subDays(1)->toDateString();
             $tomorow = Carbon::today()->addDay()->toDateString();
 
-            $employee = Employee::with(['shift', 'division', 'job', 'officeModel'])->where('user_id', $userId)->first();
+            $employee = Employee::with(['shift', 'department', 'division', 'job', 'officeModel'])->where('user_id', $userId)->first();
 
             $shiftId = $employee->shift_id;
             $currentShift = $employee->shift;

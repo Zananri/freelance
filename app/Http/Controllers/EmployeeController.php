@@ -1460,7 +1460,7 @@ class EmployeeController extends Controller
         $currentEmployee = Employee::where('user_id', $user->id)->first();
         $userType = strtoupper(trim((string) ($user->user_type ?? '')));
 
-        $employees = Employee::with(['department', 'partner', 'division', 'job'])
+        $employees = Employee::with(['department', 'partner', 'division', 'grade', 'job'])
             ->join('users', 'employees.user_id', '=', 'users.id')
             ->select('employees.*')
             ->where('employees.status', 'ACTIVE')
@@ -1494,6 +1494,7 @@ class EmployeeController extends Controller
             'PARTNER',
             'SITE',
             'POSISI',
+            'JOB',
             'STATUS',
             'TANGGAL_LAHIR',
             'TANGGAL_DITERIMA',
@@ -1563,6 +1564,7 @@ class EmployeeController extends Controller
                     $employee->region,
                     $employee->partner->partner_name ?? null,
                     $employee->division->name_division ?? null,
+                    $employee->grade->title ?? null,
                     $employee->job->job_name ?? null,
                     $employee->status,
                     $employee->birth_date ? Carbon::parse($employee->birth_date)->format('Y-m-d') : null,
@@ -1600,19 +1602,9 @@ class EmployeeController extends Controller
 
     public function downloadTemplate()
     {
-        $path = public_path('file/employee-template/employee_import_template.xlsx');
-
-        if (is_file($path) && is_readable($path)) {
-            return response()->download(
-                $path,
-                'employee_import_template.xlsx',
-                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
-            );
-        }
-
         $headers = [
             'ID_KARYAWAN', 'NAMA', 'EMAIL', 'EMAIL_KERJA', 'NO_HP',
-            'WILAYAH', 'PARTNER', 'SITE', 'POSISI', 'STATUS', 'TANGGAL_LAHIR',
+            'WILAYAH', 'PARTNER', 'SITE', 'POSISI', 'JOB', 'STATUS', 'TANGGAL_LAHIR',
             'TANGGAL_DITERIMA', 'TANGGAL_KONTRAK_BERAKHIR', 'HARI_LIBUR',
             'GAJI_POKOK', 'TUNJ_POSISI', 'TUNJ_PENSIUN', 'TUNJ_BPJS_TK',
             'TUNJ_BPJS', 'NO_BPJS', 'NO_BPJSTK', 'ALAMAT', 'CV', 'PKWT',
@@ -1620,12 +1612,35 @@ class EmployeeController extends Controller
         ];
 
         $spreadsheet = new Spreadsheet();
-        $worksheet = $spreadsheet->getActiveSheet();
-        $worksheet->setTitle('EMPLOYEE');
-        $worksheet->fromArray($headers, null, 'A1');
-        $worksheet->getStyle('A1:Z1')->getFont()->setBold(true);
-        $worksheet->freezePane('A2');
-        $worksheet->setAutoFilter('A1:Z1');
+        $lastColumn = Coordinate::stringFromColumnIndex(count($headers));
+        $departments = Department::query()
+            ->where('status', 'ACTIVE')
+            ->whereRaw("UPPER(TRIM(name_department)) <> 'SUPERADMIN DEPARTMENT'")
+            ->orderBy('id')
+            ->get(['name_department']);
+
+        foreach ($departments as $index => $department) {
+            $worksheet = $index === 0
+                ? $spreadsheet->getActiveSheet()
+                : $spreadsheet->createSheet();
+            $sheetTitle = mb_substr(
+                preg_replace('/[\\\\\\/\\?\\*\\[\\]:]/', ' ', $department->name_department),
+                0,
+                31
+            );
+
+            $worksheet->setTitle($sheetTitle);
+            $worksheet->fromArray($headers, null, 'A1');
+            $worksheet->getStyle("A1:{$lastColumn}1")->getFont()->setBold(true);
+            $worksheet->freezePane('A2');
+            $worksheet->setAutoFilter("A1:{$lastColumn}1");
+
+            foreach (range(1, count($headers)) as $columnIndex) {
+                $worksheet->getColumnDimension(
+                    Coordinate::stringFromColumnIndex($columnIndex)
+                )->setAutoSize(true);
+            }
+        }
 
         $tempFileName = tempnam(sys_get_temp_dir(), 'employee_template_');
         (new Xlsx($spreadsheet))->save($tempFileName);

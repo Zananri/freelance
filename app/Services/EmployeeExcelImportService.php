@@ -37,6 +37,7 @@ class EmployeeExcelImportService
     private array $partnerCache = [];
     private array $divisionCache = [];
     private array $jobCache = [];
+    private array $gradeCache = [];
     private array $userEmailIndex = [];
     private array $phoneOwnerIndex = [];
 
@@ -85,6 +86,13 @@ class EmployeeExcelImportService
             ->get(['id', 'name_department'])
             ->mapWithKeys(fn (Department $department) => [
                 $this->key((string) $department->name_department) => (int) $department->id,
+            ])
+            ->toArray();
+
+        $this->gradeCache = Grade::query()
+            ->get(['id', 'title'])
+            ->mapWithKeys(fn (Grade $grade) => [
+                $this->key((string) $grade->title) => (int) $grade->id,
             ])
             ->toArray();
 
@@ -141,57 +149,74 @@ class EmployeeExcelImportService
 
                 $employeeEmail = $record['email']
                     ?? $this->buildSyntheticEmployeeEmail($departmentName, $record['employee_niks'], $record['name'], $row);
+                $existingEmployee = Employee::where('email', $employeeEmail)->first();
 
                 $partnerId = $this->resolvePartnerId($record['partner'], $departmentId);
                 $divisionId = $this->resolveDivisionId($record['division'], $departmentId, $partnerId);
                 $jobId = $this->resolveJobId($record['job'], $departmentId, $partnerId, $divisionId);
 
-                $workEmail = $this->resolveWorkEmail($record['email_work'], $record['employee_niks'], $record['name']);
+                $existingUser = $existingEmployee?->user_id
+                    ? User::find($existingEmployee->user_id)
+                    : null;
+
+                if ($existingUser) {
+                    $user = $this->updateImportedUser($existingUser, $record['name']);
+                    $workEmail = $user->email;
+                } else {
+                    $workEmail = $this->resolveWorkEmail($record['email_work'], $record['employee_niks'], $record['name']);
+                    $user = $this->upsertUser($workEmail, $record['name']);
+                }
+
                 $resolvedPhone = $this->resolveEmployeePhone($record['phone'], $employeeEmail);
                 $hireDate = $record['hire_date'] ?? now()->toDateString();
                 $birthDate = $record['birth_date'] ?? $hireDate;
                 $profilePicture = $record['photo'] ?: 'asset/img/logo/logo.png';
 
-                $user = $this->upsertUser($workEmail, $record['name']);
+                $employeeAttributes = [
+                    'user_id' => $user->id,
+                    'region' => $record['region'],
+                    'department_id' => $departmentId,
+                    'partner_id' => $partnerId,
+                    'division_id' => $divisionId,
+                    'job_id' => $jobId,
+                    'weekday_off' => $record['weekday_off'],
+                    'profile_picture' => $profilePicture,
+                    'name' => $record['name'],
+                    'employee_niks' => $record['employee_niks'],
+                    'email_work' => $workEmail,
+                    'phone' => $resolvedPhone,
+                    'status' => $record['status'],
+                    'bpjs_allowance' => $record['bpjs_allowance'],
+                    'no_bpjs' => $record['no_bpjs'],
+                    'no_bpjstk' => $record['no_bpjstk'],
+                    'bpjs_tenaga_kerja_allowance' => $record['bpjs_tk_allowance'],
+                    'pension_allowance' => $record['pension_allowance'],
+                    'positional_allowance' => $record['positional_allowance'],
+                    'basic_salary' => $record['basic_salary'],
+                    'address' => $record['address'],
+                    'photo' => $record['photo'],
+                    'ktp' => $record['ktp'],
+                    'cv' => $record['cv'],
+                    'pkwt' => $record['pkwt'],
+                    'birth_date' => $birthDate,
+                    'hire_date' => $hireDate,
+                    'contract_end_date' => $record['contract_end_date'],
+                    'updated_by' => $this->actorId,
+                ];
 
-                $existingEmployee = Employee::where('email', $employeeEmail)->first();
-                $employee = Employee::updateOrCreate(
-                    ['email' => $employeeEmail],
-                    [
-                        'user_id' => $user->id,
-                        'region' => $record['region'],
-                        'department_id' => $departmentId,
-                        'partner_id' => $partnerId,
-                        'division_id' => $divisionId,
-                        'job_id' => $jobId,
+                if ($existingEmployee === null) {
+                    $gradeId = $this->resolveGradeId($record['grade']);
+                    $employeeAttributes += [
                         'shift_id' => $this->defaultShiftId,
-                        'weekday_off' => $record['weekday_off'],
-                        'profile_picture' => $profilePicture,
-                        'name' => $record['name'],
-                        'employee_niks' => $record['employee_niks'],
-                        'email_work' => $workEmail,
-                        'phone' => $resolvedPhone,
-                        'status' => $record['status'],
-                        'bpjs_allowance' => $record['bpjs_allowance'],
-                        'no_bpjs' => $record['no_bpjs'],
-                        'no_bpjstk' => $record['no_bpjstk'],
-                        'bpjs_tenaga_kerja_allowance' => $record['bpjs_tk_allowance'],
-                        'pension_allowance' => $record['pension_allowance'],
-                        'positional_allowance' => $record['positional_allowance'],
-                        'basic_salary' => $record['basic_salary'],
-                        'address' => $record['address'],
-                        'photo' => $record['photo'],
-                        'ktp' => $record['ktp'],
-                        'cv' => $record['cv'],
-                        'pkwt' => $record['pkwt'],
-                        'birth_date' => $birthDate,
-                        'hire_date' => $hireDate,
-                        'contract_end_date' => $record['contract_end_date'],
-                        'grade_id' => $this->defaultGradeId,
+                        'grade_id' => $gradeId ?? $this->defaultGradeId,
                         'office' => $this->defaultOfficeId,
                         'created_by' => $this->actorId,
-                        'updated_by' => $this->actorId,
-                    ]
+                    ];
+                }
+
+                $employee = Employee::updateOrCreate(
+                    ['email' => $employeeEmail],
+                    $employeeAttributes
                 );
 
                 if ($existingEmployee) {
@@ -235,7 +260,8 @@ class EmployeeExcelImportService
             'region' => ['WILAYAH'],
             'partner' => ['PARTNER'],
             'division' => ['SITE'],
-            'job' => ['POSISI'],
+            'grade' => ['POSISI'],
+            'job' => ['JOB'],
             'status' => ['STATUS'],
             'birth_date' => ['TANGGAL_LAHIR'],
             'hire_date' => ['TANGGAL_DITERIMA'],
@@ -328,8 +354,9 @@ class EmployeeExcelImportService
         $partner = $text('partner');
         $division = $text('division');
         $job = $text('job');
+        $grade = $text('grade');
 
-        if ($name === null && $email === null && $partner === null && $division === null && $job === null) {
+        if ($name === null && $email === null && $partner === null && $division === null && $grade === null && $job === null) {
             return null;
         }
 
@@ -342,6 +369,7 @@ class EmployeeExcelImportService
             'region' => $this->normalizeRegion($text('region')),
             'partner' => $partner,
             'division' => $division,
+            'grade' => $grade,
             'job' => $job,
             'status' => $this->normalizeStatus($text('status')),
             'birth_date' => $this->parseDateValue($raw('birth_date')),
@@ -460,6 +488,23 @@ class EmployeeExcelImportService
         return $this->jobCache[$key];
     }
 
+    private function resolveGradeId(?string $name): ?int
+    {
+        if ($name === null || trim($name) === '') {
+            return null;
+        }
+
+        $key = $this->key($name);
+        if (!isset($this->gradeCache[$key])) {
+            throw new \RuntimeException(sprintf(
+                'Grade "%s" tidak ditemukan.',
+                $name
+            ));
+        }
+
+        return $this->gradeCache[$key];
+    }
+
     private function resolveWorkEmail(?string $preferred, ?string $nik, string $name): string
     {
         if ($preferred !== null && isset($this->userEmailIndex[strtolower($preferred)])) {
@@ -485,12 +530,7 @@ class EmployeeExcelImportService
         $user = User::whereRaw('LOWER(email) = ?', [strtolower($email)])->first();
 
         if ($user) {
-            $user->name = $name;
-            $user->user_type = 'REGULAR';
-            $user->user_role = 'EMPLOYEE';
-            $user->photo = $user->photo ?: 'asset/img/avatar.png';
-            $user->save();
-            return $user;
+            return $this->updateImportedUser($user, $name);
         }
 
         $newUser = User::create([
@@ -505,6 +545,17 @@ class EmployeeExcelImportService
         $this->userEmailIndex[strtolower($email)] = (int) $newUser->id;
 
         return $newUser;
+    }
+
+    private function updateImportedUser(User $user, string $name): User
+    {
+        $user->name = $name;
+        $user->user_type = 'REGULAR';
+        $user->user_role = 'EMPLOYEE';
+        $user->photo = $user->photo ?: 'asset/img/avatar.png';
+        $user->save();
+
+        return $user;
     }
 
     private function reserveEmail(string $email): string

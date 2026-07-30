@@ -13,9 +13,8 @@ use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\AttendanceTracking;
 use App\Models\EmployeeShift;
-use App\Models\Project;
-use App\Models\ProjectAssignment;
 use App\Helpers\ActivityHelper;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -335,30 +334,35 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        $now = Carbon::now();
-        $today = Carbon::today()->toDateString();
-        $yesterday = Carbon::today()->subDays(1)->toDateString();
-        $tomorow = Carbon::today()->addDay()->toDateString();
-
-        // $now = Carbon::parse('2025-09-07 01:15:00');
-        // $today = Carbon::parse('2025-09-07')->toDateString();
-        // $yesterday = Carbon::parse('2025-09-06')->toDateString();
-
-        $employee = Employee::with('division', 'partner', 'department', 'job', 'grade', 'shift')
-            ->where('user_id', $user->id)
+        $employee = Employee::with([
+            'division',
+            'partner',
+            'department',
+            'job',
+            'grade',
+            'shift'
+        ])
+            ->where('employees.user_id', $user->id)
             ->first();
 
-        // Recover older/imported employee records whose user_id has not been linked,
-        // but whose work email belongs to the authenticated user.
-        if (!$employee && $user->email) {
-            $employee = Employee::with('division', 'partner', 'department', 'job', 'grade', 'shift')
-                ->where(function ($query) use ($user) {
-                    $query->whereRaw('LOWER(email_work) = ?', [strtolower($user->email)])
-                        ->orWhereRaw('LOWER(email) = ?', [strtolower($user->email)]);
+        if (!$employee && filled($user->email)) {
+            $email = strtolower(trim($user->email));
+
+            $employee = Employee::with([
+                'division',
+                'partner',
+                'department',
+                'job',
+                'grade',
+                'shift'
+            ])
+                ->where(function ($query) use ($email) {
+                    $query->whereRaw('LOWER(TRIM(employees.email_work)) = ?', [$email])
+                        ->orWhereRaw('LOWER(TRIM(employees.email)) = ?', [$email]);
                 })
                 ->first();
 
-            if ($employee && (int) $employee->user_id !== (int) $user->id) {
+            if ($employee) {
                 $employee->user_id = $user->id;
                 $employee->save();
             }
@@ -372,9 +376,14 @@ class DashboardController extends Controller
 
         $office = $employee->office ? Office::find($employee->office) : null;
 
+        
         // if($office == null) {
-            
+        //     dd($office);
         // }
+
+        $today = Carbon::today()->toDateString();
+        $yesterday = Carbon::yesterday()->toDateString();
+        $tomorrow = Carbon::tomorrow()->toDateString();
 
         $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
             ->where('date_shift', $today)

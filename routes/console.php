@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 
 Schedule::command('app:check-absent-employee')
     ->everyMinute();
+
+Schedule::command('attendance:auto-checkout')
+    ->everyMinute()
+    ->withoutOverlapping();
