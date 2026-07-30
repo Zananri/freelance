@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::table('employees', function (Blueprint $table) {
             $table->enum('region', ['JAWA TENGAH', 'DKI JAKARTA', 'DAERAH ISTIMEWA YOGYAKARTA'])->nullable()->after('user_id');
-            $table->integer('no_bpjs')->nullable()->after('bpjs_allowance');
-            $table->integer('no_bpjstk')->nullable()->after('no_bpjs');
+            $table->string('no_bpjs', 25)->nullable()->after('bpjs_allowance');
+            $table->string('no_bpjstk', 25)->nullable()->after('no_bpjs');
         });
     }
 

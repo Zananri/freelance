@@ -164,13 +164,15 @@
 
                             <div class="custom-form-employee">
                                 <label for="no_bpjs" class="form-label">No BPJS</label>
-                                <input type="number" id="no_bpjs" name="no_bpjs" class="form-control input-text"
+                                <input type="text" id="no_bpjs" name="no_bpjs" class="form-control input-text"
+                                    inputmode="numeric" maxlength="25" pattern="[0-9]*"
                                     value="{{ $employee->no_bpjs }}" />
                             </div>
 
                             <div class="custom-form-employee">
                                 <label for="no_bpjstk" class="form-label">No BPJSTK</label>
-                                <input type="number" id="no_bpjstk" name="no_bpjstk" class="form-control input-text"
+                                <input type="text" id="no_bpjstk" name="no_bpjstk" class="form-control input-text"
+                                    inputmode="numeric" maxlength="25" pattern="[0-9]*"
                                     value="{{ $employee->no_bpjstk }}" />
                             </div>
 

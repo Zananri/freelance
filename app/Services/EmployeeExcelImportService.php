@@ -353,8 +353,8 @@ class EmployeeExcelImportService
             'pension_allowance' => $this->toNumber($raw('pension_allowance')),
             'bpjs_tk_allowance' => $this->toNumber($raw('bpjs_tk_allowance')),
             'bpjs_allowance' => $this->toNumber($raw('bpjs_allowance')),
-            'no_bpjs' => $this->toInt32($raw('no_bpjs')),
-            'no_bpjstk' => $this->toInt32($raw('no_bpjstk')),
+            'no_bpjs' => $this->normalizeNumericIdentifier($raw('no_bpjs')),
+            'no_bpjstk' => $this->normalizeNumericIdentifier($raw('no_bpjstk')),
             'address' => $text('address'),
             'cv' => $text('cv'),
             'pkwt' => $text('pkwt'),
@@ -694,7 +694,7 @@ class EmployeeExcelImportService
         return is_numeric($clean) ? (float) $clean : 0;
     }
 
-    private function toInt32(mixed $value): ?int
+    private function normalizeNumericIdentifier(mixed $value): ?string
     {
         if ($value === null || $value === '') {
             return null;
@@ -705,7 +705,6 @@ class EmployeeExcelImportService
             return null;
         }
 
-        $number = (int) $digits;
-        return $number <= 2147483647 ? $number : null;
+        return substr($digits, 0, 25);
     }
 }

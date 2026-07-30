@@ -411,8 +411,8 @@ class EmployeeController extends Controller
                     Rule::unique('users', 'email'),
                 ],
                 'phone' => 'required|string|max:14|regex:/^[0-9]+$/|unique:employees,phone',
-                'no_bpjs' => 'nullable|integer',
-                'no_bpjstk' => 'nullable|integer',
+                'no_bpjs' => ['nullable', 'string', 'max:25', 'regex:/^[0-9]+$/'],
+                'no_bpjstk' => ['nullable', 'string', 'max:25', 'regex:/^[0-9]+$/'],
                 'address' => 'required|string',
                 'photo' => 'nullable|file|image|max:10240',
                 'ktp' => 'nullable|file|image|max:10240',
@@ -734,8 +734,8 @@ class EmployeeController extends Controller
                     'max:14',
                     Rule::unique('employees', 'phone')->ignore($id)
                 ],
-                'no_bpjs' => 'nullable|integer',
-                'no_bpjstk' => 'nullable|integer',
+                'no_bpjs' => ['nullable', 'string', 'max:25', 'regex:/^[0-9]+$/'],
+                'no_bpjstk' => ['nullable', 'string', 'max:25', 'regex:/^[0-9]+$/'],
                 'status' => [
                     'sometimes',
                     Rule::in(['ACTIVE', 'RESIGN', 'CANDIDATE', 'DELETED'])
