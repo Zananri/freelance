@@ -186,7 +186,7 @@
                                     <small>{{ __('shift.checkpoint_count_hint') }}</small>
                                 </div>
                                 <input id="addTotalCheckpoint" class="checkpoint-count-input" type="number"
-                                    name="total_checkpoint" value="1" min="1" max="8" inputmode="numeric" required>
+                                    name="total_checkpoint" value="0" min="0" max="8" inputmode="numeric" required>
                             </div>
                         </div>
                     </div>
@@ -281,7 +281,7 @@
                                     <small>{{ __('shift.checkpoint_count_hint') }}</small>
                                 </div>
                                 <input id="editTotalCheckpoint" class="checkpoint-count-input" type="number"
-                                    name="total_checkpoint" value="1" min="1" max="8" inputmode="numeric" required>
+                                    name="total_checkpoint" value="0" min="0" max="8" inputmode="numeric" required>
                             </div>
                         </div>
                     </div>
@@ -368,7 +368,7 @@
                                 <small>{{ __('shift.checkpoint_count_hint') }}</small>
                             </div>
                             <input id="employeeTotalCheckpoint" class="checkpoint-count-input" type="number"
-                                name="total_checkpoint" value="1" min="1" max="8" inputmode="numeric" required>
+                                name="total_checkpoint" value="0" min="0" max="8" inputmode="numeric" required>
                         </div>
                     </div>
                 </div>

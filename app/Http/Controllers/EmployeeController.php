@@ -705,7 +705,7 @@ class EmployeeController extends Controller
                 'division_id' => 'sometimes|exists:divisions,id',
                 'job_id' => 'sometimes|exists:job_list,id',
                 'shift_id' => 'sometimes|exists:shifts,id',
-                'total_checkpoint' => 'sometimes|integer|min:1|max:8',
+                'total_checkpoint' => 'sometimes|integer|min:0|max:8',
                 'employee_niks' => 'nullable|string|max:255',
                 'region' => ['sometimes', Rule::in(self::EMPLOYEE_REGIONS)],
                 // 10 MB max for images

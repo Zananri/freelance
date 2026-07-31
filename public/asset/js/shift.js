@@ -387,7 +387,7 @@ function createEmployeeCell(employee) {
                         data-start="${baseStart || ""}"
                         data-end="${baseEnd || ""}"
                         data-title="${baseTitle || ""}"
-                        data-total-check="${employee.total_checkpoint || 1}">
+                        data-total-check="${employee.total_checkpoint ?? 0}">
                     <span class="material-symbols-outlined">edit</span>
                 </button>
             </div>
@@ -468,7 +468,7 @@ function createShiftCell(employee, shift, dateKey) {
                         data-date="${dateKey}"
                         data-start="${shift?.time_start || ""}"
                         data-end="${shift?.time_end || ""}"
-                        data-total-check="${shift?.total_checkpoint || 1}">
+                        data-total-check="${shift?.total_checkpoint ?? 0}">
                     <span class="material-symbols-outlined">edit</span>
                 </button>
             </div>

@@ -278,7 +278,7 @@ class ShiftController extends Controller
                 'time_start' => $validated['time_start'],
                 'time_end' => $validated['time_end'],
                 'total_hour' => $totalHour,
-                'total_checkpoint' => 1,
+                'total_checkpoint' => 0,
                 'created_by' => auth()->id(),
             ]);
 
@@ -325,7 +325,7 @@ class ShiftController extends Controller
                 'date_shifts' => 'required|array',
                 'date_shifts.*' => 'required|date_format:Y-m-d',
                 'shift_id' => 'required|exists:shifts,id',
-                'total_checkpoint' => 'required|integer|min:1|max:8',
+                'total_checkpoint' => 'required|integer|min:0|max:8',
             ]);
 
             $employeeId = $validated['employee_id'];
