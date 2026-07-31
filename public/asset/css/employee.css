@@ -905,10 +905,48 @@ table.table td:nth-child(6) {
     }
 
     /* Adjust table columns for mobile */
+    table.table-employee {
+        width: max-content !important;
+        min-width: 1400px;
+        table-layout: auto;
+    }
+
+    table.table-employee thead tr th,
+    table.table-employee tbody tr td {
+        min-width: 120px;
+    }
+
     table.table thead tr th:nth-child(1),
     table.table tbody tr td:nth-child(1) {
-        min-width: 180px;
-        width: 180px;
+        min-width: 155px !important;
+        width: 155px !important;
+        max-width: 155px !important;
+        white-space: normal;
+    }
+
+    .table-employee td:first-child .d-flex {
+        gap: 8px !important;
+    }
+
+    .table-employee td:first-child .table-image {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+    }
+
+    .table-employee td:first-child .overflow-hidden {
+        min-width: 0;
+        overflow: visible !important;
+    }
+
+    .table-employee td:first-child .fw-semibold,
+    .table-employee td:first-child .employee-email {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        line-height: 1.25;
     }
 
     table.table thead tr th:nth-child(6),
@@ -916,6 +954,14 @@ table.table td:nth-child(6) {
         min-width: 150px;
         width: 150px;
         font-size: 12px;
+    }
+
+    table.table-employee td:last-child,
+    table.table-employee th:last-child {
+        position: static !important;
+        right: auto !important;
+        z-index: auto !important;
+        min-width: 150px;
     }
 }
 

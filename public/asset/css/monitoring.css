@@ -11,6 +11,7 @@
 
 .monitoring-map-container {
     flex: 1;
+    min-width: 0;
 }
 
 .monitoring-map-card {
@@ -172,14 +173,24 @@
 @media (max-width: 992px) {
     .monitoring-wrapper {
         flex-direction: column;
+        align-items: stretch;
     }
 
     .monitoring-sidebar {
         width: 100%;
     }
 
+    .monitoring-map-container,
+    .monitoring-map-card {
+        width: 100%;
+    }
+
+    .monitoring-map-card {
+        max-height: none;
+    }
+
     #monitoringMap {
-        height: 500px;
+        height: 360px;
     }
 }
 
@@ -412,6 +423,16 @@
 }
 
 @media (max-width: 767px) {
+    .monitoring-map-card {
+        padding: 12px;
+        border-radius: 16px;
+    }
+
+    #monitoringMap {
+        height: 320px;
+        border-radius: 14px;
+    }
+
     .security-zone-label {
         width: 220px;
     }

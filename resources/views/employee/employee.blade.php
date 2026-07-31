@@ -3,7 +3,7 @@
         {{ 'employee' }}
     </x-slot>
     <x-slot name="head_slot">
-        <link href="{{ asset('asset/css/employee.css') }}?v={{ date('YmdHi') }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/employee.css') }}?v={{ filemtime(public_path('asset/css/employee.css')) }}" rel="stylesheet">
     </x-slot>
 
     <!-- SVG Symbols -->
