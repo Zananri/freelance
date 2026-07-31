@@ -1508,6 +1508,45 @@ input[type="file"]::file-selector-button {
     max-width: 720px;
 }
 
+.widget-back-btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    margin: 0 0 -24px !important;
+    padding: 7px 12px;
+    color: #596069;
+    background: #e8eaf2;
+    border: 0;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        color 0.2s ease,
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.widget-back-btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.widget-back-btn:hover {
+    color: #2a3542;
+    background: #dfe2ec;
+    transform: translateX(-2px);
+}
+
+.widget-back-btn:focus-visible {
+    outline: 2px solid #8f96aa;
+    outline-offset: 2px;
+}
+
 .folder-wrapper {
     position: relative;
     width: 100%;
