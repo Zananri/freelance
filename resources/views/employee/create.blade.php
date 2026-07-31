@@ -152,6 +152,19 @@
                             </div>
 
                             <div class="custom-form-employee">
+                                <label for="status_kawin" class="form-label">Status Kawin</label>
+                                <select id="status_kawin" name="status_kawin" class="form-select input-select" required>
+                                    <option value="belum kawin" selected>Belum Kawin</option>
+                                    <option value="kawin">Kawin</option>
+                                    <option value="cerai hidup">Cerai Hidup</option>
+                                    <option value="cerai mati">Cerai Mati</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please select a marital status.
+                                </div>
+                            </div>
+
+                            <div class="custom-form-employee">
                                 <label for="no_bpjs" class="form-label">No BPJS</label>
                                 <input type="text" id="no_bpjs" name="no_bpjs" class="form-control input-text"
                                     inputmode="numeric" maxlength="25" pattern="[0-9]*" />

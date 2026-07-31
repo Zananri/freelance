@@ -281,7 +281,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderEmployees(employees) {
         if (!employees.length) {
             tableBody.innerHTML =
-                '<tr class="no-data-row"><td colspan="8" class="text-center">No employees found.</td></tr>';
+                '<tr class="no-data-row"><td colspan="11" class="text-center">No employees found.</td></tr>';
             return;
         }
 
@@ -299,6 +299,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 ? employee.division.name_division
                 : "-";
             const office = employee.office ? employee.office : "-";
+            const maritalStatus = employee.status_kawin
+                ? String(employee.status_kawin)
+                    .toLowerCase()
+                    .replace(/\b\w/g, (character) => character.toUpperCase())
+                : "Belum Kawin";
             let status = employee.status ? String(employee.status).toUpperCase() : "-";
             if (status === 'INACTIVE') status = 'RESIGN';
 
@@ -363,6 +368,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <td>
                         <div class="office-text">${office}</div>
                     </td>
+                    <td>${maritalStatus}</td>
                     <td><span class="status-badge ${statusClass}">${status}</span></td>
                     <td class="text-end">
                         <button class="btn-icon-toggle btn-detail" data-id="${employee.id}" title="Detail">

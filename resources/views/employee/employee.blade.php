@@ -131,6 +131,7 @@
                             <th scope="col" style="text-align: left;">{{ __('employee.partner_name') }}</th>
                             <th scope="col" style="text-align: left;">{{ __('employee.site_name') }}</th>
                             <th scope="col" style="text-align: left;">{{ __('employee.office') }}</th>
+                            <th scope="col" style="text-align: left;">Status Kawin</th>
                             <th scope="col" style="text-align: center;">{{ __('employee.status') }}</th>
                             <th scope="col" style="text-align: right;"></th>
                         </tr>

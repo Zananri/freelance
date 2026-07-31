@@ -163,6 +163,21 @@
                             </div>
 
                             <div class="custom-form-employee">
+                                <label for="status_kawin" class="form-label">Status Kawin</label>
+                                <select id="status_kawin" name="status_kawin" class="form-select input-select" required>
+                                    @foreach (['belum kawin' => 'Belum Kawin', 'kawin' => 'Kawin', 'cerai hidup' => 'Cerai Hidup', 'cerai mati' => 'Cerai Mati'] as $value => $label)
+                                        <option value="{{ $value }}"
+                                            {{ ($employee->status_kawin ?? 'belum kawin') === $value ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please select a marital status.
+                                </div>
+                            </div>
+
+                            <div class="custom-form-employee">
                                 <label for="no_bpjs" class="form-label">No BPJS</label>
                                 <input type="text" id="no_bpjs" name="no_bpjs" class="form-control input-text"
                                     inputmode="numeric" maxlength="25" pattern="[0-9]*"

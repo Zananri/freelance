@@ -26,6 +26,7 @@ class Employee extends Model
         'email_work',
         'phone',
         'status',
+        'status_kawin',
         'bpjs_allowance',
         'no_bpjs',
         'no_bpjstk',

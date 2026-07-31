@@ -154,6 +154,7 @@ class EmployeeExcelImportService
                 $partnerId = $this->resolvePartnerId($record['partner'], $departmentId);
                 $divisionId = $this->resolveDivisionId($record['division'], $departmentId, $partnerId);
                 $jobId = $this->resolveJobId($record['job'], $departmentId, $partnerId, $divisionId);
+                $gradeId = $this->resolveGradeId($record['grade']);
 
                 $existingUser = $existingEmployee?->user_id
                     ? User::find($existingEmployee->user_id)
@@ -186,6 +187,7 @@ class EmployeeExcelImportService
                     'email_work' => $workEmail,
                     'phone' => $resolvedPhone,
                     'status' => $record['status'],
+                    'status_kawin' => $record['status_kawin'],
                     'bpjs_allowance' => $record['bpjs_allowance'],
                     'no_bpjs' => $record['no_bpjs'],
                     'no_bpjstk' => $record['no_bpjstk'],
@@ -204,11 +206,14 @@ class EmployeeExcelImportService
                     'updated_by' => $this->actorId,
                 ];
 
+                if ($gradeId !== null) {
+                    $employeeAttributes['grade_id'] = $gradeId;
+                }
+
                 if ($existingEmployee === null) {
-                    $gradeId = $this->resolveGradeId($record['grade']);
                     $employeeAttributes += [
                         'shift_id' => $this->defaultShiftId,
-                        'grade_id' => $gradeId ?? $this->defaultGradeId,
+                        'grade_id' => $this->defaultGradeId,
                         'office' => $this->defaultOfficeId,
                         'created_by' => $this->actorId,
                     ];
@@ -261,8 +266,9 @@ class EmployeeExcelImportService
             'partner' => ['PARTNER'],
             'division' => ['SITE'],
             'grade' => ['POSISI'],
-            'job' => ['JOB'],
+            'job' => ['PEKERJAAN', 'JOB'],
             'status' => ['STATUS'],
+            'status_kawin' => ['STATUS_KAWIN'],
             'birth_date' => ['TANGGAL_LAHIR'],
             'hire_date' => ['TANGGAL_DITERIMA'],
             'contract_end_date' => ['TANGGAL_KONTRAK_BERAKHIR'],
@@ -372,6 +378,7 @@ class EmployeeExcelImportService
             'grade' => $grade,
             'job' => $job,
             'status' => $this->normalizeStatus($text('status')),
+            'status_kawin' => $this->normalizeMaritalStatus($text('status_kawin')),
             'birth_date' => $this->parseDateValue($raw('birth_date')),
             'hire_date' => $this->parseDateValue($raw('hire_date')),
             'contract_end_date' => $this->parseDateValue($raw('contract_end_date')),
@@ -691,6 +698,16 @@ class EmployeeExcelImportService
         }
 
         return in_array($normalized, self::REGION_ALLOWLIST, true) ? $normalized : null;
+    }
+
+    private function normalizeMaritalStatus(?string $status): string
+    {
+        $normalized = strtolower(trim((string) $status));
+        $allowed = ['kawin', 'belum kawin', 'cerai hidup', 'cerai mati'];
+
+        return in_array($normalized, $allowed, true)
+            ? $normalized
+            : 'belum kawin';
     }
 
     private function normalizeStatus(?string $status): string

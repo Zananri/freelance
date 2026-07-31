@@ -40,6 +40,13 @@ class EmployeeController extends Controller
         'DAERAH ISTIMEWA YOGYAKARTA',
     ];
 
+    private const MARITAL_STATUSES = [
+        'kawin',
+        'belum kawin',
+        'cerai hidup',
+        'cerai mati',
+    ];
+
     /**
      * Derive HTTP status code from exception, defaulting to 500 for non-HTTP exceptions
      */
@@ -400,6 +407,7 @@ class EmployeeController extends Controller
                 'contract_end_date' => 'required|date',
                 'resign_date' => 'nullable|date',
                 'grade_id' => 'required|exists:grades,id',
+                'status_kawin' => ['nullable', Rule::in(self::MARITAL_STATUSES)],
             ]);
 
             if ($validator->fails()) {
@@ -551,6 +559,9 @@ class EmployeeController extends Controller
                 'email_work' => $emailWork,
                 'phone' => $request->phone,
                 'status' => 'ACTIVE',
+                'status_kawin' => $request->filled('status_kawin')
+                    ? $request->input('status_kawin')
+                    : 'belum kawin',
                 'basic_salary' => $request->basic_salary,
                 'positional_allowance' => $request->positional_allowance,
                 'bpjs_allowance' => $request->bpjs_allowance,
@@ -719,6 +730,7 @@ class EmployeeController extends Controller
                     'sometimes',
                     Rule::in(['ACTIVE', 'RESIGN', 'CANDIDATE', 'DELETED'])
                 ],
+                'status_kawin' => ['sometimes', Rule::in(self::MARITAL_STATUSES)],
                 'address' => 'sometimes|string',
                 'photo' => 'nullable|file|image|max:10240',
                 'ktp' => 'nullable|file|image|max:10240',
@@ -756,6 +768,7 @@ class EmployeeController extends Controller
                 'no_bpjs',
                 'no_bpjstk',
                 'status',
+                'status_kawin',
                 'address',
                 'address',
                 'birth_date',
@@ -1494,8 +1507,9 @@ class EmployeeController extends Controller
             'PARTNER',
             'SITE',
             'POSISI',
-            'JOB',
+            'PEKERJAAN',
             'STATUS',
+            'STATUS KAWIN',
             'TANGGAL_LAHIR',
             'TANGGAL_DITERIMA',
             'TANGGAL_KONTRAK_BERAKHIR',
@@ -1567,6 +1581,7 @@ class EmployeeController extends Controller
                     $employee->grade->title ?? null,
                     $employee->job->job_name ?? null,
                     $employee->status,
+                    $employee->status_kawin ?? 'belum kawin',
                     $employee->birth_date ? Carbon::parse($employee->birth_date)->format('Y-m-d') : null,
                     $employee->hire_date ? Carbon::parse($employee->hire_date)->format('Y-m-d') : null,
                     $employee->contract_end_date ? Carbon::parse($employee->contract_end_date)->format('Y-m-d') : null,
@@ -1604,7 +1619,7 @@ class EmployeeController extends Controller
     {
         $headers = [
             'ID_KARYAWAN', 'NAMA', 'EMAIL', 'EMAIL_KERJA', 'NO_HP',
-            'WILAYAH', 'PARTNER', 'SITE', 'POSISI', 'JOB', 'STATUS', 'TANGGAL_LAHIR',
+            'WILAYAH', 'PARTNER', 'SITE', 'POSISI', 'PEKERJAAN', 'STATUS', 'STATUS KAWIN', 'TANGGAL_LAHIR',
             'TANGGAL_DITERIMA', 'TANGGAL_KONTRAK_BERAKHIR', 'HARI_LIBUR',
             'GAJI_POKOK', 'TUNJ_POSISI', 'TUNJ_PENSIUN', 'TUNJ_BPJS_TK',
             'TUNJ_BPJS', 'NO_BPJS', 'NO_BPJSTK', 'ALAMAT', 'CV', 'PKWT',
