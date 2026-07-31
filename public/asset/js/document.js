@@ -610,7 +610,10 @@ function loadFolder(folderId = currentFolder, page = currentPage) {
 
     currentFolder = folderId;
     currentPage = page;
-    const url = new URL("/document/get-all-folder", window.location.origin);
+    const getAllFolderUrl =
+        window.documentRoutes?.getAllFolder ||
+        `${window.APP_URL || window.location.origin}/document/get-all-folder`;
+    const url = new URL(getAllFolderUrl, window.location.origin);
     if (folderId !== null) {
         url.searchParams.set("parent_id", folderId);
     }
@@ -643,16 +646,48 @@ function loadFolder(folderId = currentFolder, page = currentPage) {
     fetch(url.toString(), {
         method: "GET",
         credentials: "same-origin",
+        headers: {
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+        },
     })
-        .then((response) => response.json())
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`Document request failed with status ${response.status}`);
+            }
+
+            return response.json();
+        })
         .then((res) => {
+            const isUnfilteredRoot =
+                normalizedTargetFolder === null &&
+                !currentSearch &&
+                currentFilterDepartment === "all" &&
+                currentFilterSite === "all" &&
+                currentFilterJob === "all" &&
+                currentFilterType === "all" &&
+                currentFilterExtension === "all" &&
+                currentFilterUpdated === "all";
+            const initialData = window.initialDocumentData;
+            const responseIsEmpty =
+                (res.folders || []).length === 0 &&
+                (res.files || []).length === 0;
+            const initialHasDocuments =
+                (initialData?.folders || []).length > 0 ||
+                (initialData?.files || []).length > 0;
+
+            if (isUnfilteredRoot && responseIsEmpty && initialHasDocuments) {
+                res = initialData;
+            }
+
             renderBreadcrumb(res.breadcrumb);
             renderTable(res.folders, res.files, res.current_folder);
             renderGrid(res.folders, res.files, res.current_folder);
             renderPagination(res.pagination || null);
             currentPage = res.pagination?.current_page || 1;
         })
-        .catch(() => {
+        .catch((error) => {
+            console.error("Failed to load documents:", error);
             showAlertMsg("Failed to load documents");
             renderPagination(null);
         })
@@ -1257,7 +1292,24 @@ if (typeof jQuery !== "undefined") {
     });
 }
 
-window.addEventListener("DOMContentLoaded", function () {
+function initializeDocumentPage() {
+    const initialData = window.initialDocumentData;
+    if (initialData) {
+        renderBreadcrumb(initialData.breadcrumb || []);
+        renderTable(
+            initialData.folders || [],
+            initialData.files || [],
+            initialData.current_folder || null,
+        );
+        renderGrid(
+            initialData.folders || [],
+            initialData.files || [],
+            initialData.current_folder || null,
+        );
+        renderPagination(initialData.pagination || null);
+        currentPage = initialData.pagination?.current_page || 1;
+    }
+
     if (searchInput && searchInput.value) {
         currentSearch = searchInput.value.trim();
     }
@@ -1273,6 +1325,16 @@ window.addEventListener("DOMContentLoaded", function () {
     if (isCurrentUserAdmin) {
         currentFilterDepartment = currentUserDepartmentId ? String(currentUserDepartmentId) : "all";
     }
-    loadFolder(null, currentPage);
+    if (!initialData) {
+        loadFolder(null, currentPage);
+    }
     updateSortIcon();
-});
+}
+
+if (document.readyState === "loading") {
+    window.addEventListener("DOMContentLoaded", initializeDocumentPage, {
+        once: true,
+    });
+} else {
+    initializeDocumentPage();
+}

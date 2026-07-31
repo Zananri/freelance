@@ -176,6 +176,44 @@
                     </tr>
                 </thead>
                 <tbody id="tableFolderBody">
+                    @foreach ($initialDocuments['folders'] as $folder)
+                        <tr class="folder-row" data-id="{{ $folder['id'] }}"
+                            data-folder-name="{{ $folder['folder_name'] }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="material-symbols-outlined me-2">folder</span>
+                                    {{ $folder['folder_name'] }}
+                                </div>
+                            </td>
+                            <td>{{ data_get($folder, 'creator.name', 'Unknown') }}</td>
+                            <td>-</td>
+                            <td>{{ \Carbon\Carbon::parse($folder['updated_at'])->format('d/m/Y') }}</td>
+                            <td></td>
+                        </tr>
+                    @endforeach
+                    @foreach ($initialDocuments['files'] as $file)
+                        <tr class="file-row" data-file-id="{{ $file['id'] }}"
+                            data-file-name="{{ $file['file_name'] }}"
+                            data-file-url="{{ asset($file['file_path']) }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="material-symbols-outlined me-2">insert_drive_file</span>
+                                    {{ $file['file_name'] }}
+                                </div>
+                            </td>
+                            <td>{{ data_get($file, 'employee.name', 'Unknown') }}</td>
+                            <td>{{ number_format(((int) $file['file_size']) / 1024, 2) }} KB</td>
+                            <td>{{ \Carbon\Carbon::parse($file['updated_at'])->format('d/m/Y') }}</td>
+                            <td></td>
+                        </tr>
+                    @endforeach
+                    @if (empty($initialDocuments['folders']) && empty($initialDocuments['files']))
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">
+                                Nothing documents found
+                            </td>
+                        </tr>
+                    @endif
                 </tbody>
             </table>
         </div>
@@ -437,8 +475,12 @@
             window.documentTranslations = {
                 documents: @json(__('document.documents')),
             };
+            window.documentRoutes = {
+                getAllFolder: @json(route('document.getAllFolder')),
+            };
+            window.initialDocumentData = @json($initialDocuments);
         </script>
-        <script src="{{ asset('asset/js/document.js') }}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/document.js') }}?v={{ filemtime(public_path('asset/js/document.js')) }}"></script>
         <script src="{{ asset('asset/js/date_helper.js') }}"></script>
 
         <script></script>

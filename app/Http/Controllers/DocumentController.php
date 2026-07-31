@@ -14,7 +14,17 @@ class DocumentController extends Controller
 {
     public function documentPage()
     {
-        return view('document.document');
+        $request = request();
+        $request->merge([
+            'page' => 1,
+            'per_page' => 10,
+            'sort_by' => 'folder_name',
+            'sort_direction' => 'asc',
+        ]);
+
+        $initialDocuments = $this->getAllFolder($request)->getData(true);
+
+        return view('document.document', compact('initialDocuments'));
     }
 
     private function getBreadcrumb($folderId)
