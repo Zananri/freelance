@@ -55,29 +55,87 @@ class AttendanceController extends Controller
         return $earthRadius * $c;
     }
 
-    private function validateMdsDistanceRule(Employee $employee, float $latitude, float $longitude, int $existingCheckinCount): void
+    private function resolveAttendanceDistanceRule(Employee $employee): ?array
     {
         $departmentName = strtoupper(trim((string) optional($employee->department)->name_department));
         $divisionName = strtoupper(trim((string) optional($employee->division)->name_division));
-        if ($departmentName !== 'MDS' || $divisionName !== 'YOGYAKARTA') {
+
+        if ($departmentName !== 'HSN') {
+            return null;
+        }
+
+        if ($divisionName === 'YOGYAKARTA') {
+            return [
+                'label' => 'HSN YOGYAKARTA',
+                'coordinates' => [-7.76327452125357, 110.42008791137542],
+            ];
+        }
+
+        if ($divisionName === 'MARUNDA') {
+            return [
+                'label' => 'HSN MARUNDA',
+                'coordinates' => [-6.1017422336199925, 106.97427347988832],
+            ];
+        }
+
+        if ($divisionName === 'MDS') {
+            $officeLocation = Office::query()
+                ->whereRaw('UPPER(TRIM(name)) = ?', ['HSN'])
+                ->value('location');
+            $officeCoordinates = $this->parseCoordinatePair((string) $officeLocation);
+
+            if ($officeCoordinates) {
+                return [
+                    'label' => 'HSN MDS',
+                    'coordinates' => $officeCoordinates,
+                ];
+            }
+
+            throw new \RuntimeException('Office HSN location is not configured.');
+        }
+
+        return null;
+    }
+
+    private function validateAttendanceDistanceRule(Employee $employee, float $latitude, float $longitude, int $existingCheckinCount): void
+    {
+        $rule = $this->resolveAttendanceDistanceRule($employee);
+        if ($rule === null) {
             return;
         }
 
-        $officeLocationRaw = (string) optional($employee->officeModel)->location;
-        $officeCoordinates = $this->parseCoordinatePair($officeLocationRaw);
-
-        if (!$officeCoordinates) {
-            return;
-        }
-
-        $distance = $this->distanceMeters($officeCoordinates[0], $officeCoordinates[1], $latitude, $longitude);
+        $distance = $this->distanceMeters(
+            $rule['coordinates'][0],
+            $rule['coordinates'][1],
+            $latitude,
+            $longitude
+        );
 
         if ($existingCheckinCount === 0 && $distance > 50) {
-            throw new \Exception('MDS check-in must be within 50 meters from office.');
+            throw new \Exception($rule['label'] . ' check-in must be within 50 meters from office.');
         }
 
         if ($existingCheckinCount > 0 && $distance < 90000) {
-            throw new \Exception('MDS checkpoint must be at least 90 km from office.');
+            throw new \Exception($rule['label'] . ' checkpoint must be at least 90 km from office.');
+        }
+    }
+
+    private function validateCheckoutDistanceRule(Employee $employee, float $latitude, float $longitude): void
+    {
+        $rule = $this->resolveAttendanceDistanceRule($employee);
+        if ($rule === null) {
+            return;
+        }
+
+        $distance = $this->distanceMeters(
+            $rule['coordinates'][0],
+            $rule['coordinates'][1],
+            $latitude,
+            $longitude
+        );
+
+        if ($distance > 50) {
+            throw new \Exception($rule['label'] . ' check-out must be within 50 meters from office.');
         }
     }
 
@@ -597,7 +655,7 @@ class AttendanceController extends Controller
                 ->value('total_checkpoint');
             $requiredCheckpoint = max(1, min((int) ($assignedCheckpoint ?? $employee->total_checkpoint), 8));
 
-            $this->validateMdsDistanceRule($employee, (float) $latitude, (float) $longitude, $totalCheckIn);
+            $this->validateAttendanceDistanceRule($employee, (float) $latitude, (float) $longitude, $totalCheckIn);
 
             if ($totalCheckIn >= $requiredCheckpoint) {
                 throw new \Exception('You have reached the maximum number of check-ins for today.');
@@ -740,7 +798,15 @@ class AttendanceController extends Controller
             //$today = Carbon::parse('2025-09-07')->toDateString();
             //$yesterday = Carbon::parse('2025-09-06')->toDateString();
 
-            $employee = Employee::with(['shift', 'job'])->where('user_id', $userId)->first();
+            $employee = Employee::with(['shift', 'department', 'division', 'job', 'officeModel'])
+                ->where('user_id', $userId)
+                ->first();
+
+            $this->validateCheckoutDistanceRule(
+                $employee,
+                (float) $latitude,
+                (float) $longitude
+            );
 
             $employeeShiftToday = EmployeeShift::with('shift')
                 ->where('employee_id', $employee->id)
