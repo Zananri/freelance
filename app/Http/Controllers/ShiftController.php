@@ -377,6 +377,34 @@ class ShiftController extends Controller
     }
 
     /**
+     * Remove one dated shift assignment without changing the employee's base shift.
+     */
+    public function destroyEmployeeShift(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|integer|exists:employees,id',
+            'date_shift' => 'required|date_format:Y-m-d',
+        ]);
+
+        $deleted = EmployeeShift::query()
+            ->where('employee_id', $validated['employee_id'])
+            ->whereDate('date_shift', $validated['date_shift'])
+            ->delete();
+
+        if ($deleted === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee shift assignment was not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Employee shift deleted successfully.',
+        ]);
+    }
+
+    /**
      * Update a shift definition (title, description, time_start, time_end) for Shift Config inline editing
      */
     public function updateConfig(Request $request, string $id)

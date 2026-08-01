@@ -892,6 +892,48 @@ img {
     color: #999;
     font-size: 13px;
 }
+
+.btn-delete-assignment {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #d92d20;
+    background: #fff5f4;
+    border: 1px solid #fecdca;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.btn-delete-assignment:hover {
+    color: #b42318;
+    background: #fee4e2;
+    border-color: #fda29b;
+}
+
+.btn-delete-assignment .material-symbols-outlined { font-size: 18px; }
+
+.delete-assignment-modal { border: 0; border-radius: 20px; box-shadow: 0 24px 60px rgba(16, 24, 40, .18); }
+.delete-assignment-icon {
+    width: 56px;
+    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #d92d20;
+    background: #fee4e2;
+    box-shadow: 0 0 0 8px #fff5f4;
+}
+.delete-assignment-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 14px;
+    border: 1px solid #eaecf0;
+    border-radius: 12px;
+    background: #f9fafb;
+}
+.delete-assignment-summary span { color: #667085; font-size: 12px; }
 .pagination-summary {
     color: #6b7280;
     font-size: 12px;

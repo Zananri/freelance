@@ -123,7 +123,7 @@ class AttendanceController extends Controller
     private function validateCheckoutDistanceRule(Employee $employee, float $latitude, float $longitude): void
     {
         $rule = $this->resolveAttendanceDistanceRule($employee);
-        if ($rule === null) {
+        if ($rule === null) {x  x
             return;
         }
 

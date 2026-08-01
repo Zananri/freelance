@@ -596,6 +596,7 @@ function setEditShiftModal(btn) {
         btn.dataset.employeeName;
     shiftModalEl.querySelector("#editEmployeePicture").src =
         btn.dataset.employeePicture;
+    shiftModalEl.dataset.employeeName = btn.dataset.employeeName || "";
 
     // FIX: set ke input juga biar muncul
     shiftModalEl.querySelector("#editTimeStart").value = btn.dataset.start;
@@ -927,6 +928,16 @@ function renderError(message) {
 
 // Setup event listeners for edit buttons
 function setupEventListeners() {
+    const openDeleteEmployeeShiftBtn = document.getElementById("openDeleteEmployeeShiftBtn");
+    if (openDeleteEmployeeShiftBtn) {
+        openDeleteEmployeeShiftBtn.addEventListener("click", openDeleteEmployeeShiftModal);
+    }
+
+    const confirmDeleteEmployeeShiftBtn = document.getElementById("confirmDeleteEmployeeShiftBtn");
+    if (confirmDeleteEmployeeShiftBtn) {
+        confirmDeleteEmployeeShiftBtn.addEventListener("click", deleteEmployeeShiftAssignment);
+    }
+
     // Save/Submit button for Add Shift Modal (assign an existing shift to employee/date)
     const addModalBtn = document.getElementById("saveShiftBtn");
     if (addModalBtn) {
@@ -1031,6 +1042,61 @@ function setupEventListeners() {
                 currentFilters.division = '';
             }
         });
+    }
+}
+
+function openDeleteEmployeeShiftModal() {
+    const editModalEl = document.getElementById("editShiftModal");
+    const deleteModalEl = document.getElementById("deleteEmployeeShiftModal");
+    const employeeId = editModalEl.querySelector("#editEmployeeId").value;
+    const date = editModalEl.querySelector("#editDateShift").value;
+
+    deleteModalEl.dataset.employeeId = employeeId;
+    deleteModalEl.dataset.date = date;
+    deleteModalEl.querySelector("#deleteEmployeeShiftName").textContent =
+        editModalEl.dataset.employeeName || "-";
+    deleteModalEl.querySelector("#deleteEmployeeShiftDate").textContent =
+        editModalEl.querySelector("#editDateShiftDisplayText").textContent || date;
+
+    bootstrap.Modal.getOrCreateInstance(editModalEl).hide();
+    window.setTimeout(() => bootstrap.Modal.getOrCreateInstance(deleteModalEl).show(), 180);
+}
+
+async function deleteEmployeeShiftAssignment() {
+    const modalEl = document.getElementById("deleteEmployeeShiftModal");
+    const button = document.getElementById("confirmDeleteEmployeeShiftBtn");
+    const employeeId = modalEl.dataset.employeeId;
+    const date = modalEl.dataset.date;
+
+    if (!employeeId || !date || button.disabled) return;
+
+    button.disabled = true;
+    const originalText = button.textContent;
+    button.textContent = "...";
+
+    try {
+        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const response = await fetch(`${basePath}/shift/employee-assignment`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({ employee_id: employeeId, date_shift: date }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message || translateShift('failed_delete_employee_shift'));
+
+        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        await loadEmployeeData();
+        showFloatingAlert(translateShift('employee_shift_deleted'), "success");
+    } catch (error) {
+        console.error("Error deleting employee shift:", error);
+        showFloatingAlert(error.message || translateShift('failed_delete_employee_shift'), "danger");
+    } finally {
+        button.disabled = false;
+        button.textContent = originalText;
     }
 }
 

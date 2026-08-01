@@ -308,10 +308,40 @@
                     </div>
 
                     <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-delete-assignment me-auto" id="openDeleteEmployeeShiftBtn">
+                            <span class="material-symbols-outlined">delete</span>
+                            {{ __('shift.delete') }}
+                        </button>
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('shift.cancel') }}</button>
                         <button type="submit" class="btn btn-submit-black">{{ __('shift.update') }}</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Delete Employee Shift Assignment Modal --}}
+    <div class="modal fade" id="deleteEmployeeShiftModal" tabindex="-1"
+        aria-labelledby="deleteEmployeeShiftModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content delete-assignment-modal">
+                <div class="modal-body text-center p-4">
+                    <div class="delete-assignment-icon mb-3">
+                        <span class="material-symbols-outlined">delete</span>
+                    </div>
+                    <h5 id="deleteEmployeeShiftModalLabel" class="mb-2">{{ __('shift.delete_employee_shift') }}</h5>
+                    <p class="text-muted small mb-3">{{ __('shift.delete_employee_shift_confirmation') }}</p>
+                    <div class="delete-assignment-summary text-start">
+                        <strong id="deleteEmployeeShiftName">-</strong>
+                        <span id="deleteEmployeeShiftDate">-</span>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                    <button type="button" class="btn btn-light flex-fill" data-bs-dismiss="modal">{{ __('shift.cancel') }}</button>
+                    <button type="button" class="btn btn-danger flex-fill" id="confirmDeleteEmployeeShiftBtn">
+                        {{ __('shift.delete') }}
+                    </button>
+                </div>
             </div>
         </div>
     </div>
