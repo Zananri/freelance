@@ -134,8 +134,8 @@ class AttendanceController extends Controller
             $longitude
         );
 
-        if ($distance > 50) {
-            throw new \Exception($rule['label'] . ' check-out must be within 50 meters from office.');
+        if ($distance < 90000) {
+            throw new \Exception($rule['label'] . ' check-out must be at least 90 km from office.');
         }
     }
 
