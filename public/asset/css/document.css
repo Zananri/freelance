@@ -219,12 +219,15 @@
     flex-direction: column;
     gap: 32px;
     width: 100%;
+    min-width: 0;
+    overflow: visible;
 }
 
 .grid-section {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    min-width: 0;
 }
 
 .section-title {
@@ -236,9 +239,10 @@
 
 .grid-items {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
     gap: 24px;
     width: 100%;
+    min-width: 0;
 }
 
 .empty-folder {
@@ -256,6 +260,7 @@
     position: relative;
     width: 100%;
     cursor: pointer;
+    min-width: 0;
 
 }
 
@@ -263,7 +268,7 @@
     position: absolute;
     top: 7px;
     left: 7px;
-    right: -7px;
+    right: 0;
     bottom: 0px;
     background: #e8952a;
     border-radius: 0 12px 12px 12px;
@@ -313,7 +318,9 @@
     cursor: default;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     transition: 0.2s;
-    max-width: 300px;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
 }
 
 .file-preview-link {
@@ -635,6 +642,16 @@
 }
 
 @media (max-width: 576px) {
+    .grid-view {
+        margin-top: 1.5rem !important;
+        gap: 24px;
+    }
+
+    .grid-items {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+
     .document-header {
         flex-direction: column;
         align-items: stretch !important;

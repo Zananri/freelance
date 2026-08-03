@@ -44,6 +44,8 @@ const currentSort = {
 };
 let currentPage = 1;
 const perPage = 10;
+let documentRequestSequence = 0;
+let activeDocumentRequest = null;
 
 const currentUserEmployeeId = Number(document.querySelector('meta[name="current-employee-id"]')?.content || 0);
 const currentUserType = (document.querySelector('meta[name="current-user-type"]')?.content || '').toUpperCase();
@@ -52,6 +54,23 @@ const currentUserDepartmentId = Number(document.querySelector('meta[name="curren
 const isCurrentUserAdmin = ["ADMIN", "ADMINISTRATOR"].includes(currentUserType)
     || ["ADMIN", "ADMINISTRATOR"].includes(currentUserRole);
 const currentUserDepartmentName = document.querySelector('meta[name="current-employee-department-name"]')?.content || '';
+
+function normalizeFilterValue(value, numeric = false) {
+    if (value === null || value === undefined) {
+        return "all";
+    }
+
+    const normalized = String(value).trim();
+    if (normalized === "" || normalized.toLowerCase() === "all") {
+        return "all";
+    }
+
+    if (!numeric) {
+        return normalized;
+    }
+
+    return /^\d+$/.test(normalized) ? normalized : "all";
+}
 
 function formatBytes(bytes) {
     if (bytes === 0) {
@@ -594,28 +613,36 @@ function renderBreadcrumb(breadcrumb = []) {
 }
 
 function loadFolder(folderId = currentFolder, page = currentPage) {
+    const isRootFolderValue =
+        folderId === null ||
+        folderId === undefined ||
+        folderId === "" ||
+        String(folderId).toLowerCase() === "null" ||
+        String(folderId).toLowerCase() === "undefined";
     const normalizedCurrentFolder =
-        currentFolder === null || currentFolder === undefined
+        currentFolder === null ||
+        currentFolder === undefined ||
+        currentFolder === "" ||
+        String(currentFolder).toLowerCase() === "null" ||
+        String(currentFolder).toLowerCase() === "undefined"
             ? null
             : String(currentFolder);
-    const normalizedTargetFolder =
-        folderId === null || folderId === undefined || folderId === ""
-            ? null
-            : String(folderId);
+    const normalizedTargetFolder = isRootFolderValue ? null : String(folderId);
     const folderChanged = normalizedCurrentFolder !== normalizedTargetFolder;
 
     if (folderChanged) {
         resetDocumentSearch();
     }
 
-    currentFolder = folderId;
-    currentPage = page;
+    const requestedPage = Math.max(Number.parseInt(page, 10) || 1, 1);
+    currentFolder = normalizedTargetFolder;
+    currentPage = requestedPage;
     const getAllFolderUrl =
         window.documentRoutes?.getAllFolder ||
         `${window.APP_URL || window.location.origin}/document/get-all-folder`;
     const url = new URL(getAllFolderUrl, window.location.origin);
-    if (folderId !== null) {
-        url.searchParams.set("parent_id", folderId);
+    if (normalizedTargetFolder !== null) {
+        url.searchParams.set("parent_id", normalizedTargetFolder);
     }
     url.searchParams.set("page", String(currentPage));
     url.searchParams.set("per_page", String(perPage));
@@ -624,14 +651,18 @@ function loadFolder(folderId = currentFolder, page = currentPage) {
     if (currentSearch) {
         url.searchParams.set("search", currentSearch);
     }
-    if (currentFilterDepartment && currentFilterDepartment !== "all") {
-        url.searchParams.set("filter_department", currentFilterDepartment);
+    const normalizedDepartmentFilter = normalizeFilterValue(currentFilterDepartment, true);
+    const normalizedSiteFilter = normalizeFilterValue(currentFilterSite, true);
+    const normalizedJobFilter = normalizeFilterValue(currentFilterJob, true);
+
+    if (normalizedDepartmentFilter !== "all") {
+        url.searchParams.set("filter_department", normalizedDepartmentFilter);
     }
-    if (currentFilterSite && currentFilterSite !== "all") {
-        url.searchParams.set("filter_division", currentFilterSite);
+    if (normalizedSiteFilter !== "all") {
+        url.searchParams.set("filter_division", normalizedSiteFilter);
     }
-    if (currentFilterJob && currentFilterJob !== "all") {
-        url.searchParams.set("filter_job", currentFilterJob);
+    if (normalizedJobFilter !== "all") {
+        url.searchParams.set("filter_job", normalizedJobFilter);
     }
     if (currentFilterType && currentFilterType !== "all") {
         url.searchParams.set("filter_type", currentFilterType);
@@ -642,10 +673,17 @@ function loadFolder(folderId = currentFolder, page = currentPage) {
     if (currentFilterUpdated && currentFilterUpdated !== "all") {
         url.searchParams.set("filter_updated", currentFilterUpdated);
     }
+
+    if (activeDocumentRequest) {
+        activeDocumentRequest.abort();
+    }
+    activeDocumentRequest = new AbortController();
+    const requestSequence = ++documentRequestSequence;
     showDocumentLoaders();
     fetch(url.toString(), {
         method: "GET",
         credentials: "same-origin",
+        signal: activeDocumentRequest.signal,
         headers: {
             Accept: "application/json",
             "X-Requested-With": "XMLHttpRequest",
@@ -659,6 +697,9 @@ function loadFolder(folderId = currentFolder, page = currentPage) {
             return response.json();
         })
         .then((res) => {
+            if (requestSequence !== documentRequestSequence) {
+                return;
+            }
             const isUnfilteredRoot =
                 normalizedTargetFolder === null &&
                 !currentSearch &&
@@ -680,19 +721,25 @@ function loadFolder(folderId = currentFolder, page = currentPage) {
                 res = initialData;
             }
 
-            renderBreadcrumb(res.breadcrumb);
-            renderTable(res.folders, res.files, res.current_folder);
-            renderGrid(res.folders, res.files, res.current_folder);
+            renderBreadcrumb(res.breadcrumb || []);
+            renderTable(res.folders || [], res.files || [], res.current_folder || null);
+            renderGrid(res.folders || [], res.files || [], res.current_folder || null);
             renderPagination(res.pagination || null);
             currentPage = res.pagination?.current_page || 1;
         })
         .catch((error) => {
+            if (error.name === "AbortError") {
+                return;
+            }
             console.error("Failed to load documents:", error);
             showAlertMsg("Failed to load documents");
             renderPagination(null);
         })
         .finally(() => {
-            hideDocumentLoaders();
+            if (requestSequence === documentRequestSequence) {
+                activeDocumentRequest = null;
+                hideDocumentLoaders();
+            }
         });
 }
 
@@ -1215,7 +1262,7 @@ if (typeof jQuery !== "undefined") {
         }
 
         $(filterDepartmentSelect).on("change", function () {
-            currentFilterDepartment = $(this).val() || "all";
+            currentFilterDepartment = normalizeFilterValue($(this).val(), true);
             currentFilterSite = "all";
             currentFilterJob = "all";
             loadSiteFilters(currentFilterDepartment, "all").then(function () {
@@ -1227,7 +1274,7 @@ if (typeof jQuery !== "undefined") {
         });
 
         $(filterSiteSelect).on("change", function () {
-            currentFilterSite = $(this).val() || "all";
+            currentFilterSite = normalizeFilterValue($(this).val(), true);
             currentFilterJob = "all";
             loadJobFilters(currentFilterSite, "all").then(function () {
                 currentPage = 1;
@@ -1236,7 +1283,7 @@ if (typeof jQuery !== "undefined") {
         });
 
         $(filterJobSelect).on("change", function () {
-            currentFilterJob = $(this).val() || "all";
+            currentFilterJob = normalizeFilterValue($(this).val(), true);
             currentPage = 1;
             loadFolder(currentFolder, currentPage);
         });
@@ -1322,8 +1369,10 @@ function initializeDocumentPage() {
     if (filterUpdatedSelect) {
         currentFilterUpdated = filterUpdatedSelect.value || "all";
     }
-    if (isCurrentUserAdmin) {
-        currentFilterDepartment = currentUserDepartmentId ? String(currentUserDepartmentId) : "all";
+    if (filterDepartmentSelect) {
+        currentFilterDepartment = normalizeFilterValue(filterDepartmentSelect.value, true);
+    } else {
+        currentFilterDepartment = "all";
     }
     if (!initialData) {
         loadFolder(null, currentPage);

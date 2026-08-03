@@ -70,8 +70,30 @@ class DocumentController extends Controller
         $departmentFilter = $request->input('filter_department');
         $divisionFilter = $request->input('filter_division');
         $jobFilter = $request->input('filter_job');
+
+        if (!is_numeric($departmentFilter) || (int) $departmentFilter <= 0) {
+            $departmentFilter = null;
+        } else {
+            $departmentFilter = (int) $departmentFilter;
+        }
+
+        if (!is_numeric($divisionFilter) || (int) $divisionFilter <= 0) {
+            $divisionFilter = null;
+        } else {
+            $divisionFilter = (int) $divisionFilter;
+        }
+
+        if (!is_numeric($jobFilter) || (int) $jobFilter <= 0) {
+            $jobFilter = null;
+        } else {
+            $jobFilter = (int) $jobFilter;
+        }
         $page = max((int) $request->input('page', 1), 1);
         $perPage = (int) $request->input('per_page', 10);
+        $rawParentId = $request->input('parent_id');
+        $parentId = is_numeric($rawParentId) && (int) $rawParentId > 0
+            ? (int) $rawParentId
+            : null;
 
         if (!in_array($perPage, [10, 20, 50, 100], true)) {
             $perPage = 10;
@@ -79,21 +101,27 @@ class DocumentController extends Controller
 
         $currentFolder = null;
 
-        if ($request->parent_id) {
-            $currentFolder = DocumentFolders::find($request->parent_id);
+        if ($parentId !== null) {
+            $currentFolder = DocumentFolders::find($parentId);
         }
 
         $query = DocumentFolders::query()
             ->with('creator')
             ->select('document_folders.*')
-            ->leftJoin('employees as doc_employees', 'doc_employees.id', '=', 'document_folders.employee_id')
-            ->where('document_folders.parent_folder_id', $request->parent_id);
+            ->leftJoin('employees as doc_employees', 'doc_employees.id', '=', 'document_folders.employee_id');
 
         $fileQuery = Document::query()
             ->with('employee')
             ->select('documents.*')
-            ->leftJoin('employees as doc_employees', 'doc_employees.id', '=', 'documents.employee_id')
-            ->where('documents.folder_id', $request->parent_id);
+            ->leftJoin('employees as doc_employees', 'doc_employees.id', '=', 'documents.employee_id');
+
+        if ($parentId === null) {
+            $query->whereNull('document_folders.parent_folder_id');
+            $fileQuery->whereNull('documents.folder_id');
+        } else {
+            $query->where('document_folders.parent_folder_id', $parentId);
+            $fileQuery->where('documents.folder_id', $parentId);
+        }
 
         // Access rules:
         // - SUPERADMIN: see all folders/files
@@ -225,44 +253,40 @@ class DocumentController extends Controller
                 break;
         }
 
-        $folders = $query->get()->map(function ($folder) {
-            $folder->item_type = 'folder';
-            return $folder;
-        });
+        $folders = $query->get()->map(fn ($folder) => [
+            'item_type' => 'folder',
+            'item' => $folder,
+            'sort_name' => strtolower((string) ($folder->folder_name ?? '')),
+            'sort_owner' => strtolower((string) ($folder->creator->name ?? '')),
+            'sort_updated' => strtotime((string) ($folder->updated_at ?? '1970-01-01 00:00:00')),
+        ]);
 
-        $files = $fileQuery->get()->map(function ($file) {
-            $file->item_type = 'file';
-            return $file;
-        });
+        $files = $fileQuery->get()->map(fn ($file) => [
+            'item_type' => 'file',
+            'item' => $file,
+            'sort_name' => strtolower((string) ($file->file_name ?? '')),
+            'sort_owner' => strtolower((string) ($file->employee->name ?? '')),
+            'sort_updated' => strtotime((string) ($file->updated_at ?? '1970-01-01 00:00:00')),
+        ]);
 
         $merged = $folders->concat($files)->values();
 
-        $sorted = $merged->sort(function ($a, $b) use ($sortBy, $direction) {
-            if ($sortBy === 'owner') {
-                $valueA = strtolower((string) ($a->item_type === 'folder' ? ($a->creator->name ?? '') : ($a->employee->name ?? '')));
-                $valueB = strtolower((string) ($b->item_type === 'folder' ? ($b->creator->name ?? '') : ($b->employee->name ?? '')));
-            } elseif ($sortBy === 'updated_at') {
-                $valueA = strtotime((string) ($a->updated_at ?? '1970-01-01 00:00:00'));
-                $valueB = strtotime((string) ($b->updated_at ?? '1970-01-01 00:00:00'));
-            } else {
-                $valueA = strtolower((string) ($a->item_type === 'folder' ? ($a->folder_name ?? '') : ($a->file_name ?? '')));
-                $valueB = strtolower((string) ($b->item_type === 'folder' ? ($b->folder_name ?? '') : ($b->file_name ?? '')));
-            }
+        $sortKey = match ($sortBy) {
+            'owner' => 'sort_owner',
+            'updated_at' => 'sort_updated',
+            default => 'sort_name',
+        };
 
-            if ($valueA === $valueB) {
-                return 0;
-            }
+        $sorted = $direction === 'desc'
+            ? $merged->sortByDesc($sortKey, SORT_NATURAL)
+            : $merged->sortBy($sortKey, SORT_NATURAL);
 
-            if ($direction === 'desc') {
-                return $valueA < $valueB ? 1 : -1;
-            }
-
-            return $valueA > $valueB ? 1 : -1;
-        })->values();
+        $sorted = $sorted->values();
 
         $total = $sorted->count();
-        $offset = ($page - 1) * $perPage;
-        $pageItems = $sorted->slice($offset, $perPage)->values();
+        $lastPage = max((int) ceil($total / $perPage), 1);
+        $page = min($page, $lastPage);
+        $pageItems = $sorted->forPage($page, $perPage)->values();
 
         $paginator = new LengthAwarePaginator(
             $pageItems,
@@ -275,20 +299,24 @@ class DocumentController extends Controller
             ]
         );
 
-        $pagedFolders = $pageItems->where('item_type', 'folder')->values()->map(function ($item) {
-            unset($item->item_type);
-            return $item;
-        });
+        $pagedFolders = collect();
+        $pagedFiles = collect();
 
-        $pagedFiles = $pageItems->where('item_type', 'file')->values()->map(function ($item) {
-            unset($item->item_type);
-            return $item;
-        });
+        foreach ($pageItems as $entry) {
+            if (($entry['item_type'] ?? '') === 'folder') {
+                $pagedFolders->push($entry['item']);
+                continue;
+            }
+
+            if (($entry['item_type'] ?? '') === 'file') {
+                $pagedFiles->push($entry['item']);
+            }
+        }
 
         return response()->json([
             'folders' => $pagedFolders,
             'files' => $pagedFiles,
-            'breadcrumb' => $this->getBreadcrumb($request->parent_id),
+            'breadcrumb' => $this->getBreadcrumb($parentId),
             'current_folder' => $currentFolder,
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
