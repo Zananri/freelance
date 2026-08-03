@@ -29,7 +29,13 @@
                             <div class="text-danger fs-12 mt-1">{{ $message }}</div>
                         @enderror
                     </div>
-                    <div class="mb-4 text-end">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="remember" id="remember" value="1" @checked(old('remember'))>
+                            <label class="form-check-label fs-14 text-black text-opacity-75" for="remember">
+                                {{ __('general.remember_me') }}
+                            </label>
+                        </div>
                         <a href="{{ url('forgot-password') }}"
                             class="text-black text-link text-opacity-75 fs-14 text-decoration-none">{{ __('general.forgot_password') }}</a>
                     </div>

@@ -131,6 +131,7 @@ return [
     'email' => 'Email',
     'password' => 'Password',
     'forgot_password' => 'Forgot password ?',
+    'remember_me' => 'Remember me',
     'reset_password' => 'Reset Password',
     'current_password' => 'Current password',
     'new_password' => 'New password',

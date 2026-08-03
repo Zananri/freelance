@@ -131,6 +131,7 @@ return [
     'email' => 'Email',
     'password' => 'Kata Sandi',
     'forgot_password' => 'Lupa password ?',
+    'remember_me' => 'Ingat saya',
     'reset_password' => 'Atur Ulang Kata Sandi',
     'current_password' => 'Kata sandi saat ini',
     'new_password' => 'Kata sandi baru',

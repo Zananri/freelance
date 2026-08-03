@@ -89,6 +89,7 @@ class UserController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
+            'remember' => ['nullable', 'boolean'],
         ]);
 
         $email = $request->input('email');
@@ -102,7 +103,9 @@ class UserController extends Controller
             }
         }
 
-        if (auth()->attempt(['email' => $email, 'password' => $password])) {
+        $remember = $request->boolean('remember');
+
+        if (auth()->attempt(['email' => $email, 'password' => $password], $remember)) {
             $request->session()->regenerate();
             try {
                 $user = auth()->user();
