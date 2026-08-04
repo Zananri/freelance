@@ -134,8 +134,13 @@ class AttendanceController extends Controller
             $longitude
         );
 
-        if ($distance > 90000) {
-            throw new \Exception($rule['label'] . ' check-out must be within 90 km from office.');
+        $jobName = strtoupper(trim((string) optional($employee->job)->job_name));
+        $isTechnician = in_array($jobName, ['TEKNISI IT', 'TEKNISI ONSITE'], true);
+        $maximumDistance = $isTechnician ? 90000 : 50;
+        $distanceLabel = $isTechnician ? '90 km' : '50 meters';
+
+        if ($distance > $maximumDistance) {
+            throw new \Exception($rule['label'] . ' check-out must be within ' . $distanceLabel . ' from office.');
         }
     }
 
