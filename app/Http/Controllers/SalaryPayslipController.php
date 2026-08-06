@@ -15,6 +15,8 @@ use App\Http\Controllers\NotificationController;
 use App\Models\Attendance;
 use App\Models\Department;
 use App\Models\Division;
+use App\Models\Document;
+use App\Models\DocumentFolders;
 use App\Models\Employee;
 use App\Models\EmployeeSalary;
 use App\Models\EmployeePayslip;
@@ -840,6 +842,213 @@ class SalaryPayslipController extends Controller
         ]);
     }
     
+    public function saveAllPayslipsToDocuments(Request $request)
+    {
+        if (!$this->canManagePayslips()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'year' => 'required|integer|min:2000|max:2100',
+            'month' => 'required|integer|min:1|max:12',
+        ]);
+        $year = (int) $validated['year'];
+        $month = (int) $validated['month'];
+        $period = Carbon::create($year, $month, 1);
+        $firstDay = $period->copy()->startOfMonth()->toDateString();
+        $lastDay = $period->copy()->endOfMonth()->toDateString();
+
+        $eligibleEmployeeIds = $this->getSalaryPayslipEmployeeIds();
+        $payslips = EmployeePayslip::with([
+                'employee.department', 'employee.partner', 'employee.division',
+                'employee.job', 'employee.grade',
+            ])
+            ->whereIn('employee_id', $eligibleEmployeeIds)
+            ->whereYear('date_salary', $year)
+            ->whereMonth('date_salary', $month)
+            ->where(function ($query) {
+                $query->whereNull('status')->orWhere('status', '<>', 'DELETED');
+            })
+            ->get();
+
+        if ($payslips->isEmpty()) {
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'saved_count' => 0,
+                    'skipped_count' => $eligibleEmployeeIds->count(),
+                ],
+                'message' => __('salary.payslips_saved_to_documents_result', [
+                    'saved' => 0,
+                    'skipped' => $eligibleEmployeeIds->count(),
+                ]),
+            ]);
+        }
+
+        $ownerEmployee = auth()->user()?->employee;
+        abort_unless($ownerEmployee, 403, 'Employee account is not linked.');
+        $isSuperadmin = in_array('SUPERADMIN', [
+            strtoupper((string) auth()->user()?->user_type),
+            strtoupper((string) auth()->user()?->user_role),
+        ], true);
+        $actorId = (int) auth()->id();
+        $savedCount = 0;
+
+        DB::transaction(function () use ($payslips, $ownerEmployee, $isSuperadmin, $actorId, $year, $month, $firstDay, $lastDay, &$savedCount) {
+            $root = $this->findOrCreatePayslipFolder($ownerEmployee->id, null, 'Payslip', $actorId);
+
+            foreach ($payslips as $employeePayslip) {
+                $employee = $employeePayslip->employee;
+                if (!$employee) {
+                    continue;
+                }
+
+                $parent = $root;
+                $folderNames = [];
+                if ($isSuperadmin) {
+                    $folderNames[] = $this->safeDocumentName($employee->department?->name_department, 'Tanpa Department');
+                }
+                array_push(
+                    $folderNames,
+                    $this->safeDocumentName($employee->partner?->partner_name, 'Tanpa Partner'),
+                    $this->safeDocumentName($employee->division?->name_division, 'Tanpa Site'),
+                    $this->safeDocumentName($employee->name, 'Karyawan ' . $employee->id),
+                    (string) $year
+                );
+
+                foreach ($folderNames as $folderName) {
+                    $parent = $this->findOrCreatePayslipFolder($ownerEmployee->id, $parent->id, $folderName, $actorId);
+                }
+
+                $monthName = Carbon::create($year, $month, 1)
+                    ->locale('id')
+                    ->translatedFormat('F');
+                $parent = $this->findOrCreatePayslipFolder(
+                    $ownerEmployee->id,
+                    $parent->id,
+                    $monthName,
+                    $actorId,
+                    [str_pad((string) $month, 2, '0', STR_PAD_LEFT), (string) $month]
+                );
+
+                $pdfContent = Pdf::loadView(
+                    'employee.view_payslip',
+                    $this->payslipPdfData($employee, $employeePayslip, $year, $month, $firstDay, $lastDay)
+                )->setPaper('A4', 'portrait')->output();
+
+                $directory = public_path('file/documents/' . $parent->id);
+                if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+                    throw new \RuntimeException('Unable to create payslip document directory.');
+                }
+
+                $storedName = "payslip_{$employee->id}_{$year}_" . str_pad((string) $month, 2, '0', STR_PAD_LEFT) . '.pdf';
+                $relativePath = 'file/documents/' . $parent->id . '/' . $storedName;
+                if (file_put_contents(public_path($relativePath), $pdfContent) === false) {
+                    throw new \RuntimeException('Unable to save payslip PDF.');
+                }
+
+                Document::updateOrCreate(
+                    [
+                        'employee_id' => $employee->id,
+                        'folder_id' => $parent->id,
+                        'file_name' => 'Payslip - ' . $this->safeDocumentName($employee->name, (string) $employee->id) . '.pdf',
+                    ],
+                    [
+                        'file_path' => $relativePath,
+                        'file_type' => 'application/pdf',
+                        'file_size' => strlen($pdfContent),
+                        'created_by' => $actorId,
+                        'updated_by' => $actorId,
+                    ]
+                );
+                $savedCount++;
+            }
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'saved_count' => $savedCount,
+                'skipped_count' => max(0, $eligibleEmployeeIds->count() - $savedCount),
+            ],
+            'message' => __('salary.payslips_saved_to_documents_result', [
+                'saved' => $savedCount,
+                'skipped' => max(0, $eligibleEmployeeIds->count() - $savedCount),
+            ]),
+        ]);
+    }
+
+    private function findOrCreatePayslipFolder(
+        int $employeeId,
+        ?int $parentId,
+        string $name,
+        int $actorId,
+        array $legacyNames = []
+    ): DocumentFolders
+    {
+        $folder = DocumentFolders::where('employee_id', $employeeId)
+            ->where('parent_folder_id', $parentId)
+            ->whereIn('folder_name', array_values(array_unique(array_merge([$name], $legacyNames))))
+            ->first();
+
+        if ($folder) {
+            $folder->update([
+                'folder_name' => $name,
+                'created_by' => $actorId,
+                'updated_by' => $actorId,
+            ]);
+
+            return $folder;
+        }
+
+        return DocumentFolders::create([
+            'employee_id' => $employeeId,
+            'parent_folder_id' => $parentId,
+            'folder_name' => $name,
+            'created_by' => $actorId,
+            'updated_by' => $actorId,
+        ]);
+    }
+
+    private function safeDocumentName(?string $value, string $fallback): string
+    {
+        $value = preg_replace('/[\\\\\/:*?"<>|]+/u', '-', trim((string) $value)) ?? '';
+        $value = trim($value, ". \t\n\r\0\x0B");
+        return $value !== '' ? $value : $fallback;
+    }
+
+    private function payslipPdfData(Employee $employee, EmployeePayslip $payslip, int $year, int $month, string $firstDay, string $lastDay): array
+    {
+        $attendance = Attendance::whereBetween('date_attendance', [$firstDay, $lastDay])
+            ->where('employee_id', $employee->id);
+        $workPeriod = '';
+        if ($employee->hire_date) {
+            $months = Carbon::parse($employee->hire_date)->diffInMonths(Carbon::create($year, $month, 1));
+            $workPeriod = intval($months / 12) . ' Tahun ' . intval($months % 12) . ' Bulan';
+        }
+        $leave = fn (string $type) => EmployeeLeaveRequest::whereBetween('start_date', [$firstDay, $lastDay])
+            ->where('employee_id', $employee->id)
+            ->where('leave_type', $type)
+            ->where('status', 'APPROVED')
+            ->sum('day_amount');
+
+        return [
+            'workPeriod' => $workPeriod,
+            'downloadPayslip' => 1,
+            'yearSalary' => $year,
+            'dateSalary' => Carbon::create($year, $month, 1)->format('F Y'),
+            'totalActiveDay' => $this->getActiveDay($firstDay, $lastDay),
+            'employee' => $employee,
+            'employeeSalary' => EmployeeSalary::with('employee')->where('employee_id', $employee->id)->first(),
+            'employeePayslip' => $payslip,
+            'employeeAttendanceAll' => collect([(clone $attendance)->where('status', '<>', 'ABSENT')->count()]),
+            'employeeAttendanceAbsent' => collect([(clone $attendance)->where('status', 'ABSENT')->count()]),
+            'employeeAttendanceNotComplete' => $payslip->attendance_incomplete ?? 0,
+            'employeeLeaveSick' => $leave('SICK'),
+            'employeeAnnualLeave' => $leave('ANNUAL_LEAVE'),
+        ];
+    }
+
     public function viewPayslip($employeeId,$year,$month){
     
         

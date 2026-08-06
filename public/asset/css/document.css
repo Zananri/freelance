@@ -641,6 +641,58 @@
     cursor: not-allowed;
 }
 
+.file-row,
+.file-card,
+.file-preview-link {
+    cursor: pointer;
+}
+
+.document-preview-body {
+    min-height: 65vh;
+    padding: 0;
+    background: #f4f5f7;
+}
+
+.document-preview-frame {
+    display: block;
+    width: 100%;
+    height: 70vh;
+    border: 0;
+    background: #fff;
+}
+
+.document-preview-media,
+.document-preview-audio,
+.document-preview-unavailable {
+    min-height: 65vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.document-preview-media img,
+.document-preview-media video {
+    max-width: 100%;
+    max-height: 65vh;
+    object-fit: contain;
+}
+
+.document-preview-audio audio {
+    width: min(600px, 100%);
+}
+
+.document-preview-unavailable {
+    flex-direction: column;
+    color: #6c757d;
+    text-align: center;
+}
+
+.document-preview-unavailable .material-symbols-outlined {
+    font-size: 64px;
+    margin-bottom: 12px;
+}
+
 @media (max-width: 576px) {
     .grid-view {
         margin-top: 1.5rem !important;

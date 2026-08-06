@@ -90,6 +90,47 @@ function escapeHtml(text) {
         .replace(/'/g, "&#039;");
 }
 
+function openDocumentPreview(fileElement) {
+    const url = fileElement.dataset.fileUrl || "";
+    const fileName = fileElement.dataset.fileName || "File";
+    const fileType = (fileElement.dataset.fileType || "").toLowerCase();
+    const extension = fileName.split(".").pop().toLowerCase();
+    const content = document.getElementById("fileDetailContent");
+    const title = document.getElementById("filePreviewTitle");
+    const openLink = document.getElementById("openPreviewFile");
+    const downloadLink = document.getElementById("downloadPreviewFile");
+
+    title.textContent = fileName;
+    openLink.href = url;
+    downloadLink.href = url;
+    downloadLink.setAttribute("download", fileName);
+
+    if (fileType === "application/pdf" || extension === "pdf") {
+        content.innerHTML = `<iframe class="document-preview-frame" src="${escapeHtml(url)}" title="${escapeHtml(fileName)}"></iframe>`;
+    } else if (fileType.startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(extension)) {
+        content.innerHTML = `<div class="document-preview-media"><img src="${escapeHtml(url)}" alt="${escapeHtml(fileName)}"></div>`;
+    } else if (fileType.startsWith("video/") || ["mp4", "webm", "ogg"].includes(extension)) {
+        content.innerHTML = `<div class="document-preview-media"><video src="${escapeHtml(url)}" controls autoplay></video></div>`;
+    } else if (fileType.startsWith("audio/") || ["mp3", "wav", "m4a", "ogg"].includes(extension)) {
+        content.innerHTML = `<div class="document-preview-audio"><audio src="${escapeHtml(url)}" controls autoplay></audio></div>`;
+    } else if (fileType.startsWith("text/") || ["txt", "csv", "json", "xml"].includes(extension)) {
+        content.innerHTML = `<iframe class="document-preview-frame" src="${escapeHtml(url)}" title="${escapeHtml(fileName)}"></iframe>`;
+    } else {
+        content.innerHTML = `
+            <div class="document-preview-unavailable">
+                <span class="material-symbols-outlined">draft</span>
+                <p class="mb-1">Preview is not available for this file type.</p>
+                <small>Use Open File or Download to view it.</small>
+            </div>`;
+    }
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("modalFileDetail")).show();
+}
+
+document.getElementById("modalFileDetail")?.addEventListener("hidden.bs.modal", function () {
+    document.getElementById("fileDetailContent").innerHTML = "";
+});
+
 function canManageDocument(item) {
     return Number(item?.created_by || 0) === Number(document.querySelector('meta[name="current-user-id"]')?.content || 0);
 }
@@ -416,9 +457,9 @@ function renderGrid(folders, files = [], currentFolderData = null) {
                         </div>` : ''}
                     </div>
                     <div class="file-preview">
-                        <a href="${href}" target="_blank" class="file-preview-link">
+                        <div class="file-preview-link" role="button" tabindex="0">
                             ${preview}
-                        </a>
+                        </div>
                     </div>
                     <div class="file-info">
                         <div class="file-title">${escapeHtml(file.file_name)}</div>
@@ -866,6 +907,11 @@ document.addEventListener("click", function (event) {
         event.stopPropagation();
         const row = downloadFileTarget.closest(".file-row, .file-card");
         window.open(row.dataset.fileUrl, "_blank");
+        return;
+    }
+    const fileTarget = event.target.closest(".file-row, .file-card");
+    if (fileTarget && !event.target.closest(".dropdown")) {
+        openDocumentPreview(fileTarget);
         return;
     }
     const breadcrumbTarget = event.target.closest(

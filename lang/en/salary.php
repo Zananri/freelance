@@ -53,6 +53,9 @@ return [
     'hari_um' => 'Hari UM',
     'rincian_potongan' => 'Deduction Details',
     'send_all_payslips' => 'Send All Payslips',
+    // 'download_all_payslips' => 'Download Payslips',
+    'payslips_saved_to_documents' => ':count payslips saved to Documents.',
+    'payslips_saved_to_documents_result' => ':saved payslips saved to Documents. :skipped employees without a payslip were skipped.',
     'confirm_send_all_payslips' => 'Send all generated payslips for the selected month?',
     'bulk_send_result' => ':sent payslips sent. :skipped employees were skipped because their payslip has not been calculated or the result is zero.',
     'no_calculated_payslips' => 'There are no payslips ready to send. Calculate employee salaries first and make sure the result is not zero.',
@@ -61,4 +64,3 @@ return [
     'all_employees' => 'All Employees',
     'same_department' => 'Same Department',
 ];
-

@@ -45,6 +45,10 @@
                             {{ __('salary.send_all_payslips') }}
                             <span class="material-symbols-outlined align-middle fs-18">send</span>
                         </button>
+                        <button type="button" class="btn btn-default btn-download-all-payslips white-space-nowrap">
+                            {{-- {{ __('salary.download_all_payslips') }} --}}
+                            <span class="material-symbols-outlined align-middle fs-18">download</span>
+                        </button>
                     @endif
                     <div>
                         <input type="text" class="input-search-query w-100" value="{{ $searchQuery }}">

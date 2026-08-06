@@ -53,6 +53,9 @@ return [
     'hari_um' => 'Hari UM',
     'rincian_potongan' => 'Rincian Potongan',
     'send_all_payslips' => 'Kirim Semua Slip Gaji',
+    // 'download_all_payslips' => 'Unduh Slip Gaji',
+    'payslips_saved_to_documents' => ':count slip gaji berhasil disimpan ke Document.',
+    'payslips_saved_to_documents_result' => ':saved slip gaji disimpan ke Document. :skipped karyawan yang belum memiliki slip gaji dilewati.',
     'confirm_send_all_payslips' => 'Kirim semua slip gaji yang sudah dibuat untuk bulan yang dipilih?',
     'bulk_send_result' => ':sent slip gaji berhasil dikirim. :skipped employee dilewati karena slip gaji belum dihitung atau hasilnya Rp0.',
     'no_calculated_payslips' => 'Tidak ada slip gaji yang dapat dikirim. Lakukan perhitungan gaji employee terlebih dahulu dan pastikan hasilnya tidak Rp0.',
@@ -61,4 +64,3 @@ return [
     'all_employees' => 'Semua Karyawan',
     'same_department' => 'Department yang Sama',
 ];
-

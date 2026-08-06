@@ -613,6 +613,7 @@ nav
     }
 
     .salary-title-actions .btn-send-all-payslips,
+    .salary-title-actions .btn-download-all-payslips,
     .salary-title-actions .input-search-query {
         width: 100% !important;
     }
