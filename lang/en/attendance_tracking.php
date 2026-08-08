@@ -50,9 +50,9 @@ return [
     ],
 
     'export' => [
-        'off_and_lateness' => 'Off & Lateness',
-        'present_list' => 'Present List ACER Team',
-        'filename' => 'ACER ATTENDANCE',
+        'off_and_lateness' => 'Attendance Report',
+        'present_list' => 'Present List SGS',
+        'filename' => 'SGS ATTENDANCE',
         'new_employee' => 'NEW EMPLOYEE',
         'number' => 'No',
         'employee_name' => 'EMPLOYEE NAME',
@@ -73,6 +73,10 @@ return [
         'half_day_amount' => 'Half Work Day Amount This Month',
         'total_work_days' => 'Total Work Days This Month',
         'total_days_off' => 'Total Days Off This Month',
+        'late_detail' => 'Late Detail',
+        'late_sheet_prefix' => 'Late -',
+        'total_late_time' => 'Total Late Time',
+        'late_duration_format' => '[h]" hr "mm" min"',
         'weekdays' => [
             'Sunday',
             'Monday',

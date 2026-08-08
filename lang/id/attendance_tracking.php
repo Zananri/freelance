@@ -73,6 +73,10 @@ return [
         'half_day_amount' => 'Jumlah Setengah Hari Kerja Bulan Ini',
         'total_work_days' => 'Total Hari Kerja Bulan Ini',
         'total_days_off' => 'Total Hari Libur Bulan Ini',
+        'late_detail' => 'Detail Terlambat',
+        'late_sheet_prefix' => 'Telat -',
+        'total_late_time' => 'Total Waktu Terlambat',
+        'late_duration_format' => '[h]" jam "mm" menit"',
         'weekdays' => [
             'Minggu',
             'Senin',

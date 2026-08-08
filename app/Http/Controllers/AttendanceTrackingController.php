@@ -248,6 +248,24 @@ class AttendanceTrackingController extends Controller
             ->orderBy('employees.division_id','asc')
         ->get();
 
+        $monthlyAttendances = Attendance::whereIn('employee_id', $employeeIds)
+            ->whereBetween('date_attendance', [$firstDayOfMonth, $lastDayOfMonth])
+            ->get()
+            ->groupBy('employee_id')
+            ->map(fn ($attendances) => $attendances->keyBy(
+                fn ($attendance) => Carbon::parse($attendance->date_attendance)->toDateString()
+            ));
+
+        $approvedLeaves = EmployeeLeaveRequest::whereIn('employee_id', $employeeIds)
+            ->where('status', 'APPROVED')
+            ->where('start_date', '<=', $lastDayOfMonth)
+            ->where('end_date', '>=', $firstDayOfMonth)
+            ->get()
+            ->groupBy('employee_id');
+
+        $monthDates = collect(range(0, $daysInMonth - 1))
+            ->map(fn ($dayOffset) => Carbon::parse($firstDayOfMonth)->addDays($dayOffset));
+
         $spreadsheet = new Spreadsheet();
         $activeWorksheet = $spreadsheet->getActiveSheet();
     
@@ -312,8 +330,7 @@ class AttendanceTrackingController extends Controller
 
         
 
-        for ($i = 0; $i < $daysInMonth; $i++) {
-            $newAddDate = Carbon::parse($firstDayOfMonth)->copy()->addDays($i);
+        foreach ($monthDates as $i => $newAddDate) {
             $column = Coordinate::stringFromColumnIndex($i + 24); // Mengubah indeks menjadi huruf kolom (1=A, 2=B, ...)
             
             $activeWorksheet->setCellValue(
@@ -350,40 +367,34 @@ class AttendanceTrackingController extends Controller
 
         foreach ($allEmployeeActive as $employeeItem) {
 
-            $lateAttendances = Attendance::where('employee_id', $employeeItem->id)
-                ->whereBetween('date_attendance', [$firstDayOfMonth, $lastDayOfMonth])
-                ->whereNotNull('time_late')
-                ->where('time_late', '!=', '00:00:00');
+            $employeeAttendances = $monthlyAttendances->get($employeeItem->id, collect());
+            $employeeLeaves = $approvedLeaves->get($employeeItem->id, collect());
 
-            $lateUnderOneHour = (clone $lateAttendances)
-                ->where('time_late', '<', '01:00:00')
+            $lateAttendances = $employeeAttendances->filter(
+                fn ($attendance) => !empty($attendance->time_late) && $attendance->time_late !== '00:00:00'
+            );
+
+            $lateUnderOneHour = $lateAttendances
+                ->filter(fn ($attendance) => $attendance->time_late < '01:00:00')
                 ->count();
 
-            $lateOneHourOrMore = (clone $lateAttendances)
-                ->where('time_late', '>=', '01:00:00')
+            $lateOneHourOrMore = $lateAttendances
+                ->filter(fn ($attendance) => $attendance->time_late >= '01:00:00')
                 ->count();
 
-            $attendanceTotalDays = Attendance::where('employee_id', $employeeItem->id)
-                    ->where('date_attendance', '<=', $lastDayOfMonth)
-                    ->where('date_attendance', '>=', $firstDayOfMonth)
-                    ->count();
+            $attendanceTotalDays = $employeeAttendances->count();
 
-            $employeeLeaveAmount = EmployeeLeaveRequest::where('employee_id',$employeeItem->id)
-                    ->where('status','APPROVED')
-                    ->where('leave_type','ANNUAL_LEAVE')
-                    ->where('start_date','>=',$firstDayOfMonth)
-                    ->where('start_date','<=',$lastDayOfMonth)
-                    ->where('end_date','>=',$firstDayOfMonth)
-                    ->where('end_date','<=',$lastDayOfMonth)
+            $monthlyEmployeeLeaves = $employeeLeaves->filter(
+                fn ($leave) => $leave->start_date >= $firstDayOfMonth
+                    && $leave->start_date <= $lastDayOfMonth
+                    && $leave->end_date >= $firstDayOfMonth
+                    && $leave->end_date <= $lastDayOfMonth
+            );
+            $employeeLeaveAmount = $monthlyEmployeeLeaves
+                ->where('leave_type', 'ANNUAL_LEAVE')
                 ->sum('day_amount');
-
-            $employeeSickAmount = EmployeeLeaveRequest::where('employee_id',$employeeItem->id)
-                    ->where('status','APPROVED')
-                    ->where('leave_type','SICK')
-                    ->where('start_date','>=',$firstDayOfMonth)
-                    ->where('start_date','<=',$lastDayOfMonth)
-                    ->where('end_date','>=',$firstDayOfMonth)
-                    ->where('end_date','<=',$lastDayOfMonth)
+            $employeeSickAmount = $monthlyEmployeeLeaves
+                ->where('leave_type', 'SICK')
                 ->sum('day_amount');
 
             $activeWorksheet->setCellValue('A'.$row, $no);
@@ -410,11 +421,15 @@ class AttendanceTrackingController extends Controller
             $activeWorksheet->setCellValue('V'.$row, $attendanceTotalDays);//Total Work Day This Month (23 Days)
             $activeWorksheet->setCellValue('W'.$row, '');//'Total Day Off This Month'
             
-            for ($i = 0; $i < $daysInMonth; $i++) {
+            $hireDate = Carbon::parse($employeeItem->hire_date);
+            $yearHireDate = $hireDate->format('Y');
+            $monthHireDate = $hireDate->format('n');
+            $dayHireDate = $hireDate->day;
+
+            foreach ($monthDates as $i => $newAddDate) {
 
                 $column = Coordinate::stringFromColumnIndex($i + 24); // Mengubah indeks menjadi huruf kolom (1=A, 2=B, ...)
 
-                $newAddDate = Carbon::parse($firstDayOfMonth)->copy()->addDays($i);
                 $weekdayIndex = $newAddDate->format('N');
 
                 if($employeeItem->weekday_off){
@@ -430,20 +445,9 @@ class AttendanceTrackingController extends Controller
                     }
                 }
                 
-                $attendance = Attendance::where('employee_id', $employeeItem->id)
-                    ->where('date_attendance', $newAddDate->toDateString())
-                ->first();
+                $attendance = $employeeAttendances->get($newAddDate->toDateString());
                 
                 if($attendance){
-
-                    
-                    $timeIn = Carbon::parse($attendance->time_in)->format('H:i');
-                    $timeOut = Carbon::parse($attendance->time_out)->format('H:i');
-                    
-                    // if($timeIn){
-                    //     $activeWorksheet->setCellValue($column.$row, 1);// $timeIn." \n ".$timeOut
-                    // }
-
                     $presentValue = '1';
 
                     $activeWorksheet->setCellValue($column.$row, 1);
@@ -501,11 +505,10 @@ class AttendanceTrackingController extends Controller
 
                 }
                 
-                $employeeLeave = EmployeeLeaveRequest::where('employee_id',$employeeItem->id)
-                    ->where('status','APPROVED')
-                    ->where('start_date','<=',$newAddDate->toDateString())
-                    ->where('end_date','>=',$newAddDate->toDateString())
-                ->first();
+                $attendanceDate = $newAddDate->toDateString();
+                $employeeLeave = $employeeLeaves->first(
+                    fn ($leave) => $leave->start_date <= $attendanceDate && $leave->end_date >= $attendanceDate
+                );
 
                 if($employeeLeave){
                     $leaveType = '';
@@ -530,11 +533,6 @@ class AttendanceTrackingController extends Controller
                 }
 
 
-                $hireDate = Carbon::parse($employeeItem->hire_date);
-                $yearHireDate = Carbon::parse($employeeItem->hire_date)->format('Y');
-                $monthHireDate = Carbon::parse($employeeItem->hire_date)->format('n');
-                $dayHireDate = $hireDate->day;
-                
                 if($i+1 == ($dayHireDate-1) && $month == $monthHireDate && $yearHireDate == date('Y') ){
                     $activeWorksheet->getStyle('X'.$row)
                         ->getFill()
@@ -583,6 +581,99 @@ class AttendanceTrackingController extends Controller
         foreach (range('A', 'J') as $column) {
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
+
+        // Create one late detail sheet per department.
+        $totalLateColumn = Coordinate::stringFromColumnIndex($daysInMonth + 4);
+        $durationFormat = __('attendance_tracking.export.late_duration_format');
+        $usedWorksheetTitles = [$activeWorksheet->getTitle()];
+        $employeesByDepartment = $allEmployeeActive->groupBy('department_id');
+
+        foreach ($employeesByDepartment as $departmentEmployees) {
+            $departmentName = $departmentEmployees->first()->department->name_department;
+            $baseTitle = __('attendance_tracking.export.late_sheet_prefix').' '.$departmentName;
+            $baseTitle = trim(preg_replace('/[\\\\\/\?\*\[\]:]/', '-', $baseTitle));
+            $baseTitle = mb_substr($baseTitle ?: __('attendance_tracking.export.late_detail'), 0, 31);
+            $worksheetTitle = $baseTitle;
+            $titleCounter = 2;
+
+            while (in_array(mb_strtolower($worksheetTitle), array_map('mb_strtolower', $usedWorksheetTitles), true)) {
+                $suffix = ' ('.$titleCounter.')';
+                $worksheetTitle = mb_substr($baseTitle, 0, 31 - mb_strlen($suffix)).$suffix;
+                $titleCounter++;
+            }
+            $usedWorksheetTitles[] = $worksheetTitle;
+
+            $lateWorksheet = $spreadsheet->createSheet();
+            $lateWorksheet->setTitle($worksheetTitle);
+            $lateWorksheet->setCellValue('A1', __('attendance_tracking.export.number'));
+            $lateWorksheet->setCellValue('B1', __('attendance_tracking.export.employee_name'));
+            $lateWorksheet->setCellValue('C1', 'EMPLOYEEID');
+
+            foreach ($monthDates as $i => $date) {
+                $column = Coordinate::stringFromColumnIndex($i + 4);
+                $lateWorksheet->setCellValue(
+                    $column.'1',
+                    $date->copy()->locale(app()->getLocale())->translatedFormat('d M')."\n".
+                    $localizedWeekdays[$date->format('w')]
+                );
+
+                if ($date->isSunday()) {
+                    $lateWorksheet->getStyle($column.'1')->getFont()->getColor()->setARGB('ffffffff');
+                    $lateWorksheet->getStyle($column.'1')->getFill()
+                        ->setFillType(Fill::FILL_SOLID)
+                        ->getStartColor()->setARGB('ffd74e51');
+                }
+            }
+
+            $lateWorksheet->setCellValue($totalLateColumn.'1', __('attendance_tracking.export.total_late_time'));
+
+            $lateRow = 2;
+            foreach ($departmentEmployees->values() as $index => $employeeItem) {
+                $employeeAttendances = $monthlyAttendances->get($employeeItem->id, collect());
+                $totalLateMinutes = 0;
+
+                $lateWorksheet->setCellValue('A'.$lateRow, $index + 1);
+                $lateWorksheet->setCellValue('B'.$lateRow, $employeeItem->name);
+                $lateWorksheet->setCellValue('C'.$lateRow, $employeeItem->employee_niks);
+
+                foreach ($monthDates as $i => $monthDate) {
+                    $date = $monthDate->toDateString();
+                    $column = Coordinate::stringFromColumnIndex($i + 4);
+                    $timeLate = $employeeAttendances->get($date)?->time_late;
+                    $lateMinutes = 0;
+
+                    if (!empty($timeLate) && $timeLate !== '00:00:00') {
+                        [$hours, $minutes, $seconds] = array_map('intval', explode(':', $timeLate));
+                        $lateMinutes = (int) ceil(($hours * 3600 + $minutes * 60 + $seconds) / 60);
+                    }
+
+                    // Excel stores durations as a fraction of a day.
+                    $lateWorksheet->setCellValue($column.$lateRow, $lateMinutes / 1440);
+                    $totalLateMinutes += $lateMinutes;
+                }
+
+                $lateWorksheet->setCellValue($totalLateColumn.$lateRow, $totalLateMinutes / 1440);
+                $lateRow++;
+            }
+
+            $lateLastRow = max(1, $lateRow - 1);
+            $lateWorksheet->getStyle('A1:'.$totalLateColumn.$lateLastRow)->applyFromArray($dataStyle);
+            $lateWorksheet->getStyle('A1:'.$totalLateColumn.$lateLastRow)
+                ->getAlignment()
+                ->setWrapText(true)
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
+            $lateWorksheet->getStyle('D2:'.$totalLateColumn.$lateLastRow)
+                ->getNumberFormat()
+                ->setFormatCode($durationFormat);
+            $lateWorksheet->getStyle('A1:'.$totalLateColumn.'1')->getFont()->setBold(true);
+            $lateWorksheet->getColumnDimension('B')->setAutoSize(true);
+            $lateWorksheet->getColumnDimension('C')->setAutoSize(true);
+            $lateWorksheet->getColumnDimension($totalLateColumn)->setAutoSize(true);
+        }
+
+        // Keep the original attendance sheet as the first sheet shown when opening the export.
+        $spreadsheet->setActiveSheetIndex(0);
  
         $fileName = __('attendance_tracking.export.filename').' '.$monthFull.' '.$year.'.xlsx';
         $tempFileName = tempnam(sys_get_temp_dir(), $fileName);
