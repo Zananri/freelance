@@ -874,18 +874,45 @@ class AttendanceController extends Controller
             }
 
 
-            $checkoutStart = $timeEnd->copy()->subMinutes(15);
+            $attendance = Attendance::where('employee_id', $employee->id)
+                ->where(function ($query) {
+                    $query->whereNull('time_out')
+                        ->orWhere('time_out', '00:00:00');
+                })
+                ->whereHas('attendanceTrackings', function ($query) {
+                    $query->where('type', 'check_in');
+                })
+                ->orderByDesc('date_attendance')
+                ->orderByDesc('id')
+                ->first();
 
-            if ($now >= $checkoutStart && $now <= $rangeEnd) {
-                $dateAttendance = $rangeStart->addHours(2)->toDateString();
-            } else {
-                throw new \Exception('Check-out is only allowed from 15 minutes before the shift ends.');
+            if (!$attendance) {
+                throw new \Exception('Please Check in first');
             }
 
-
-            $attendance = Attendance::where('employee_id', $employee->id)
-                ->where('date_attendance', $dateAttendance)
+            $dateAttendance = Carbon::parse($attendance->date_attendance)->toDateString();
+            $attendanceEmployeeShift = EmployeeShift::with('shift')
+                ->where('employee_id', $employee->id)
+                ->whereDate('date_shift', $dateAttendance)
                 ->first();
+            $attendanceShiftStart = $attendanceEmployeeShift?->shift?->time_start
+                ?: $attendance->shift_time_start
+                ?: $employee->shift->time_start;
+            $attendanceShiftEnd = $attendanceEmployeeShift?->shift?->time_end
+                ?: $attendance->shift_time_end
+                ?: $employee->shift->time_end;
+            $shiftStartAt = Carbon::parse($dateAttendance.' '.$attendanceShiftStart);
+            $shiftEndAt = Carbon::parse($dateAttendance.' '.$attendanceShiftEnd);
+
+            if ($shiftEndAt < $shiftStartAt) {
+                $shiftEndAt->addDay();
+            }
+
+            $checkoutStart = $shiftEndAt->copy()->subMinutes(15);
+
+            if ($now < $checkoutStart) {
+                throw new \Exception('Check-out is only allowed from 15 minutes before the shift ends.');
+            }
 
             if ($attendance) {
 
@@ -931,12 +958,7 @@ class AttendanceController extends Controller
                     throw new \Exception('Check in first');
                 }
 
-                $employeeShiftForCheckout = null;
-                if ($employeeShiftToday) {
-                    $employeeShiftForCheckout = $employeeShiftToday;
-                } elseif ($employeeShiftYesterday) {
-                    $employeeShiftForCheckout = $employeeShiftYesterday;
-                }
+                $employeeShiftForCheckout = $attendanceEmployeeShift;
 
                 if (!$employeeShiftForCheckout) {
                     throw new \Exception('Shift not found');
