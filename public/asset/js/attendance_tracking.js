@@ -166,6 +166,7 @@ function getAttendanceTrackingData(month,year)
             var employeeLeave = response.data.employeeLeave;
             
             $('.employee-row .time-in, .employee-row  .time-out').text(' ');
+            $('.employee-row .late-total').text('0');
 
             $('.table-attendance .col-day').removeClass('is-late');
             $('.table-attendance .col-day').removeClass('annual_leave');
@@ -187,7 +188,11 @@ function getAttendanceTrackingData(month,year)
 
 
                 if(attendance.time_late != null && attendance.time_late != '00:00:00'){
-                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"]').addClass('is-late');   
+                    const $employeeRow = $('[data-employee-id="'+attendance.employee_id+'"]');
+                    $employeeRow.find('[data-day="'+dayOfMonth+'"]').addClass('is-late');
+                    $employeeRow.find('.late-total').text(function (_, currentValue) {
+                        return (parseInt(currentValue, 10) || 0) + 1;
+                    });
                 }
 
                 $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-in').text(timeIn);

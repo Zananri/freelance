@@ -350,6 +350,19 @@ class AttendanceTrackingController extends Controller
 
         foreach ($allEmployeeActive as $employeeItem) {
 
+            $lateAttendances = Attendance::where('employee_id', $employeeItem->id)
+                ->whereBetween('date_attendance', [$firstDayOfMonth, $lastDayOfMonth])
+                ->whereNotNull('time_late')
+                ->where('time_late', '!=', '00:00:00');
+
+            $lateUnderOneHour = (clone $lateAttendances)
+                ->where('time_late', '<', '01:00:00')
+                ->count();
+
+            $lateOneHourOrMore = (clone $lateAttendances)
+                ->where('time_late', '>=', '01:00:00')
+                ->count();
+
             $attendanceTotalDays = Attendance::where('employee_id', $employeeItem->id)
                     ->where('date_attendance', '<=', $lastDayOfMonth)
                     ->where('date_attendance', '>=', $firstDayOfMonth)
@@ -383,8 +396,8 @@ class AttendanceTrackingController extends Controller
             $activeWorksheet->setCellValue('H'.$row, $employeeItem->hire_date);//'Join Date'
             $activeWorksheet->setCellValue('I'.$row, '');//'Periode Kerja'
             $activeWorksheet->setCellValue('J'.$row, '');//'Penempatan' $employeeItem->office
-            $activeWorksheet->setCellValue('K'.$row, '');//'Time Lateness 1 Hour'
-            $activeWorksheet->setCellValue('L'.$row, '');//'Time Lateness 1 > Hour'
+            $activeWorksheet->setCellValue('K'.$row, $lateUnderOneHour);
+            $activeWorksheet->setCellValue('L'.$row, $lateOneHourOrMore);
             $activeWorksheet->setCellValue('M'.$row, '');//'Overtime off work day'
             $activeWorksheet->setCellValue('N'.$row, '');//'Overtime on Work day'
             $activeWorksheet->setCellValue('O'.$row, $employeeSickAmount);//'Sick'

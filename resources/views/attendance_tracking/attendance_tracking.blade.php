@@ -84,6 +84,7 @@
                                 <thead>
                                     <tr>
                                         <th>{{ __('attendance_tracking.employee') }}</th>
+                                        <th class="col-late-summary">{{ __('attendance_tracking.late') }}</th>
                                         @for ($i = 1; $i <= 31 ; $i++)
                                             <th class="col-day" data-day="{{ $i }}">
                                                 <div class="calendar-week-short"></div>
@@ -111,6 +112,10 @@
                                                         </div>
                                                     </div>
                                                 </div>
+                                            </td>
+
+                                            <td class="col-late-summary text-center">
+                                                <span class="late-total">0</span>
                                             </td>
 
                                              @for ($j = 1; $j <= 31 ; $j++)

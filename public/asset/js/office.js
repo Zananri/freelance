@@ -173,14 +173,17 @@ $(function () {
             const readLabel = n.is_read ? '<div class="notification-read-label">Read</div>' : '';
             const unreadDot = n.is_read ? '' : '<div class="notification-unread-dot"></div>';
 
-            const leaveKeywords = /absen|leave|late|telat|sick|sakit|izin|cuti/i;
+            const lateKeywords = /late|telat|terlambat/i;
+            const leaveKeywords = /absen|leave|sick|sakit|izin|cuti/i;
+            const isLateNotif = lateKeywords.test(n.type || '') || lateKeywords.test(n.title || '');
             const isLeaveNotif = leaveKeywords.test(n.type || '') || leaveKeywords.test(n.title || '');
+            const redirectPath = isLateNotif ? '/attendance_tracking' : (isLeaveNotif ? '/leave' : '');
 
             return `
                 <div class="notification-item position-relative d-flex align-items-start"
                     data-notification-id="${n.id}"
-                    data-redirect="${isLeaveNotif ? '/leave' : ''}"
-                    style="${isLeaveNotif ? 'cursor:pointer;' : ''}">
+                    data-redirect="${redirectPath}"
+                    style="${redirectPath ? 'cursor:pointer;' : ''}">
                     ${unreadDot}
                     <div class="notification-content" style="position:relative;width:100%;">
                         <div class="notification-title">${n.title}</div>

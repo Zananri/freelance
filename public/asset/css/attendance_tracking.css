@@ -200,7 +200,7 @@
     background-color: #9ca3af7e;
     border-radius: 4px;
 }
- 
+
 
 .dropdown-month .dropdown-toggle::after {
     margin-left: 10px;
@@ -341,6 +341,27 @@
     z-index:1;
     padding: 0;
     width: 210px;
+    min-width: 210px;
+}
+
+.table-attendance .col-late-summary {
+    position: sticky;
+    left: 210px;
+    width: 72px;
+    min-width: 72px;
+    vertical-align: middle;
+    background-color: inherit;
+    z-index: 1;
+}
+
+.table-attendance thead .col-late-summary {
+    background-color: #F0F1F8;
+    z-index: 2;
+}
+
+.table-attendance .late-total {
+    font-weight: 600;
+    color: #d74e51;
 }
 
 .table-attendance .employee-photo{
@@ -684,4 +705,3 @@
     opacity: 0.45;
     cursor: not-allowed;
 }
- 
