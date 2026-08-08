@@ -611,6 +611,7 @@ class AttendanceTrackingController extends Controller
 
             foreach ($monthDates as $i => $date) {
                 $column = Coordinate::stringFromColumnIndex($i + 4);
+                $lateWorksheet->getColumnDimension($column)->setWidth(16);
                 $lateWorksheet->setCellValue(
                     $column.'1',
                     $date->copy()->locale(app()->getLocale())->translatedFormat('d M')."\n".
@@ -669,7 +670,7 @@ class AttendanceTrackingController extends Controller
             $lateWorksheet->getStyle('A1:'.$totalLateColumn.'1')->getFont()->setBold(true);
             $lateWorksheet->getColumnDimension('B')->setAutoSize(true);
             $lateWorksheet->getColumnDimension('C')->setAutoSize(true);
-            $lateWorksheet->getColumnDimension($totalLateColumn)->setAutoSize(true);
+            $lateWorksheet->getColumnDimension($totalLateColumn)->setWidth(22);
         }
 
         // Keep the original attendance sheet as the first sheet shown when opening the export.
