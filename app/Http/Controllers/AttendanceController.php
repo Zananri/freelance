@@ -895,11 +895,13 @@ class AttendanceController extends Controller
                 ->where('employee_id', $employee->id)
                 ->whereDate('date_shift', $dateAttendance)
                 ->first();
-            $attendanceShiftStart = $attendanceEmployeeShift?->shift?->time_start
-                ?: $attendance->shift_time_start
+            // Prefer shift snapshot stored on attendance to keep checkout validation
+            // consistent with the exact shift used during check-in.
+            $attendanceShiftStart = $attendance->shift_time_start
+                ?: $attendanceEmployeeShift?->shift?->time_start
                 ?: $employee->shift->time_start;
-            $attendanceShiftEnd = $attendanceEmployeeShift?->shift?->time_end
-                ?: $attendance->shift_time_end
+            $attendanceShiftEnd = $attendance->shift_time_end
+                ?: $attendanceEmployeeShift?->shift?->time_end
                 ?: $employee->shift->time_end;
             $shiftStartAt = Carbon::parse($dateAttendance.' '.$attendanceShiftStart);
             $shiftEndAt = Carbon::parse($dateAttendance.' '.$attendanceShiftEnd);
