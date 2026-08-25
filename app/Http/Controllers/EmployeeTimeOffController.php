@@ -54,8 +54,9 @@ class EmployeeTimeOffController extends Controller
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after_or_equal:start_date',
 
-                'file_1' => 'required_unless:leave_type,ANNUAL_LEAVE|nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
-                'file_2' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
+                // iPhone/iPad commonly uploads photos as HEIC/HEIF instead of JPEG.
+                'file_1' => 'required_unless:leave_type,ANNUAL_LEAVE|nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif,heic,heif|max:10048',
+                'file_2' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif,heic,heif|max:10048',
                 'contact_phone' => 'required_if:leave_type,ANNUAL_LEAVE|nullable|string|max:20',
                 'signature_data' => ['required_if:leave_type,ANNUAL_LEAVE', 'nullable', 'string', 'regex:/^data:image\/png;base64,[A-Za-z0-9+\/=]+$/'],
             ]);
@@ -246,8 +247,9 @@ class EmployeeTimeOffController extends Controller
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after_or_equal:start_date',
 
-                'file_1' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
-                'file_2' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
+                // iPhone/iPad commonly uploads photos as HEIC/HEIF instead of JPEG.
+                'file_1' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif,heic,heif|max:10048',
+                'file_2' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif,heic,heif|max:10048',
                 'contact_phone' => 'required_if:leave_type,ANNUAL_LEAVE|nullable|string|max:20',
                 'signature_data' => ['required_if:leave_type,ANNUAL_LEAVE', 'nullable', 'string', 'regex:/^data:image\/png;base64,[A-Za-z0-9+\/=]+$/'],
             ]);
