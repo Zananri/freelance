@@ -27,8 +27,8 @@
     
     <link href="{{ asset('asset/css/app.css') }}" rel="stylesheet">
     <link href="{{ asset('asset/css/guest.css') }}" rel="stylesheet">
-
-    
+ 
+     
     <style>
         body{
             background-image: url('{{ asset('asset/img/background/light-1.jpg') }}')
