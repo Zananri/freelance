@@ -688,13 +688,13 @@
 
                                 <div class="manual-leave-file mb-3 d-none">
                                     <label for="file-1" class="form-label">{{ __('attendance.file_1') }}</label>
-                                    <input class="form-control" type="file" name="file_1" id="file-1" accept="image/*,.pdf,.doc,.docx,.heic,.heif">
+                                    <input class="form-control" type="file" name="file_1" id="file-1" accept="image/*,.pdf">
                                     <div class="invalid-feedback fs-12">Please add a file</div>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="file-2" class="form-label">{{ __('attendance.file_2') }}</label>
-                                    <input class="form-control" type="file" name="file_2" id="file-2"  accept="image/*,.pdf,.doc,.docx,.heic,.heif">
+                                    <input class="form-control" type="file" name="file_2" id="file-2"  accept="image/*,.pdf">
                                     <div class="invalid-feedback fs-12">Please add a file</div>
                                 </div>
 
@@ -820,7 +820,7 @@
                                         <span class="material-symbols-outlined fs-12 ms-2 cursor-pointer remove-file-1" data-bs-toggle="tooltip" data-bs-title="Remove File">close</span>
                                     </div>
                                     
-                                    <input class="form-control" type="file" name="file_1" id="file-1-edit"  accept="image/*,.pdf,.doc,.docx,.heic,.heif">
+                                    <input class="form-control" type="file" name="file_1" id="file-1-edit"  accept="image/*,.pdf">
                                     <div class="invalid-feedback fs-12 ">Please add a file</div>
                                 </div>
 
@@ -832,7 +832,7 @@
                                         <span class="material-symbols-outlined fs-12 ms-2 cursor-pointer remove-file-2" data-bs-toggle="tooltip" data-bs-title="Remove File">close</span>
                                     </div>
 
-                                    <input class="form-control" type="file" name="file_2" id="file-2-edit"  accept="image/*,.pdf,.doc,.docx,.heic,.heif">
+                                    <input class="form-control" type="file" name="file_2" id="file-2-edit"  accept="image/*,.pdf">
                                     <div class="invalid-feedback fs-12">Please add a file</div>
                                 </div>
 
